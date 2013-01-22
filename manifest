@@ -1,0 +1,8 @@
+Manifest-Version: 1.0
+Implementation-Vendor: ESRI
+Implementation-Title: com.esri.core.geometry
+Specification-Vendor: ESRI
+Name: com/esri/core/geometry
+Created-By: 1.6.0_02 (Sun Microsystems Inc.)
+Specification-Title: ESRI Java Geometry Library API
+Specification-Version: 10.2
