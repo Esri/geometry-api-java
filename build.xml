@@ -2,6 +2,7 @@
 <project default="all">
 
 	<property name="dir.src" value="src" />
+	<property name="dir.unittest" value="unittest" />
 	<property name="dir.build" value="bin" />
 	<property name="dir.javadoc" value="javadoc" />
 	<property name="dir.result" value="results" />
@@ -22,7 +23,7 @@
 	<target name="build">
 		<delete dir="${dir.build}" />
 		<mkdir dir="${dir.build}" />
-		<javac srcdir="." includes="src/**, unittest/**"  classpathref="project.classpath" destdir="${dir.build}" debug="true" />
+		<javac srcdir="." includes="src/**"  classpathref="project.classpath" destdir="${dir.build}" debug="true" />
 		<copy todir="${dir.build}">
 			<fileset dir="${dir.src}" excludes="**/*.java" />
 		</copy>
@@ -35,8 +36,16 @@
 			<fileset dir="${dir.src}" />
 		</jar>
 	</target>
+
+	<target name="build.unittest" depends = "jar">
+		<javac srcdir="." includes="unittest/**"  classpathref="project.classpath" destdir="${dir.build}" debug="true" />
+		<copy todir="${dir.build}">
+			<fileset dir="${dir.unittest}" excludes="**/*.java" />
+		</copy>
+	</target>
 	
-	<target name="execute">
+	
+	<target name="execute" depends = "build.unittest">
 			<tstamp></tstamp>
 			<property name="dir.result.today" location="${dir.result}/${DSTAMP}/${TSTAMP}" />
 			
