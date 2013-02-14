@@ -62,10 +62,6 @@
 				<batchtest todir="${dir.result.today}/xml" fork="yes">
 					<fileset dir="${dir.build}">
 						<include name="**/Test*.class" />
-						<include name="**/Chec*.class" />
-						<include name="**/GeomToJSonExportSRFromWkiOrWkt_CR181369.class" />
-						<include name="**/ProjectNBuffer.class" />
-						<include name="**/FailedTest.class" />
 					</fileset>
 				</batchtest>
 			</junit>
