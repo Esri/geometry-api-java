@@ -7,9 +7,9 @@
 	<property name="dir.javadoc" value="javadoc" />
 	<property name="dir.result" value="results" />
 	<property name="dir.root" value="." />
+	<property name="file.jar.name" value="esri-geometry-api-java${ant.java.version}.jar" />
 
 	<path id="project.classpath">
-		<pathelement location="${dir.root}/DepFiles/Esri/jsg_sdk.jar" />
 		<pathelement location="${dir.root}/DepFiles/public/jackson-core-asl-1.9.11.jar" />
 		<pathelement location="${dir.root}/DepFiles/unittest/jersey-client-1.5.jar" />
 		<pathelement location="${dir.root}/DepFiles/unittest/jersey-core-1.5.jar" />
@@ -30,8 +30,8 @@
 	</target>
 
 	<target name="jar" depends="build">
-		<delete file="esri-geometry-api.jar" />
-		<jar destfile="esri-geometry-api.jar" compress="false" keepcompression="false">
+		<delete file="${file.jar.name}" />
+		<jar destfile="${file.jar.name}" compress="false" keepcompression="false">
 			<fileset dir="${dir.build}" />
 			<fileset dir="${dir.src}" />
 		</jar>
@@ -56,7 +56,7 @@
 				<jvmarg value="-Xss2m" />
 				<classpath refid="project.classpath" />
 				<sysproperty key="dir.report.test" value="${dir.result.today}" />
-				<sysproperty key="arcgis.version.target" value="10.1.2" />
+				<sysproperty key="arcgis.version.target" value="10.2" />
 				<sysproperty key="arcgis.product.target" value="desktop" />
 				<formatter type="xml" />
 				<batchtest todir="${dir.result.today}/xml" fork="yes">
