@@ -7,7 +7,7 @@
 	<property name="dir.javadoc" value="javadoc" />
 	<property name="dir.result" value="results" />
 	<property name="dir.root" value="." />
-	<property name="file.jar.name" value="esri-geometry-api-java${ant.java.version}.jar" />
+	<property name="file.jarname" value="esri-geometry-api-java${ant.java.version}.jar" />
 
 	<path id="project.classpath">
 		<pathelement location="${dir.root}/DepFiles/public/jackson-core-asl-1.9.11.jar" />
@@ -30,8 +30,8 @@
 	</target>
 
 	<target name="jar" depends="build">
-		<delete file="${file.jar.name}" />
-		<jar destfile="${file.jar.name}" compress="false" keepcompression="false">
+		<delete file="${file.jarname}" />
+		<jar destfile="${file.jarname}" compress="false" keepcompression="false">
 			<fileset dir="${dir.build}" />
 			<fileset dir="${dir.src}" />
 		</jar>
