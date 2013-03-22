@@ -7,10 +7,11 @@
 	<property name="dir.javadoc" value="javadoc" />
 	<property name="dir.result" value="results" />
 	<property name="dir.root" value="." />
-	<property name="file.jarname" value="esri-geometry-api-java${ant.java.version}.jar" />
+	<property name="file.jarname" value="esri-geometry-api.jar" />
 
 	<path id="project.classpath">
 		<pathelement location="${dir.root}/DepFiles/public/jackson-core-asl-1.9.11.jar" />
+		<pathelement location="${dir.root}/DepFiles/public/java-json.jar" />
 		<pathelement location="${dir.root}/DepFiles/unittest/jersey-client-1.5.jar" />
 		<pathelement location="${dir.root}/DepFiles/unittest/jersey-core-1.5.jar" />
 		<pathelement location="${dir.root}/DepFiles/unittest/junit-4.8.2.jar" />
@@ -18,64 +19,64 @@
 		<pathelement location="${dir.build}" />
 	</path>
 
-	<target name="all" depends="build, jar, execute, report, javadoc" />
+	<target name="all" depends="build, jar, execute, javadoc" />
 
 	<target name="build">
 		<delete dir="${dir.build}" />
 		<mkdir dir="${dir.build}" />
 		<javac srcdir="." includes="src/**"  classpathref="project.classpath" destdir="${dir.build}" debug="true" />
 		<copy todir="${dir.build}">
-			<fileset dir="${dir.src}" excludes="**/*.java" />
+			<fileset dir="${dir.src}" includes = "**/*.txt" />
 		</copy>
 	</target>
 
 	<target name="jar" depends="build">
 		<delete file="${file.jarname}" />
-		<jar destfile="${file.jarname}" compress="false" keepcompression="false">
+		<jar destfile="${file.jarname}" compress="true" keepcompression="true">
 			<fileset dir="${dir.build}" />
-			<fileset dir="${dir.src}" />
 		</jar>
 	</target>
 
 	<target name="build.unittest" depends = "jar">
 		<javac srcdir="." includes="unittest/**"  classpathref="project.classpath" destdir="${dir.build}" debug="true" />
 		<copy todir="${dir.build}">
-			<fileset dir="${dir.unittest}" excludes="**/*.java" />
+			<fileset dir="${dir.unittest}" includes="**/*.txt" />
 		</copy>
 	</target>
-	
-	
+
+
 	<target name="execute" depends = "build.unittest">
-			<tstamp></tstamp>
-			<property name="dir.result.today" location="${dir.result}/${DSTAMP}/${TSTAMP}" />
-			
-			<mkdir dir="${dir.result}" />
-			<mkdir dir="${dir.result.today}/xml" />
+		<tstamp>
+		</tstamp>
+		<property name="dir.result.today" location="${dir.result}/${DSTAMP}/${TSTAMP}" />
 
-			<junit fork="yes" printsummary="withOutAndErr" haltonfailure="no" haltonerror="no">
-				<jvmarg value="-Xss2m" />
-				<classpath refid="project.classpath" />
-				<sysproperty key="dir.report.test" value="${dir.result.today}" />
-				<sysproperty key="arcgis.version.target" value="10.2" />
-				<sysproperty key="arcgis.product.target" value="desktop" />
-				<formatter type="xml" />
-				<batchtest todir="${dir.result.today}/xml" fork="yes">
-					<fileset dir="${dir.build}">
-						<include name="**/Test*.class" />
-					</fileset>
-				</batchtest>
-			</junit>
-		</target>
+		<mkdir dir="${dir.result}" />
+		<mkdir dir="${dir.result.today}/xml" />
 
-		<target name="report">
-				
-			<junitreport todir="${dir.result.today}/xml">
-				<fileset dir="${dir.result.today}/xml">
-					<include name="**/*.xml" />
+		<junit fork="yes" printsummary="withOutAndErr" haltonfailure="no" haltonerror="no">
+			<jvmarg value="-Xss2m" />
+			<classpath refid="project.classpath" />
+			<sysproperty key="dir.report.test" value="${dir.result.today}" />
+			<sysproperty key="arcgis.version.target" value="10.2" />
+			<sysproperty key="arcgis.product.target" value="desktop" />
+			<formatter type="xml" />
+			<batchtest todir="${dir.result.today}/xml" fork="yes">
+				<fileset dir="${dir.build}">
+					<include name="**/Test*.class" />
 				</fileset>
-				<report format="frames" todir="${dir.result.today}" />
-			</junitreport>
-		</target>
+			</batchtest>
+		</junit>
+	</target>
+
+	<target name="report" depends="execute">
+			
+		<junitreport todir="${dir.result.today}/xml">
+			<fileset dir="${dir.result.today}/xml">
+				<include name="**/*.xml" />
+			</fileset>
+			<report format="frames" todir="${dir.result.today}" />
+		</junitreport>
+	</target>
 	
 	<target name="javadoc" depends="jar">
 		<javadoc access="public" author="true" classpathref="project.classpath" destdir="${dir.javadoc}" doctitle="Esri-geometryapi" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" packagenames="com.esri.core.geometry" source="1.5" sourcepath="${dir.src}" splitindex="true" use="true" version="true">
@@ -83,4 +84,5 @@
 			<link href="http://docs.oracle.com/javase/6/docs/api/" />
 		</javadoc>
 	</target>
+
 </project>
