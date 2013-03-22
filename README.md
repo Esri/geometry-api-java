@@ -1,23 +1,23 @@
 # geometry-api-java
 
-This is the Esri Geometry API for Java that can be used to enable spatial data processing in 3rd-party data-processing solutions.  Developers of custom MapReduce-based applications for Hadoop can use this API for spatial processing of data in the Hadoop system.  The API is also used by the [Hive UDF’s](https://github.com/Esri/spatial-framework-for-hadoop) and could be used by developers building geometry functions for 3rd-party applications such as [Cassandra]( https://cassandra.apache.org/), [HBase](http://hbase.apache.org/), [Storm](http://storm-project.net/) and many other Java-based “big data” applications.
+The Esri Geometry API for Java can be used to enable spatial data processing in 3rd-party data-processing solutions.  Developers of custom MapReduce-based applications for Hadoop can use this API for spatial processing of data in the Hadoop system.  The API is also used by the [Hive UDF’s](https://github.com/Esri/spatial-framework-for-hadoop) and could be used by developers building geometry functions for 3rd-party applications such as [Cassandra]( https://cassandra.apache.org/), [HBase](http://hbase.apache.org/), [Storm](http://storm-project.net/) and many other Java-based “big data” applications.
 
 ## Features
-* API methods to create simple geometries directly with API, or by importing from supported formats: JSON, WKT, Shape
-* API methods for spatial operations: union, difference, intersect, clip, cut, buffer
-* API methods for topological relationship tests: equals, within, contains, crosses, touches
+* API methods to create simple geometries directly with the API, or by importing from supported formats: JSON, WKT, and Shape
+* API methods for spatial operations: union, difference, intersect, clip, cut, and buffer
+* API methods for topological relationship tests: equals, within, contains, crosses, and touches
 
 ## Instructions
 
-1. Download and unzip the .zip file or clone the repository.
-2. Deploy esri-geometry-api.jar to the target system, add a reference to it in a Java project.
+1. Download and unzip the .zip file, or clone the repository.
+2. Deploy the esri-geometry-api.jar to the target system, add a reference to it in a Java project.
 3. To build the jar, Javadoc, and run the unit-tests, run the “ant” command-line command from within the cloned directory. The ant tool runs the “build.xml” script which creates the jar, runs the unit tests, then creates the Javadoc documentation files.
 
 ## Requirements
 
-* Java JDK 1.6 or greater
+* Java JDK 1.6 or greater.
 * Experience developing MapReduce applications for [Apache Hadoop](http://hadoop.apache.org/).
-* Familiarity with text formats of spatial data, such as JSON or WKT, would be useful. 
+* Familiarity with text-based spatial data formats such as JSON or WKT would be useful. 
 
 ## Resources
 
