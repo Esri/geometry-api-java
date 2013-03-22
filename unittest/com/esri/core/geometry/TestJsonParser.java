@@ -39,7 +39,7 @@ public class TestJsonParser extends TestCase {
 		assertTrue(spatialReferenceWGS84.getID() == point3DMP
 				.getSpatialReference().getID());
 	}
-
+
 	@Test
 	public void test3DPoint1() throws JsonParseException, IOException {
 		Point point1 = new Point(10.0, 20.0);

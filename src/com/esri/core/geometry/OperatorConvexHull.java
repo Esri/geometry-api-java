@@ -50,7 +50,7 @@ public abstract class OperatorConvexHull extends Operator {
 	 *Calculates the convex hull geometry.
 	 *@param geom The input geometry.
 	 *@param progress_tracker The progress tracker, that allows to cancel the lengthy operation.
-	 *\return Returns the convex hull.
+	 *@return Returns the convex hull.
 	 *
 	 *For a Point - returns the same point.
 	 *For an Envelope - returns the same envelope.
@@ -65,8 +65,8 @@ public abstract class OperatorConvexHull extends Operator {
 	/**
 	 *Checks whether a Geometry is convex.
 	 *@param geom The input geometry to test for convex.
-	 *@progress_tracker The progress tracker.
-	 *\returns Returns true if the geometry is convex.
+	 *@param progress_tracker The progress tracker.
+	 *@return Returns true if the geometry is convex.
 	 */
 	abstract public boolean isConvex(Geometry geom,
 			ProgressTracker progress_tracker);

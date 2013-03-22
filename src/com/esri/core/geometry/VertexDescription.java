@@ -185,11 +185,11 @@ public class VertexDescription {
 	 *            The index of the attribute in the description. Max value is
 	 *            GetAttributeCount() - 1.
 	 */
-	public final int getSemantics(int attrbuteIndex) {
-		if (attrbuteIndex < 0 || attrbuteIndex > m_attributeCount)
+	public final int getSemantics(int attributeIndex) {
+		if (attributeIndex < 0 || attributeIndex > m_attributeCount)
 			throw new IllegalArgumentException();
 
-		return m_semantics[attrbuteIndex];
+		return m_semantics[attributeIndex];
 	}
 
 	/**

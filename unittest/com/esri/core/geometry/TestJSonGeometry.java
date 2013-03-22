@@ -17,7 +17,7 @@ public class TestJSonGeometry extends TestCase {
 	protected void tearDown() throws Exception {
 		super.tearDown();
 	}
-
+
 	@Test
 	public void testGetSpatialReferenceFor4326() {
 		String completeStr = "GEOGCS[\"GCS_Sphere\",DATUM[\"D_Sphere\","
@@ -28,7 +28,7 @@ public class TestJSonGeometry extends TestCase {
 		SpatialReference sr = SpatialReference.create(completeStr);
 		assertNotNull(sr);
 	}
-}
+}
 
 final class HashMapClassForTesting {
 	static Map<Integer, String> SR_WKI_WKTs = new HashMap<Integer, String>() {

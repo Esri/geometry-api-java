@@ -139,7 +139,7 @@ public abstract class Segment extends Geometry implements Serializable {
 	 * 
 	 * @param semantics
 	 *            The attribute semantics.
-	 * @param valueIn
+	 * @param value
 	 *            is the array to write values to. The attribute type and the
 	 *            number of elements must match the persistence type, as well as
 	 *            the number of components of the attribute.

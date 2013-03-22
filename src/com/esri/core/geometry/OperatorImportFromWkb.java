@@ -55,7 +55,7 @@ public abstract class OperatorImportFromWkb extends Operator {
 	 * @return Returns the imported OGCStructure.
 	 */
 	public abstract OGCStructure executeOGC(int importFlags,
-			ByteBuffer wktBuffer, ProgressTracker progress_tracker);
+			ByteBuffer wkbBuffer, ProgressTracker progress_tracker);
 
 	public static OperatorImportFromWkb local() {
 		return (OperatorImportFromWkb) OperatorFactoryLocal.getInstance()

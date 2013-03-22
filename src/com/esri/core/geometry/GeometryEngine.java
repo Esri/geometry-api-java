@@ -37,7 +37,7 @@ public class GeometryEngine {
 
 	private static OperatorFactoryLocal factory = OperatorFactoryLocal
 			.getInstance();
-
+
 	/**
 	 * Imports the MapGeometry from its JSON representation. M and Z values are
 	 * not imported from JSON representation.
@@ -153,7 +153,7 @@ public class GeometryEngine {
 	/**
 	 * Imports a geometry from a geoJson string.
 	 * @param geoJson The string containing the geometry in geoJson format.
-	 * @param importFlags Use the {@link geoJsonImportFlags} interface.
+	 * @param importFlags Use the {@link GeoJsonImportFlags} interface.
 	 * @param geometryType The required type of the Geometry to be imported. Use Geometry.Type.Unknown if the geometry type needs to be determined from the geoJson context.
 	 * @return The geometry.
 	 * @throws GeometryException when the geometryType is not Geometry.Type.Unknown and the geoJson contains a geometry that cannot be converted to the given geometryType.
@@ -560,18 +560,15 @@ public class GeometryEngine {
 
 		return cutsList.toArray(new Geometry[0]);
 	}
-
+
 	/**
 	 * Calculates a buffer polygon for each geometry at each of the 
-	 * corresponding specified distances.  It is assumed all geometries have
-	 * the same spatial reference.  The unit variable defines the unit of
-	 * all the distances.  If unit == null then the unit of distances is assumed
-	 * to be that of the spatial reference. There is an option to union the 
+	 * corresponding specified distances.  It is assumed that all geometries have
+	 * the same spatial reference. There is an option to union the 
 	 * returned geometries.
 	 * @param geometries An array of geometries to be buffered.
 	 * @param spatialReference The spatial reference of the geometries.
 	 * @param distances The corresponding distances for the input geometries to be buffered.
-	 * @param unit The unit of the values in the distances array.  Must be of the same unit type as spatial reference.  
 	 * @param toUnionResults TRUE if all geometries buffered at a given distance are to be unioned into a single polygon.
 	 * @return The buffer of the geometries.
 	 * */
@@ -606,15 +603,13 @@ public class GeometryEngine {
 			return buffers;
 		}
 	}
-
+
 	/**
 	 * Calculates a buffer polygon of the geometry as specified by the 
-	 * distance input.  If unit == null, then the distance is assumed 
-	 * to be in the unit of the spatial reference.
+	 * distance input. The buffer is implemented in the xy-plane.
 	 * @param geometry Geometry to be buffered.
 	 * @param spatialReference The spatial reference of the geometry.
-	 * @param distance The specified distance for buffer.
-	 * @param unit The unit of the values in the distances array.  Must be of the same unit type as spatial reference.
+	 * @param distance The specified distance for buffer. Same units as the spatial reference.
 	 * @return The buffer polygon at the specified distances.
 	 * */
 	public static Polygon buffer(Geometry geometry,
@@ -631,8 +626,8 @@ public class GeometryEngine {
 	/**
 	 * Calculates the convex hull geometry.
 	 * 
-	 * @param geometry
-	 *            The input geometry. \return Returns the convex hull.
+	 * @param geometry The input geometry.
+	 * @return Returns the convex hull.
 	 * 
 	 *            For a Point - returns the same point. For an Envelope -
 	 *            returns the same envelope. For a MultiPoint - If the point
@@ -781,7 +776,7 @@ public class GeometryEngine {
 		boolean result = op.isSimpleAsFeature(geometry, spatialReference, null);
 		return result;
 	}
-
+
 	/**
 	 * A geodesic distance is the shortest distance between any two points on the earth's surface when the earth's
 	 * surface is approximated by a spheroid. The function returns the shortest distance between two points on the

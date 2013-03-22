@@ -38,7 +38,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 		// However, the tests pass or fail regardless of what that method
 		// returns.
 	}
-
+
 	boolean testPoint() throws JsonParseException, IOException {
 		boolean bAnswer = true;
 		Point point1 = new Point(10.0, 20.0);

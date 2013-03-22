@@ -98,4 +98,4 @@ public class TestWKBSupport extends TestCase {
 		// System.out.println(outputPolygon1);
 
 	}
-}
+}

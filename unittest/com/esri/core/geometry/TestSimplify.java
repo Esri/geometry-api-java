@@ -681,7 +681,7 @@ public class TestSimplify extends TestCase {
 		assertTrue(result);
 		assertTrue(mpS.getPointCount() == 1);
 	}// done
-
+
 	@Test
 	public void testMultiPointSR4326_CR184439() {
 		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
