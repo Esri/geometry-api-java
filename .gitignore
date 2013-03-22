@@ -5,3 +5,4 @@ esri-geometry-api.jar
 .project
 .classpath
 description.jardesc
+*.bak
