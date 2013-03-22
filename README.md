@@ -1,6 +1,6 @@
 # geometry-api-java
 
-This is the Esri Geometry API that can be used to enable spatial data processing in 3rd-party data-processing solutions.  Developers of custom MapReduce-based applications for Hadoop can use this API for spatial processing of data in the Hadoop system.  The API is also used by the [Hive UDF’s](https://github.com/esri/hive-spatial) and could be used by developers building geometry functions for 3rd-party applications such as [Cassandra]( https://cassandra.apache.org/), [HBase](http://hbase.apache.org/), [Storm](http://storm-project.net/) and many other Java-based “big data” applications.
+This is the Esri Geometry API for Java that can be used to enable spatial data processing in 3rd-party data-processing solutions.  Developers of custom MapReduce-based applications for Hadoop can use this API for spatial processing of data in the Hadoop system.  The API is also used by the [Hive UDF’s](https://github.com/Esri/spatial-framework-for-hadoop) and could be used by developers building geometry functions for 3rd-party applications such as [Cassandra]( https://cassandra.apache.org/), [HBase](http://hbase.apache.org/), [Storm](http://storm-project.net/) and many other Java-based “big data” applications.
 
 ## Features
 * API methods to create simple geometries directly with API, or by importing from supported formats: JSON, WKT, Shape
@@ -16,7 +16,7 @@ This is the Esri Geometry API that can be used to enable spatial data processing
 ## Requirements
 
 * Java JDK 1.6 or greater
-* Experience developing MapReduce applications for [Hadoop](http://hadoop.apache.org/).
+* Experience developing MapReduce applications for [Apache Hadoop](http://hadoop.apache.org/).
 * Familiarity with text formats of spatial data, such as JSON or WKT, would be useful. 
 
 ## Resources
@@ -50,6 +50,6 @@ limitations under the License.
 
 A copy of the license is available in the repository's [license.txt]( https://raw.github.com/Esri/geometry-api-java/master/license.txt) file.
 
-[](Esri Tags: ArcGIS, Java, Geometry)
+[](Esri Tags: ArcGIS, Java, Geometry, Relationship, Analysis, JSON, WKT, Shape)
 [](Esri Language: Java)
 
