@@ -197,7 +197,6 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 	/**
 	 * isSimpleRelaxed is not supported for the GeometryCollection instance.
 	 * 
-	 * @return
 	 */
 	@Override
 	public boolean isSimpleRelaxed() {
@@ -207,7 +206,6 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 	/**
 	 * MakeSimpleRelaxed is not supported for the GeometryCollection instance.
 	 * 
-	 * @return
 	 */
 	@Override
 	public OGCGeometry MakeSimpleRelaxed(boolean forceProcessing) {

@@ -125,7 +125,7 @@ public abstract class OGCGeometry {
 	/**
 	 * Extension method - checks if geometry is simple for Geodatabase.
 	 * 
-	 * @return
+	 * @return Returns true if geometry is simple, false otherwise.
 	 */
 	public boolean isSimpleRelaxed() {
 		OperatorSimplify op = (OperatorSimplify) OperatorFactoryLocal
@@ -137,7 +137,7 @@ public abstract class OGCGeometry {
 	/**
 	 * Makes a simple geometry for Geodatabase.
 	 * 
-	 * @return
+	 * @return Returns simplified geometry.
 	 */
 	public OGCGeometry MakeSimpleRelaxed(boolean forceProcessing) {
 		OperatorSimplify op = (OperatorSimplify) OperatorFactoryLocal
@@ -393,7 +393,7 @@ public abstract class OGCGeometry {
 	 * 
 	 * @param gc
 	 * @param sr
-	 * @return
+	 * @return Geometry instance created from the geometry cursor.
 	 */
 	public static OGCGeometry createFromEsriCursor(GeometryCursor gc,
 			SpatialReference sr) {
