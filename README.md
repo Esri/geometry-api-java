@@ -19,6 +19,9 @@ The Esri Geometry API for Java can be used to enable spatial data processing in 
 * Experience developing MapReduce applications for [Apache Hadoop](http://hadoop.apache.org/).
 * Familiarity with text-based spatial data formats such as JSON or WKT would be useful. 
 
+## Documentation
+* [geometry-api-java/Javadoc](http://esri.github.com/geometry-api-java/javadoc/)
+
 ## Resources
 
 * [ArcGIS Geodata Resource Center]( http://resources.arcgis.com/en/communities/geodata/)
