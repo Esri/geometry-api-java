@@ -1,6 +1,6 @@
 package com.esri.core.geometry.ogc;
 
-abstract class OGCGeometryCollection extends OGCGeometry {
+public abstract class OGCGeometryCollection extends OGCGeometry {
 	/**
 	 * Returns the number of geometries in this GeometryCollection.
 	 */
