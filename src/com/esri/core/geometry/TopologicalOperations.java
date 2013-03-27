@@ -150,6 +150,8 @@ final class TopologicalOperations {
 			int vertex = first_vertex;
 			int cluster = m_topo_graph.getClusterFromVertex(vertex);
 			int dir = 1;
+			//Walk the chain of half edges, preferably selecting vertices that belong to the
+			//polygon path we have started from.
 			do {
 				int vertex_dominant = getVertexByID_(vertex, geometry_dominant);
 				shape.addVertex(newPath, vertex_dominant);

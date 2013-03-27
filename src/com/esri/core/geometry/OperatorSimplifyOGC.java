@@ -24,7 +24,7 @@
 package com.esri.core.geometry;
 
 /**
- * Simplifies geometry or determines if geometry is simple. Tries to follow OGC specification.
+ * Simplifies geometry or determines if geometry is simple. Tries to follow OGC specification 1.2.1.
  * Uses tolerance to determine equal vertices or points of intersection. 
  *
  */
@@ -35,7 +35,7 @@ public abstract class OperatorSimplifyOGC extends Operator {
 	}
 
 	/**
-	 *Tests if the Geometry is simple for OGC spec.
+	 *Tests if the Geometry is simple for OGC spec 1.2.1.
 	 *@param geom The Geometry to be tested.
 	 *@param bForceTest When True, the Geometry will be tested regardless of the IsKnownSimple flag.
 	 *
@@ -47,6 +47,8 @@ public abstract class OperatorSimplifyOGC extends Operator {
 			NonSimpleResult result, ProgressTracker progressTracker);
 
 	/**
+	 * This method is still in development. Use Operator_simplify for now.
+	 * 
 	 *Performs the Simplify operation on the geometry set.
 	 *@return Returns a GeometryCursor of simplified geometries.
 	 */
@@ -55,7 +57,9 @@ public abstract class OperatorSimplifyOGC extends Operator {
 			ProgressTracker progressTracker);
 
 	/**
-	 *Performs the Simplify operation on a Geometry
+	 * This method is still in development. Use Operator_simplify for now.
+	 * 
+	 *Performs the Simplify operation on a Geometry. 
 	 *@return Returns a simple Geometry.
 	 */
 	public abstract Geometry execute(Geometry geom, SpatialReference sr,

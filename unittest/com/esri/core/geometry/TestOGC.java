@@ -3,8 +3,10 @@ package com.esri.core.geometry;
 import junit.framework.TestCase;
 
 import com.esri.core.geometry.ogc.OGCGeometry;
+import com.esri.core.geometry.ogc.OGCGeometryCollection;
 import com.esri.core.geometry.ogc.OGCLineString;
 import com.esri.core.geometry.ogc.OGCMultiPoint;
+import com.esri.core.geometry.ogc.OGCMultiPolygon;
 import com.esri.core.geometry.ogc.OGCPoint;
 import com.esri.core.geometry.ogc.OGCPolygon;
 import com.esri.core.geometry.ogc.OGCConcreteGeometryCollection;
@@ -362,6 +364,168 @@ public class TestOGC extends TestCase {
 		}
 	}
 
+	/*
+	 This will fail
+	public void test_polygon_simplify_for_OGC() {
+		try {
+			{
+				String s = "{\"rings\":[[[0, 0], [0, 10], [10, 10], [10, 0], [0, 0]]]}";
+				OGCGeometry g = OGCGeometry.fromJson(s);
+				boolean res = g.isSimple();
+				assertTrue(res);
+				assertTrue(g.isSimpleRelaxed());
+				Geometry resg = OperatorSimplifyOGC.local().execute(g.getEsriGeometry(), null, true, null);
+				OGCGeometry og = OGCGeometry.createFromEsriGeometry(resg, null);
+				assertTrue(og.geometryType().equals("Polygon"));
+				assertTrue(((OGCPolygon)og).numInteriorRing() == 0);
+			}
+
+			{// exterior ring is self-tangent
+				String s = "{\"rings\":[[[0, 0], [0, 10], [5, 5], [10, 10], [10, 0], [5, 5], [0, 0]]]}";
+				OGCGeometry g = OGCGeometry.fromJson(s);
+				boolean res = g.isSimple();
+				assertTrue(!res);
+				assertTrue(g.isSimpleRelaxed());
+				Geometry resg = OperatorSimplifyOGC.local().execute(g.getEsriGeometry(), null, true, null);
+				OGCGeometry og = OGCGeometry.createFromEsriGeometry(resg, null);
+				res = og.isSimple();
+				assertTrue(res);
+				assertTrue(og.geometryType().equals("MultiPolygon"));
+				assertTrue(((OGCGeometryCollection)og).numGeometries() == 2);
+			}
+
+			{// ring orientation (hole is cw)
+				String s = "{\"rings\":[[[-100, -100], [-100, 100], [100, 100], [100, -100], [-100, -100]], [[0, 0], [5, 5], [10, 0], [0, 0]]]}";
+				OGCGeometry g = OGCGeometry.fromJson(s);
+				boolean res = g.isSimple();
+				assertTrue(!res);
+				assertTrue(!g.isSimpleRelaxed());
+				Geometry resg = OperatorSimplifyOGC.local().execute(g.getEsriGeometry(), null, true, null);
+				OGCGeometry og = OGCGeometry.createFromEsriGeometry(resg, null);
+				res = og.isSimple();
+				assertTrue(res);
+				assertTrue(og.geometryType().equals("Polygon"));
+				assertTrue(((OGCPolygon)og).numInteriorRing() == 1);
+			}
+
+			{// ring order
+				String s = "{\"rings\":[[[0, 0], [10, 0], [5, 5], [0, 0]], [[-100, -100], [-100, 100], [100, 100], [100, -100], [-100, -100]]]}";
+				OGCGeometry g = OGCGeometry.fromJson(s);
+				boolean res = g.isSimple();
+				assertTrue(!res);
+				assertTrue(g.isSimpleRelaxed());
+				Geometry resg = OperatorSimplifyOGC.local().execute(g.getEsriGeometry(), null, true, null);
+				OGCGeometry og = OGCGeometry.createFromEsriGeometry(resg, null);
+				res = og.isSimple();
+				assertTrue(res);
+				assertTrue(og.geometryType().equals("Polygon"));
+			}
+
+			{
+				// hole is self tangent
+				String s = "{\"rings\":[[[-100, -100], [-100, 100], [100, 100], [100, -100], [-100, -100]], [[0, 0], [5, 5], [10, 0], [10, 10], [5, 5], [0, 10], [0, 0]]]}";
+				OGCGeometry g = OGCGeometry.fromJson(s);
+				boolean res = g.isSimple();
+				assertTrue(!res);
+				assertTrue(g.isSimpleRelaxed());
+				Geometry resg = OperatorSimplifyOGC.local().execute(g.getEsriGeometry(), null, true, null);
+				OGCGeometry og = OGCGeometry.createFromEsriGeometry(resg, null);
+				res = og.isSimple();
+				assertTrue(res);
+				assertTrue(og.geometryType().equals("Polygon"));
+				assertTrue(((OGCPolygon)og).numInteriorRing() == 2);
+			}
+			{
+				// two holes touch
+				String s = "{\"rings\":[[[-100, -100], [-100, 100], [100, 100], [100, -100], [-100, -100]], [[0, 0], [10, 0], [5, 5], [0, 0]], [[10, 10], [0, 10], [5, 5], [10, 10]]]}";
+				OGCGeometry g = OGCGeometry.fromJson(s);
+				boolean res = g.isSimple();
+				assertTrue(res);
+				assertTrue(g.isSimpleRelaxed());
+				Geometry resg = OperatorSimplifyOGC.local().execute(g.getEsriGeometry(), null, true, null);
+				OGCGeometry og = OGCGeometry.createFromEsriGeometry(resg, null);
+				assertTrue(og.geometryType().equals("Polygon"));
+				assertTrue(((OGCPolygon)og).numInteriorRing() == 2);
+			}
+			{
+				// two holes touch, bad orientation
+				String s = "{\"rings\":[[[-100, -100], [-100, 100], [100, 100], [100, -100], [-100, -100]], [[0, 0], [5, 5], [10, 0], [0, 0]], [[10, 10], [0, 10], [5, 5], [10, 10]]]}";
+				OGCGeometry g = OGCGeometry.fromJson(s);
+				boolean res = g.isSimple();
+				assertTrue(!res);
+				assertTrue(!g.isSimpleRelaxed());
+				Geometry resg = OperatorSimplifyOGC.local().execute(g.getEsriGeometry(), null, true, null);
+				OGCGeometry og = OGCGeometry.createFromEsriGeometry(resg, null);
+				assertTrue(og.geometryType().equals("Polygon"));
+				assertTrue(((OGCPolygon)og).numInteriorRing() == 2);
+			}
+
+			{
+				// hole touches exterior in two spots
+				//OperatorSimplifyOGC produces a multipolygon with two polygons without holes.				
+				String s = "{\"rings\":[[[-100, -100], [-100, 100], [0, 100], [100, 100], [100, -100], [0, -100], [-100, -100]], [[0, -100], [10, 0], [0, 100], [-10, 0], [0, -100]]]}";
+				OGCGeometry g = OGCGeometry.fromJson(s);
+				boolean res = g.isSimple();
+				assertTrue(!res);
+				assertTrue(g.isSimpleRelaxed());
+				Geometry resg = OperatorSimplifyOGC.local().execute(g.getEsriGeometry(), null, true, null);
+				OGCGeometry og = OGCGeometry.createFromEsriGeometry(resg, null);
+				assertTrue(og.geometryType().equals("MultiPolygon"));
+				assertTrue(((OGCMultiPolygon)og).numGeometries() == 2);
+				assertTrue(((OGCPolygon)((OGCMultiPolygon)og).geometryN(0)).numInteriorRing() == 0);
+				assertTrue(((OGCPolygon)((OGCMultiPolygon)og).geometryN(1)).numInteriorRing() == 0);
+			}
+
+			{
+				// hole touches exterior in one spot
+				//OperatorSimplifyOGC produces a polygons with a hole.				
+				String s = "{\"rings\":[[[-100, -100], [-100, 100], [0, 100], [100, 100], [100, -100], [0, -100], [-100, -100]], [[0, -100], [10, 0], [0, 90], [-10, 0], [0, -100]]]}";
+				OGCGeometry g = OGCGeometry.fromJson(s);
+				boolean res = g.isSimple();
+				assertTrue(res);
+				assertTrue(g.isSimpleRelaxed());
+				Geometry resg = OperatorSimplifyOGC.local().execute(g.getEsriGeometry(), null, true, null);
+				OGCGeometry og = OGCGeometry.createFromEsriGeometry(resg, null);
+				assertTrue(og.geometryType().equals("Polygon"));
+				assertTrue(((OGCPolygon)og).numInteriorRing() == 1);
+			}
+
+			{
+				// exterior has inversion (non simple for OGC)
+				//OperatorSimplifyOGC produces a polygons with a hole.				
+				String s = "{\"rings\":[[[-100, -100], [-100, 100], [0, 100], [100, 100], [100, -100], [0, -100], [10, 0], [0, 90], [-10, 0], [0, -100], [-100, -100]]]}";
+				OGCGeometry g = OGCGeometry.fromJson(s);
+				boolean res = g.isSimple();
+				assertTrue(!res);
+				assertTrue(g.isSimpleRelaxed());
+				Geometry resg = OperatorSimplifyOGC.local().execute(g.getEsriGeometry(), null, true, null);
+				OGCGeometry og = OGCGeometry.createFromEsriGeometry(resg, null);
+				assertTrue(og.geometryType().equals("Polygon"));
+				assertTrue(((OGCPolygon)og).numInteriorRing() == 1);
+			}
+
+			{
+				// two holes touch in one spot, and they also touch exterior in
+				// two spots, producing disconnected interior
+				//OperatorSimplifyOGC produces two polygons with no holes.
+				String s = "{\"rings\":[[[-100, -100], [-100, 100], [0, 100], [100, 100], [100, -100], [0, -100], [-100, -100]], [[0, -100], [10, -50], [0, 0], [-10, -50], [0, -100]], [[0, 0], [10, 50], [0, 100], [-10, 50], [0, 0]]]}";
+				OGCGeometry g = OGCGeometry.fromJson(s);
+				boolean res = g.isSimple();
+				assertTrue(!res);
+				assertTrue(g.isSimpleRelaxed());
+				Geometry resg = OperatorSimplifyOGC.local().execute(g.getEsriGeometry(), null, true, null);
+				OGCGeometry og = OGCGeometry.createFromEsriGeometry(resg, null);
+				assertTrue(og.geometryType().equals("MultiPolygon"));
+				assertTrue(((OGCMultiPolygon)og).numGeometries() == 2);
+				assertTrue(((OGCPolygon)((OGCMultiPolygon)og).geometryN(0)).numInteriorRing() == 0);
+				assertTrue(((OGCPolygon)((OGCMultiPolygon)og).geometryN(1)).numInteriorRing() == 0);
+			}
+		} catch (Exception ex) {
+			assertTrue(false);
+		}
+	}
+	*/
+	
 	public void test_polyline_is_simple_for_OGC() {
 		try {
 			{

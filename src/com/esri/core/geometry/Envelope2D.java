@@ -27,7 +27,7 @@ package com.esri.core.geometry;
 /**
  * A class that represents axis parallel 2D rectangle.
  */
-final class Envelope2D {
+public final class Envelope2D {
 
 	private final int XLESSXMIN = 1;
 	// private final int XGREATERXMAX = 2;
@@ -36,13 +36,13 @@ final class Envelope2D {
 	private final int XMASK = 3;
 	private final int YMASK = 12;
 
-	public double xmin;
+	double xmin;
 
-	public double ymin;
+	double ymin;
 
-	public double xmax;
+	double xmax;
 
-	public double ymax;
+	double ymax;
 
 	public static Envelope2D construct(double _xmin, double _ymin,
 			double _xmax, double _ymax) {
@@ -88,7 +88,7 @@ final class Envelope2D {
 		normalize();
 	}
 
-	void setCoords(Point2D pt) {
+	public void setCoords(Point2D pt) {
 		xmin = pt.x;
 		ymin = pt.y;
 		xmax = pt.x;
@@ -99,7 +99,7 @@ final class Envelope2D {
 		setCoords(envSrc.xmin, envSrc.ymin, envSrc.xmax, envSrc.ymax);
 	}
 
-	Envelope2D getInflated(double dx, double dy) {
+	public Envelope2D getInflated(double dx, double dy) {
 		Envelope2D env = new Envelope2D();
 		env.setCoords(this.xmin, this.ymin, this.xmax, this.ymax);
 		env.inflate(dx, dy);
@@ -110,8 +110,6 @@ final class Envelope2D {
 	 * Sets the envelope from the array of points. The envelope will be set to
 	 * empty if the array is null.
 	 */
-	// TODO This should either call setFromPoints(points, int count) or vice
-	// versa
 	public void setFromPoints(Point2D[] points) {
 		if (points == null || points.length == 0) {
 			setEmpty();
@@ -270,7 +268,6 @@ final class Envelope2D {
 	 * Intersects this envelope with the other. Returns True if the result is
 	 * not empty.
 	 */
-
 	public boolean intersect(Envelope2D other) {
 		if (isEmpty() || other.isEmpty())
 			return false;
@@ -416,11 +413,6 @@ final class Envelope2D {
 		return ymax - ymin;
 	}
 
-	// public Envelope2D getCopy() {
-	// Envelope2D ret = new Envelope2D(xmin, ymin, xmax, ymax);
-	// return ret;
-	// }
-
 	/**
 	 * Moves the Envelope by given distance.
 	 */
@@ -437,7 +429,7 @@ final class Envelope2D {
 		move(x - getCenterX(), y - getCenterY());
 	}
 
-	public void centerAt(Point2D pt) {
+	void centerAt(Point2D pt) {
 		centerAt(pt.x, pt.y);
 	}
 
@@ -462,19 +454,19 @@ final class Envelope2D {
 		ymax = max;
 	}
 
-	void queryLowerLeft(Point2D pt) {
+	public void queryLowerLeft(Point2D pt) {
 		pt.setCoords(xmin, ymin);
 	}
 
-	void queryLowerRight(Point2D pt) {
+	public void queryLowerRight(Point2D pt) {
 		pt.setCoords(xmax, ymin);
 	}
 
-	void queryUpperLeft(Point2D pt) {
+	public void queryUpperLeft(Point2D pt) {
 		pt.setCoords(xmin, ymax);
 	}
 
-	void queryUpperRight(Point2D pt) {
+	public void queryUpperRight(Point2D pt) {
 		pt.setCoords(xmax, ymax);
 	}
 
@@ -664,7 +656,7 @@ final class Envelope2D {
 	// boundary,
 	// it is more efficient to perform ProjectToBoundary before using this
 	// function).
-	public double _boundaryDistance(Point2D pt) {
+	double _boundaryDistance(Point2D pt) {
 		if (isEmpty())
 			return NumberUtils.NaN();
 
@@ -687,7 +679,7 @@ final class Envelope2D {
 	}
 
 	// returns 0,..3 depending on which side pt lies.
-	public int _envelopeSide(Point2D pt) {
+	int _envelopeSide(Point2D pt) {
 
 		if (isEmpty())
 			return -1;
@@ -715,7 +707,7 @@ final class Envelope2D {
 													// 100.0;
 	}
 
-	int clipLine(Point2D p1, Point2D p2)
+	public int clipLine(Point2D p1, Point2D p2)
 	// Modified Cohen-Sutherland Line-Clipping Algorithm
 	// returns:
 	// 0 - the segment is outside of the clipping window
