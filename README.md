@@ -16,6 +16,7 @@ The Esri Geometry API for Java can be used to enable spatial data processing in 
 ## Requirements
 
 * Java JDK 1.6 or greater.
+* [Apache Ant](http://ant.apache.org/) build system.
 * Experience developing MapReduce applications for [Apache Hadoop](http://hadoop.apache.org/).
 * Familiarity with text-based spatial data formats such as JSON or WKT would be useful. 
 
