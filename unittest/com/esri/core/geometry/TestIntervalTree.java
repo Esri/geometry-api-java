@@ -16,6 +16,14 @@ public class TestIntervalTree extends TestCase {
 		super.tearDown();
 	}
 
+	static void construct(IntervalTreeImpl interval_tree,
+			ArrayList<Envelope1D> intervals) {
+		interval_tree.startConstruction();
+		for (int i = 0; i < intervals.size(); i++)
+			interval_tree.addInterval(intervals.get(i));
+		interval_tree.endConstruction();
+	}
+
 	@Test
 	public static void testIntervalTree() {
 		ArrayList<Envelope1D> intervals = new ArrayList<Envelope1D>(0);
@@ -40,8 +48,8 @@ public class TestIntervalTree extends TestCase {
 		intervals.add(env7);
 
 		int counter;
-		IntervalTreeImpl intervalTree = new IntervalTreeImpl();
-		intervalTree.reset(intervals, false);
+		IntervalTreeImpl intervalTree = new IntervalTreeImpl(false);
+		construct(intervalTree, intervals);
 		IntervalTreeImpl.IntervalTreeIteratorImpl iterator = intervalTree
 				.getIterator(new Envelope1D(-1, 14), 0.0);
 
@@ -149,18 +157,20 @@ public class TestIntervalTree extends TestCase {
 		intervals.add(env7);
 		intervals.add(env8);
 
-		intervalTree.reset(intervals, true);
-		intervalTree.insert(0);
-		intervalTree.insert(1);
-		intervalTree.insert(2);
-		intervalTree.insert(3);
-		intervalTree.insert(4);
-		intervalTree.insert(5);
-		intervalTree.insert(6);
-		intervalTree.insert(7);
-		intervalTree.insert(8);
+		IntervalTreeImpl intervalTree2 = new IntervalTreeImpl(true);
+		construct(intervalTree2, intervals);
 
-		iterator = intervalTree.getIterator(new Envelope1D(8, 8), 0.0);
+		intervalTree2.insert(0);
+		intervalTree2.insert(1);
+		intervalTree2.insert(2);
+		intervalTree2.insert(3);
+		intervalTree2.insert(4);
+		intervalTree2.insert(5);
+		intervalTree2.insert(6);
+		intervalTree2.insert(7);
+		intervalTree2.insert(8);
+
+		iterator = intervalTree2.getIterator(new Envelope1D(8, 8), 0.0);
 
 		counter = 0;
 		while (iterator.next() != -1)
@@ -208,8 +218,9 @@ public class TestIntervalTree extends TestCase {
 		intervals.add(env5);
 		intervals.add(env6);
 
-		intervalTree.reset(intervals, false);
-		iterator = intervalTree.getIterator(new Envelope1D(50, 50), 0.0);
+		IntervalTreeImpl intervalTree3 = new IntervalTreeImpl(false);
+		construct(intervalTree3, intervals);
+		iterator = intervalTree3.getIterator(new Envelope1D(50, 50), 0.0);
 		assert (iterator.next() == -1);
 	}
 
@@ -267,8 +278,8 @@ public class TestIntervalTree extends TestCase {
 				intervalsFound.resize(intervals.size(), 0);
 
 				// Just test construction for assertions
-				IntervalTreeImpl intervalTree = new IntervalTreeImpl(intervals,
-						true);
+				IntervalTreeImpl intervalTree = new IntervalTreeImpl(true);
+				construct(intervalTree, intervals);
 
 				for (int j = 0; j < intervals.size(); j++)
 					intervalTree.insert(j);

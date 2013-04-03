@@ -44,8 +44,13 @@ public class TestEnvelope2DIntersector extends TestCase {
 		envelopes.add(env9);
 		envelopes.add(env10);
 
-		Envelope2DIntersectorImpl intersector = new Envelope2DIntersectorImpl(
-				envelopes, 0.001);
+		Envelope2DIntersectorImpl intersector = new Envelope2DIntersectorImpl();
+		intersector.setTolerance(0.001);
+
+		intersector.startConstruction();
+		for (int i = 0; i < envelopes.size(); i++)
+			intersector.addEnvelope(envelopes.get(i));
+		intersector.endConstruction();
 
 		int count = 0;
 		while (intersector.next()) {
@@ -60,8 +65,12 @@ public class TestEnvelope2DIntersector extends TestCase {
 
 		assert (count == 16);
 
-		Envelope2DIntersectorImpl intersector2 = new Envelope2DIntersectorImpl(
-				envelopes, 0.0);
+		Envelope2DIntersectorImpl intersector2 = new Envelope2DIntersectorImpl();
+		intersector2.setTolerance(0.0);
+		intersector2.startConstruction();
+		for (int i = 0; i < envelopes.size(); i++)
+			intersector2.addEnvelope(envelopes.get(i));
+		intersector2.endConstruction();
 
 		count = 0;
 		while (intersector2.next()) {
@@ -86,8 +95,14 @@ public class TestEnvelope2DIntersector extends TestCase {
 		envelopes.add(env2);
 		envelopes.add(env3);
 
-		Envelope2DIntersectorImpl intersector3 = new Envelope2DIntersectorImpl(
-				envelopes, 0.001);
+		Envelope2DIntersectorImpl intersector3 = new Envelope2DIntersectorImpl();
+		intersector3.setTolerance(0.001);
+
+		intersector3.startConstruction();
+		for (int i = 0; i < envelopes.size(); i++)
+			intersector3.addEnvelope(envelopes.get(i));
+		intersector3.endConstruction();
+		;
 		count = 0;
 		while (intersector3.next()) {
 			int env_a = intersector3.getHandleA();
@@ -108,8 +123,14 @@ public class TestEnvelope2DIntersector extends TestCase {
 		envelopes.add(env0);
 		envelopes.add(env0);
 
-		Envelope2DIntersectorImpl intersector4 = new Envelope2DIntersectorImpl(
-				envelopes, 0.001);
+		Envelope2DIntersectorImpl intersector4 = new Envelope2DIntersectorImpl();
+		intersector4.setTolerance(0.001);
+
+		intersector4.startConstruction();
+		for (int i = 0; i < envelopes.size(); i++)
+			intersector4.addEnvelope(envelopes.get(i));
+		intersector4.endConstruction();
+
 		count = 0;
 		while (intersector4.next()) {
 			int env_a = intersector4.getHandleA();
@@ -130,8 +151,14 @@ public class TestEnvelope2DIntersector extends TestCase {
 		envelopes.add(env0);
 		envelopes.add(env0);
 
-		Envelope2DIntersectorImpl intersector5 = new Envelope2DIntersectorImpl(
-				envelopes, 0.001);
+		Envelope2DIntersectorImpl intersector5 = new Envelope2DIntersectorImpl();
+		intersector5.setTolerance(0.001);
+
+		intersector5.startConstruction();
+		for (int i = 0; i < envelopes.size(); i++)
+			intersector5.addEnvelope(envelopes.get(i));
+		intersector5.endConstruction();
+
 		count = 0;
 		while (intersector5.next()) {
 			int env_a = intersector5.getHandleA();
@@ -273,8 +300,19 @@ public class TestEnvelope2DIntersector extends TestCase {
 				}
 			}
 
-			Envelope2DIntersectorImpl intersector = new Envelope2DIntersectorImpl(
-					envelopes_red, envelopes_blue, 0.001);
+			Envelope2DIntersectorImpl intersector = new Envelope2DIntersectorImpl();
+			intersector.setTolerance(0.001);
+
+			intersector.startRedConstruction();
+			for (int i = 0; i < envelopes_red.size(); i++)
+				intersector.addRedEnvelope(envelopes_red.get(i));
+			intersector.endRedConstruction();
+
+			intersector.startBlueConstruction();
+			for (int i = 0; i < envelopes_blue.size(); i++)
+				intersector.addBlueEnvelope(envelopes_blue.get(i));
+			intersector.endBlueConstruction();
+
 			while (intersector.next())
 				eCount++;
 

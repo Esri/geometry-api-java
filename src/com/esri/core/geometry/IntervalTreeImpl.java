@@ -77,6 +77,9 @@ final class IntervalTreeImpl {
 		 * Returns an index to an interval that intersects the query.
 		 */
 		int next() {
+			if (!m_interval_tree.m_b_construction_ended)
+				throw new GeometryException("invalid call");
+
 			if (m_function_index < 0)
 				return -1;
 
@@ -436,57 +439,41 @@ final class IntervalTreeImpl {
 		}
 	}
 
-	/**
-	 * Default constructor for an Interval_tree_impl. You may call the reset()
-	 * function with an array of intervals to populate or reuse the
-	 * Interval_tree_impl.
-	 */
-	IntervalTreeImpl() {
-		m_root = -1;
-		m_c_count = 0;
+	IntervalTreeImpl(boolean b_offline_dynamic) {
+		m_b_offline_dynamic = b_offline_dynamic;
+		m_b_constructing = false;
+		m_b_construction_ended = false;
 	}
 
-	/**
-	 * Constructor for a static Interval_tree_impl. \param intervals A
-	 * Dynamic_array of Envelope_1D intervals to be constructed into a static
-	 * Interval_tree_impl. The Interval_tree_impl holds a reference to the input
-	 * intervals.
-	 */
-	IntervalTreeImpl(ArrayList<Envelope1D> intervals) {
-		reset(intervals, false);
+	void startConstruction() {
+		reset_(true);
 	}
 
-	/**
-	 * Constructor for a static Interval_tree_impl with the option for offline
-	 * dynamic insertion. \param intervals A Dynamic_array of Envelope_1D
-	 * intervals to be constructed into a static Interval_tree_impl. The
-	 * Interval_tree_impl holds a reference to the input intervals. \param
-	 * b_offline_dynamic If set to true, then this gives the option to insert
-	 * dynamically at anytime and in and order, only if the inserted intervals
-	 * are from the same set of intervals as the input array. Otherwise if set
-	 * to false, then the Interval_tree_impl is constructed statically.
-	 */
-	IntervalTreeImpl(ArrayList<Envelope1D> intervals, boolean b_offline_dynamic) {
-		reset(intervals, b_offline_dynamic);
+	void addInterval(Envelope1D interval) {
+		if (!m_b_constructing)
+			throw new GeometryException("invalid call");
+
+		m_intervals.add(interval);
 	}
 
-	/**
-	 * Constructor for a static Interval_tree_impl with the option for offline
-	 * dynamic insertion. \param envelopes A Dynamic_array of Envelope_2D
-	 * objects to be constructed into a static Interval_tree_impl along the
-	 * x-axis. The Interval_tree_impl holds a reference to the input envelopes.
-	 * \param b_offline_dynamic If set to true, then this gives the option to
-	 * insert dynamically at anytime and in and order, only if the inserted
-	 * envelopes are from the same set of envelopes as the input array.
-	 * Otherwise if set to false, then the Interval_tree_impl is constructed
-	 * statically.
-	 */
-	IntervalTreeImpl(ArrayList<Envelope2D> envelopes,
-			boolean b_offline_dynamic, boolean b_along_x/*
-														 * currently ignored and
-														 * assumed tru
-														 */) {
-		reset(envelopes, b_offline_dynamic, b_along_x);
+	void addInterval(double min, double max) {
+		if (!m_b_constructing)
+			throw new GeometryException("invald call");
+
+		m_intervals.add(new Envelope1D(min, max));
+	}
+
+	void endConstruction() {
+		if (!m_b_constructing)
+			throw new GeometryException("invalid call");
+
+		m_b_constructing = false;
+		m_b_construction_ended = true;
+
+		if (!m_b_offline_dynamic) {
+			insertIntervalsStatic_();
+			m_c_count = m_intervals.size();
+		}
 	}
 
 	/**
@@ -495,24 +482,12 @@ final class IntervalTreeImpl {
 	 * index The index containing the interval to be inserted.
 	 */
 	void insert(int index) {
-		if (!m_b_offline_dynamic)
+		if (!m_b_offline_dynamic || !m_b_construction_ended)
 			throw new IllegalArgumentException("invalid call");
 
 		if (m_root == -1) {
-			if (m_primary_nodes == null) {
-				m_primary_nodes = new StridedIndexTypeCollection(8);
-				m_interval_nodes = new StridedIndexTypeCollection(3);
-				m_end_indices_unique = new AttributeStreamOfInt32(0);
-				m_interval_handles = new AttributeStreamOfInt32(0);
-			}
 
-			if (m_secondary_treaps == null) {
-				m_secondary_treaps = new Treap();
-				m_secondary_treaps.setComparator(new SecondaryComparator(this));
-			}
-
-			int size = (m_intervals != null ? m_intervals.size() : m_envelopes
-					.size());
+			int size = m_intervals.size();
 
 			if (m_b_sort_intervals) {
 				// sort
@@ -528,6 +503,8 @@ final class IntervalTreeImpl {
 				m_interval_handles.resize(size, -1);
 				m_interval_handles.setRange(-1, 0, size);
 				m_b_sort_intervals = false;
+			} else {
+				m_interval_handles.setRange(-1, 0, size);
 			}
 
 			m_root = createPrimaryNode_();
@@ -548,6 +525,9 @@ final class IntervalTreeImpl {
 	 * containing the interval to be deleted from the Interval_tree_impl.
 	 */
 	void remove(int index) {
+		if (!m_b_offline_dynamic || !m_b_construction_ended)
+			throw new GeometryException("invalid call");
+
 		int interval_handle = m_interval_handles.get(index);
 
 		if (interval_handle == -1)
@@ -566,30 +546,16 @@ final class IntervalTreeImpl {
 		int secondary_handle = getSecondaryFromInterval_(interval_handle);
 		int primary_handle;
 
-		if (m_b_offline_dynamic) {
-			primary_handle = m_secondary_treaps.getTreapData(secondary_handle);
-			m_secondary_treaps.deleteNode(getLeftEnd_(interval_handle),
-					secondary_handle);
-			m_secondary_treaps.deleteNode(getRightEnd_(interval_handle),
-					secondary_handle);
-			size = m_secondary_treaps.size(secondary_handle);
+		primary_handle = m_secondary_treaps.getTreapData(secondary_handle);
+		m_secondary_treaps.deleteNode(getLeftEnd_(interval_handle),
+				secondary_handle);
+		m_secondary_treaps.deleteNode(getRightEnd_(interval_handle),
+				secondary_handle);
+		size = m_secondary_treaps.size(secondary_handle);
 
-			if (size == 0) {
-				m_secondary_treaps.deleteTreap(secondary_handle);
-				setSecondaryToPrimary_(primary_handle, -1);
-			}
-		} else {
-			primary_handle = m_secondary_lists.getListData(secondary_handle);
-			m_secondary_lists.deleteElement(secondary_handle,
-					getLeftEnd_(interval_handle));
-			m_secondary_lists.deleteElement(secondary_handle,
-					getRightEnd_(interval_handle));
-			size = m_secondary_lists.getListSize(secondary_handle);
-
-			if (size == 0) {
-				m_secondary_lists.deleteList(secondary_handle);
-				setSecondaryToPrimary_(primary_handle, -1);
-			}
+		if (size == 0) {
+			m_secondary_treaps.deleteTreap(secondary_handle);
+			setSecondaryToPrimary_(primary_handle, -1);
 		}
 
 		m_interval_nodes.deleteElement(interval_handle);
@@ -654,44 +620,10 @@ final class IntervalTreeImpl {
 	 * on the current intervals.
 	 */
 	void reset() {
-		if (!m_b_offline_dynamic)
+		if (!m_b_offline_dynamic || !m_b_construction_ended)
 			throw new IllegalArgumentException("invalid call");
 
 		reset_(false);
-	}
-
-	/*
-	 * Resets the Interval_tree_impl to an empty state and resets the intervals.
-	 */
-	void reset(ArrayList<Envelope1D> intervals, boolean b_offline_dynamic) {
-		m_b_offline_dynamic = b_offline_dynamic;
-
-		reset_(true);
-		m_intervals = intervals;
-		m_envelopes = null;
-
-		if (!m_b_offline_dynamic) {
-			insertIntervalsStatic_();
-			m_c_count = m_intervals.size();
-			// assert(check_validation_());
-		}
-	}
-
-	/*
-	 * Resets the Interval_tree_impl to an empty state and resets the intervals.
-	 */
-	void reset(ArrayList<Envelope2D> envelopes, boolean b_offline_dynamic,
-			boolean b_along_x /* currently ignored and assumed true */) {
-		m_b_offline_dynamic = b_offline_dynamic;
-
-		reset_(true);
-		m_envelopes = envelopes;
-		m_intervals = null;
-
-		if (!m_b_offline_dynamic) {
-			insertIntervalsStatic_();
-			// assert(check_validation_());
-		}
 	}
 
 	/**
@@ -762,20 +694,26 @@ final class IntervalTreeImpl {
 
 	private boolean m_b_offline_dynamic;
 	private ArrayList<Envelope1D> m_intervals;
-	private ArrayList<Envelope2D> m_envelopes;
-	private StridedIndexTypeCollection m_primary_nodes;
-	private StridedIndexTypeCollection m_interval_nodes;
-	private AttributeStreamOfInt32 m_interval_handles;
+	private StridedIndexTypeCollection m_primary_nodes; // 8 elements for
+														// offline dynamic case,
+														// 7 elements for static
+														// case
+	private StridedIndexTypeCollection m_interval_nodes; // 3 elements
+	private AttributeStreamOfInt32 m_interval_handles; // for offline dynamic
+														// case
 	private IndexMultiDCList m_secondary_lists; // for static case
 	private Treap m_secondary_treaps; // for off-line dynamic case
-	private AttributeStreamOfInt32 m_end_indices_unique;
+	private AttributeStreamOfInt32 m_end_indices_unique; // for both offline
+															// dynamic and
+															// static cases
 	private int m_c_count;
 	private int m_root;
 	private boolean m_b_sort_intervals;
+	private boolean m_b_constructing;
+	private boolean m_b_construction_ended;
 
 	private void querySortedEndPointIndices_(AttributeStreamOfInt32 end_indices) {
-		int size = (m_intervals != null ? m_intervals.size() : m_envelopes
-				.size());
+		int size = m_intervals.size();
 
 		for (int i = 0; i < 2 * size; i++)
 			end_indices.add(i);
@@ -800,20 +738,9 @@ final class IntervalTreeImpl {
 	}
 
 	private void insertIntervalsStatic_() {
-		int size = (m_intervals != null ? m_intervals.size() : m_envelopes
-				.size());
+		int size = m_intervals.size();
 
 		assert (m_b_sort_intervals);
-
-		if (m_primary_nodes == null) {
-			m_primary_nodes = new StridedIndexTypeCollection(8);
-			m_interval_nodes = new StridedIndexTypeCollection(3);
-			m_end_indices_unique = new AttributeStreamOfInt32(0);
-			m_interval_handles = new AttributeStreamOfInt32(0);
-		}
-
-		if (m_secondary_lists == null)
-			m_secondary_lists = new IndexMultiDCList();
 
 		// sort
 		AttributeStreamOfInt32 end_indices_sorted = new AttributeStreamOfInt32(
@@ -831,20 +758,19 @@ final class IntervalTreeImpl {
 											// inserted. each element contains a
 											// primary node, a left secondary
 											// node, and a right secondary node.
-		m_interval_handles.resize(size, -1); // one for each interval being
-												// inserted. contains a handle
-												// for each interval to the
-												// above collection.
-		m_interval_handles.setRange(-1, 0, size);
 		m_secondary_lists.reserveNodes(2 * size); // one for each end point of
 													// the original interval set
 													// (not the unique set)
+
+		AttributeStreamOfInt32 interval_handles = (AttributeStreamOfInt32) AttributeStreamBase
+				.createIndexStream(size);
+		interval_handles.setRange(-1, 0, size);
 
 		m_root = createPrimaryNode_();
 
 		for (int i = 0; i < end_indices_sorted.size(); i++) {
 			int e = end_indices_sorted.get(i);
-			int interval_handle = m_interval_handles.get(e >> 1);
+			int interval_handle = interval_handles.get(e >> 1);
 
 			if (interval_handle != -1) {// insert the right end point
 				assert (isRight_(e));
@@ -854,7 +780,7 @@ final class IntervalTreeImpl {
 			} else {// insert the left end point
 				assert (isLeft_(e));
 				interval_handle = insertIntervalEnd_(e, m_root);
-				m_interval_handles.set(e >> 1, interval_handle);
+				interval_handles.set(e >> 1, interval_handle);
 			}
 		}
 
@@ -874,6 +800,9 @@ final class IntervalTreeImpl {
 		double discriminant_ptr = NumberUtils.TheNaN;
 		boolean bSearching = true;
 
+		double min = getMin_(index);
+		double max = getMax_(index);
+
 		while (bSearching) {
 			if (il < ir) {
 				im = il + (ir - il) / 2;
@@ -884,7 +813,7 @@ final class IntervalTreeImpl {
 							m_end_indices_unique.get(im + 1));
 			} else {
 				assert (il == ir);
-				assert (getMin_(index) == getMax_(index));
+				assert (min == max);
 
 				if (getDiscriminantIndex1_(primary_handle) == -1)
 					setDiscriminantIndices_(primary_handle,
@@ -895,7 +824,7 @@ final class IntervalTreeImpl {
 			double discriminant = getDiscriminant_(primary_handle);
 			assert (!NumberUtils.isNaN(discriminant));
 
-			if (getMax_(index) < discriminant) {
+			if (max < discriminant) {
 				if (ptr != -1) {
 					if (ptr == primary_handle) {
 						tertiary_handle = primary_handle;
@@ -912,9 +841,12 @@ final class IntervalTreeImpl {
 						else
 							setRPTR_(tertiary_handle, primary_handle);
 
-						setPPTR_(primary_handle, tertiary_handle);
 						setRPTR_(primary_handle, ptr);
-						setPPTR_(ptr, primary_handle);
+
+						if (m_b_offline_dynamic) {
+							setPPTR_(primary_handle, tertiary_handle);
+							setPPTR_(ptr, primary_handle);
+						}
 
 						tertiary_handle = primary_handle;
 						discriminant_tertiary = discriminant;
@@ -939,7 +871,7 @@ final class IntervalTreeImpl {
 				continue;
 			}
 
-			if (getMin_(index) > discriminant) {
+			if (min > discriminant) {
 				if (ptr != -1) {
 					if (ptr == primary_handle) {
 						tertiary_handle = primary_handle;
@@ -956,9 +888,12 @@ final class IntervalTreeImpl {
 						else
 							setRPTR_(tertiary_handle, primary_handle);
 
-						setPPTR_(primary_handle, tertiary_handle);
 						setLPTR_(primary_handle, ptr);
-						setPPTR_(ptr, primary_handle);
+
+						if (m_b_offline_dynamic) {
+							setPPTR_(primary_handle, tertiary_handle);
+							setPPTR_(ptr, primary_handle);
+						}
 
 						tertiary_handle = primary_handle;
 						discriminant_tertiary = discriminant;
@@ -998,14 +933,15 @@ final class IntervalTreeImpl {
 			if (primary_handle != ptr) {
 				assert (primary_handle != -1);
 				assert (getLPTR_(primary_handle) == -1
-						&& getRPTR_(primary_handle) == -1 && getPPTR_(primary_handle) == -1);
+						&& getRPTR_(primary_handle) == -1 && (!m_b_offline_dynamic || getPPTR_(primary_handle) == -1));
 
 				if (discriminant < discriminant_tertiary)
 					setLPTR_(tertiary_handle, primary_handle);
 				else
 					setRPTR_(tertiary_handle, primary_handle);
 
-				setPPTR_(primary_handle, tertiary_handle);
+				if (m_b_offline_dynamic)
+					setPPTR_(primary_handle, tertiary_handle);
 
 				if (ptr != -1) {
 					if (discriminant_ptr < discriminant)
@@ -1013,7 +949,8 @@ final class IntervalTreeImpl {
 					else
 						setRPTR_(primary_handle, ptr);
 
-					setPPTR_(ptr, primary_handle);
+					if (m_b_offline_dynamic)
+						setPPTR_(ptr, primary_handle);
 				}
 			}
 
@@ -1039,26 +976,53 @@ final class IntervalTreeImpl {
 	}
 
 	private void reset_(boolean b_new_intervals) {
-		if (m_secondary_lists != null)
-			m_secondary_lists.clear();
+		if (b_new_intervals) {
+			m_b_sort_intervals = true;
+			m_b_constructing = true;
+			m_b_construction_ended = false;
 
-		if (m_secondary_treaps != null)
-			m_secondary_treaps.clear();
+			if (m_end_indices_unique == null)
+				m_end_indices_unique = (AttributeStreamOfInt32) (AttributeStreamBase
+						.createIndexStream(0));
+			else
+				m_end_indices_unique.resize(0);
 
-		if (m_primary_nodes != null) {
+			if (m_intervals == null)
+				m_intervals = new ArrayList<Envelope1D>(0);
+			else
+				m_intervals.clear();
+		} else {
+			assert (m_b_offline_dynamic && m_b_construction_ended);
+			m_b_sort_intervals = false;
+		}
+
+		if (m_b_offline_dynamic) {
+			if (m_interval_handles == null) {
+				m_interval_handles = (AttributeStreamOfInt32) (AttributeStreamBase
+						.createIndexStream(0));
+				m_secondary_treaps = new Treap();
+				m_secondary_treaps.setComparator(new SecondaryComparator(this));
+			} else {
+				m_secondary_treaps.clear();
+			}
+		} else {
+			if (m_secondary_lists == null)
+				m_secondary_lists = new IndexMultiDCList();
+			else
+				m_secondary_lists.clear();
+		}
+
+		if (m_primary_nodes == null) {
+			m_interval_nodes = new StridedIndexTypeCollection(3);
+			m_primary_nodes = new StridedIndexTypeCollection(
+					m_b_offline_dynamic ? 8 : 7);
+		} else {
 			m_interval_nodes.deleteAll(false);
 			m_primary_nodes.deleteAll(false);
 		}
 
 		m_root = -1;
 		m_c_count = 0;
-
-		if (b_new_intervals) {
-			m_b_sort_intervals = true;
-		} else {
-			assert (m_b_offline_dynamic);
-			m_b_sort_intervals = false;
-		}
 	}
 
 	private void setDiscriminantIndices_(int primary_handle, int e_1, int e_2) {
@@ -1226,30 +1190,14 @@ final class IntervalTreeImpl {
 		return m_interval_nodes.getField(interval_handle, 2);
 	}
 
-	private Envelope1D getInterval_(int end_index) {
-		return m_intervals.get(end_index >> 1);
-	}
-
 	private double getMin_(int i) {
-		if (m_intervals != null) {
-			Envelope1D interval = m_intervals.get(i);
-			return interval.vmin;
-		}
-
-		assert (m_envelopes != null);
-		Envelope2D envelope = m_envelopes.get(i);
-		return envelope.xmin;
+		Envelope1D interval = m_intervals.get(i);
+		return interval.vmin;
 	}
 
 	private double getMax_(int i) {
-		if (m_intervals != null) {
-			Envelope1D interval = m_intervals.get(i);
-			return interval.vmax;
-		}
-
-		assert (m_envelopes != null);
-		Envelope2D envelope = m_envelopes.get(i);
-		return envelope.xmax;
+		Envelope1D interval = m_intervals.get(i);
+		return interval.vmax;
 	}
 
 	// *********** Helpers for Bucket sort**************
@@ -1271,15 +1219,8 @@ final class IntervalTreeImpl {
 	}
 
 	private double getValue_(int e) {
-		if (m_intervals != null) {
-			Envelope1D interval = m_intervals.get(e >> 1);
-			double v = (isLeft_(e) ? interval.vmin : interval.vmax);
-			return v;
-		}
-
-		assert (m_envelopes != null);
-		Envelope2D envelope = m_envelopes.get(e >> 1);
-		double v = (isLeft_(e) ? envelope.xmin : envelope.xmax);
+		Envelope1D interval = m_intervals.get(e >> 1);
+		double v = (isLeft_(e) ? interval.vmin : interval.vmax);
 		return v;
 	}
 

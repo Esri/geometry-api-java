@@ -380,9 +380,12 @@ class InternalUtils {
 
 		SegmentIteratorImpl segIterA = multipathImplA.querySegmentIterator();
 		SegmentIteratorImpl segIterB = multipathImplB.querySegmentIterator();
-		ArrayList<Envelope2D> envelopes_a = new ArrayList<Envelope2D>(0);
-		ArrayList<Envelope2D> envelopes_b = new ArrayList<Envelope2D>(0);
 
+		Envelope2DIntersectorImpl intersector = new Envelope2DIntersectorImpl();
+		intersector.setTolerance(tolerance);
+
+		boolean b_found_red = false;
+		intersector.startRedConstruction();
 		while (segIterA.nextPath()) {
 			while (segIterA.hasNextSegment()) {
 				Segment segmentA = segIterA.nextSegment();
@@ -391,16 +394,20 @@ class InternalUtils {
 				if (!env_a.isIntersecting(envInter))
 					continue;
 
+				b_found_red = true;
 				Envelope2D env = new Envelope2D();
 				env.setCoords(env_a);
-				envelopes_a.add(env);
+				intersector.addRedEnvelope(env);
 				verticesA.add(segIterA.getStartPointIndex());
 			}
 		}
+		intersector.endRedConstruction();
 
-		if (envelopes_a.isEmpty())
+		if (!b_found_red)
 			return null;
 
+		boolean b_found_blue = false;
+		intersector.startBlueConstruction();
 		while (segIterB.nextPath()) {
 			while (segIterB.hasNextSegment()) {
 				Segment segmentB = segIterB.nextSegment();
@@ -409,18 +416,18 @@ class InternalUtils {
 				if (!env_b.isIntersecting(envInter))
 					continue;
 
+				b_found_blue = true;
 				Envelope2D env = new Envelope2D();
 				env.setCoords(env_b);
-				envelopes_b.add(env);
+				intersector.addBlueEnvelope(env);
 				verticesB.add(segIterB.getStartPointIndex());
 			}
 		}
+		intersector.endBlueConstruction();
 
-		if (envelopes_b.isEmpty())
+		if (!b_found_blue)
 			return null;
 
-		Envelope2DIntersectorImpl intersector = new Envelope2DIntersectorImpl(
-				envelopes_a, envelopes_b, tolerance);
 		return intersector;
 	}
 
@@ -441,9 +448,11 @@ class InternalUtils {
 		envInter.setCoords(env_a);
 		envInter.intersect(env_b);
 
-		ArrayList<Envelope2D> envelopes_a = new ArrayList<Envelope2D>(0);
-		ArrayList<Envelope2D> envelopes_b = new ArrayList<Envelope2D>(0);
+		Envelope2DIntersectorImpl intersector = new Envelope2DIntersectorImpl();
+		intersector.setTolerance(tolerance);
 
+		boolean b_found_red = false;
+		intersector.startRedConstruction();
 		for (int ipath_a = 0; ipath_a < multipathImplA.getPathCount(); ipath_a++) {
 			if (type_a == Geometry.GeometryType.Polygon
 					&& !multipathImplA.isExteriorRing(ipath_a))
@@ -454,15 +463,19 @@ class InternalUtils {
 			if (!env_a.isIntersecting(envInter))
 				continue;
 
+			b_found_red = true;
 			Envelope2D env = new Envelope2D();
 			env.setCoords(env_a);
-			envelopes_a.add(env);
+			intersector.addRedEnvelope(env);
 			parts_a.add(ipath_a);
 		}
+		intersector.endRedConstruction();
 
-		if (envelopes_a.isEmpty())
+		if (!b_found_red)
 			return null;
 
+		boolean b_found_blue = false;
+		intersector.startBlueConstruction();
 		for (int ipath_b = 0; ipath_b < multipathImplB.getPathCount(); ipath_b++) {
 			if (type_b == Geometry.GeometryType.Polygon
 					&& !multipathImplB.isExteriorRing(ipath_b))
@@ -473,17 +486,17 @@ class InternalUtils {
 			if (!env_b.isIntersecting(envInter))
 				continue;
 
+			b_found_blue = true;
 			Envelope2D env = new Envelope2D();
 			env.setCoords(env_b);
-			envelopes_b.add(env);
+			intersector.addBlueEnvelope(env);
 			parts_b.add(ipath_b);
 		}
+		intersector.endBlueConstruction();
 
-		if (envelopes_b.isEmpty())
+		if (!b_found_blue)
 			return null;
 
-		Envelope2DIntersectorImpl intersector = new Envelope2DIntersectorImpl(
-				envelopes_a, envelopes_b, tolerance);
 		return intersector;
 	}
 

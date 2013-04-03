@@ -30,72 +30,109 @@ class Envelope2DIntersectorImpl {
 	 * Constructor for Envelope_2D_intersector.
 	 */
 	Envelope2DIntersectorImpl() {
-		m_tolerance = 0.0;
 		m_function = -1;
-		m_sweep_index_red = -1;
-		m_sweep_index_blue = -1;
-		m_queued_list_red = -1;
-		m_queued_list_blue = -1;
-		m_b_done = true;
+		m_tolerance = 0.0;
+		reset_();
 	}
 
-	/*
-	 * Constructor for Envelope_2D_intersector_impl to find all pairs of
-	 * intersecting envelopes from the same set in O(nlogn + t) time, where n is
-	 * the number of envelopes in the array and t is the number of intersecting
-	 * pairs.\param envelopes A Dynamic_array of Envelope_2D objects to be
-	 * iterated over for pair-wise intersection.\param tolerance The tolerance
-	 * used to determine intersection.
-	 */
-	Envelope2DIntersectorImpl(ArrayList<Envelope2D> envelopes, double tolerance) {
-		m_envelopes_red = envelopes;
-		m_tolerance = tolerance;
-		m_sweep_index_red = -1;
-		m_sweep_index_blue = -1;
-		m_queued_list_red = -1;
-		m_queued_list_blue = -1;
+	void startConstruction() {
+		reset_();
+		m_b_add_red_red = true;
+
+		if (m_envelopes_red == null)
+			m_envelopes_red = new ArrayList<Envelope2D>(0);
+		else
+			m_envelopes_red.clear();
+	}
+
+	void addEnvelope(Envelope2D envelope) {
+		if (!m_b_add_red_red)
+			throw new GeometryException("invalid call");
+
+		m_envelopes_red.add(envelope);
+	}
+
+	void endConstruction() {
+		if (!m_b_add_red_red)
+			throw new GeometryException("invalid call");
+
+		m_b_add_red_red = false;
 
 		if (m_envelopes_red != null && m_envelopes_red.size() > 0) {
 			m_function = State.initialize;
 			m_b_done = false;
-		} else {
-			m_function = -1;
-			m_envelope_handle_a = -1;
-			m_envelope_handle_b = -1;
-			m_b_done = true;
 		}
 	}
 
-	/*
-	 * Constructor for Envelope_2D_intersector_impl to find all pairs of
-	 * intersecting envelopes from a set of red envelopes and blue envelopes in
-	 * O(max(n,m)log(max(n,m)) + t) time, where n is the number of red
-	 * envelopes, m is the number of blue envelopes, and t is the number of
-	 * intersecting pairs.\param envelopes_red A Dynamic_array of Envelope_2D
-	 * objects to be iterated over for pair-wise intersection with the blue
-	 * envelopes.\param envelopes_blue A Dynamic_array of Envelope_2D objects to
-	 * be iterated over for pair-wise intersection with the red envelopes.\param
-	 * tolerance The tolerance used to determine intersection.
-	 */
-	Envelope2DIntersectorImpl(ArrayList<Envelope2D> envelopes_red,
-			ArrayList<Envelope2D> envelopes_blue, double tolerance) {
-		m_envelopes_red = envelopes_red;
-		m_envelopes_blue = envelopes_blue;
-		m_tolerance = tolerance;
-		m_sweep_index_red = -1;
-		m_sweep_index_blue = -1;
-		m_queued_list_red = -1;
-		m_queued_list_blue = -1;
+	void startRedConstruction() {
+		reset_();
+		m_b_add_red = true;
+
+		if (m_envelopes_red == null)
+			m_envelopes_red = new ArrayList<Envelope2D>(0);
+		else
+			m_envelopes_red.clear();
+	}
+
+	void addRedEnvelope(Envelope2D red_envelope) {
+		if (!m_b_add_red)
+			throw new GeometryException("invalid call");
+
+		m_envelopes_red.add(red_envelope);
+	}
+
+	void endRedConstruction() {
+		if (!m_b_add_red)
+			throw new GeometryException("invalid call");
+
+		m_b_add_red = false;
 
 		if (m_envelopes_red != null && m_envelopes_red.size() > 0
 				&& m_envelopes_blue != null && m_envelopes_blue.size() > 0) {
-			m_function = State.initializeRedBlue;
+			if (m_function == -1)
+				m_function = State.initializeRedBlue;
+			else if (m_function == State.initializeBlue)
+				m_function = State.initializeRedBlue;
+			else if (m_function != State.initializeRedBlue)
+				m_function = State.initializeRed;
+
 			m_b_done = false;
-		} else {
-			m_function = -1;
-			m_envelope_handle_a = -1;
-			m_envelope_handle_b = -1;
-			m_b_done = true;
+		}
+	}
+
+	void startBlueConstruction() {
+		reset_();
+		m_b_add_blue = true;
+
+		if (m_envelopes_blue == null)
+			m_envelopes_blue = new ArrayList<Envelope2D>(0);
+		else
+			m_envelopes_blue.clear();
+	}
+
+	void addBlueEnvelope(Envelope2D blue_envelope) {
+		if (!m_b_add_blue)
+			throw new GeometryException("invalid call");
+
+		m_envelopes_blue.add(blue_envelope);
+	}
+
+	void endBlueConstruction() {
+		if (!m_b_add_blue)
+			throw new GeometryException("invalid call");
+
+		m_b_add_blue = false;
+
+		if (m_envelopes_red != null && m_envelopes_red.size() > 0
+				&& m_envelopes_blue != null && m_envelopes_blue.size() > 0) {
+			if (m_function == -1)
+				m_function = State.initializeRedBlue;
+			else if (m_function == State.initializeRed)
+				m_function = State.initializeRedBlue;
+			else if (m_function != State.initializeRedBlue)
+				m_function = State.initializeBlue;
+
+			m_b_done = false;
 		}
 	}
 
@@ -192,56 +229,6 @@ class Envelope2DIntersectorImpl {
 	}
 
 	/*
-	 * Sets the intersector to do red on red intersection\param envelopes A
-	 * Dynamic_array of Envelope_2D objects to be iterated over for pair-wise
-	 * intersection.
-	 */
-	void setEnvelopes(ArrayList<Envelope2D> envelopes) {
-		m_envelopes_red = envelopes;
-
-		if (m_envelopes_red != null && m_envelopes_red.size() > 0) {
-			m_function = State.initialize;
-			m_b_done = false;
-		}
-	}
-
-	/*
-	 * Sets the intersector to do red on blue intersection\param envelopes_red A
-	 * Dynamic_array of Envelope_2D objects to be iterated over for pair-wise
-	 * intersection with the blue envelopes.
-	 */
-	void setRedEnvelopes(ArrayList<Envelope2D> envelopes_red) {
-		m_envelopes_red = envelopes_red;
-
-		if (m_envelopes_red != null && m_envelopes_red.size() > 0) {
-			if (m_function == State.initializeBlue)
-				m_function = State.initializeRedBlue;
-			else if (m_function != State.initializeRedBlue)
-				m_function = State.initializeRed;
-
-			m_b_done = false;
-		}
-	}
-
-	/*
-	 * Sets the intersector to do red on blue intersection\param envelopes_blue
-	 * A Dynamic_array of Envelope_2D objects to be iterated over for pair-wise
-	 * intersection with the red envelopes.
-	 */
-	void setBlueEnvelopes(ArrayList<Envelope2D> envelopes_blue) {
-		m_envelopes_blue = envelopes_blue;
-
-		if (m_envelopes_blue != null && m_envelopes_blue.size() > 0) {
-			if (m_function == State.initializeRed)
-				m_function = State.initializeRedBlue;
-			else if (m_function != State.initializeRedBlue)
-				m_function = State.initializeBlue;
-
-			m_b_done = false;
-		}
-	}
-
-	/*
 	 * Sets the tolerance used for the intersection tests.\param tolerance The
 	 * tolerance used to determine intersection.
 	 */
@@ -284,6 +271,9 @@ class Envelope2DIntersectorImpl {
 	private IndexMultiDCList m_queued_envelopes;
 	private AttributeStreamOfInt32 m_queued_indices_red;
 	private AttributeStreamOfInt32 m_queued_indices_blue;
+	private boolean m_b_add_red;
+	private boolean m_b_add_blue;
+	private boolean m_b_add_red_red;
 
 	boolean m_b_done;
 
@@ -293,6 +283,17 @@ class Envelope2DIntersectorImpl {
 
 	private static boolean isBottom_(int y_end_point_handle) {
 		return (y_end_point_handle & 0x1) == 0;
+	}
+
+	private void reset_() {
+		m_b_add_red = false;
+		m_b_add_blue = false;
+		m_b_add_red_red = false;
+		m_sweep_index_red = -1;
+		m_sweep_index_blue = -1;
+		m_queued_list_red = -1;
+		m_queued_list_blue = -1;
+		m_b_done = true;
 	}
 
 	private boolean initialize_() {
@@ -306,13 +307,17 @@ class Envelope2DIntersectorImpl {
 		}
 
 		if (m_interval_tree_red == null) {
-			m_interval_tree_red = new IntervalTreeImpl(m_envelopes_red, true,
-					true);
+			m_interval_tree_red = new IntervalTreeImpl(true);
 			m_iterator_red = m_interval_tree_red.getIterator();
 			m_sorted_end_indices_red = new AttributeStreamOfInt32(0);
-		} else {
-			m_interval_tree_red.reset(m_envelopes_red, true, true);
 		}
+
+		m_interval_tree_red.startConstruction();
+		for (int i = 0; i < m_envelopes_red.size(); i++) {
+			Envelope2D env = m_envelopes_red.get(i);
+			m_interval_tree_red.addInterval(env.xmin, env.xmax);
+		}
+		m_interval_tree_red.endConstruction();
 
 		m_sorted_end_indices_red.reserve(2 * m_envelopes_red.size());
 		m_sorted_end_indices_red.resize(0);
@@ -341,13 +346,17 @@ class Envelope2DIntersectorImpl {
 		}
 
 		if (m_interval_tree_red == null) {
-			m_interval_tree_red = new IntervalTreeImpl(m_envelopes_red, true,
-					true);
+			m_interval_tree_red = new IntervalTreeImpl(true);
 			m_iterator_red = m_interval_tree_red.getIterator();
 			m_sorted_end_indices_red = new AttributeStreamOfInt32(0);
-		} else {
-			m_interval_tree_red.reset(m_envelopes_red, true, true);
 		}
+
+		m_interval_tree_red.startConstruction();
+		for (int i = 0; i < m_envelopes_red.size(); i++) {
+			Envelope2D env = m_envelopes_red.get(i);
+			m_interval_tree_red.addInterval(env.xmin, env.xmax);
+		}
+		m_interval_tree_red.endConstruction();
 
 		m_sorted_end_indices_red.reserve(2 * m_envelopes_red.size());
 		m_sorted_end_indices_red.resize(0);
@@ -381,13 +390,17 @@ class Envelope2DIntersectorImpl {
 		}
 
 		if (m_interval_tree_blue == null) {
-			m_interval_tree_blue = new IntervalTreeImpl(m_envelopes_blue, true,
-					true);
+			m_interval_tree_blue = new IntervalTreeImpl(true);
 			m_iterator_blue = m_interval_tree_blue.getIterator();
 			m_sorted_end_indices_blue = new AttributeStreamOfInt32(0);
-		} else {
-			m_interval_tree_blue.reset(m_envelopes_blue, true, true);
 		}
+
+		m_interval_tree_blue.startConstruction();
+		for (int i = 0; i < m_envelopes_blue.size(); i++) {
+			Envelope2D env = m_envelopes_blue.get(i);
+			m_interval_tree_blue.addInterval(env.xmin, env.xmax);
+		}
+		m_interval_tree_blue.endConstruction();
 
 		m_sorted_end_indices_blue.reserve(2 * m_envelopes_blue.size());
 		m_sorted_end_indices_blue.resize(0);
@@ -421,22 +434,30 @@ class Envelope2DIntersectorImpl {
 		}
 
 		if (m_interval_tree_red == null) {
-			m_interval_tree_red = new IntervalTreeImpl(m_envelopes_red, true,
-					true);
+			m_interval_tree_red = new IntervalTreeImpl(true);
 			m_iterator_red = m_interval_tree_red.getIterator();
 			m_sorted_end_indices_red = new AttributeStreamOfInt32(0);
-		} else {
-			m_interval_tree_red.reset(m_envelopes_red, true, true);
 		}
 
 		if (m_interval_tree_blue == null) {
-			m_interval_tree_blue = new IntervalTreeImpl(m_envelopes_blue, true,
-					true);
+			m_interval_tree_blue = new IntervalTreeImpl(true);
 			m_iterator_blue = m_interval_tree_blue.getIterator();
 			m_sorted_end_indices_blue = new AttributeStreamOfInt32(0);
-		} else {
-			m_interval_tree_blue.reset(m_envelopes_blue, true, true);
 		}
+
+		m_interval_tree_red.startConstruction();
+		for (int i = 0; i < m_envelopes_red.size(); i++) {
+			Envelope2D env = m_envelopes_red.get(i);
+			m_interval_tree_red.addInterval(env.xmin, env.xmax);
+		}
+		m_interval_tree_red.endConstruction();
+
+		m_interval_tree_blue.startConstruction();
+		for (int i = 0; i < m_envelopes_blue.size(); i++) {
+			Envelope2D env = m_envelopes_blue.get(i);
+			m_interval_tree_blue.addInterval(env.xmin, env.xmax);
+		}
+		m_interval_tree_blue.endConstruction();
 
 		m_sorted_end_indices_red.reserve(2 * m_envelopes_red.size());
 		m_sorted_end_indices_blue.reserve(2 * m_envelopes_blue.size());
