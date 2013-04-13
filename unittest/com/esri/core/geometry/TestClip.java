@@ -339,4 +339,60 @@ public class TestClip extends TestCase {
 					VertexDescription.Semantics.M, 3, 0) == 165);
 		}
 	}
+
+	@Test
+	public static void testClipIssue258243() {
+		Polygon poly1 = new Polygon();
+		poly1.startPath(21.476191371901479, 41.267022001907215);
+		poly1.lineTo(59.669186665158051, 36.62700518555863);
+		poly1.lineTo(20.498578117352313, 30.363180148246094);
+		poly1.lineTo(18.342565836615044, 46.303295352085627);
+		poly1.lineTo(17.869569458621626, 23.886816966894159);
+		poly1.lineTo(19.835465558090434, 20);
+		poly1.lineTo(18.83911285048551, 43.515995498114791);
+		poly1.lineTo(20.864485260298004, 20.235921201027757);
+		poly1.lineTo(18.976127544787012, 20);
+		poly1.lineTo(34.290201277718218, 61.801369014954794);
+		poly1.lineTo(20.734727419368866, 20);
+		poly1.lineTo(18.545865698148113, 20);
+		poly1.lineTo(19.730260558565515, 20);
+		poly1.lineTo(19.924806216827005, 23.780315893949187);
+		poly1.lineTo(21.675168105421452, 36.699924873001258);
+		poly1.lineTo(22.500527828912158, 43.703424859922983);
+		poly1.lineTo(42.009527116514818, 36.995486982256089);
+		poly1.lineTo(24.469729873835782, 58.365871758247039);
+		poly1.lineTo(24.573736036545878, 36.268390409195824);
+		poly1.lineTo(22.726502169802746, 20);
+		poly1.lineTo(23.925834885228145, 20);
+		poly1.lineTo(25.495346880936729, 20);
+		poly1.lineTo(23.320941499288317, 20);
+		poly1.lineTo(24.05655665646276, 28.659578774758632);
+		poly1.lineTo(23.205940789341135, 38.491506888710504);
+		poly1.lineTo(21.472847203385509, 53.057228182018044);
+		poly1.lineTo(25.04257681654104, 20);
+		poly1.lineTo(25.880572351149542, 25.16102863979474);
+		poly1.lineTo(26.756283333879658, 20);
+		poly1.lineTo(21.476191371901479, 41.267022001907215);
+		Envelope2D env = new Envelope2D();
+		env.setCoords(24.269517325186033, 19.999998900000001,
+				57.305574253225409, 61.801370114954793);
+
+		try {
+			Geometry output_geom = OperatorClip.local().execute(poly1, env,
+					SpatialReference.create(4326), null);
+			Envelope envPoly = new Envelope();
+			poly1.queryEnvelope(envPoly);
+			Envelope e = new Envelope(env);
+			e.intersect(envPoly);
+			Envelope clippedEnv = new Envelope();
+			output_geom.queryEnvelope(clippedEnv);
+			assertTrue(Math.abs(clippedEnv.getXMin() - e.getXMin()) < 1e-10 &&
+					Math.abs(clippedEnv.getYMin() - e.getYMin()) < 1e-10 &&
+					Math.abs(clippedEnv.getXMax() - e.getXMax()) < 1e-10 &&
+					Math.abs(clippedEnv.getYMax() - e.getYMax()) < 1e-10);
+		} catch (Exception e) {
+			assertTrue(false);
+		}
+
+	}
 }

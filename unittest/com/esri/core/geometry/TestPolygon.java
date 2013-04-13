@@ -3,6 +3,8 @@ package com.esri.core.geometry;
 import junit.framework.TestCase;
 import org.junit.Test;
 
+import com.esri.core.geometry.ogc.OGCGeometry;
+
 public class TestPolygon extends TestCase {
 	@Override
 	protected void setUp() throws Exception {
@@ -1405,4 +1407,22 @@ public class TestPolygon extends TestCase {
 
 		assertTrue(noException);
 	}// end of method
+	
+	@Test
+	public void testBoundary() {
+		Geometry g = OperatorImportFromWkt
+				.local()
+				.execute(
+						0,
+						Geometry.Type.Unknown,
+						"POLYGON((-10 -10, 10 -10, 10 10, -10 10, -10 -10), (-5 -5, -5 5, 5 5, 5 -5, -5 -5))",
+						null);
+
+		Geometry boundary = OperatorBoundary.local().execute(g, null);
+		Polyline polyline = (Polyline) boundary;
+		polyline.reverseAllPaths();
+		String s = OperatorExportToWkt.local().execute(0, boundary, null);
+		assertTrue(s
+				.equals("MULTILINESTRING ((-10 -10, 10 -10, 10 10, -10 10, -10 -10), (-5 -5, -5 5, 5 5, 5 -5, -5 -5))"));
+	}
 }

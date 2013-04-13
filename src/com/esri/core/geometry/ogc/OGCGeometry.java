@@ -117,6 +117,18 @@ public abstract class OGCGeometry {
 		return e.vmax;
 	}
 
+	/**
+	 * Returns true if this geometric object has no anomalous geometric points,
+	 * such as self intersection or self tangency. See the
+	 * "Simple feature access - Part 1" document (OGC 06-103r4) for meaning of
+	 * "simple" for each geometry type.
+	 * 
+	 * The method has O(n log n) complexity when the input geometry is simple.
+	 * For non-simple geometries, it terminates immediately when the first issue is
+	 * encountered.
+	 * 
+	 * @return True if geometry is simple and false otherwise.
+	 */
 	public boolean isSimple() {
 		return OperatorSimplifyOGC.local().isSimpleOGC(getEsriGeometry(),
 				esriSR, true, null, null);

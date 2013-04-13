@@ -28,8 +28,9 @@ class Boundary {
 		int gt = geom.getType().value();
 		if (gt == Geometry.GeometryType.Polygon) {
 			Polyline dst = new Polyline(geom.getDescription());
-			if (!geom.isEmpty())
-				geom.copyTo(dst);
+			if (!geom.isEmpty()) { 
+				((MultiPathImpl)geom._getImpl())._copyToUnsafe((MultiPathImpl)dst._getImpl());
+			}
 
 			return dst;
 		} else if (gt == Geometry.GeometryType.Polyline) {

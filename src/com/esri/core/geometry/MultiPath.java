@@ -173,6 +173,9 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 
 	@Override
 	public void copyTo(Geometry dst) {
+		if (getType() != dst.getType())
+			throw new IllegalArgumentException();
+
 		m_impl.copyTo((Geometry) dst._getImpl());
 	}
 

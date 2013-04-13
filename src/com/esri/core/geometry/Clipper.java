@@ -1079,7 +1079,11 @@ class Clipper {
 				int nv = m_shape.removeVertex(first, false);
 				if (path_size == 2) {
 					ind = m_shape.getUserIndex(nv, m_vertices_on_extent_index);
-					m_vertices_on_extent.set(ind, -1);
+					if (ind >= 0)
+						m_vertices_on_extent.set(ind, -1);
+					else {
+						// this vertex is not on the extent.
+					}
 					m_shape.removeVertex(nv, false);
 				}
 

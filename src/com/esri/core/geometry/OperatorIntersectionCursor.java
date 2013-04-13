@@ -143,7 +143,7 @@ class OperatorIntersectionCursor extends GeometryCursor {
 		int inext = 0;
 		if ((dimensionMask & 1) != 0) {
 			if (res_vec[0] == null)
-				res_vec[0] = new Point(descr);
+				res_vec[0] = new MultiPoint(descr);
 			inext++;
 		} else {
 			for (int i = 0; i < res_vec.length - 1; i++)
@@ -162,12 +162,21 @@ class OperatorIntersectionCursor extends GeometryCursor {
 		if ((dimensionMask & 4) != 0) {
 			if (res_vec[inext] == null)
 				res_vec[inext] = new Polygon(descr);
+			inext++;
 		} else {
 			for (int i = inext; i < res_vec.length - 1; i++)
 				res_vec[i] = res_vec[i + 1];
 		}
+		
+		if (inext != 3) {
+			Geometry[] r = new Geometry[inext];
+			for (int i = 0; i < inext; i++)
+				r[i] = res_vec[i];
 
-		return new SimpleGeometryCursor(res_vec);
+			return new SimpleGeometryCursor(r);
+		} else {
+			return new SimpleGeometryCursor(res_vec);
+		}
 	}
 
 	GeometryCursor intersectEx(Geometry input_geom) {
@@ -175,7 +184,7 @@ class OperatorIntersectionCursor extends GeometryCursor {
 		Geometry dst_geom = tryNativeImplementation_(input_geom);
 		if (dst_geom != null) {
 			Geometry[] res_vec = new Geometry[3];
-			res_vec[1 << dst_geom.getDimension()] = dst_geom;
+			res_vec[dst_geom.getDimension()] = dst_geom;
 			return prepareVector_(input_geom.getDescription(), m_dimensionMask,
 					res_vec);
 		}

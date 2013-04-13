@@ -5,6 +5,7 @@ import junit.framework.TestCase;
 import com.esri.core.geometry.ogc.OGCGeometry;
 import com.esri.core.geometry.ogc.OGCGeometryCollection;
 import com.esri.core.geometry.ogc.OGCLineString;
+import com.esri.core.geometry.ogc.OGCMultiCurve;
 import com.esri.core.geometry.ogc.OGCMultiPoint;
 import com.esri.core.geometry.ogc.OGCMultiPolygon;
 import com.esri.core.geometry.ogc.OGCPoint;
@@ -56,6 +57,9 @@ public class TestOGC extends TestCase {
 				.fromText("LINESTRING(-5 -5, -5 5, 5 5, 5 -5, -5 -5)"));
 		assertTrue(b);
 		assertTrue(!lsi.equals(ls));
+		OGCMultiCurve boundary = p.boundary();
+		String s = boundary.asText();
+		assertTrue(s.equals("MULTILINESTRING ((-10 -10, 10 -10, 10 10, -10 10, -10 -10), (-5 -5, -5 5, 5 5, 5 -5, -5 -5))"));
 	}
 
 	public void testGeometryCollection() throws JSONException {

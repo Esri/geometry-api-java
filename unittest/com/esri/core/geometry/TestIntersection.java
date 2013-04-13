@@ -916,4 +916,28 @@ public class TestIntersection extends TestCase {
 		assertTrue(multiPointOut.getCoordinates2D()[1].y == -3360107.7777777780);
 	}
 
+	@Test
+	public void testIssue258128() {
+		Polygon poly1 = new Polygon();
+		poly1.startPath(0, 0);
+		poly1.lineTo(0, 10);
+		poly1.lineTo(10, 10);
+		poly1.lineTo(10, 0);
+
+		Polygon poly2 = new Polygon();
+		poly2.startPath(10.5, 4);
+		poly2.lineTo(10.5, 8);
+		poly2.lineTo(14, 10);
+
+		try {
+			GeometryCursor result_cursor = OperatorIntersection.local().execute(new SimpleGeometryCursor(
+					poly1), new SimpleGeometryCursor(poly2), SpatialReference
+					.create(4326), null, 1);
+			while (result_cursor.next() != null) {
+				
+			}
+		} catch (Exception e) {
+			assertTrue(false);
+		}
+	}
 }

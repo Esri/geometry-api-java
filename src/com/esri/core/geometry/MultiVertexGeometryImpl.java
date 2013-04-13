@@ -650,22 +650,17 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 		_setDirtyFlag(DirtyFlags.DirtyIntervals, false);
 	}
 
-	// Checked vs. Jan 11, 2011
 	@Override
 	public void copyTo(Geometry dstGeom) {
-		// Consider this:
-		// Imagine if we produce 100 copies, each will have dirty envelope to
-		// calculate - not good.
-		// However, if the copied geometry is changed immediately, we do not
-		// want to call _UpdateDirtyParams twice.
-		// That is why this is commented out so far.
-		// _UpdateDirtyParams();
-
 		MultiVertexGeometryImpl dst = (MultiVertexGeometryImpl) dstGeom;
 		if (dst.getType() != getType())
-			// FIXME exc
 			throw new IllegalArgumentException();
-
+		
+		_copyToUnsafe(dst);
+	}
+	
+	//Does not check geometry type. Used to copy Polygon to Polyline
+	void _copyToUnsafe(MultiVertexGeometryImpl dst) {
 		_verifyAllStreams();
 		dst.m_description = m_description;
 		dst.m_vertexAttributes = null;

@@ -34,6 +34,7 @@ import com.esri.core.geometry.VertexDescription;
 
 /**
  * A class that represents the spatial reference for the geometry.
+ * This class provide tolerance value for the topological and relational operations.
  */
 public abstract class SpatialReference implements Serializable {
 	// Note: We use writeReplace with SpatialReferenceSerializer. This field is
@@ -154,9 +155,20 @@ public abstract class SpatialReference implements Serializable {
 	abstract int getLatestID();
 
 	/**
-	 * Get the XY tolerance of the spatial reference
+	 * Returns the XY tolerance of the spatial reference.
 	 * 
-	 * @return The XY tolerance of the spatial reference as double.
+	 * The tolerance value defines the precision of topological operations, and
+	 * "thickness" of boundaries of geometries for relational operations.
+	 * 
+	 * When two points have xy coordinates closer than the tolerance value, they
+	 * are considered equal. As well as when a point is within tolerance from
+	 * the line, the point is assumed to be on the line.
+	 * 
+	 * During topological operations the tolerance is increased by a factor of
+	 * about 1.41 and any two points within that distance are snapped
+	 * together.
+	 * 
+	 * @return The XY tolerance of the spatial reference.
 	 */
 	public double getTolerance() {
 		return getTolerance(VertexDescription.Semantics.POSITION);
@@ -173,5 +185,16 @@ public abstract class SpatialReference implements Serializable {
 		SpatialReferenceSerializer srSerializer = new SpatialReferenceSerializer();
 		srSerializer.setSpatialReferenceByValue(this);
 		return srSerializer;
+	}
+	
+	/**
+	 * Returns string representation of the class for debugging purposes. The
+	 * format and content of the returned string is not part of the contract of
+	 * the method and is subject to change in any future release or patch
+	 * without further notice.
+	 */
+	public String toString() {
+		return "[ tol: " + getTolerance() + "; wkid: " + getID() + "; wkt: "
+				+ getText() + "]";
 	}
 }
