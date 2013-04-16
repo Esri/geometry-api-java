@@ -1,0 +1,147 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.esri.geometry</groupId>
+	<artifactId>esri-geometry-api</artifactId>
+	<version>1.1-SNAPSHOT</version>
+	<packaging>jar</packaging>
+
+	<name>Esri Geometry API for Java</name>
+	<description>The Esri Geometry API for Java enables developers to write custom applications for analysis of spatial data.</description>
+
+	<url>https://github.com/Esri/geometry-api-java</url>
+
+	<licenses>
+		<license>
+				<name>The Apache Software License, Version 2.0</name>
+				<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+				<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<scm>
+		<connection>scm:git:git@github.com:Esri/geometry-api-java.git</connection>
+		<developerConnection>scm:git:git@github.com:Esri/geometry-api-java.git</developerConnection>
+		<url>git@github.com:Esri/geometry-api-java.git</url>
+	</scm>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+		<java.source.version>1.6</java.source.version>
+		<java.target.version>1.6</java.target.version>
+
+		<!-- dependency versions -->
+		<json.version>20090211</json.version>
+		<jackson.version>1.9.12</jackson.version>
+		<junit.version>4.11</junit.version>
+		<jersey.version>1.5</jersey.version>
+		<jts.version>1.11</jts.version>
+
+		<!-- plugin versions -->
+		<compiler.plugin.version>2.3.1</compiler.plugin.version>
+		<source.plugin.version>2.2.1</source.plugin.version>
+		<javadoc.plugin.version>2.9</javadoc.plugin.version>
+	</properties>
+
+	<!-- this parent is needed for central repository hosting -->
+	<parent>
+		<groupId>org.sonatype.oss</groupId>
+		<artifactId>oss-parent</artifactId>
+		<version>7</version>
+	</parent>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>${json.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.codehaus.jackson</groupId>
+			<artifactId>jackson-core-asl</artifactId>
+			<version>${jackson.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>${junit.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.sun.jersey</groupId>
+			<artifactId>jersey-client</artifactId>
+			<version>${jersey.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.vividsolutions</groupId>
+			<artifactId>jts</artifactId>
+			<version>${jts.version}</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<sourceDirectory>src</sourceDirectory>
+		<testSourceDirectory>unittest</testSourceDirectory>
+		<resources>
+			<resource>
+				<targetPath>com/esri/core/geometry</targetPath>
+				<directory>src/com/esri/core/geometry</directory>
+				<includes>
+					<include>*.txt</include>
+				</includes>
+			</resource>
+		</resources>
+		<testResources>
+			<testResource>
+				<targetPath>com/esri/core/geometry</targetPath>
+				<directory>unittest/com/esri/core/geometry</directory>
+				<includes>
+					<include>*.txt</include>
+				</includes>
+			</testResource>
+		</testResources>
+		<plugins>
+			<plugin>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<version>${compiler.plugin.version}</version>
+					<configuration>
+						<source>${java.source.version}</source>
+						<target>${java.target.version}</target>
+					</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>${source.plugin.version}</version>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>${javadoc.plugin.version}</version>
+				<configuration>
+					<link>http://help.arcgis.com/EN/sdk/10.0/Java_AO_ADF/api/arcobjects</link>
+					<link>http://docs.oracle.com/javase/6/docs/api/</link>
+				</configuration>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>
