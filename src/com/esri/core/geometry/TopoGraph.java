@@ -1250,9 +1250,11 @@ final class TopoGraph {
 					updateVertexToHalfEdgeConnection_(prevMerged, false);
 					prevMerged = -1;
 
-					// 3. Reconnect edges in the sorted order.
-					// This guarantees that the smallest faces are clockwise
-					// (when two opposite directed faces are exactly equal).
+					// 3. Reconnect edges in the sorted order. The edges are
+					// sorted counter clockwise.
+					// We connect them such that every right turn is made in the
+					// clockwise order.
+					// This guarantees that the smallest faces are clockwise.
 					e0 = -1;
 					for (int i = 0, n = angleSorter.size(); i < n; i++) {
 						int e = angleSorter.get(i);
@@ -1265,6 +1267,14 @@ final class TopoGraph {
 							ePrevTwin = getHalfEdgeTwin(ePrev);
 							continue;
 						}
+						
+						if (e == ePrev) {
+							// This condition can only happen if all edges in
+							// the bunch coincide.
+							assert (i == n - 1);
+							continue;
+						}
+						
 						int eTwin = getHalfEdgeTwin(e);
 						int eTo = getHalfEdgeOrigin(eTwin);
 						assert (getHalfEdgeOrigin(e) == getHalfEdgeOrigin(ePrev));

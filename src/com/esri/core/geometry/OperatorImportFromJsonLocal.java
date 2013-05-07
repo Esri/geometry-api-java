@@ -23,7 +23,13 @@
  */
 package com.esri.core.geometry;
 
+import java.io.IOException;
+
+import org.codehaus.jackson.JsonFactory;
+import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.JsonParser;
+
+import com.esri.core.geometry.ogc.OGCGeometry;
 
 class OperatorImportFromJsonLocal extends OperatorImportFromJson {
 
@@ -41,4 +47,12 @@ class OperatorImportFromJsonLocal extends OperatorImportFromJson {
 				type.value(), jsonParserCursor);
 		return cursor.next();
 	}
+	@Override
+	public MapGeometry execute(Geometry.Type type, String string)
+			throws JsonParseException, IOException {
+		JsonFactory factory = new JsonFactory();
+		JsonParser jsonParserPt = factory.createJsonParser(string);
+		jsonParserPt.nextToken();
+		return execute(type, jsonParserPt);
+	}	
 }

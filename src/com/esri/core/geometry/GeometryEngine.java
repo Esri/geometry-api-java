@@ -49,10 +49,7 @@ public class GeometryEngine {
 	 *         spatial reference.
 	 */
 	public static MapGeometry jsonToGeometry(JsonParser json) {
-		OperatorImportFromJson importerJson = (OperatorImportFromJson) factory
-				.getOperator(Operator.Type.ImportMapGeometryFromJson);
-
-		MapGeometry geom = importerJson.execute(Geometry.Type.Unknown, json);
+		MapGeometry geom = OperatorImportFromJson.local().execute(Geometry.Type.Unknown, json);
 		return geom;
 	}
 

@@ -24,6 +24,9 @@
 
 package com.esri.core.geometry;
 
+import java.io.IOException;
+
+import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.JsonParser;
 
 import com.esri.core.geometry.Operator.Type;
@@ -34,7 +37,7 @@ import com.esri.core.geometry.Operator.Type;
 public abstract class OperatorImportFromJson extends Operator {
 	@Override
 	public Type getType() {
-		return Type.ImportMapGeometryFromJson;
+		return Type.ImportFromJson;
 	}
 
 	/**
@@ -52,6 +55,14 @@ public abstract class OperatorImportFromJson extends Operator {
 	public abstract MapGeometry execute(Geometry.Type type,
 			JsonParser jsonParser);
 
+	/**
+	 *Performs the ImportFromJson operation on a single Json string
+	 *@return Returns a MapGeometry.
+	 */
+	public abstract MapGeometry execute(Geometry.Type type, String string)
+			throws JsonParseException, IOException;
+	
+	
 	public static OperatorImportFromJson local() {
 		return (OperatorImportFromJson) OperatorFactoryLocal.getInstance()
 				.getOperator(Type.ImportFromJson);

@@ -582,7 +582,7 @@ public abstract class Geometry implements Serializable {
 	/**
 	 * Describes the degree of acceleration of the geometry.
 	 */
-	enum GeometryAccelerationDegree {
+	static public enum GeometryAccelerationDegree {
 		enumMild, // <!mild acceleration, takes least amount of memory.
 		enumMedium, // <!medium acceleration, takes more memory and takes more
 					// time to accelerate, but may work faster.

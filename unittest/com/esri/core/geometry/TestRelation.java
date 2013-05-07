@@ -4689,7 +4689,7 @@ public class TestRelation extends TestCase {
 			jsonParser.nextToken();
 			OperatorImportFromJson importer = (OperatorImportFromJson) OperatorFactoryLocal
 					.getInstance().getOperator(
-							Operator.Type.ImportMapGeometryFromJson);
+							Operator.Type.ImportFromJson);
 
 			return importer.execute(Geometry.Type.Unknown, jsonParser);
 		} catch (Exception ex) {

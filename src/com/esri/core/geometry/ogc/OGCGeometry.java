@@ -525,7 +525,7 @@ public abstract class OGCGeometry {
 		ArrayList<OGCConcreteGeometryCollection> collectionStack = new ArrayList<OGCConcreteGeometryCollection>(
 				0);
 		ArrayList<OGCStructure> structureStack = new ArrayList<OGCStructure>(0);
-		ArrayList<Integer> indices = new ArrayList(0);
+		ArrayList<Integer> indices = new ArrayList<Integer>(0);
 
 		OGCGeometry[] geometries = new OGCGeometry[1];
 		OGCConcreteGeometryCollection root = new OGCConcreteGeometryCollection(

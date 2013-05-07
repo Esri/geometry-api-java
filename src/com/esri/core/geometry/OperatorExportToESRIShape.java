@@ -26,6 +26,8 @@ package com.esri.core.geometry;
 
 import java.nio.ByteBuffer;
 
+import com.esri.core.geometry.Operator.Type;
+
 /**
  *Export to ESRI shape format.
  */
@@ -60,4 +62,9 @@ public abstract class OperatorExportToESRIShape extends Operator {
 	 */
 	public abstract int execute(int exportFlags, Geometry geometry,
 			ByteBuffer shapeBuffer);
+	
+	public static OperatorExportToESRIShape local() {
+		return (OperatorExportToESRIShape) OperatorFactoryLocal.getInstance()
+				.getOperator(Type.ExportToESRIShape);
+	}	
 }

@@ -1233,7 +1233,7 @@ public class TestSimplify extends TestCase {
 	@Test
 	public void testPolylineIsSimpleForOGC() throws IOException {
 		OperatorImportFromJson importerJson = (OperatorImportFromJson) factory
-				.getOperator(Operator.Type.ImportMapGeometryFromJson);
+				.getOperator(Operator.Type.ImportFromJson);
 		OperatorSimplify simplify = (OperatorSimplify) factory
 				.getOperator(Operator.Type.Simplify);
 

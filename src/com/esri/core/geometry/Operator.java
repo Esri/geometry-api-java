@@ -35,7 +35,9 @@ public abstract class Operator {
 	public enum Type {
 		Project, // = 10300,//<!Projection operator
 
-		ExportToJson, ImportFromJson, ImportMapGeometryFromJson, ExportToJsonGenerator, ExportToESRIShape, ImportFromESRIShape,
+		ExportToJson, ImportFromJson,
+		@Deprecated ImportMapGeometryFromJson,
+		ExportToESRIShape, ImportFromESRIShape,
 
 		Union, Difference,
 

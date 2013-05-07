@@ -31,6 +31,9 @@ import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.Reader;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.channels.FileChannel;
 import java.util.HashMap;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonParser;
@@ -49,9 +52,10 @@ public class OperatorFactoryLocal extends OperatorFactory {
 		st_supportedOperators.put(Type.Project, new OperatorProjectLocal());
 		st_supportedOperators.put(Type.ExportToJson,
 				new OperatorExportToJsonLocal());
+		st_supportedOperators.put(Type.ImportFromJson,
+				new OperatorImportFromJsonLocal());
 		st_supportedOperators.put(Type.ImportMapGeometryFromJson,
 				new OperatorImportFromJsonLocal());
-
 		st_supportedOperators.put(Type.ExportToESRIShape,
 				new OperatorExportToESRIShapeLocal());
 		st_supportedOperators.put(Type.ImportFromESRIShape,
@@ -192,10 +196,6 @@ public class OperatorFactoryLocal extends OperatorFactory {
 		} catch (Exception ex) {
 		}
 
-		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
-		OperatorImportFromJson importerJSON = (OperatorImportFromJson) engine
-				.getOperator(Operator.Type.ImportMapGeometryFromJson);
-
 		JsonFactory jf = new JsonFactory();
 		JsonParser jp = null;
 		try {
@@ -203,10 +203,48 @@ public class OperatorFactoryLocal extends OperatorFactory {
 			jp.nextToken();
 		} catch (Exception ex) {
 		}
-		MapGeometry mapGeom = importerJSON.execute(Geometry.Type.Unknown, jp);
+		MapGeometry mapGeom = OperatorImportFromJson.local().execute(Geometry.Type.Unknown, jp);
 		return mapGeom;
 	}
 
+	public static Geometry loadGeometryFromEsriShapeDbg(String file_name) {
+		if (file_name == null) {
+			throw new IllegalArgumentException();
+		}
+
+		try {
+			FileInputStream stream = new FileInputStream(file_name);
+			FileChannel fchan = stream.getChannel();
+			ByteBuffer bb = ByteBuffer.allocate((int) fchan.size());
+			fchan.read(bb);
+			bb.order(ByteOrder.LITTLE_ENDIAN);
+			Geometry g = OperatorImportFromESRIShape.local().execute(0,
+					Geometry.Type.Unknown, bb);
+			fchan.close();
+			stream.close();
+			return g;
+		} catch (Exception ex) {
+			throw new IllegalArgumentException();
+		}
+	}
+
+	public static void saveGeometryToEsriShapeDbg(String file_name, Geometry geometry) {
+		if (file_name == null) {
+			throw new IllegalArgumentException();
+		}
+
+		try {
+			ByteBuffer bb = OperatorExportToESRIShape.local().execute(0, geometry);
+			FileOutputStream outfile = new FileOutputStream(file_name);
+			FileChannel fchan = outfile.getChannel();
+			fchan.write(bb);
+			fchan.close();
+			outfile.close();
+		} catch (Exception ex) {
+			throw new IllegalArgumentException();
+		}
+	}
+	
 	public static void saveToWKTFileDbg(String file_name,
 			Geometry geometry, SpatialReference spatial_ref) {
 		if (file_name == null) {
