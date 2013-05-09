@@ -23,6 +23,9 @@
  */
 package com.esri.core.geometry;
 
+/**
+*Flags used by the OperatorExportToWkt
+*/
 public interface WktExportFlags {
 	public static final int wktExportDefaults = 0;
 	public static final int wktExportPoint = 1;

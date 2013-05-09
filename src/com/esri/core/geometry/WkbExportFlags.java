@@ -24,8 +24,11 @@
 
 package com.esri.core.geometry;
 
+/**
+*Flags used by the OperatorExpotToWkb.
+*/
 public interface WkbExportFlags {
-	public static final int wkbExportDefaults = 0;
+	public static final int wkbExportDefaults = 0;//!<Default flags
 	public static final int wkbExportPoint = 1;
 	public static final int wkbExportMultiPoint = 2;
 	public static final int wkbExportLineString = 4;

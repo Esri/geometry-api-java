@@ -36,7 +36,6 @@
 		<jackson.version>1.9.12</jackson.version>
 		<junit.version>4.11</junit.version>
 		<jersey.version>1.5</jersey.version>
-		<jts.version>1.11</jts.version>
 
 		<!-- plugin versions -->
 		<compiler.plugin.version>2.3.1</compiler.plugin.version>
@@ -72,12 +71,6 @@
 			<groupId>com.sun.jersey</groupId>
 			<artifactId>jersey-client</artifactId>
 			<version>${jersey.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.vividsolutions</groupId>
-			<artifactId>jts</artifactId>
-			<version>${jts.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

@@ -15,7 +15,6 @@
 		<pathelement location="${dir.root}/DepFiles/unittest/jersey-client-1.5.jar" />
 		<pathelement location="${dir.root}/DepFiles/unittest/jersey-core-1.5.jar" />
 		<pathelement location="${dir.root}/DepFiles/unittest/junit-4.8.2.jar" />
-		<pathelement location="${dir.root}/DepFiles/unittest/jts/jts-1.11.jar" />
 		<pathelement location="${dir.build}" />
 	</path>
 

@@ -24,19 +24,21 @@
 
 package com.esri.core.geometry;
 
-interface ShapeExportFlags {
-
-	public static final int ShapeExportDefaults = 0;
-	public static final int ShapeExportNoSwap = 1;
-	public static final int ShapeExportAngularDensify = 2;
-	public static final int ShapeExportDistanceDensify = 4;
-	public static final int ShapeExportTrueNaNs = 8;
+/**
+*Flags used by the OperatorExportToEsriShape.
+*/
+public interface ShapeExportFlags {
+	public static final int ShapeExportDefaults = 0;//!<Default export flags
+	static final int ShapeExportNoSwap = 1;
+	static final int ShapeExportAngularDensify = 2;
+	static final int ShapeExportDistanceDensify = 4;
+	static final int ShapeExportTrueNaNs = 8;
 	public static final int ShapeExportStripZs = 16;
 	public static final int ShapeExportStripMs = 32;
 	public static final int ShapeExportStripIDs = 64;
-	public static final int ShapeExportStripTextures = 128;
-	public static final int ShapeExportStripNormals = 256;
-	public static final int ShapeExportStripMaterials = 512;
-	public static final int ShapeExportNewArcFormat = 1024;
-	public static final int ShapeExportNoCompress = 2048;
+	static final int ShapeExportStripTextures = 128;
+	static final int ShapeExportStripNormals = 256;
+	static final int ShapeExportStripMaterials = 512;
+	static final int ShapeExportNewArcFormat = 1024;
+	static final int ShapeExportNoCompress = 2048;
 }

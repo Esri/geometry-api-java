@@ -23,7 +23,10 @@
  */
 package com.esri.core.geometry;
 
+/**
+*Flags used by the OperatorImportFromWkt.
+*/
 public interface WktImportFlags {
-	static final int wktImportDefaults = 0;
-	static final int wktImportNonTrusted = 2;
+	public static final int wktImportDefaults = 0;//!<Default import flags
+	public static final int wktImportNonTrusted = 2;//!<Pass this flag to the import to indicate the shape can contain non-simple geometry.
 }

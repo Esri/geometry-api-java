@@ -1,9 +1,5 @@
 package com.esri.core.geometry;
 
-import com.vividsolutions.jts.io.WKBReader;
-import com.vividsolutions.jts.io.WKBWriter;
-import com.vividsolutions.jts.io.WKTWriter;
-import com.vividsolutions.jts.io.WKTReader;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import junit.framework.TestCase;
@@ -1332,24 +1328,6 @@ public class TestImportExport extends TestCase {
 		wktParser.resetParser(wktString);
 		while (wktParser.nextToken() != WktParser.WktToken.not_available) {
 		}
-
-		// test equivalence with JTS
-		WKTWriter wkt_writer = new WKTWriter();
-		WKTReader wkt_reader = new WKTReader();
-
-		String wkt_string_jts = null;
-
-		try {
-			wkt_string_jts = wkt_writer.write(wkt_reader
-					.read("MULTIPOINT (1 2, 3 4)"));
-		} catch (Exception ex) {
-		}
-
-		String wkt_string_esri = exporterWKT.execute(0, importerWKT.execute(0,
-				Geometry.Type.Unknown, "MULTIPOINT (1 2, 3 4)", null), null);
-
-		assertTrue(wkt_string_jts.equals(wkt_string_esri));
-
 	}
 
 	@Test
