@@ -23,38 +23,35 @@
  */
 package com.esri.core.geometry;
 
-import com.esri.core.geometry.Operator.Type;
-
 /**
- * Generalizes geometries using Douglas-Poiker algorithm.
+ * Generalizes geometries using Douglas-Peucker algorithm.
  */
 public abstract class OperatorGeneralize extends Operator {
-	@Override
-	public Type getType() {
-		return Type.Generalize;
-	}
+  @Override
+  public Type getType() {
+    return Type.Generalize;
+  }
 
-	/**
-	 * Performs the Generalize operation on the geometry set. Point and
-	 * MultiPoint geometries are left unchanged. Envelope is converted to a
-	 * Polygon.
-	 * 
-	 */
-	public abstract GeometryCursor execute(GeometryCursor geoms,
-			double maxDeviation, boolean bRemoveDegenerateParts,
-			ProgressTracker progressTracker);
+  /**
+   * Performs the Generalize operation on the geometry set. Point and
+   * MultiPoint geometries are left unchanged. Envelope is converted to a
+   * Polygon.
+   * 
+   */
+  public abstract GeometryCursor execute(GeometryCursor geoms,
+          double maxDeviation, boolean bRemoveDegenerateParts,
+          ProgressTracker progressTracker);
 
-	/**
-	 * Performs the Generalize operation on single geometry. Point and
-	 * MultiPoint geometries are left unchanged. Envelope is converted to a
-	 * Polygon.
-	 */
-	public abstract Geometry execute(Geometry geom, double maxDeviation,
-			boolean bRemoveDegenerateParts, ProgressTracker progressTracker);
+  /**
+   * Performs the Generalize operation on single geometry. Point and
+   * MultiPoint geometries are left unchanged. Envelope is converted to a
+   * Polygon.
+   */
+  public abstract Geometry execute(Geometry geom, double maxDeviation,
+          boolean bRemoveDegenerateParts, ProgressTracker progressTracker);
 
-	public static OperatorGeneralize local() {
-		return (OperatorGeneralize) OperatorFactoryLocal.getInstance()
-				.getOperator(Type.Generalize);
-	}
+  public static OperatorGeneralize local() {
+    return (OperatorGeneralize) OperatorFactoryLocal.getInstance().getOperator(Type.Generalize);
+  }
 
 }
