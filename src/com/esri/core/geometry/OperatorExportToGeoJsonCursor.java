@@ -120,11 +120,32 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
         g.writeString("MultiPoint");
 
         g.writeFieldName("coordinates");
+        g.writeStartArray();
 
-        if (mp.isEmpty()) {
-            g.writeStartArray();
-            g.writeEndArray();
+        if (!mp.isEmpty()) {
+            MultiPointImpl mpImpl = (MultiPointImpl) mp._getImpl();
+            AttributeStreamOfDbl zs = mp.hasAttribute(Semantics.Z) ? (AttributeStreamOfDbl) mpImpl.getAttributeStreamRef(Semantics.Z) : null;
+
+            Point2D p = new Point2D();
+
+            int n = mp.getPointCount();
+
+            for(int i = 0; i < n; i++) {
+                mp.getXY(i, p);
+
+                g.writeStartArray();
+
+                writeDouble(p.x, g);
+                writeDouble(p.y, g);
+
+                if (zs != null)
+                    writeDouble(zs.get(i), g);
+
+                g.writeEndArray();
+            }
         }
+
+        g.writeEndArray();
 
         g.writeEndObject();
         g.close();

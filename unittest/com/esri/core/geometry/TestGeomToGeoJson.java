@@ -33,6 +33,16 @@ public class TestGeomToGeoJson extends TestCase {
     }
 
     @Test
+    public void testMultiPoint() {
+        MultiPoint mp = new MultiPoint();
+        mp.add(10.0, 20.0);
+        mp.add(20.0, 30.0);
+        OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory.getOperator(Operator.Type.ExportToGeoJson);
+        String result = exporter.execute(mp);
+        assertEquals("{\"type\":\"MultiPoint\",\"coordinates\":[[10.0,20.0],[20.0,30.0]]}", result);
+    }
+
+    @Test
     public void testEmptyMultiPoint() {
         MultiPoint mp = new MultiPoint();
         OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory.getOperator(Operator.Type.ExportToGeoJson);
