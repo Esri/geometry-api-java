@@ -94,20 +94,17 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
         g.writeString("Point");
 
         g.writeFieldName("coordinates");
+        g.writeStartArray();
 
-        if (p.isEmpty()) {
-            g.writeStartArray();
-            g.writeEndArray();
-        } else {
-            g.writeStartArray();
+        if (!p.isEmpty()) {
             writeDouble(p.getX(), g);
             writeDouble(p.getY(), g);
 
             if (p.hasAttribute(Semantics.Z))
                 writeDouble(p.getZ(), g);
-
-            g.writeEndArray();
         }
+
+        g.writeEndArray();
 
         g.writeEndObject();
         g.close();
