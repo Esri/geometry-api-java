@@ -113,6 +113,15 @@ public class TestGeomToGeoJson extends TestCase {
     }
 
     @Test
+    public void testEnvelope() {
+        Envelope e = new Envelope();
+        e.setCoords(-180.0, -90.0, 180.0, 90.0);
+        OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory.getOperator(Operator.Type.ExportToGeoJson);
+        String result = exporter.execute(e);
+        assertEquals("{\"bbox\":[-180.0,-90.0,180.0,90.0],\"type\":\"Polygon\",\"coordinates\":[[[-180.0,-90.0],[-180.0,90.0],[180.0,90.0],[180.0,-90.0],[-180.0,-90.0]]]}", result);
+    }
+
+    @Test
     public void testEmptyEnvelope() {
         Envelope e = new Envelope();
         OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory.getOperator(Operator.Type.ExportToGeoJson);

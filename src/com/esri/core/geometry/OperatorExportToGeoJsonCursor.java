@@ -244,7 +244,12 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
         g.writeFieldName("bbox");
         g.writeStartArray();
 
-        if (!empty) {}
+        if (!empty) {
+            writeDouble(e.getXMin(), g);
+            writeDouble(e.getYMin(), g);
+            writeDouble(e.getXMax(), g);
+            writeDouble(e.getYMax(), g);
+        }
 
         g.writeEndArray();
 
@@ -254,7 +259,41 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
         g.writeFieldName("coordinates");
         g.writeStartArray();
 
-        if (!empty) {}
+        if (!empty) {
+            double xmin = e.getXMin();
+            double ymin = e.getYMin();
+            double xmax = e.getXMax();
+            double ymax = e.getYMax();
+
+            g.writeStartArray();
+
+            g.writeStartArray();
+            writeDouble(xmin, g);
+            writeDouble(ymin, g);
+            g.writeEndArray();
+
+            g.writeStartArray();
+            writeDouble(xmin, g);
+            writeDouble(ymax, g);
+            g.writeEndArray();
+
+            g.writeStartArray();
+            writeDouble(xmax, g);
+            writeDouble(ymax, g);
+            g.writeEndArray();
+
+            g.writeStartArray();
+            writeDouble(xmax, g);
+            writeDouble(ymin, g);
+            g.writeEndArray();
+
+            g.writeStartArray();
+            writeDouble(xmin, g);
+            writeDouble(ymin, g);
+            g.writeEndArray();
+
+            g.writeEndArray();
+        }
 
         g.writeEndArray();
 
