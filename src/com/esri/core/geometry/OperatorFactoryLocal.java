@@ -108,6 +108,8 @@ public class OperatorFactoryLocal extends OperatorFactory {
 				new OperatorImportFromWktLocal());
 		st_supportedOperators.put(Type.ImportFromGeoJson,
 				new OperatorImportFromGeoJsonLocal());
+        st_supportedOperators.put(Type.ExportToGeoJson,
+                new OperatorExportToGeoJsonLocal());
 		st_supportedOperators.put(Type.Union, new OperatorUnionLocal());
 
 		st_supportedOperators.put(Type.Generalize,
