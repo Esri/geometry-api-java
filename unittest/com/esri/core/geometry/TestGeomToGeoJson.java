@@ -51,11 +51,57 @@ public class TestGeomToGeoJson extends TestCase {
     }
 
     @Test
+    public void testPolyline() {
+        Polyline p = new Polyline();
+        p.startPath(100.0, 0.0);
+        p.lineTo(101.0, 0.0);
+        p.lineTo(101.0, 1.0);
+        p.lineTo(100.0, 1.0);
+        OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory.getOperator(Operator.Type.ExportToGeoJson);
+        String result = exporter.execute(p);
+        assertEquals("{\"type\":\"LineString\",\"coordinates\":[[100.0,0.0],[101.0,0.0],[101.0,1.0],[100.0,1.0]]}", result);
+    }
+
+    @Test
     public void testEmptyPolyline() {
         Polyline p = new Polyline();
         OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory.getOperator(Operator.Type.ExportToGeoJson);
         String result = exporter.execute(p);
         assertEquals("{\"type\":\"LineString\",\"coordinates\":[]}", result);
+    }
+
+    @Test
+    public void testPolygon() {
+        Polygon p = new Polygon();
+        p.startPath(100.0, 0.0);
+        p.lineTo(101.0, 0.0);
+        p.lineTo(101.0, 1.0);
+        p.lineTo(100.0, 1.0);
+        p.closePathWithLine();
+        OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory.getOperator(Operator.Type.ExportToGeoJson);
+        String result = exporter.execute(p);
+        assertEquals("{\"type\":\"Polygon\",\"coordinates\":[[[100.0,0.0],[101.0,0.0],[101.0,1.0],[100.0,1.0],[100.0,0.0]]]}", result);
+    }
+
+    @Test
+    public void testPolygonWithHole() {
+        Polygon p = new Polygon();
+
+        p.startPath(100.0, 0.0);
+        p.lineTo(101.0, 0.0);
+        p.lineTo(101.0, 1.0);
+        p.lineTo(100.0, 1.0);
+        p.closePathWithLine();
+
+        p.startPath(100.2, 0.2);
+        p.lineTo(100.8, 0.2);
+        p.lineTo(100.8, 0.8);
+        p.lineTo(100.2, 0.8);
+        p.closePathWithLine();
+
+        OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory.getOperator(Operator.Type.ExportToGeoJson);
+        String result = exporter.execute(p);
+        assertEquals("{\"type\":\"Polygon\",\"coordinates\":[[[100.0,0.0],[101.0,0.0],[101.0,1.0],[100.0,1.0],[100.0,0.0]],[[100.2,0.2],[100.8,0.2],[100.8,0.8],[100.2,0.8],[100.2,0.2]]]}", result);
     }
 
     @Test

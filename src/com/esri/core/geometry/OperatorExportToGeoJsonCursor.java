@@ -156,10 +156,12 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
 
         g.writeFieldName("coordinates");
 
-        if (p.isEmpty()) {
-            g.writeStartArray();
-            g.writeEndArray();
-        }
+        g.writeStartArray();
+
+        if (!p.isEmpty())
+            exportPathToGeoJson(g, p);
+
+        g.writeEndArray();
 
         g.writeEndObject();
         g.close();
@@ -173,13 +175,65 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
 
         g.writeFieldName("coordinates");
 
-        if (p.isEmpty()) {
-            g.writeStartArray();
-            g.writeEndArray();
-        }
+        g.writeStartArray();
+
+        if (!p.isEmpty())
+            exportPathToGeoJson(g, p);
+
+        g.writeEndArray();
 
         g.writeEndObject();
         g.close();
+    }
+
+    private void exportPathToGeoJson(JsonGenerator g, MultiPath mp) throws JsonGenerationException, IOException {
+        boolean isPoly = mp instanceof Polygon;
+
+        MultiPathImpl mpImpl = (MultiPathImpl) mp._getImpl();
+        AttributeStreamOfDbl zs = mp.hasAttribute(Semantics.Z) ? (AttributeStreamOfDbl) mpImpl.getAttributeStreamRef(Semantics.Z) : null;
+
+        Point2D p = new Point2D();
+
+        int n = mp.getPathCount();
+
+        for (int i = 0; i < n; i++) {
+            if (isPoly)
+                g.writeStartArray();
+
+            int startIndex = mp.getPathStart(i);
+            int vertices = mp.getPathSize(i);
+
+            for (int j = startIndex; j < startIndex + vertices; j++) {
+                mp.getXY(j, p);
+
+                g.writeStartArray();
+
+                writeDouble(p.x, g);
+                writeDouble(p.y, g);
+
+                if (zs != null)
+                    writeDouble(zs.get(j), g);
+
+                g.writeEndArray();
+            }
+
+            if (isPoly) {
+                mp.getXY(startIndex, p);
+
+                g.writeStartArray();
+
+                writeDouble(p.x, g);
+                writeDouble(p.y, g);
+
+                if (zs != null)
+                    writeDouble(zs.get(startIndex), g);
+
+                g.writeEndArray();
+            }
+
+            if (isPoly)
+                g.writeEndArray();
+        }
     }
 
     private void exportEnvelopeToGeoJson(JsonGenerator g, Envelope e) throws JsonGenerationException, IOException {
