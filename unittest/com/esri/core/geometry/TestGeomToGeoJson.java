@@ -29,7 +29,7 @@ public class TestGeomToGeoJson extends TestCase {
         Point p = new Point();
         OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory.getOperator(Operator.Type.ExportToGeoJson);
         String result = exporter.execute(p);
-        assertEquals("{\"type\":\"Point\",\"coordinates\":[]}", result);
+        assertEquals("{\"type\":\"Point\",\"coordinates\":null}", result);
     }
 
     @Test
@@ -47,7 +47,7 @@ public class TestGeomToGeoJson extends TestCase {
         MultiPoint mp = new MultiPoint();
         OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory.getOperator(Operator.Type.ExportToGeoJson);
         String result = exporter.execute(mp);
-        assertEquals("{\"type\":\"MultiPoint\",\"coordinates\":[]}", result);
+        assertEquals("{\"type\":\"MultiPoint\",\"coordinates\":null}", result);
     }
 
     @Test
@@ -67,7 +67,7 @@ public class TestGeomToGeoJson extends TestCase {
         Polyline p = new Polyline();
         OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory.getOperator(Operator.Type.ExportToGeoJson);
         String result = exporter.execute(p);
-        assertEquals("{\"type\":\"LineString\",\"coordinates\":[]}", result);
+        assertEquals("{\"type\":\"LineString\",\"coordinates\":null}", result);
     }
 
     @Test
@@ -109,7 +109,7 @@ public class TestGeomToGeoJson extends TestCase {
         Polygon p = new Polygon();
         OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory.getOperator(Operator.Type.ExportToGeoJson);
         String result = exporter.execute(p);
-        assertEquals("{\"type\":\"Polygon\",\"coordinates\":[]}", result);
+        assertEquals("{\"type\":\"Polygon\",\"coordinates\":null}", result);
     }
 
     @Test
@@ -118,7 +118,7 @@ public class TestGeomToGeoJson extends TestCase {
         e.setCoords(-180.0, -90.0, 180.0, 90.0);
         OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory.getOperator(Operator.Type.ExportToGeoJson);
         String result = exporter.execute(e);
-        assertEquals("{\"bbox\":[-180.0,-90.0,180.0,90.0],\"type\":\"Polygon\",\"coordinates\":[[[-180.0,-90.0],[-180.0,90.0],[180.0,90.0],[180.0,-90.0],[-180.0,-90.0]]]}", result);
+        assertEquals("{\"bbox\":[-180.0,-90.0,180.0,90.0]}", result);
     }
 
     @Test
@@ -126,6 +126,6 @@ public class TestGeomToGeoJson extends TestCase {
         Envelope e = new Envelope();
         OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory.getOperator(Operator.Type.ExportToGeoJson);
         String result = exporter.execute(e);
-        assertEquals("{\"bbox\":[],\"type\":\"Polygon\",\"coordinates\":[]}", result);
+        assertEquals("{\"bbox\":null}", result);
     }
 }

@@ -94,17 +94,20 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
         g.writeString("Point");
 
         g.writeFieldName("coordinates");
-        g.writeStartArray();
 
-        if (!p.isEmpty()) {
+        if (p.isEmpty()) {
+            g.writeNull();
+        } else {
+            g.writeStartArray();
+
             writeDouble(p.getX(), g);
             writeDouble(p.getY(), g);
 
             if (p.hasAttribute(Semantics.Z))
                 writeDouble(p.getZ(), g);
-        }
 
-        g.writeEndArray();
+            g.writeEndArray();
+        }
 
         g.writeEndObject();
         g.close();
@@ -117,9 +120,12 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
         g.writeString("MultiPoint");
 
         g.writeFieldName("coordinates");
-        g.writeStartArray();
 
-        if (!mp.isEmpty()) {
+        if (mp.isEmpty()) {
+            g.writeNull();
+        } else {
+            g.writeStartArray();
+
             MultiPointImpl mpImpl = (MultiPointImpl) mp._getImpl();
             AttributeStreamOfDbl zs = mp.hasAttribute(Semantics.Z) ? (AttributeStreamOfDbl) mpImpl.getAttributeStreamRef(Semantics.Z) : null;
 
@@ -140,9 +146,9 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
 
                 g.writeEndArray();
             }
-        }
 
-        g.writeEndArray();
+            g.writeEndArray();
+        }
 
         g.writeEndObject();
         g.close();
@@ -156,12 +162,13 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
 
         g.writeFieldName("coordinates");
 
-        g.writeStartArray();
-
-        if (!p.isEmpty())
+        if (p.isEmpty()) {
+            g.writeNull();
+        } else {
+            g.writeStartArray();
             exportPathToGeoJson(g, p);
-
-        g.writeEndArray();
+            g.writeEndArray();
+        }
 
         g.writeEndObject();
         g.close();
@@ -175,12 +182,13 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
 
         g.writeFieldName("coordinates");
 
-        g.writeStartArray();
-
-        if (!p.isEmpty())
+        if (p.isEmpty()) {
+            g.writeNull();
+        } else {
+            g.writeStartArray();
             exportPathToGeoJson(g, p);
-
-        g.writeEndArray();
+            g.writeEndArray();
+        }
 
         g.writeEndObject();
         g.close();
@@ -240,62 +248,18 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
         boolean empty = e.isEmpty();
 
         g.writeStartObject();
-
         g.writeFieldName("bbox");
-        g.writeStartArray();
 
-        if (!empty) {
+        if (empty) {
+            g.writeNull();
+        } else {
+            g.writeStartArray();
             writeDouble(e.getXMin(), g);
             writeDouble(e.getYMin(), g);
             writeDouble(e.getXMax(), g);
             writeDouble(e.getYMax(), g);
-        }
-
-        g.writeEndArray();
-
-        g.writeFieldName("type");
-        g.writeString("Polygon");
-
-        g.writeFieldName("coordinates");
-        g.writeStartArray();
-
-        if (!empty) {
-            double xmin = e.getXMin();
-            double ymin = e.getYMin();
-            double xmax = e.getXMax();
-            double ymax = e.getYMax();
-
-            g.writeStartArray();
-
-            g.writeStartArray();
-            writeDouble(xmin, g);
-            writeDouble(ymin, g);
-            g.writeEndArray();
-
-            g.writeStartArray();
-            writeDouble(xmin, g);
-            writeDouble(ymax, g);
-            g.writeEndArray();
-
-            g.writeStartArray();
-            writeDouble(xmax, g);
-            writeDouble(ymax, g);
-            g.writeEndArray();
-
-            g.writeStartArray();
-            writeDouble(xmax, g);
-            writeDouble(ymin, g);
-            g.writeEndArray();
-
-            g.writeStartArray();
-            writeDouble(xmin, g);
-            writeDouble(ymin, g);
-            g.writeEndArray();
-
             g.writeEndArray();
         }
-
-        g.writeEndArray();
 
         g.writeEndObject();
         g.close();
