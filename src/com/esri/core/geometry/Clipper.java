@@ -626,7 +626,7 @@ class Clipper {
 		}
 
 		m_shape.removeUserIndex(usage_index);
-		if (sorted_vertices.size() < 4) {
+		if (sorted_vertices.size() < 3) {
 			return;
 		}
 
