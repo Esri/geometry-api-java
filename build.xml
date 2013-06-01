@@ -18,8 +18,11 @@
 		<pathelement location="${dir.build}" />
 	</path>
 
+	<target name="deps" />
+        <target name="test" depends="build.unittest" />
 	<target name="all" depends="build, jar, execute, javadoc" />
 
+	
 	<target name="build">
 		<delete dir="${dir.build}" />
 		<mkdir dir="${dir.build}" />
