@@ -23,7 +23,7 @@
 	<target name="build">
 		<delete dir="${dir.build}" />
 		<mkdir dir="${dir.build}" />
-		<javac srcdir="." includes="src/**"  classpathref="project.classpath" destdir="${dir.build}" debug="true" />
+		<javac srcdir="." includes="src/**"  classpathref="project.classpath" destdir="${dir.build}" debug="false" />
 		<copy todir="${dir.build}">
 			<fileset dir="${dir.src}" includes = "**/*.txt" />
 		</copy>
@@ -37,7 +37,7 @@
 	</target>
 
 	<target name="build.unittest" depends = "jar">
-		<javac srcdir="." includes="unittest/**"  classpathref="project.classpath" destdir="${dir.build}" debug="true" />
+		<javac srcdir="." includes="unittest/**"  classpathref="project.classpath" destdir="${dir.build}" debug="false" />
 		<copy todir="${dir.build}">
 			<fileset dir="${dir.unittest}" includes="**/*.txt" />
 		</copy>

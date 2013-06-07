@@ -885,4 +885,79 @@ public class TestConvexHull extends TestCase {
 
 	}
 
+	@Test
+	public void testHullTickTock() {
+		Polygon geom1 = new Polygon();
+		Polygon geom2 = new Polygon();
+		Point geom3 = new Point();
+		Line geom4= new Line();
+		Envelope geom5 = new Envelope();
+		MultiPoint geom6 = new MultiPoint();
+
+		// polygon
+		geom1.startPath(0, 0);
+		geom1.lineTo(0, 0);
+		geom1.lineTo(5, 11);
+		geom1.lineTo(5, 11);
+		geom1.lineTo(10, 0);
+		geom1.lineTo(10, 0);
+
+		// polygon
+		geom2.startPath(0, 5);
+		geom2.lineTo(0, 5);
+		geom2.lineTo(10, 5);
+		geom2.lineTo(10, 5);
+		geom2.lineTo(5, -5);
+		geom2.lineTo(5, -5);
+
+		// point
+		geom3.setXY(15, 1.25);
+
+		// segment
+		geom4.setEndXY(-5, 1.25);
+		geom4.setStartXY(0, 0);
+
+		// envelope
+		geom5.setCoords(0, 0, 5, 10);
+
+		// multi_point
+		geom6.add(10, 5);
+		geom6.add(10, 10);
+
+		// Create
+		ListeningGeometryCursor gc = new ListeningGeometryCursor();
+		GeometryCursor ticktock = OperatorConvexHull.local().execute(gc, true, null);
+
+		// Use tick-tock to push a geometry and do a piece of work.
+		gc.tick(geom1);
+		ticktock.tock();
+		gc.tick(geom2);
+		ticktock.tock();
+		gc.tick(geom3);// skiped one tock just for testing.
+		ticktock.tock();
+		gc.tick(geom4);
+		ticktock.tock();
+		gc.tick(geom5);
+		ticktock.tock();
+		gc.tick(geom6);
+		ticktock.tock();
+		// Get the result
+		Geometry result = ticktock.next();
+		Polygon convex_hull = (Polygon)result;
+		assertTrue(OperatorConvexHull.local().isConvex(convex_hull, null));
+
+		Point2D p1 = convex_hull.getXY(0);
+		Point2D p2 = convex_hull.getXY(1);
+		Point2D p3 = convex_hull.getXY(2);
+		Point2D p4 = convex_hull.getXY(3);
+		Point2D p5 = convex_hull.getXY(4);
+		Point2D p6 = convex_hull.getXY(5);
+		assertTrue(p1.x == 5.0 && p1.y == 11.0);
+		assertTrue(p2.x == 10.0 && p2.y == 10);
+		assertTrue(p3.x == 15.0 && p3.y == 1.25);
+		assertTrue(p4.x == 5.0 && p4.y == -5.0);
+		assertTrue(p5.x == -5.0 && p5.y == 1.25);
+		assertTrue(p6.x == 0.0 && p6.y == 10.0);
+	}
+	
 }

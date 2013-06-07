@@ -477,7 +477,7 @@ public final class Point extends Geometry implements Serializable {
 	}
 
 	@Override
-	void queryEnvelope2D(Envelope2D env) {
+	public void queryEnvelope2D(Envelope2D env) {
 
 		if (isEmptyImpl()) {
 			env.setEmpty();

@@ -144,4 +144,7 @@ class MathUtils {
 	static double round(double v) {
 		return Math.floor(v + 0.5);
 	}
+	static double sqr(double v) {
+		return v * v;
+	}
 }

@@ -29,7 +29,8 @@ class OperatorConvexHullCursor extends GeometryCursor {
 	private boolean m_b_done;
 	private GeometryCursor m_inputGeometryCursor;
 	private int m_index;
-
+	ConvexHull m_hull = new ConvexHull();
+	
 	OperatorConvexHullCursor(boolean b_merge, GeometryCursor geoms,
 			ProgressTracker progress_tracker) {
 		m_index = -1;
@@ -75,13 +76,34 @@ class OperatorConvexHullCursor extends GeometryCursor {
 
 	private Geometry calculateConvexHullMerging_(GeometryCursor geoms,
 			ProgressTracker progress_tracker) {
-		ConvexHull hull = new ConvexHull();
 		Geometry geometry;
 
 		while ((geometry = geoms.next()) != null)
-			hull.addGeometry(geometry);
+			m_hull.addGeometry(geometry);
 
-		return hull.getBoundingGeometry();
+		return m_hull.getBoundingGeometry();
+	}
+	
+	@Override
+	public boolean tock() {
+		if (m_b_done)
+			return true;
+		
+		if (!m_b_merge)
+		{
+			//Do not use tick/tock with the non-merging convex hull.
+			//Call tick/next instead,
+			//because tick pushes geometry into the cursor, and next performs a single convex hull on it. 
+			throw new GeometryException("Invalid call for non merging convex hull.");
+		}
+		
+		Geometry geometry = m_inputGeometryCursor.next();
+		if (geometry != null) {
+			m_hull.addGeometry(geometry);
+			return true;
+		} else {
+			throw new GeometryException("Expects a non-null geometry.");
+		}
 	}
 
 	static Geometry calculateConvexHull_(Geometry geom,
