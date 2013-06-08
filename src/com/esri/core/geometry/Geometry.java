@@ -289,7 +289,7 @@ public abstract class Geometry implements Serializable {
 	/**
 	 * Returns tight bbox of the Geometry in X, Y plane.
 	 */
-	abstract void queryEnvelope2D(Envelope2D env);
+	public abstract void queryEnvelope2D(Envelope2D env);
 
 	/**
 	 * Returns tight bbox of the Geometry in 3D.
@@ -301,7 +301,7 @@ public abstract class Geometry implements Serializable {
 	 * faster method than QueryEnvelope2D. However, the bbox could be larger
 	 * than the tight box.
 	 */
-	void queryLooseEnvelope2D(Envelope2D env) {
+	public void queryLooseEnvelope2D(Envelope2D env) {
 		queryEnvelope2D(env);
 	}
 

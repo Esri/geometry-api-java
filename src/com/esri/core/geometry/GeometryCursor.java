@@ -29,6 +29,7 @@ package com.esri.core.geometry;
 public abstract class GeometryCursor {
 	/**
 	 *Moves the cursor to the next Geometry. Returns null when reached the end.
+	 *The behavior of the cursor is undefined after the method returns null.
 	 */
 	public abstract Geometry next();
 
@@ -39,4 +40,12 @@ public abstract class GeometryCursor {
 	 *It is not always possible to preserve an ID during an operation.
 	 */
 	public abstract int getGeometryID();
+	/**
+	 *Executes a unit of work on the cursor.
+	 *@return Returns true, if there is a geometry ready to be pulled using next().
+	 *
+	 *This method is to be used together with the tick() method on the ListeningGeometryCursor.
+	 *Call tock() for each tick() on the ListeningGeometryCursor.
+	 */
+	protected boolean tock() { return true; }
 }

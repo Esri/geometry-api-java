@@ -780,6 +780,15 @@ final class PlaneSweepCrackerHelper {
 		int clusterStart = getEdgeCluster(edge, 0);
 		Point2D pt = getClusterXY(clusterStart);
 		if (!pt.isEqual(newStart)) {
+			if (pt.compare(m_sweep_point) > 0
+					&& newStart.compare(m_sweep_point) < 0) {
+				m_complications = true;// point is not yet have been processed
+										// but moved before the sweep point,
+										// this will require
+				// repeating the cracking step and the sweep_vertical cannot
+				// help here
+			}
+			
 			// This cluster's position needs to be changed
 			getAffectedEdges(clusterStart, m_temp_edge_buffer);
 			m_modified_clusters.add(clusterStart);
@@ -790,6 +799,12 @@ final class PlaneSweepCrackerHelper {
 		int clusterEnd = getEdgeCluster(edge, 1);
 		pt = getClusterXY(clusterEnd);
 		if (!pt.isEqual(newEnd)) {
+			if (pt.compare(m_sweep_point) > 0
+					&& newEnd.compare(m_sweep_point) < 0) {
+				m_complications = true;// point is not yet have been processed
+										// but moved before the sweep point.
+			}
+
 			// This cluster's position needs to be changed
 			getAffectedEdges(clusterEnd, m_temp_edge_buffer);
 			m_modified_clusters.add(clusterEnd);
@@ -874,7 +889,10 @@ final class PlaneSweepCrackerHelper {
 
 		m_segment_intersector.pushSegment(seg_1);
 		m_segment_intersector.pushSegment(seg_2);
-		m_segment_intersector.intersect(m_tolerance, true);
+		if (m_segment_intersector.intersect(m_tolerance, true))
+			m_complications = true;
+				
+				
 		// #ifdef _DEBUG_CRACKING_REPORT
 		// {
 		// for (int resi = 0; resi < 2; resi++)
@@ -1396,9 +1414,9 @@ final class PlaneSweepCrackerHelper {
 
 			// st_counter_insertions_peaks += edgesToDelete.size() == 0 &&
 			// m_edges_to_insert_in_sweep_structure.size() > 0;
-			// First step is to detelete the edges that terminate in the
+			// First step is to delete the edges that terminate in the
 			// cluster.
-			// During that step we also determine the left and right neighbours
+			// During that step we also determine the left and right neighbors
 			// of the deleted bunch and then check if those left and right
 			// intersect or not.
 			if (edgesToDelete.size() > 0) {

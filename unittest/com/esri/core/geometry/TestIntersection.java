@@ -940,4 +940,56 @@ public class TestIntersection extends TestCase {
 			assertTrue(false);
 		}
 	}
+
+	@Test
+	public void testUnionTickTock() {
+		Polygon poly1 = new Polygon();
+		poly1.startPath(0, 0);
+		poly1.lineTo(0, 10);
+		poly1.lineTo(10, 10);
+		poly1.lineTo(10, 0);
+
+		Polygon poly2 = new Polygon();
+		poly2.startPath(10.5, 4);
+		poly2.lineTo(10.5, 8);
+		poly2.lineTo(14, 10);
+
+		Transformation2D trans = new Transformation2D();
+
+		Polygon poly3 = (Polygon) poly1.copy();
+		trans.setShift(2, 3);
+		poly3.applyTransformation(trans);
+
+		Polygon poly4 = (Polygon) poly1.copy();
+		trans.setShift(-2, -3);
+		poly4.applyTransformation(trans);
+
+		// Create
+		ListeningGeometryCursor gc = new ListeningGeometryCursor();
+		GeometryCursor ticktock = OperatorUnion.local().execute(gc, null, null);
+
+		// Use tick-tock to push a geometry and do a piece of work.
+		gc.tick(poly1);
+		ticktock.tock();
+		gc.tick(poly2);
+		gc.tick(poly3);// skiped one tock just for testing.
+		ticktock.tock();
+		gc.tick(poly4);
+		ticktock.tock();
+		// Get the result
+		Geometry result = ticktock.next();
+
+		// Use ListeningGeometryCursor to put all geometries in.
+		ListeningGeometryCursor gc2 = new ListeningGeometryCursor();
+		gc2.tick(poly1);
+		gc2.tick(poly2);
+		gc2.tick(poly3);
+		gc2.tick(poly4);
+
+		GeometryCursor res = OperatorUnion.local().execute(gc2, null, null);
+		// Calling next will process all geometries at once.
+		Geometry result2 = res.next();
+		assertTrue(result.equals(result2));
+	}
+	
 }

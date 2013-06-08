@@ -193,12 +193,14 @@ class SegmentIntersector {
 	}
 
 	// Performs the intersection
-	public void intersect(double tolerance, boolean b_intersecting) {
+	public boolean intersect(double tolerance, boolean b_intersecting) {
 		if (m_input_segments.size() != 2)
 			throw new GeometryException("internal error");
 
 		m_tolerance = tolerance;
-
+		double small_tolerance_sqr = MathUtils.sqr(tolerance * 0.01);
+		boolean bigmove = false;
+		
 		IntersectionPart part1 = m_input_segments.get(0);
 		IntersectionPart part2 = m_input_segments.get(1);
 		if (b_intersecting
@@ -256,15 +258,27 @@ class SegmentIntersector {
 							pt.add(pt_1, pt_2);
 							ptWeight = weight1 + weight2;
 							pt.scale(1 / ptWeight);
+							if (Point2D.sqrDistance(pt, pt_1)
+									+ Point2D.sqrDistance(pt, pt_2) > small_tolerance_sqr)
+								bigmove = true;
+							
 						} else {// for non-equal ranks, the higher rank wins
 							if (rank1 > rank2) {
 								pt = new Point2D();
 								line_1.getCoord2D(t1, pt);
 								ptWeight = weight1;
+								Point2D pt_2 = new Point2D();
+								line_2.getCoord2D(t2, pt_2);
+								if (Point2D.sqrDistance(pt, pt_2) > small_tolerance_sqr)
+									bigmove = true;
 							} else {
 								pt = new Point2D();
 								line_2.getCoord2D(t2, pt);
 								ptWeight = weight2;
+								Point2D pt_1 = new Point2D();
+								line_1.getCoord2D(t1, pt_1);
+								if (Point2D.sqrDistance(pt, pt_1) > small_tolerance_sqr)
+									bigmove = true;
 							}
 						}
 						points[i] = pt;
@@ -330,7 +344,7 @@ class SegmentIntersector {
 						i0 = i;
 					}
 
-					return;
+					return bigmove;
 				}
 
 				throw new GeometryException("internal error");
@@ -338,6 +352,8 @@ class SegmentIntersector {
 
 			throw new GeometryException("internal error");
 		}
+		
+		return false;
 	}
 
 	public void intersect(double tolerance, Point pt_intersector_point,

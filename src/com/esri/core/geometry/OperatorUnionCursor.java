@@ -41,10 +41,20 @@ class OperatorUnionCursor extends GeometryCursor {
 		m_inputGeoms = inputGeoms1;
 		m_spatial_reference = (SpatialReferenceImpl) (sr);
 		m_progress_tracker = progress_tracker;
+		// Otherwise, unsupported use patternes could be produced.
+
+		startDissolve();
 	}
 
 	@Override
 	public Geometry next() {
+		if (m_b_done)
+			return null;
+
+		m_b_done = true;// m_b_done is added to avoid calling
+						// m_inputGeoms->next() second time after it returned
+						// NULL.
+		
 		return dissolve_();
 	}
 
@@ -52,16 +62,218 @@ class OperatorUnionCursor extends GeometryCursor {
 	public int getGeometryID() {
 		return m_index;
 	}
+	
+	private void step(){
+		if (!bFinished) {
+			Geometry geom = m_inputGeoms.next();
 
-	private Geometry dissolve_() {
-		if (m_b_done)
-			return null;
+			if ((m_progress_tracker != null)
+					&& !(m_progress_tracker.progress(-1, -1)))
+				throw new RuntimeException("user_canceled");
 
-		m_b_done = true;// m_b_done is added to avoid calling
-						// m_inputGeoms->next() second time after it returned
-						// NULL.
-		// Otherwise, unsupported use patternes could be produced.
+			if (geom != null) {
+				if (geom.getDimension() > dimension)
+				{
+					GeomPair pair = new GeomPair();
+					pair.init();
+					pair.geom = geom;
+					int sz = getVertexCount_(geom);
+					pair.vertex_count = sz;
+					int level = getLevel_(sz);
 
+					{
+						unionBins.clear();
+						int resize = Math.max(16, level + 1);
+						for (int i = 0; i < resize; i++)
+							unionBins.add(null);
+						binSizes.resize(resize, 0);
+						unionBins.set(level, new ArrayList<GeomPair>(0));
+						unionBins.get(level).add(pair);
+						binSizes.set(level, sz);
+						totalToUnion = 1;
+						totalVertexCount = sz;
+						dimension = geom.getDimension();
+					}
+				} else if (!geom.isEmpty()
+						&& geom.getDimension() == dimension) {
+					GeomPair pair = new GeomPair();
+					pair.init();
+					pair.geom = geom;
+					int sz = getVertexCount_(geom);
+					pair.vertex_count = sz;
+					int level = getLevel_(sz);
+
+					{
+						int resize = Math.max(unionBins.size(), level + 1);
+						if (resize > unionBins.size()) {
+							int grow = resize - unionBins.size();
+							for (int i = 0; i < grow; i++)
+								unionBins.add(null);
+						}
+						binSizes.resize(resize, 0);
+						if (unionBins.get(level) == null)
+							unionBins
+									.set(level, new ArrayList<GeomPair>(0));
+
+						unionBins.get(level).add(pair);
+						binSizes.write(level, binSizes.read(level) + sz);
+
+						totalToUnion++;
+						totalVertexCount += sz;
+					}
+				} else {
+					// skip empty or geometries of lower dimension
+				}
+			} else {
+				bFinished = true;
+			}
+		}
+
+		while (true)// union features that are in the unionBins
+		{
+			if (!bFinished) {// when we are still loading geometries, union
+								// geometries of the same level, starting
+								// with the biggest level.
+				int imax = -1;
+				int maxSz = 0;
+				// Find a bin that contains more than one geometry and has
+				// the max vertex count.
+				for (int i = 0, n = unionBins.size(); i < n; i++) {
+					if (unionBins.get(i) != null
+							&& unionBins.get(i).size() > 1
+							&& binSizes.read(i) > binVertexThreshold) {
+						if (maxSz < binSizes.read(i)) {
+							maxSz = binSizes.read(i);
+							imax = i;
+						}
+					}
+				}
+
+				if (maxSz > 0) {
+					// load the found bin into the batchToUnion.
+					while (unionBins.get(imax).size() > 0) {
+						ArrayList<GeomPair> bin = unionBins.get(imax);
+						batchToUnion.add(bin.get(bin.size() - 1));
+						bin.remove(bin.size() - 1);
+						totalVertexCount -= batchToUnion.get(batchToUnion
+								.size() - 1).vertex_count;
+						binSizes.write(
+								imax,
+								binSizes.read(imax)
+										- batchToUnion.get(batchToUnion
+												.size() - 1).vertex_count);
+					}
+				}
+			} else if (totalToUnion > 1) {// bFinished_shared == true - we
+											// loaded all geometries
+				int level = 0;
+				int vertexCount = 0;
+				for (int i = 0, n = unionBins.size(); i < n
+						&& (batchToUnion.size() < 2 || vertexCount < binVertexThreshold); i++) {
+					if (unionBins.get(i) != null) {
+						while (!unionBins.get(i).isEmpty()
+								&& (batchToUnion.size() < 2 || vertexCount < binVertexThreshold)) {
+							ArrayList<GeomPair> bin = unionBins.get(i);
+							batchToUnion.add(bin.get(bin.size() - 1));
+							bin.remove(bin.size() - 1);
+							level = i;
+							totalVertexCount -= batchToUnion
+									.get(batchToUnion.size() - 1).vertex_count;
+							vertexCount += batchToUnion.get(batchToUnion
+									.size() - 1).vertex_count;
+							binSizes.write(
+									i,
+									binSizes.read(i)
+											- batchToUnion.get(batchToUnion
+													.size() - 1).vertex_count);
+							continue;
+						}
+					}
+				}
+
+				if (batchToUnion.size() == 1)// never happens?
+				{// only one element. Put it back.
+					unionBins.get(level).add(
+							batchToUnion.get(batchToUnion.size() - 1));
+					totalVertexCount += batchToUnion.get(batchToUnion
+							.size() - 1).vertex_count;
+					binSizes.write(
+							level,
+							binSizes.read(level)
+									+ batchToUnion.get(batchToUnion.size() - 1).vertex_count);
+					batchToUnion.remove(batchToUnion.size() - 1);
+				}
+			}
+
+			if (!batchToUnion.isEmpty()) {
+				Geometry resGeom;
+				int resDim;
+				ArrayList<Geometry> geoms = new ArrayList<Geometry>(0);
+				geoms.ensureCapacity(batchToUnion.size());
+				for (int i = 0, n = batchToUnion.size(); i < n; i++) {
+					geoms.add(batchToUnion.get(i).geom);
+				}
+
+				resGeom = TopologicalOperations.dissolveDirty(geoms,
+						m_spatial_reference, m_progress_tracker);
+				// assert(Operator_factory_local::get_instance()->CanDoNewTopo(pair1.geom->get_geometry_type(),
+				// pair2.geom->get_geometry_type()));
+				// resGeom =
+				// Topological_operations::dissolve(batchToUnion[0].geom,
+				// batchToUnion[1].geom, m_spatial_reference,
+				// m_progress_tracker);
+				// Operator_factory_local::SaveJSONToTextFileDbg("c:/temp/buffer_dissolve.txt",
+				// *resGeom, nullptr);
+				resDim = resGeom.getDimension();
+
+				dissolved_something = true;
+				GeomPair pair = new GeomPair();
+				pair.init();
+				pair.geom = resGeom;
+				int sz = getVertexCount_(resGeom);
+				pair.vertex_count = sz;
+				int level = getLevel_(sz);
+
+				int resize = Math.max(unionBins.size() + 1, level);
+				if (resize > unionBins.size()) {
+					int grow = resize - unionBins.size();
+					for (int i = 0; i < grow; i++)
+						unionBins.add(null);
+				}
+				binSizes.resize(resize, 0);
+
+				if (unionBins.get(level) == null)
+					unionBins.set(level, new ArrayList<GeomPair>(0));
+
+				unionBins.get(level).add(pair);
+				binSizes.write(level, binSizes.read(level) + sz);
+				totalToUnion -= (batchToUnion.size() - 1);
+
+				batchToUnion.clear();
+			} else {
+				boolean bCanGo = totalToUnion == 1;
+				if (bFinished)
+					bLocalDone = true;
+
+				break;
+			}
+		}
+	}
+	
+	boolean bLocalDone = false;
+	int dimension = -1;
+	boolean bFinished = false;
+	int totalToUnion = 0;
+	int totalVertexCount = 0;
+	int binVertexThreshold = 10000;
+	boolean dissolved_something = false;
+
+	ArrayList<GeomPair> batchToUnion = new ArrayList<GeomPair>(0);
+	ArrayList<ArrayList<GeomPair>> unionBins = new ArrayList<ArrayList<GeomPair>>(
+			0);
+	AttributeStreamOfInt32 binSizes = new AttributeStreamOfInt32(0);
+
+	private void startDissolve() {
 		m_index = m_inputGeoms.getGeometryID();
 
 		// Geometries are placed into the unionBins.
@@ -69,229 +281,27 @@ class OperatorUnionCursor extends GeometryCursor {
 		// The bin number is calculated as log(N), where N is the number of
 		// vertices in geoemtry and the log is to a
 		// certain base (now it is 4).
-		ArrayList<ArrayList<GeomPair>> unionBins = new ArrayList<ArrayList<GeomPair>>(
-				0);
-		AttributeStreamOfInt32 binSizes = new AttributeStreamOfInt32(0);
 		unionBins.ensureCapacity(128);
 		binSizes.reserve(128);
 
 		for (int i = 0; i < 16; i++)
 			unionBins.add(null);
 
-		int dimension = -1;
-		boolean bFinished = false;
-		int totalToUnion = 0;
-		int totalVertexCount = 0;
-		int binVertexThreshold = 10000;
-		boolean dissolved_something = false;
-
-		ArrayList<GeomPair> batchToUnion = new ArrayList<GeomPair>(0);// a batch
-																		// of
-																		// geometries
-																		// to
-																		// union
 		batchToUnion.ensureCapacity(32);
+	}
+	
+	@Override
+	public boolean tock() {
+		if (!m_b_done)
+		{
+			step();
+		}
+		return bFinished;
+	}
 
-		boolean bLocalDone = false;
+	private Geometry dissolve_() {
 		while (!bLocalDone) {
-			if (!bFinished) {
-				Geometry geom = m_inputGeoms.next();
-
-				if ((m_progress_tracker != null)
-						&& !(m_progress_tracker.progress(-1, -1)))
-					throw new RuntimeException("user_canceled");
-
-				if (geom != null) {
-					if (geom.getDimension() > dimension)// only master can
-														// change dimension var.
-					{
-						GeomPair pair = new GeomPair();
-						pair.init();
-						pair.geom = geom;
-						pair.dim = geom.getDimension();
-						int sz = getVertexCount_(geom);
-						pair.vertex_count = sz;
-						int level = getLevel_(sz);
-
-						{
-							unionBins.clear();
-							int resize = Math.max(16, level + 1);
-							for (int i = 0; i < resize; i++)
-								unionBins.add(null);
-							binSizes.resize(resize, 0);
-							unionBins.set(level, new ArrayList<GeomPair>(0));
-							unionBins.get(level).add(pair);
-							binSizes.set(level, sz);
-							totalToUnion = 1;
-							totalVertexCount = sz;
-							dimension = geom.getDimension();
-						}
-					} else if (!geom.isEmpty()
-							&& geom.getDimension() == dimension) {
-						GeomPair pair = new GeomPair();
-						pair.init();
-						pair.geom = geom;
-						pair.dim = geom.getDimension();
-						int sz = getVertexCount_(geom);
-						pair.vertex_count = sz;
-						int level = getLevel_(sz);
-
-						{
-							int resize = Math.max(unionBins.size(), level + 1);
-							if (resize > unionBins.size()) {
-								int grow = resize - unionBins.size();
-								for (int i = 0; i < grow; i++)
-									unionBins.add(null);
-							}
-							binSizes.resize(resize, 0);
-							if (unionBins.get(level) == null)
-								unionBins
-										.set(level, new ArrayList<GeomPair>(0));
-
-							unionBins.get(level).add(pair);
-							binSizes.write(level, binSizes.read(level) + sz);
-
-							totalToUnion++;
-							totalVertexCount += sz;
-						}
-					} else {
-						// skip empty or geometries of lower dimension
-					}
-				} else {
-					bFinished = true;
-				}
-			}
-
-			while (true)// union features that are in the unionBins
-			{
-				if (!bFinished) {// when we are still loading geometries, union
-									// geometries of the same level, starting
-									// with the biggest level.
-					int imax = -1;
-					int maxSz = 0;
-					// Find a bin that contains more than one geometry and has
-					// the max vertex count.
-					for (int i = 0, n = unionBins.size(); i < n; i++) {
-						if (unionBins.get(i) != null
-								&& unionBins.get(i).size() > 1
-								&& binSizes.read(i) > binVertexThreshold) {
-							if (maxSz < binSizes.read(i)) {
-								maxSz = binSizes.read(i);
-								imax = i;
-							}
-						}
-					}
-
-					if (maxSz > 0) {
-						// load the found bin into the batchToUnion.
-						while (unionBins.get(imax).size() > 0) {
-							ArrayList<GeomPair> bin = unionBins.get(imax);
-							batchToUnion.add(bin.get(bin.size() - 1));
-							bin.remove(bin.size() - 1);
-							totalVertexCount -= batchToUnion.get(batchToUnion
-									.size() - 1).vertex_count;
-							binSizes.write(
-									imax,
-									binSizes.read(imax)
-											- batchToUnion.get(batchToUnion
-													.size() - 1).vertex_count);
-						}
-					}
-				} else if (totalToUnion > 1) {// bFinished_shared == true - we
-												// loaded all geometries
-					int level = 0;
-					int vertexCount = 0;
-					for (int i = 0, n = unionBins.size(); i < n
-							&& (batchToUnion.size() < 2 || vertexCount < binVertexThreshold); i++) {
-						if (unionBins.get(i) != null) {
-							while (!unionBins.get(i).isEmpty()
-									&& (batchToUnion.size() < 2 || vertexCount < binVertexThreshold)) {
-								ArrayList<GeomPair> bin = unionBins.get(i);
-								batchToUnion.add(bin.get(bin.size() - 1));
-								bin.remove(bin.size() - 1);
-								level = i;
-								totalVertexCount -= batchToUnion
-										.get(batchToUnion.size() - 1).vertex_count;
-								vertexCount += batchToUnion.get(batchToUnion
-										.size() - 1).vertex_count;
-								binSizes.write(
-										i,
-										binSizes.read(i)
-												- batchToUnion.get(batchToUnion
-														.size() - 1).vertex_count);
-								continue;
-							}
-						}
-					}
-
-					if (batchToUnion.size() == 1)// never happens?
-					{// only one element. Put it back.
-						unionBins.get(level).add(
-								batchToUnion.get(batchToUnion.size() - 1));
-						totalVertexCount += batchToUnion.get(batchToUnion
-								.size() - 1).vertex_count;
-						binSizes.write(
-								level,
-								binSizes.read(level)
-										+ batchToUnion.get(batchToUnion.size() - 1).vertex_count);
-						batchToUnion.remove(batchToUnion.size() - 1);
-					}
-				}
-
-				if (!batchToUnion.isEmpty()) {
-					Geometry resGeom;
-					int resDim;
-					ArrayList<Geometry> geoms = new ArrayList<Geometry>(0);
-					geoms.ensureCapacity(batchToUnion.size());
-					for (int i = 0, n = batchToUnion.size(); i < n; i++) {
-						geoms.add(batchToUnion.get(i).geom);
-					}
-
-					resGeom = TopologicalOperations.dissolveDirty(geoms,
-							m_spatial_reference, m_progress_tracker);
-					// assert(Operator_factory_local::get_instance()->CanDoNewTopo(pair1.geom->get_geometry_type(),
-					// pair2.geom->get_geometry_type()));
-					// resGeom =
-					// Topological_operations::dissolve(batchToUnion[0].geom,
-					// batchToUnion[1].geom, m_spatial_reference,
-					// m_progress_tracker);
-					// Operator_factory_local::SaveJSONToTextFileDbg("c:/temp/buffer_dissolve.txt",
-					// *resGeom, nullptr);
-					resDim = resGeom.getDimension();
-
-					dissolved_something = true;
-					GeomPair pair = new GeomPair();
-					pair.init();
-					pair.geom = resGeom;
-					pair.dim = resDim;
-					int sz = getVertexCount_(resGeom);
-					pair.vertex_count = sz;
-					int level = getLevel_(sz);
-
-					int resize = Math.max(unionBins.size() + 1, level);
-					if (resize > unionBins.size()) {
-						int grow = resize - unionBins.size();
-						for (int i = 0; i < grow; i++)
-							unionBins.add(null);
-					}
-					binSizes.resize(resize, 0);
-
-					if (unionBins.get(level) == null)
-						unionBins.set(level, new ArrayList<GeomPair>(0));
-
-					unionBins.get(level).add(pair);
-					binSizes.write(level, binSizes.read(level) + sz);
-					totalToUnion -= (batchToUnion.size() - 1);
-
-					batchToUnion.clear();
-				} else {
-					boolean bCanGo = totalToUnion == 1;
-					if (bFinished)
-						bLocalDone = true;
-
-					break;
-				}
-			}
+			step();
 		}
 
 		Geometry resGeom = null;
@@ -328,13 +338,11 @@ class OperatorUnionCursor extends GeometryCursor {
 	private static final class GeomPair {
 		void init() {
 			geom = null;
-			dim = -1;
 			vertex_count = -1;
 		}
 
 		Geometry geom;
 		int vertex_count;
-		int dim;
 	}
 
 	private static int getVertexCount_(Geometry geom) {

@@ -134,7 +134,7 @@ class SpatialReferenceImpl extends SpatialReference {
 	}
 
 	public boolean requiresReSimplify(SpatialReference dst) {
-		return dst != this;// FIXME: needs to be smarter.
+		return dst != this;
 	}
 
 	@Override

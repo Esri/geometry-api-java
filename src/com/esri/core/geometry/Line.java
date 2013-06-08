@@ -126,7 +126,7 @@ public final class Line extends Segment implements Serializable {
 	}
 
 	@Override
-	void queryEnvelope2D(Envelope2D env) {
+	public void queryEnvelope2D(Envelope2D env) {
 		env.setCoords(m_xStart, m_yStart, m_xEnd, m_yEnd);
 		env.normalize();
 	}

@@ -443,7 +443,7 @@ public final class Envelope extends Geometry implements Serializable {
 	}
 
 	@Override
-	void queryEnvelope2D(Envelope2D env) {
+	public void queryEnvelope2D(Envelope2D env) {
 		env.xmin = m_envelope.xmin;
 		env.ymin = m_envelope.ymin;
 		env.xmax = m_envelope.xmax;

@@ -149,7 +149,7 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	}
 
 	@Override
-	void queryEnvelope2D(Envelope2D env) {
+	public void queryEnvelope2D(Envelope2D env) {
 		m_impl.queryEnvelope2D(env);
 	}
 
@@ -158,7 +158,7 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 		m_impl.queryEnvelope3D(env);
 	}
 
-	void queryLooseEnvelope(Envelope2D env) {
+	public void queryLooseEnvelope(Envelope2D env) {
 		m_impl.queryLooseEnvelope2D(env);
 	}
 

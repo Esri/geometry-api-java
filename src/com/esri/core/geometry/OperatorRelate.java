@@ -26,20 +26,26 @@ package com.esri.core.geometry;
 
 import com.esri.core.geometry.Operator.Type;
 
+/**
+ *Performs the Relation operation between two geometries using the DE-9IM matrix encoded as a string.
+ *
+ */
 public abstract class OperatorRelate extends Operator {
 	@Override
 	public Type getType() {
 		return Type.Relate;
 	}
 
-	/**
-	 * Performs the Relation operation between two geometries using the Shape
-	 * Comparison Language string.
-	 * 
-	 * @return Returns True if the relation holds, False otherwise.
-	 */
+    /**
+    *Performs the Relation operation between two geometries using the DE-9IM matrix encoded as a string.
+    *@param inputGeom1 The first geometry in the relation.
+    *@param inputGeom2 The second geometry in the relation.
+    *@param sr The spatial reference of the geometries.
+    *@param de_9im_string The DE-9IM matrix relation encoded as a string.
+    *@return Returns True if the relation holds, False otherwise.
+    */
 	public abstract boolean execute(Geometry inputGeom1, Geometry inputGeom2,
-			SpatialReference sr, String scl, ProgressTracker progressTracker);
+			SpatialReference sr, String de_9im_string, ProgressTracker progressTracker);
 
 	public static OperatorRelate local() {
 		return (OperatorRelate) OperatorFactoryLocal.getInstance().getOperator(
