@@ -37,7 +37,9 @@ public class GeometryEngine {
 
 	private static OperatorFactoryLocal factory = OperatorFactoryLocal
 			.getInstance();
-
+
+
+
 	/**
 	 * Imports the MapGeometry from its JSON representation. M and Z values are
 	 * not imported from JSON representation.
@@ -87,6 +89,47 @@ public class GeometryEngine {
 
 		return exporter.execute(spatialReference, geometry);
 	}
+
+    public static String geometryToGeoJson(Geometry geometry) {
+        OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory
+                .getOperator(Operator.Type.ExportToGeoJson);
+
+        return exporter.execute(geometry);
+    }
+
+    /**
+     * Exports the specified geometry instance to its GeoJSON representation.
+     *
+     * @see GeometryEngine#geometryToGeoJson(SpatialReference spatialReference,
+     *      Geometry geometry)
+     *
+     * @param wkid
+     *            The spatial reference Well Known ID to be used for the GeoJSON representation.
+     * @param geometry
+     *            The geometry to be exported to GeoJSON.
+     * @return The GeoJSON representation of the specified geometry.
+     */
+    public static String geometryToGeoJson(int wkid, Geometry geometry) {
+        return GeometryEngine.geometryToGeoJson(
+                wkid > 0 ? SpatialReference.create(wkid) : null, geometry);
+    }
+
+    /**
+     * Exports the specified geometry instance to it's JSON representation.
+     *
+     * @param spatialReference
+     *            The spatial reference of associated object.
+     * @param geometry
+     *            The geometry.
+     * @return The GeoJSON representation of the specified geometry.
+     */
+    public static String geometryToGeoJson(SpatialReference spatialReference,
+            Geometry geometry) {
+        OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory
+                .getOperator(Operator.Type.ExportToGeoJson);
+
+        return exporter.execute(spatialReference, geometry);
+    }
 
 	/**
 	 * Imports geometry from the ESRI shape file format.
@@ -557,7 +600,8 @@ public class GeometryEngine {
 
 		return cutsList.toArray(new Geometry[0]);
 	}
-
+
+
 	/**
 	 * Calculates a buffer polygon for each geometry at each of the 
 	 * corresponding specified distances.  It is assumed that all geometries have
@@ -600,7 +644,8 @@ public class GeometryEngine {
 			return buffers;
 		}
 	}
-
+
+
 	/**
 	 * Calculates a buffer polygon of the geometry as specified by the 
 	 * distance input. The buffer is implemented in the xy-plane.
@@ -773,7 +818,8 @@ public class GeometryEngine {
 		boolean result = op.isSimpleAsFeature(geometry, spatialReference, null);
 		return result;
 	}
-
+
+
 	/**
 	 * A geodesic distance is the shortest distance between any two points on the earth's surface when the earth's
 	 * surface is approximated by a spheroid. The function returns the shortest distance between two points on the
