@@ -175,10 +175,22 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
     }
 
     private void exportPolygonToGeoJson(JsonGenerator g, Polygon p) throws JsonGenerationException, IOException {
+        MultiPathImpl pImpl = (MultiPathImpl) p._getImpl();
+
+        //int pointCount = pImpl.getPointCount();
+        int polyCount = pImpl.getOGCPolygonCount();
+
+        // check yo' polys playa
+
         g.writeStartObject();
 
         g.writeFieldName("type");
-        g.writeString("Polygon");
+
+        if (polyCount >= 2) { // single polys seem to have a polyCount of 0, multi polys seem to be >= 2
+            g.writeString("MultiPolygon");
+        } else {
+            g.writeString("Polygon");
+        }
 
         g.writeFieldName("coordinates");
 
@@ -186,12 +198,116 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
             g.writeNull();
         } else {
             g.writeStartArray();
-            exportPathToGeoJson(g, p);
+
+            if (polyCount >= 2) {
+                g.writeStartArray();
+                exportMultiPolygonToGeoJson(g, p, pImpl);
+                g.writeEndArray();
+            } else {
+                exportPathToGeoJson(g, p);
+            }
+
             g.writeEndArray();
         }
 
         g.writeEndObject();
         g.close();
+    }
+
+    private void exportMultiPolygonToGeoJson(JsonGenerator g, Polygon p, MultiPathImpl pImpl) throws IOException {
+        int startIndex;
+        int vertices;
+
+        //AttributeStreamOfDbl position = (AttributeStreamOfDbl) pImpl.getAttributeStreamRef(VertexDescription.Semantics.POSITION);
+        //AttributeStreamOfInt8 pathFlags = pImpl.getPathFlagsStreamRef();
+        //AttributeStreamOfInt32 paths = pImpl.getPathStreamRef();
+        int pathCount = pImpl.getPathCount();
+
+        AttributeStreamOfDbl zs = p.hasAttribute(Semantics.Z) ? (AttributeStreamOfDbl) pImpl.getAttributeStreamRef(Semantics.Z) : null;
+
+        Point2D pt = new Point2D();
+
+        g.writeStartArray();
+
+        startIndex = p.getPathStart(0);
+        vertices = p.getPathSize(0);
+
+        for (int i = startIndex; i < startIndex + vertices; i++) {
+            p.getXY(i, pt);
+            g.writeStartArray();
+            writeDouble(pt.x, g);
+            writeDouble(pt.y, g);
+
+            if (zs != null)
+                writeDouble(zs.get(i), g);
+
+            g.writeEndArray();
+        }
+
+        p.getXY(startIndex, pt);
+        g.writeStartArray();
+        writeDouble(pt.x, g);
+        writeDouble(pt.y, g);
+
+        if (zs != null)
+            writeDouble(zs.get(startIndex), g);
+
+        g.writeEndArray();
+
+        g.writeEndArray();
+
+        for (int path = 1; path < pathCount; path++) {
+            boolean isExtRing = p.isExteriorRing(path);
+            startIndex = p.getPathStart(path);
+            vertices = p.getPathSize(path);
+
+            writePath(p, g, startIndex, vertices, zs, isExtRing);
+        }
+    }
+
+    private void closePolygon(MultiPath mp, JsonGenerator g, int startIndex, AttributeStreamOfDbl zs) throws IOException {
+        Point2D pt = new Point2D();
+
+        // close ring
+        mp.getXY(startIndex, pt);
+        g.writeStartArray();
+        writeDouble(pt.x, g);
+        writeDouble(pt.y, g);
+
+        if (zs != null)
+            writeDouble(zs.get(startIndex), g);
+
+        g.writeEndArray();
+    }
+
+    private void writePath(MultiPath mp, JsonGenerator g, int startIndex, int vertices, AttributeStreamOfDbl zs, boolean isExtRing) throws IOException {
+        Point2D pt = new Point2D();
+
+        boolean isPoly = mp instanceof Polygon;
+
+        if (isPoly && isExtRing) {
+            g.writeEndArray();
+            g.writeStartArray();
+        }
+
+        g.writeStartArray();
+
+        for (int i = startIndex; i < startIndex + vertices; i++) {
+            mp.getXY(i, pt);
+            g.writeStartArray();
+            writeDouble(pt.x, g);
+            writeDouble(pt.y, g);
+
+            if (zs != null)
+                writeDouble(zs.get(i), g);
+
+            g.writeEndArray();
+        }
+
+        if (isPoly)
+            closePolygon(mp, g, startIndex, zs);
+
+        g.writeEndArray();
     }
 
     private void exportPathToGeoJson(JsonGenerator g, MultiPath mp) throws JsonGenerationException, IOException {

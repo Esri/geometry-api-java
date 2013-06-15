@@ -6,7 +6,11 @@ import com.esri.core.geometry.ogc.OGCMultiPoint;
 import com.esri.core.geometry.ogc.OGCLineString;
 import com.esri.core.geometry.ogc.OGCPolygon;
 import junit.framework.TestCase;
+import org.codehaus.jackson.JsonFactory;
+import org.codehaus.jackson.JsonParser;
 import org.junit.Test;
+
+import java.io.IOException;
 
 public class TestGeomToGeoJson extends TestCase {
     OperatorFactoryLocal factory = OperatorFactoryLocal.getInstance();
@@ -165,6 +169,27 @@ public class TestGeomToGeoJson extends TestCase {
         String result = exporter.execute(p);
         assertEquals("{\"type\":\"Polygon\",\"coordinates\":[[[100.0,0.0],[101.0,0.0],[101.0,1.0],[100.0,1.0],[100.0,0.0]],[[100.2,0.2],[100.8,0.2],[100.8,0.8],[100.2,0.8],[100.2,0.2]]]}", result);
     }
+
+    @Test
+    public void testMultiPolygon() throws IOException {
+        JsonFactory jsonFactory = new JsonFactory();
+
+        String geoJsonPolygon = "{\"type\":\"MultiPolygon\",\"coordinates\":[[[[-100.0,-100.0],[-100.0,100.0],[100.0,100.0],[100.0,-100.0],[-100.0,-100.0]],[[-90.0,-90.0],[90.0,90.0],[-90.0,90.0],[90.0,-90.0],[-90.0,-90.0]]],[[[-10.0,-10.0],[-10.0,10.0],[10.0,10.0],[10.0,-10.0],[-10.0,-10.0]]]]}";
+        String esriJsonPolygon = "{\"rings\": [[[-100, -100], [-100, 100], [100, 100], [100, -100], [-100, -100]], [[-90, -90], [90, 90], [-90, 90], [90, -90], [-90, -90]], [[-10, -10], [-10, 10], [10, 10], [10, -10], [-10, -10]]]}";
+
+        JsonParser parser = jsonFactory.createJsonParser(esriJsonPolygon);
+        MapGeometry parsedPoly = GeometryEngine.jsonToGeometry(parser);
+        //MapGeometry parsedPoly = GeometryEngine.geometryFromGeoJson(jsonPolygon, 0, Geometry.Type.Polygon);
+
+        Polygon poly = (Polygon) parsedPoly.getGeometry();
+
+        OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory.getOperator(Operator.Type.ExportToGeoJson);
+        //String result = exporter.execute(parsedPoly.getGeometry());
+        String result = exporter.execute(poly);
+        assertEquals(geoJsonPolygon, result);
+    }
+
+
 
     @Test
     public void testEmptyPolygon() {
