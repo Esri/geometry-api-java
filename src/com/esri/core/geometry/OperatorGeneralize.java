@@ -33,9 +33,9 @@ public abstract class OperatorGeneralize extends Operator {
   }
 
   /**
-   * Performs the Generalize operation on the geometry set. Point and
-   * MultiPoint geometries are left unchanged. Envelope is converted to a
-   * Polygon.
+   * Performs the Generalize operation on a geometry set. Point and
+   * multipoint geometries are left unchanged. An envelope is converted to a
+   * polygon.
    * 
    */
   public abstract GeometryCursor execute(GeometryCursor geoms,
@@ -43,9 +43,9 @@ public abstract class OperatorGeneralize extends Operator {
           ProgressTracker progressTracker);
 
   /**
-   * Performs the Generalize operation on single geometry. Point and
-   * MultiPoint geometries are left unchanged. Envelope is converted to a
-   * Polygon.
+   * Performs the Generalize operation on a single geometry. Point and
+   * multipoint geometries are left unchanged. An envelope is converted to a
+   * polygon.
    */
   public abstract Geometry execute(Geometry geom, double maxDeviation,
           boolean bRemoveDegenerateParts, ProgressTracker progressTracker);

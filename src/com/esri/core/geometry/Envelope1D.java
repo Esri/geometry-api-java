@@ -26,7 +26,7 @@
 package com.esri.core.geometry;
 
 /**
- * A One-dimensional interval
+ * A 1-dimensional interval.
  */
 public final class Envelope1D {
 

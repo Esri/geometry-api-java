@@ -25,7 +25,7 @@
 package com.esri.core.geometry;
 
 /**
- * A class that represents axis parallel 2D rectangle.
+ * An axis parallel 2-dimensional rectangle.
  */
 public final class Envelope2D {
 
@@ -174,7 +174,7 @@ public final class Envelope2D {
 	}
 
 	/**
-	 * Merges a point with this envelope without checkin if the envelope is
+	 * Merges a point with this envelope without checking if the envelope is
 	 * empty. Use with care.
 	 */
 	public void mergeNE(double x, double y) {
@@ -235,7 +235,8 @@ public final class Envelope2D {
 	}
 
 	/**
-	 * Returns True if this envelope intersects the other.
+   * Checks if this envelope intersects the other.
+	 * @return True if this envelope intersects the other.
 	 */
 	public boolean isIntersecting(Envelope2D other) {
 		return !isEmpty()
@@ -251,7 +252,8 @@ public final class Envelope2D {
 	}
 
 	/**
-	 * Returns True if this envelope intersects the other. Assumes this and
+   * Checks if this envelope intersects the other assuming neither one is empty.
+	 * @return True if this envelope intersects the other. Assumes this and
 	 * other envelopes are not empty.
 	 */
 	public boolean isIntersectingNE(Envelope2D other) {
@@ -265,8 +267,8 @@ public final class Envelope2D {
 	}
 
 	/**
-	 * Intersects this envelope with the other. Returns True if the result is
-	 * not empty.
+   * Checks if this envelope intersects the other.
+   * @return True if this envelope intersects the other.
 	 */
 	public boolean intersect(Envelope2D other) {
 		if (isEmpty() || other.isEmpty())
@@ -293,8 +295,15 @@ public final class Envelope2D {
 	}
 
 	/**
-	 * Returns a corner of the envelope. Starts from the lowerleft corner and
-	 * goes clockwise.
+   * Queries a corner of the envelope.
+   * 
+   * @param index Indicates a corner of the envelope.
+   * <p> 0 => lower left or (xmin, ymin)
+   * <p> 1 => upper left or (xmin, ymax)
+   * <p> 2 => upper right or (xmax, ymax)
+   * <p> 3 => lower right or (xmax, ymin)
+	 * @return Point at a corner of the envelope. 
+   * 
 	 */
 	public Point2D queryCorner(int index) {
 		switch (index) {
@@ -313,8 +322,8 @@ public final class Envelope2D {
 	}
 
 	/**
-	 * Queries corners into a given array. The array length must have at least
-	 * 4. Starts from the lowerleft corner and goes clockwise.
+	 * Queries corners into a given array. The array length must be at least
+	 * 4. Starts from the lower left corner and goes clockwise.
 	 */
 	public void queryCorners(Point2D[] corners) {
 		if ((corners == null) || (corners.length < 4))
@@ -327,7 +336,7 @@ public final class Envelope2D {
 
 	/**
 	 * Queries corners into a given array in reversed order. The array length
-	 * must have at least 4. Starts from the lowerleft corner and goes
+	 * must be at least 4. Starts from the lower left corner and goes
 	 * counterclockwise.
 	 */
 	public void queryCornersReversed(Point2D[] corners) {

@@ -30,7 +30,7 @@ import java.io.Serializable;
 import com.esri.core.geometry.VertexDescription.Semantics;
 
 /**
- * Envelopes are the rectangular window that contain a specific element.
+ * An envelope is a rectangle.
  */
 public final class Envelope extends Geometry implements Serializable {
 	private static final long serialVersionUID = 2L;
@@ -89,10 +89,9 @@ public final class Envelope extends Geometry implements Serializable {
 
 	/**
 	 * Constructs an envelope that covers the given point. The coordinates of
-	 * the point are used to set the envelope's extent.
+	 * the point are used to set the extent of the envelope.
 	 * 
-	 * @param point
-	 *            - The point that the envelope covers.
+	 * @param point The point that the envelope covers.
 	 */
 	public Envelope(Point point) {
 		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();
@@ -107,13 +106,13 @@ public final class Envelope extends Geometry implements Serializable {
 	 * Constructs an envelope with the specified X and Y extents.
 	 * 
 	 * @param xmin
-	 *            The minimum X coordinate of the envelope.
+	 *            The minimum x-coordinate of the envelope.
 	 * @param ymin
-	 *            The minimum Y coordinate of the envelope.
+	 *            The minimum y-coordinate of the envelope.
 	 * @param xmax
-	 *            The maximum X coordinate of the envelope.
+	 *            The maximum x-coordinate of the envelope.
 	 * @param ymax
-	 *            The maximum Y coordinate of the envelope.
+	 *            The maximum y-coordinate of the envelope.
 	 */
 	public Envelope(double xmin, double ymin, double xmax, double ymax) {
 		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();
@@ -121,30 +120,22 @@ public final class Envelope extends Geometry implements Serializable {
 	}
 
 	/**
-	 * Sets the 2 dimensional extents of the envelope.
+	 * Sets the 2-dimensional extents of the envelope.
 	 * 
 	 * @param xmin
-	 *            The minimum X coordinate of the envelope.
+	 *            The minimum x-coordinate of the envelope.
 	 * @param ymin
-	 *            The minimum Y coordinate of the envelope.
+	 *            The minimum y-coordinate of the envelope.
 	 * @param xmax
-	 *            The maximum X coordinate of the envelope.
+	 *            The maximum x-coordinate of the envelope.
 	 * @param ymax
-	 *            The maximum Y coordinate of the envelope.
+	 *            The maximum y-coordinate of the envelope.
 	 */
 	public void setCoords(double xmin, double ymin, double xmax, double ymax) {
 		_touch();
 		m_envelope.setCoords(xmin, ymin, xmax, ymax);
 	}
 
-	/**
-	 * Sets the envelope from the array of points. The result envelope is a
-	 * bounding box of all the points in the array. If the array has zero
-	 * length, the envelope will be empty.
-	 * 
-	 * @param points
-	 *            The point array.
-	 */
 	void setCoords(Point[] points) {
 		_touch();
 		setEmpty();
@@ -199,23 +190,28 @@ public final class Envelope extends Geometry implements Serializable {
 	}
 
 	/**
-	 * The X coordinate of center of the envelope.
+	 * The x-coordinate of the center of the envelope.
 	 * 
-	 * @return The center's X coordinate of the envelope.
+	 * @return The x-coordinate of the center of the envelope.
 	 */
 	public double getCenterX() {
 		return m_envelope.getCenterX();
 	}
 
 	/**
-	 * The Y coordinate fo the center of the envelope.
+	 * The y-coordinate of center of the envelope.
 	 * 
-	 * @return The center's Y coordinate of the envelope.
+	 * @return The y-coordinate of center of the envelope.
 	 */
 	public double getCenterY() {
 		return m_envelope.getCenterY();
 	}
 
+  /**
+	 * The x and y-coordinates of the center of the envelope.
+	 * 
+	 * @return A point whose x and y-coordinates are that of the center of the envelope.
+	 */
 	Point2D getCenterXY() {
 		return m_envelope.getCenter();
 	}
@@ -246,13 +242,12 @@ public final class Envelope extends Geometry implements Serializable {
 	}
 
 	/**
-	 * Merges this envelope with the extent of the given envelope. If the
-	 * original envelope is empty, the coordinates of the envelope to merge with
-	 * are assigned. If the envelope to merge with is empty, the original
-	 * envelope stays unchanged.
+	 * Merges this envelope with the extent of the given envelope. If this
+	 * envelope is empty, the coordinates of the given envelope 
+	 * are assigned. If the given envelope is empty, this envelope is unchanged.
 	 * 
 	 * @param other
-	 *            The envelope to merge with.
+	 *            The envelope to merge.
 	 */
 	public void merge(Envelope other) {
 		_touch();
@@ -279,10 +274,10 @@ public final class Envelope extends Geometry implements Serializable {
 	 * Merges this envelope with the point. The boundary of the envelope is
 	 * increased to include the point. If the envelope is empty, the coordinates
 	 * of the point to merge are assigned. If the point is empty, the original
-	 * envelope stays unchanged.
+	 * envelope is unchanged.
 	 * 
 	 * @param point
-	 *            The point to be merged with.
+	 *            The point to be merged.
 	 */
 	public void merge(Point point) {
 		_touch();
@@ -362,14 +357,14 @@ public final class Envelope extends Geometry implements Serializable {
 	}
 
 	/**
-	 * Changes the dimensions of the envelope, preserving the center. New width
+	 * Changes the dimensions of the envelope while preserving the center. New width
 	 * is Width + 2 * dx, new height is Height + 2 * dy. If the result envelope
 	 * width or height becomes negative, the envelope is set to be empty.
 	 * 
 	 * @param dx
-	 *            The inflation along the X axis.
+	 *            The inflation along the x-axis.
 	 * @param dy
-	 *            The inflation along the Y axis.
+	 *            The inflation along the y-axis.
 	 */
 	public void inflate(double dx, double dy) {
 		_touch();
@@ -498,7 +493,7 @@ public final class Envelope extends Geometry implements Serializable {
 	 * given corner.
 	 * 
 	 * @param index
-	 *            The index of the envlope's corners from 0 to 3.
+	 *            The index of the envelope's corners from 0 to 3.
 	 *            <p>
 	 *            0 = lower left corner
 	 *            <p>
@@ -797,7 +792,7 @@ public final class Envelope extends Geometry implements Serializable {
 	 * envelope.
 	 * 
 	 * @param other
-	 *            The envelope to intersect with.
+	 *            The envelope to intersect.
 	 * @return Returns true if the result is not empty.
 	 */
 	public boolean intersect(Envelope other) {
@@ -811,8 +806,8 @@ public final class Envelope extends Geometry implements Serializable {
 	 * Returns true if the envelope and the other given envelope intersect.
 	 * 
 	 * @param other
-	 *            The envelope to test intersection with.
-	 * @return Returns true if the two envelopes are intersecting.
+	 *            The envelope to with which to test intersection.
+	 * @return Returns true if the two envelopes intersect.
 	 */
 	public boolean isIntersecting(Envelope other) {// TODO: attributes.
 		return m_envelope.isIntersecting(other.m_envelope);
@@ -820,7 +815,7 @@ public final class Envelope extends Geometry implements Serializable {
 
 	/**
 	 * Sets the envelope's corners to be centered around the specified point,
-	 * using it's center, width, and height.
+	 * using its center, width, and height.
 	 * 
 	 * @param c
 	 *            The point around which to center the envelope.
@@ -840,8 +835,7 @@ public final class Envelope extends Geometry implements Serializable {
 	}
 
 	/**
-	 * Offsets the envelope by the specified distances along x and y
-	 * coordinates.
+	 * Offsets the envelope by the specified distances along x and y-coordinates.
 	 * 
 	 * @param dx
 	 *            The X offset to be applied.
@@ -854,7 +848,7 @@ public final class Envelope extends Geometry implements Serializable {
 	}
 
 	/**
-	 * Normalizes envelopes if the minimum dimension is larger then then the
+	 * Normalizes envelopes if the minimum dimension is larger than the
 	 * maximum dimension.
 	 */
 	public void normalize() {// TODO: attributes
