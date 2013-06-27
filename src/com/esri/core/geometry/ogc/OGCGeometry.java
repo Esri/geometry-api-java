@@ -24,6 +24,7 @@ import com.esri.core.geometry.Operator;
 import com.esri.core.geometry.OperatorBuffer;
 import com.esri.core.geometry.OperatorConvexHull;
 import com.esri.core.geometry.OperatorExportToWkb;
+import com.esri.core.geometry.OperatorExportToGeoJson;
 import com.esri.core.geometry.OperatorFactoryLocal;
 import com.esri.core.geometry.OperatorImportFromESRIShape;
 import com.esri.core.geometry.OperatorImportFromGeoJson;
@@ -88,6 +89,12 @@ public abstract class OGCGeometry {
 				.getInstance().getOperator(Operator.Type.ExportToWkb);
 		return op.execute(0, getEsriGeometry(), null);
 	}
+
+    public String asGeoJson() {
+        OperatorExportToGeoJson op = (OperatorExportToGeoJson) OperatorFactoryLocal
+                .getInstance().getOperator(Operator.Type.ExportToGeoJson);
+        return op.execute(getEsriGeometry());
+    }
 
 	public boolean isEmpty() {
 		return getEsriGeometry().isEmpty();
