@@ -52,7 +52,7 @@ public abstract class Operator {
 
 		Simplify, SimplifyOGC, Offset, Generalize,
 
-		ExportToWkb, ImportFromWkb, ExportToWkt, ImportFromWkt, ImportFromGeoJson, SymmetricDifference, ConvexHull, Boundary
+		ExportToWkb, ImportFromWkb, ExportToWkt, ImportFromWkt, ImportFromGeoJson, ExportToGeoJson, SymmetricDifference, ConvexHull, Boundary
 
 	}
 
