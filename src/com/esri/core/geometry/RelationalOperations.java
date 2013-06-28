@@ -2816,7 +2816,7 @@ class RelationalOperations {
 			Envelope2D env_b, double tolerance, ProgressTracker progress_tracker) {
 		if (envelopeInfContainsEnvelope_(env_a, env_b, tolerance)
 				|| envelopeInfContainsEnvelope_(env_b, env_a, tolerance))
-			return false;
+                        return true;
 
 		if (env_a.getHeight() <= tolerance && env_a.getWidth() <= tolerance)
 			return false; // points cannot overlap
