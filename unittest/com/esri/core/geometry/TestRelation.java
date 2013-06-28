@@ -3621,8 +3621,8 @@ public class TestRelation extends TestCase {
 			assertTrue(!disjoint.execute(env1, env2, sr, null));
 			assertTrue(!touches.execute(env1, env2, sr, null));
 			assertTrue(!touches.execute(env2, env1, sr, null));
-                        assertTrue(overlaps.execute(env1, env2, sr, null));
-                        assertTrue(overlaps.execute(env2, env1, sr, null));
+            assertTrue(overlaps.execute(env1, env2, sr, null));
+            assertTrue(overlaps.execute(env2, env1, sr, null));
 			assertTrue(!crosses.execute(env1, env2, sr, null));
 			assertTrue(!crosses.execute(env2, env1, sr, null));
 		}
@@ -3729,8 +3729,8 @@ public class TestRelation extends TestCase {
 			assertTrue(!contains.execute(env2, env1, sr, null));
 			assertTrue(!disjoint.execute(env1, env2, sr, null));
 			assertTrue(touches.execute(env1, env2, sr, null));
-                        assertTrue(overlaps.execute(env1, env2, sr, null));
-                        assertTrue(overlaps.execute(env2, env1, sr, null));
+            assertTrue(overlaps.execute(env1, env2, sr, null));
+            assertTrue(overlaps.execute(env2, env1, sr, null));
 			assertTrue(!crosses.execute(env1, env2, sr, null));
 			assertTrue(!crosses.execute(env2, env1, sr, null));
 		}
@@ -3801,8 +3801,8 @@ public class TestRelation extends TestCase {
 			assertTrue(!contains.execute(env2, env1, sr, null));
 			assertTrue(!disjoint.execute(env1, env2, sr, null));
 			assertTrue(!touches.execute(env1, env2, sr, null));
-                        assertTrue(overlaps.execute(env1, env2, sr, null));
-                        assertTrue(overlaps.execute(env2, env1, sr, null));
+            assertTrue(overlaps.execute(env1, env2, sr, null));
+            assertTrue(overlaps.execute(env2, env1, sr, null));
 			assertTrue(!crosses.execute(env1, env2, sr, null));
 			assertTrue(!crosses.execute(env2, env1, sr, null));
 		}
@@ -3819,8 +3819,8 @@ public class TestRelation extends TestCase {
 			assertTrue(!contains.execute(env2, env1, sr, null));
 			assertTrue(!disjoint.execute(env1, env2, sr, null));
 			assertTrue(!touches.execute(env1, env2, sr, null));
-                        assertTrue(overlaps.execute(env1, env2, sr, null));
-                        assertTrue(overlaps.execute(env2, env1, sr, null));
+            assertTrue(overlaps.execute(env1, env2, sr, null));
+            assertTrue(overlaps.execute(env2, env1, sr, null));
 			assertTrue(!crosses.execute(env1, env2, sr, null));
 			assertTrue(!crosses.execute(env2, env1, sr, null));
 		}
@@ -3855,8 +3855,8 @@ public class TestRelation extends TestCase {
 			assertTrue(contains.execute(env2, env1, sr, null));
 			assertTrue(!disjoint.execute(env1, env2, sr, null));
 			assertTrue(!touches.execute(env1, env2, sr, null));
-                        assertTrue(overlaps.execute(env1, env2, sr, null));
-                        assertTrue(overlaps.execute(env2, env1, sr, null));
+            assertTrue(overlaps.execute(env1, env2, sr, null));
+            assertTrue(overlaps.execute(env2, env1, sr, null));
 			assertTrue(!crosses.execute(env1, env2, sr, null));
 			assertTrue(!crosses.execute(env2, env1, sr, null));
 		}
@@ -3873,8 +3873,8 @@ public class TestRelation extends TestCase {
 			assertTrue(!contains.execute(env2, env1, sr, null));
 			assertTrue(!disjoint.execute(env1, env2, sr, null));
 			assertTrue(!touches.execute(env1, env2, sr, null));
-                        assertTrue(overlaps.execute(env1, env2, sr, null));
-                        assertTrue(overlaps.execute(env2, env1, sr, null));
+            assertTrue(overlaps.execute(env1, env2, sr, null));
+            assertTrue(overlaps.execute(env2, env1, sr, null));
 			assertTrue(!crosses.execute(env1, env2, sr, null));
 			assertTrue(!crosses.execute(env2, env1, sr, null));
 		}
@@ -3983,8 +3983,8 @@ public class TestRelation extends TestCase {
 			assertTrue(!disjoint.execute(env1, env2, sr, null));
 			assertTrue(touches.execute(env1, env2, sr, null));
 			assertTrue(touches.execute(env2, env1, sr, null));
-                        assertTrue(overlaps.execute(env1, env2, sr, null));
-                        assertTrue(overlaps.execute(env2, env1, sr, null));
+            assertTrue(overlaps.execute(env1, env2, sr, null));
+            assertTrue(overlaps.execute(env2, env1, sr, null));
 			assertTrue(!crosses.execute(env1, env2, sr, null));
 			assertTrue(!crosses.execute(env2, env1, sr, null));
 		}
@@ -4002,8 +4002,8 @@ public class TestRelation extends TestCase {
 			assertTrue(!disjoint.execute(env1, env2, sr, null));
 			assertTrue(touches.execute(env1, env2, sr, null));
 			assertTrue(touches.execute(env2, env1, sr, null));
-                        assertTrue(overlaps.execute(env1, env2, sr, null));
-                        assertTrue(overlaps.execute(env2, env1, sr, null));
+            assertTrue(overlaps.execute(env1, env2, sr, null));
+            assertTrue(overlaps.execute(env2, env1, sr, null));
 			assertTrue(!crosses.execute(env1, env2, sr, null));
 			assertTrue(!crosses.execute(env2, env1, sr, null));
 		}
@@ -4021,8 +4021,8 @@ public class TestRelation extends TestCase {
 			assertTrue(!disjoint.execute(env1, env2, sr, null));
 			assertTrue(!touches.execute(env1, env2, sr, null));
 			assertTrue(!touches.execute(env2, env1, sr, null));
-                        assertTrue(overlaps.execute(env1, env2, sr, null));
-                        assertTrue(overlaps.execute(env2, env1, sr, null));
+            assertTrue(overlaps.execute(env1, env2, sr, null));
+            assertTrue(overlaps.execute(env2, env1, sr, null));
 			assertTrue(!crosses.execute(env1, env2, sr, null));
 			assertTrue(!crosses.execute(env2, env1, sr, null));
 		}
@@ -4040,8 +4040,8 @@ public class TestRelation extends TestCase {
 			assertTrue(!disjoint.execute(env1, env2, sr, null));
 			assertTrue(touches.execute(env1, env2, sr, null));
 			assertTrue(touches.execute(env2, env1, sr, null));
-                        assertTrue(overlaps.execute(env1, env2, sr, null));
-                        assertTrue(overlaps.execute(env2, env1, sr, null));
+            assertTrue(overlaps.execute(env1, env2, sr, null));
+            assertTrue(overlaps.execute(env2, env1, sr, null));
 			assertTrue(!crosses.execute(env1, env2, sr, null));
 			assertTrue(!crosses.execute(env2, env1, sr, null));
 		}
@@ -4059,8 +4059,8 @@ public class TestRelation extends TestCase {
 			assertTrue(!disjoint.execute(env1, env2, sr, null));
 			assertTrue(!touches.execute(env1, env2, sr, null));
 			assertTrue(!touches.execute(env2, env1, sr, null));
-                        assertTrue(overlaps.execute(env1, env2, sr, null));
-                        assertTrue(overlaps.execute(env2, env1, sr, null));
+            assertTrue(overlaps.execute(env1, env2, sr, null));
+            assertTrue(overlaps.execute(env2, env1, sr, null));
 			assertTrue(!crosses.execute(env1, env2, sr, null));
 			assertTrue(!crosses.execute(env2, env1, sr, null));
 		}
@@ -4078,8 +4078,8 @@ public class TestRelation extends TestCase {
 			assertTrue(!disjoint.execute(env1, env2, sr, null));
 			assertTrue(!touches.execute(env1, env2, sr, null));
 			assertTrue(!touches.execute(env2, env1, sr, null));
-                        assertTrue(overlaps.execute(env1, env2, sr, null));
-                        assertTrue(overlaps.execute(env2, env1, sr, null));
+            assertTrue(overlaps.execute(env1, env2, sr, null));
+            assertTrue(overlaps.execute(env2, env1, sr, null));
 			assertTrue(!crosses.execute(env1, env2, sr, null));
 			assertTrue(!crosses.execute(env2, env1, sr, null));
 		}
