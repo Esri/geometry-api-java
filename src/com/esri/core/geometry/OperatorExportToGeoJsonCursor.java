@@ -35,10 +35,11 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
     int m_wkid = -1;
     int m_latest_wkid = -1;
     String m_wkt = null;
+    boolean m_preferMulti = false;
 
     private static JsonFactory factory = new JsonFactory();
 
-    public OperatorExportToGeoJsonCursor(SpatialReference spatialReference, GeometryCursor geometryCursor) {
+    public OperatorExportToGeoJsonCursor(boolean preferMulti, SpatialReference spatialReference, GeometryCursor geometryCursor) {
         m_index = -1;
         if (geometryCursor == null)
             throw new IllegalArgumentException();
@@ -48,6 +49,7 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
             m_latest_wkid = spatialReference.getLatestID();
         }
         m_inputGeometryCursor = geometryCursor;
+        m_preferMulti = preferMulti;
     }
 
     public OperatorExportToGeoJsonCursor(GeometryCursor geometryCursor) {
@@ -90,10 +92,10 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
                 exportMultiPointToGeoJson(g, (MultiPoint) geometry);
                 break;
             case Geometry.GeometryType.Polyline:
-                exportPolylineToGeoJson(g, (Polyline) geometry);
+            	exportMultiPathToGeoJson(g, (Polyline) geometry);
                 break;
             case Geometry.GeometryType.Polygon:
-                exportPolygonToGeoJson(g, (Polygon) geometry);
+            	exportMultiPathToGeoJson(g, (Polygon) geometry);
                 break;
             case Geometry.GeometryType.Envelope:
                 exportEnvelopeToGeoJson(g, (Envelope) geometry);
@@ -110,6 +112,13 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
     }
 
     private void exportPointToGeoJson(JsonGenerator g, Point p) throws JsonGenerationException, IOException {
+    	if (m_preferMulti) {
+    		MultiPoint mp = new MultiPoint();
+    		mp.add(p);
+    		exportMultiPointToGeoJson(g, mp);
+    		return;
+    	}
+    	
         g.writeStartObject();
 
         g.writeFieldName("type");
@@ -176,31 +185,11 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
         g.close();
     }
 
-    private void exportPolylineToGeoJson(JsonGenerator g, Polyline p) throws JsonGenerationException, IOException {
-        g.writeStartObject();
-
-        g.writeFieldName("type");
-        g.writeString("LineString");
-
-        g.writeFieldName("coordinates");
-
-        if (p.isEmpty()) {
-            g.writeNull();
-        } else {
-            g.writeStartArray();
-            exportPathToGeoJson(g, p);
-            g.writeEndArray();
-        }
-
-        g.writeEndObject();
-        g.close();
-    }
-
-    private void exportPolygonToGeoJson(JsonGenerator g, Polygon p) throws JsonGenerationException, IOException {
+    private void exportMultiPathToGeoJson(JsonGenerator g, MultiPath p) throws JsonGenerationException, IOException {
         MultiPathImpl pImpl = (MultiPathImpl) p._getImpl();
 
-        //int pointCount = pImpl.getPointCount();
-        int polyCount = pImpl.getOGCPolygonCount();
+        boolean isPolygon = pImpl.m_bPolygon;
+        int polyCount = isPolygon ? pImpl.getOGCPolygonCount() : 0;
 
         // check yo' polys playa
 
@@ -208,10 +197,22 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
 
         g.writeFieldName("type");
 
-        if (polyCount >= 2) { // single polys seem to have a polyCount of 0, multi polys seem to be >= 2
-            g.writeString("MultiPolygon");
-        } else {
-            g.writeString("Polygon");
+        boolean bCollection = false;
+        if (isPolygon) {
+	        if (polyCount >= 2 || m_preferMulti) { // single polys seem to have a polyCount of 0, multi polys seem to be >= 2
+	            g.writeString("MultiPolygon");
+	            bCollection = true;
+	        } else {
+	            g.writeString("Polygon");
+	        }
+        }
+        else {
+	        if (p.getPathCount() > 1 || m_preferMulti) { // single polys seem to have a polyCount of 0, multi polys seem to be >= 2
+	            g.writeString("MultiLineString");
+	            bCollection = true;
+	        } else {
+	            g.writeString("LineString");
+	        }
         }
 
         g.writeFieldName("coordinates");
@@ -219,75 +220,50 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
         if (p.isEmpty()) {
             g.writeNull();
         } else {
-            g.writeStartArray();
-
-            if (polyCount >= 2) {
-                g.writeStartArray();
-                exportMultiPolygonToGeoJson(g, p, pImpl);
-                g.writeEndArray();
-            } else {
-                exportPathToGeoJson(g, p);
-            }
-
-            g.writeEndArray();
+            exportMultiPathToGeoJson(g, pImpl, bCollection);
         }
 
         g.writeEndObject();
         g.close();
     }
 
-    private void exportMultiPolygonToGeoJson(JsonGenerator g, Polygon p, MultiPathImpl pImpl) throws IOException {
+    private void exportMultiPathToGeoJson(JsonGenerator g, MultiPathImpl pImpl, boolean bCollection) throws IOException {
         int startIndex;
         int vertices;
 
+        if (bCollection)
+        	g.writeStartArray();
+        
         //AttributeStreamOfDbl position = (AttributeStreamOfDbl) pImpl.getAttributeStreamRef(VertexDescription.Semantics.POSITION);
         //AttributeStreamOfInt8 pathFlags = pImpl.getPathFlagsStreamRef();
         //AttributeStreamOfInt32 paths = pImpl.getPathStreamRef();
         int pathCount = pImpl.getPathCount();
+        boolean isPolygon = pImpl.m_bPolygon;
+        AttributeStreamOfDbl zs = pImpl.hasAttribute(Semantics.Z) ? (AttributeStreamOfDbl) pImpl.getAttributeStreamRef(Semantics.Z) : null;
 
-        AttributeStreamOfDbl zs = p.hasAttribute(Semantics.Z) ? (AttributeStreamOfDbl) pImpl.getAttributeStreamRef(Semantics.Z) : null;
+        for (int path = 0; path < pathCount; path++) {
+            startIndex = pImpl.getPathStart(path);
+            vertices = pImpl.getPathSize(path);
 
-        Point2D pt = new Point2D();
+            boolean isExtRing = isPolygon && pImpl.isExteriorRing(path);
+            if (isExtRing) {//only for polygons
+                if (path > 0)
+                	g.writeEndArray();//end of OGC polygon
+                
+                g.writeStartArray();//start of next OGC polygon
+            }
 
-        g.writeStartArray();
-
-        startIndex = p.getPathStart(0);
-        vertices = p.getPathSize(0);
-
-        for (int i = startIndex; i < startIndex + vertices; i++) {
-            p.getXY(i, pt);
-            g.writeStartArray();
-            writeDouble(pt.x, g);
-            writeDouble(pt.y, g);
-
-            if (zs != null)
-                writeDouble(zs.get(i), g);
-
-            g.writeEndArray();
+            writePath(pImpl, g, path, startIndex, vertices, zs);
         }
-
-        p.getXY(startIndex, pt);
-        g.writeStartArray();
-        writeDouble(pt.x, g);
-        writeDouble(pt.y, g);
-
-        if (zs != null)
-            writeDouble(zs.get(startIndex), g);
-
-        g.writeEndArray();
-
-        g.writeEndArray();
-
-        for (int path = 1; path < pathCount; path++) {
-            boolean isExtRing = p.isExteriorRing(path);
-            startIndex = p.getPathStart(path);
-            vertices = p.getPathSize(path);
-
-            writePath(p, g, startIndex, vertices, zs, isExtRing);
-        }
+        
+        if (isPolygon)
+        	g.writeEndArray();//end of last OGC polygon
+        
+        if (bCollection)
+        	g.writeEndArray();
     }
 
-    private void closePolygon(MultiPath mp, JsonGenerator g, int startIndex, AttributeStreamOfDbl zs) throws IOException {
+    private void closePath(MultiPathImpl mp, JsonGenerator g, int startIndex, AttributeStreamOfDbl zs) throws IOException {
         Point2D pt = new Point2D();
 
         // close ring
@@ -302,15 +278,8 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
         g.writeEndArray();
     }
 
-    private void writePath(MultiPath mp, JsonGenerator g, int startIndex, int vertices, AttributeStreamOfDbl zs, boolean isExtRing) throws IOException {
+    private void writePath(MultiPathImpl mp, JsonGenerator g, int pathIndex, int startIndex, int vertices, AttributeStreamOfDbl zs) throws IOException {
         Point2D pt = new Point2D();
-
-        boolean isPoly = mp instanceof Polygon;
-
-        if (isPoly && isExtRing) {
-            g.writeEndArray();
-            g.writeStartArray();
-        }
 
         g.writeStartArray();
 
@@ -326,60 +295,10 @@ class OperatorExportToGeoJsonCursor extends JsonCursor {
             g.writeEndArray();
         }
 
-        if (isPoly)
-            closePolygon(mp, g, startIndex, zs);
+        if (mp.isClosedPath(pathIndex))
+            closePath(mp, g, startIndex, zs);
 
         g.writeEndArray();
-    }
-
-    private void exportPathToGeoJson(JsonGenerator g, MultiPath mp) throws JsonGenerationException, IOException {
-        boolean isPoly = mp instanceof Polygon;
-
-        MultiPathImpl mpImpl = (MultiPathImpl) mp._getImpl();
-        AttributeStreamOfDbl zs = mp.hasAttribute(Semantics.Z) ? (AttributeStreamOfDbl) mpImpl.getAttributeStreamRef(Semantics.Z) : null;
-
-        Point2D p = new Point2D();
-
-        int n = mp.getPathCount();
-
-        for (int i = 0; i < n; i++) {
-            if (isPoly)
-                g.writeStartArray();
-
-            int startIndex = mp.getPathStart(i);
-            int vertices = mp.getPathSize(i);
-
-            for (int j = startIndex; j < startIndex + vertices; j++) {
-                mp.getXY(j, p);
-
-                g.writeStartArray();
-
-                writeDouble(p.x, g);
-                writeDouble(p.y, g);
-
-                if (zs != null)
-                    writeDouble(zs.get(j), g);
-
-                g.writeEndArray();
-            }
-
-            if (isPoly) {
-                mp.getXY(startIndex, p);
-
-                g.writeStartArray();
-
-                writeDouble(p.x, g);
-                writeDouble(p.y, g);
-
-                if (zs != null)
-                    writeDouble(zs.get(startIndex), g);
-
-                g.writeEndArray();
-            }
-
-            if (isPoly)
-                g.writeEndArray();
-        }
     }
 
     private void exportEnvelopeToGeoJson(JsonGenerator g, Envelope e) throws JsonGenerationException, IOException {

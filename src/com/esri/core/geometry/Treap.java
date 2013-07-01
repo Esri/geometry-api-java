@@ -25,7 +25,7 @@
 
 package com.esri.core.geometry;
 
-class Treap {
+final class Treap {
 	static abstract class Comparator {
 		Comparator() {
 			m_b_notify_on_actions = false;

@@ -11,7 +11,11 @@ import com.esri.core.geometry.ogc.OGCMultiPolygon;
 import com.esri.core.geometry.ogc.OGCPoint;
 import com.esri.core.geometry.ogc.OGCPolygon;
 import com.esri.core.geometry.ogc.OGCConcreteGeometryCollection;
+
+import org.codehaus.jackson.JsonParseException;
 import org.json.JSONException;
+
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class TestOGC extends TestCase {
@@ -724,6 +728,22 @@ public class TestOGC extends TestCase {
 		OGCGeometry p = mp.geometryN(0);
 		String s = p.asText();
 		assertTrue(s.equals("POINT (1 0)"));
+	}
+	
+	public void testWktMultiPolygon() {
+		String restJson = "{\"rings\": [[[-100, -100], [-100, 100], [100, 100], [100, -100], [-100, -100]], [[-90, -90], [90, 90], [-90, 90], [90, -90], [-90, -90]],	[[-10, -10], [-10, 10], [10, 10], [10, -10], [-10, -10]]]}";
+		MapGeometry g = null;
+		try {
+			g = OperatorImportFromJson.local().execute(Geometry.Type.Unknown, restJson);
+		} catch (JsonParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		String wkt = OperatorExportToWkt.local().execute(0, g.getGeometry(), null);
+		assertTrue(wkt.equals("MULTIPOLYGON (((-100 -100, 100 -100, 100 100, -100 100, -100 -100), (-90 -90, 90 -90, -90 90, 90 90, -90 -90)), ((-10 -10, 10 -10, 10 10, -10 10, -10 -10)))"));
 	}
 	
 }

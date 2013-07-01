@@ -2186,9 +2186,11 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 				m_pathFlags = (AttributeStreamOfInt8) AttributeStreamBase
 						.createByteStream(pathCount + 1);
 
+			int firstSign = 1;
 			for (int ipath = 0; ipath < pathCount; ipath++) {
 				double area = m_cachedRingAreas2D.read(ipath);
-				if (area > 0.0)
+				if (ipath == 0) firstSign = area > 0 ? 1 : -1;
+				if (area * firstSign > 0.0)
 					m_pathFlags.setBits(ipath,
 							(byte) PathFlags.enumOGCStartPolygon);
 				else

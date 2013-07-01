@@ -174,24 +174,51 @@ public class TestGeomToGeoJson extends TestCase {
     @Test
     public void testPolygonWithHole() {
         Polygon p = new Polygon();
-
+        
+        //exterior ring - has to be clockwise for Esri
         p.startPath(100.0, 0.0);
+        p.lineTo(100.0, 1.0);        
+        p.lineTo(101.0, 1.0);        
         p.lineTo(101.0, 0.0);
-        p.lineTo(101.0, 1.0);
-        p.lineTo(100.0, 1.0);
         p.closePathWithLine();
 
+        //hole - counterclockwise for Esri
         p.startPath(100.2, 0.2);
         p.lineTo(100.8, 0.2);
         p.lineTo(100.8, 0.8);
         p.lineTo(100.2, 0.8);
         p.closePathWithLine();
-
+        
         OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory.getOperator(Operator.Type.ExportToGeoJson);
         String result = exporter.execute(p);
-        assertEquals("{\"type\":\"Polygon\",\"coordinates\":[[[100.0,0.0],[101.0,0.0],[101.0,1.0],[100.0,1.0],[100.0,0.0]],[[100.2,0.2],[100.8,0.2],[100.8,0.8],[100.2,0.8],[100.2,0.2]]]}", result);
+        assertEquals("{\"type\":\"Polygon\",\"coordinates\":[[[100.0,0.0],[100.0,1.0],[101.0,1.0],[101.0,0.0],[100.0,0.0]],[[100.2,0.2],[100.8,0.2],[100.8,0.8],[100.2,0.8],[100.2,0.2]]]}", result);
     }
 
+    @Test
+    public void testPolygonWithHoleReversed() {
+        Polygon p = new Polygon();
+        
+        //exterior ring - has to be clockwise for Esri
+        p.startPath(100.0, 0.0);
+        p.lineTo(100.0, 1.0);        
+        p.lineTo(101.0, 1.0);        
+        p.lineTo(101.0, 0.0);
+        p.closePathWithLine();
+
+        //hole - counterclockwise for Esri
+        p.startPath(100.2, 0.2);
+        p.lineTo(100.8, 0.2);
+        p.lineTo(100.8, 0.8);
+        p.lineTo(100.2, 0.8);
+        p.closePathWithLine();
+        
+        p.reverseAllPaths();//make it reversed. Exterior ring - ccw, hole - cw.
+        
+        OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory.getOperator(Operator.Type.ExportToGeoJson);
+        String result = exporter.execute(p);
+        assertEquals("{\"type\":\"Polygon\",\"coordinates\":[[[100.0,0.0],[101.0,0.0],[101.0,1.0],[100.0,1.0],[100.0,0.0]],[[100.2,0.2],[100.2,0.8],[100.8,0.8],[100.8,0.2],[100.2,0.2]]]}", result);
+    }
+    
     @Test
     public void testMultiPolygon() throws IOException {
         JsonFactory jsonFactory = new JsonFactory();
@@ -250,30 +277,44 @@ public class TestGeomToGeoJson extends TestCase {
     public void testPolygonWithHoleGeometryEngine() {
         Polygon p = new Polygon();
 
-        p.startPath(100.0, 0.0);
-        p.lineTo(101.0, 0.0);
-        p.lineTo(101.0, 1.0);
+        p.startPath(100.0, 0.0);//clockwise exterior
         p.lineTo(100.0, 1.0);
+        p.lineTo(101.0, 1.0);
+        p.lineTo(101.0, 0.0);
         p.closePathWithLine();
 
-        p.startPath(100.2, 0.2);
+        p.startPath(100.2, 0.2);//counterclockwise hole
         p.lineTo(100.8, 0.2);
         p.lineTo(100.8, 0.8);
         p.lineTo(100.2, 0.8);
         p.closePathWithLine();
 
         String result = GeometryEngine.geometryToGeoJson(p);
-        assertEquals("{\"type\":\"Polygon\",\"coordinates\":[[[100.0,0.0],[101.0,0.0],[101.0,1.0],[100.0,1.0],[100.0,0.0]],[[100.2,0.2],[100.8,0.2],[100.8,0.8],[100.2,0.8],[100.2,0.2]]]}", result);
+        assertEquals("{\"type\":\"Polygon\",\"coordinates\":[[[100.0,0.0],[100.0,1.0],[101.0,1.0],[101.0,0.0],[100.0,0.0]],[[100.2,0.2],[100.8,0.2],[100.8,0.8],[100.2,0.8],[100.2,0.2]]]}", result);
     }
 
+    @Test
+    public void testPolylineWithTwoPaths() {
+        Polyline p = new Polyline();
+
+        p.startPath(100.0, 0.0);
+        p.lineTo(100.0, 1.0);
+
+        p.startPath(100.2, 0.2);
+        p.lineTo(100.8, 0.2);
+
+        String result = GeometryEngine.geometryToGeoJson(p);
+        assertEquals("{\"type\":\"MultiLineString\",\"coordinates\":[[[100.0,0.0],[100.0,1.0]],[[100.2,0.2],[100.8,0.2]]]}", result);
+    }
+    
     @Test
     public void testOGCPolygonWithHole() {
         Polygon p = new Polygon();
 
         p.startPath(100.0, 0.0);
-        p.lineTo(101.0, 0.0);
-        p.lineTo(101.0, 1.0);
         p.lineTo(100.0, 1.0);
+        p.lineTo(101.0, 1.0);
+        p.lineTo(101.0, 0.0);
         p.closePathWithLine();
 
         p.startPath(100.2, 0.2);
@@ -284,7 +325,7 @@ public class TestGeomToGeoJson extends TestCase {
 
         OGCPolygon ogcPolygon = new OGCPolygon(p, null);
         String result = ogcPolygon.asGeoJson();
-        assertEquals("{\"type\":\"Polygon\",\"coordinates\":[[[100.0,0.0],[101.0,0.0],[101.0,1.0],[100.0,1.0],[100.0,0.0]],[[100.2,0.2],[100.8,0.2],[100.8,0.8],[100.2,0.8],[100.2,0.2]]]}", result);
+        assertEquals("{\"type\":\"Polygon\",\"coordinates\":[[[100.0,0.0],[100.0,1.0],[101.0,1.0],[101.0,0.0],[100.0,0.0]],[[100.2,0.2],[100.8,0.2],[100.8,0.8],[100.2,0.8],[100.2,0.2]]]}", result);
     }
 
     @Test

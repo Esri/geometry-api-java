@@ -1,8 +1,10 @@
 package com.esri.core.geometry.ogc;
 
+import com.esri.core.geometry.GeoJsonExportFlags;
 import com.esri.core.geometry.Geometry;
 import com.esri.core.geometry.GeometryEngine;
 import com.esri.core.geometry.Operator;
+import com.esri.core.geometry.OperatorExportToGeoJson;
 import com.esri.core.geometry.OperatorExportToWkb;
 import com.esri.core.geometry.OperatorFactoryLocal;
 import com.esri.core.geometry.Polygon;
@@ -32,7 +34,12 @@ public class OGCMultiPolygon extends OGCMultiSurface {
 		return op.execute(WkbExportFlags.wkbExportMultiPolygon,
 				getEsriGeometry(), null);
 	}
-
+	@Override
+    public String asGeoJson() {
+        OperatorExportToGeoJson op = (OperatorExportToGeoJson) OperatorFactoryLocal
+                .getInstance().getOperator(Operator.Type.ExportToGeoJson);
+        return op.execute(GeoJsonExportFlags.geoJsonExportPreferMultiGeometry, null, getEsriGeometry());
+    }
 	@Override
 	public int numGeometries() {
 		return polygon.getExteriorRingCount();
