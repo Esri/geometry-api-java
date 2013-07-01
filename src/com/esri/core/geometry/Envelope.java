@@ -30,7 +30,7 @@ import java.io.Serializable;
 import com.esri.core.geometry.VertexDescription.Semantics;
 
 /**
- * An envelope is a rectangle.
+ * An envelope is an axis-aligned rectangle.
  */
 public final class Envelope extends Geometry implements Serializable {
 	private static final long serialVersionUID = 2L;
