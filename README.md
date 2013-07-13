@@ -35,7 +35,7 @@ The project is also available as a [Maven](http://maven.apache.org/) dependency:
 * Familiarity with text-based spatial data formats such as JSON or WKT would be useful. 
 
 ## Documentation
-* [geometry-api-java/Wiki](http://esri.github.com/geometry-api-java/wiki/)
+* [geometry-api-java/Wiki](https://github.com/Esri/geometry-api-java/wiki/)
 * [geometry-api-java/Javadoc](http://esri.github.com/geometry-api-java/javadoc/)
 
 ## Resources
