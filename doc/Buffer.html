@@ -6,19 +6,10 @@
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 		<title>Buffer</title>
 		<meta name="author" content="Anne2440" />
-		<!-- Date: 2013-06-20 -->
-		<style>
-			table {margin:auto;width:70%;border: 1px solid black;border-collapse:collapse;}
-			th, td {border: 1px solid black;text-align: center;}
-			td {font-size:large;font-family:Arial,Verdana,Sans-serif;}
-			.codeComment {color:CornflowerBlue;font-style:italic;}
-			.codeSnippet {margin-left:4%;font-size:large;}
-			.codeInText {font-size:large;}
-			p {font-size:large;font-family:Arial,Verdana,Sans-serif;}
-		</style>
+		<link rel="stylesheet" href="GeometryDocStyle.css">
 	</head>
 	<body>
-		<div><h1 style="float: left;">Buffer</h1>
+		<div><h1 style="float:left;">Buffer</h1>
 			<a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorBuffer.html" style="float: right;">API Reference</a><br />
 			<a href="https://github.com/Esri/geometry-api-java/wiki" style="float: right;">Wiki Home</a>
 			
@@ -29,7 +20,7 @@
 			geometry. The specified distance is in the units of the associated spatial reference. </p>  
 		<p>Let's look at a couple of simple examples for different geometry types. In the following images, the blue 
 			geometry is the input geometry and the green geometry is a possible buffer polygon.</p>		
-		<table style="width:80%;border:none;">
+		<table style="border:none;">
 			<tr><th style="border:none;text-align:left;text-indent:5%"><h3>Point</h3></th></tr>
 			<tr>
 				<td style="border:none;width:20%;">&nbsp;</td>
@@ -107,11 +98,11 @@
 		
 		<h2>Buffering a single geometry</h2>
 		<p>To buffer a single geometry, we use one of the <code>execute</code> methods of the <code>OperatorBuffer</code> class.<br>
-			<pre class="codeSnippet"><code>public abstract Geometry execute(Geometry inputGeometry, SpatialReference sr, double distance, ProgressTracker progressTracker);</code></pre>
+			<pre class="codeSnippet">public abstract Geometry execute(Geometry inputGeometry, SpatialReference sr, double distance, ProgressTracker progressTracker);</pre>
 		</p>
 		<p>To call the <code class="codeInText">execute</code> method, create a local instance of the Buffer operator.</p>
 		<p>
-			<pre class="codeSnippet"><code>Geometry outputGeometry = OperatorBuffer.local().execute(inputGeometry, sr, distance, null);</code></pre>
+			<pre class="codeSnippet">Geometry outputGeometry = OperatorBuffer.local().execute(inputGeometry, sr, distance, null);</pre>
 		</p>
 		<h3>Example</h3>
 		<p>The program given below creates a polygon that is then used as input to the Buffer operator. The spatial 
@@ -227,12 +218,13 @@ public class BufferApp_1 {
 			buffer polygons. Maybe we have a need to chain operations, that is, use the output from the Buffer operation as input 
 			to another operation. If the input geometries are the same type, it is not necessary to process them one at a time.  
 			In these and similar cases, we consider using a <a href="GeometryCursors.html">geometry cursor</a>.</p>
-		<p>To buffer multiple geometries at once, we use another of the <code  class="codeInText">execute</code> methods from the <code  class="codeInText">OperatorBuffer</code> class.<br>
-			<pre class="codeSnippet"><code>public abstract GeometryCursor execute(GeometryCursor inputGeometries, SpatialReference sr, double[] distances, boolean bUnion, ProgressTracker progressTracker);</code></pre>
+		<p>To buffer multiple geometries at once, we use another of the <code  class="codeInText">execute</code> methods from the 
+			<code  class="codeInText">OperatorBuffer</code> class.<br>
+			<pre class="codeSnippet">public abstract GeometryCursor execute(GeometryCursor inputGeometries, SpatialReference sr, double[] distances, boolean bUnion, ProgressTracker progressTracker);</pre>
 		</p>
 		<p>To call the <code class="codeInText">execute</code> method, create a local instance of the Buffer operator.</p>
 		<p>
-			<pre class="codeSnippet"><code>GeometryCursor outputGeometries = OperatorBuffer.local().execute(inputGeometries, sr, distances, bUnion, null);</code></pre>
+			<pre class="codeSnippet">GeometryCursor outputGeometries = OperatorBuffer.local().execute(inputGeometries, sr, distances, bUnion, null);</pre>
 		</p>
 		<p>Notice that we now have an array of distances. The first input geometry will be buffered using the first distance 
 			in the array, the second input geometry will be buffered using the second distance in the array and so on. If 
