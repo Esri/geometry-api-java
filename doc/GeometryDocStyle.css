@@ -1,0 +1,43 @@
+body {
+	font-size:12pt;
+}
+
+table {
+	margin:auto;width:70%;border:1px solid black;border-collapse:collapse;
+}
+
+th, td {
+	border:1px solid black;text-align: center;
+}
+
+td {
+	font-size:20px;font-family:Arial,Verdana,Sans-serif;
+}
+
+.codeComment {
+	color:rgb(90,153,255);font-style:italic;
+}
+
+.codeSnippet {
+	margin-left:4%;font-size:20px;
+}
+
+.codeInText {
+	font-size:20px;
+}
+
+h1 {
+	font-size:40px
+}
+
+h2 {
+	font-size:33px;
+}
+
+h3 {
+	font-size:27px;
+}
+
+p {
+	font-size:20px;font-family:Arial,Verdana,Sans-serif;
+}
