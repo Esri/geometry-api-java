@@ -6,16 +6,7 @@
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 		<title>Polygon</title>
 		<meta name="author" content="Anne2440" />
-		<!-- Date: 2013-07-01 -->
-		<style>
-			table {margin:auto;width:80%;border: 1px solid black;border-collapse:collapse;}
-			th, td {border: 1px solid black;text-align: center;}
-			td {font-size:large;font-family:Arial,Verdana,Sans-serif;}
-			.codeComment {color:CornflowerBlue;font-style:italic;}
-			.codeSnippet {margin-left:4%;font-size:large;}
-			.codeInText {font-size:large;}
-			p {font-size:large;font-family:Arial,Verdana,Sans-serif;}
-		</style>
+		<link rel="stylesheet" href="GeometryDocStyle.css">
 	</head>
 	<body>
 		<div><h1 style="float: left;">Polygons</h1>
@@ -207,6 +198,106 @@
 					</td>
 				</tr>
 			</table>
+			<h3>GeoJSON format</h3>
+			<p>A polygon can be represented in GeoJSON format. A polygon in GeoJSON format is an array of rings, 
+				with field name <code>coordinates</code>, where a ring is an array of points with the start point 
+				equal to the end point. A polygon may have an optional <code>crs</code> field representing a spatial 
+				reference. If no spatial reference is given, the default value of GCS_WGS_1984 is used. At this time, 
+				z-values and m-values are not supported. 
+			</p>
+			<p>A polygon with exactly one outer ring and zero or more inner rings is designated 
+				by a <code>type</code> field whose value is <code>Polygon</code>. A polygon with one or more outer 
+				rings and zero or more inner rings is designated by a <code>type</code> field whose value is 
+				<code>MultiPolygon</code>. 
+			</p>
+			<p>How is an outer ring distinguished from an inner ring in GeoJSON format? Unlike the JSON format for polygons, an 
+				outer ring is not distinguished from an inner ring by the orientation of the points. In GeoJSON format, given 
+				an array of rings, the outer ring is always first. Every other ring in the array is an inner ring.   
+			</p>
+			<p>An empty polygon is represented with an empty array for the <code>coordinates</code> field.</p>
+			
+			<h4>Syntax</h4>
+			<table cellpadding="10" style="width:45%">
+				<tr>
+					<td style="text-align: left;background-color: LightGray;font-size:medium;">
+
+<pre>{
+  "type" : "Polygon",
+  "coordinates": [&lt;outer ring&gt;, &lt;inner ring&gt;, ..., &lt;inner ring&gt;],
+  "crs" : "EPSG:&lt;wkid&gt";
+}
+</pre>
+					</td>
+				</tr>
+				<tr>
+					<td style="text-align: left;background-color: LightGray;font-size:medium;">
+
+<pre>{
+  "type" : "MultiPolygon",
+  "coordinates": [[&lt;outer ring&gt;, &lt;inner ring&gt;, ..., &lt;inner ring&gt;],
+                  ...,
+                  [&lt;outer ring&gt;, &lt;inner ring&gt;, ..., &lt;inner ring&gt;]],
+  "crs" : "EPSG:&lt;wkid&gt";
+}
+</pre>
+					</td>
+				</tr>
+			</table>
+			<p>
+				where a ring looks like this:<br />
+				<code class="codeSnippet">[[x1, y1], [x2, y2], ..., [x1, y1]]</code>
+			</p>
+			<h4>2D polygon</h4>
+			<table cellpadding="10" style="width:45%">
+				<tr>
+					<td style="text-align: left;background-color: LightGray;font-size:medium;">
+
+<pre>{
+  "type" : "Polygon",
+  "coordinates": 
+           [
+             [[6453,16815],[10653,16423],[14549,5204],[-7003,6939],[6453,16815]],
+             [[914,7992],[3140,11429],[1510,10525],[914,7992]]
+           ],
+  "crs" : "EPSG:54004"
+}
+</pre>
+					</td>
+				</tr>
+			</table>
+			<h4>2D multipolygon</h4>
+			<table cellpadding="10" style="width:45%">
+				<tr>
+					<td style="text-align: left;background-color: LightGray;font-size:medium;">
+<pre>{
+  "type" : "MultiPolygon",
+  "coordinates": 
+         [
+           [
+             [[0.6,0.4],[0.6,1],[1,1.4],[1.4,1],[1.4,0.4],[0.6,0.4]],
+             [[0.8,0.6],[1.2,0.8],[1,1],[0.8,1],[0.8,0.6]]
+           ],
+           [
+             [[1.8,1],[1.8,2],[3,2],[3,1],[1.8,1]],
+             [[2.09,1.33],[2.2,1.6],[2,1.8],[1.89,1.41],[2.09,1.33]],
+             [[2.69,1.21],[2.8,1.4],[2.46,1.4],[2.69,1.21]]
+           ]
+         ],
+  "crs" : "EPSG:4326"
+}
+</pre>
+					</td>
+				</tr>
+			</table>
+			<h4>Empty polygon</h4>
+			<table cellpadding="10" style="width:40%">
+				<tr>
+					<td style="text-align:center;background-color: LightGray;font-size:medium;">
+
+<code>{"type" : "Polygon", "coordinates": []}</code>
+					</td>
+				</tr>
+			</table>
 			<h3>Well-known Text (WKT) format</h3>
 			<p>A polygon can be represented in WKT format. A polygon in WKT format is an array of rings where a ring is an 
 				array of points with the start point equal to the end point. A polygon with exactly one outer ring and zero or more inner rings is designated by the 
@@ -345,9 +436,10 @@
 				</tr>
 			</table>
 			<h3>Import from JSON</h3>
-			<p>As with the <code>Polygon</code> class methods, when using <code>OperatorImportFromJson</code> to create a polygon,
-				the order in which the rings are created doesn't matter. What matters is the ring orientation. Unlike the 
-				<code>Polygon</code> class methods, the start point of each ring must be repeated to specify the end point.
+			<p>As with the <code>Polygon</code> class methods, when using <code>OperatorImportFromJson</code> 
+				to create a polygon the order in which the rings are created doesn't matter. What matters is the 
+				ring orientation. Unlike the <code>Polygon</code> class methods, the start point of each ring must 
+				be repeated to specify the end point.
 			</p>
 			<p>The code shown below creates the same polygon as before, but notice that the inner ring that forms the hole 
 				is given before the outer ring. This was done just to drive home the point that the order of the rings 
@@ -372,15 +464,45 @@
 					</td>
 				</tr>
 			</table>
-			<h3>Import from WKT</h3>
+			<h3>Import from GeoJSON</h3>
 			<p>Unlike the <code>Polygon</code> class methods and <code>OperatorImportFromJson</code>, when using 
-				<code>OperatorImportFromWkt</code> to create a polygon, the order in which the rings are given 
+				<code>OperatorImportFromGeoJson</code> to create a polygon the order in which the rings are given 
 				does matter. Within an array of rings, the outer ring is always first followed by zero or more 
 				inner rings. However, the order of the arrays of rings doesn't matter. The start point of each 
 				ring must be repeated to specify the end point.
 			</p>
+			<p>The code shown below creates the same polygon as in the previous examples. 
+			</p>
+			<table cellpadding="10" style="width:45%">
+				<tr>
+					<td style="text-align: left;background-color: LightGray;font-size:medium;">
+
+<pre><code>static Polygon createPolygonFromGeoJson() throws JsonParseException, IOException {
+    
+    String geoJsonString = "{\"type\":\"MultiPolygon\",
+                             \"coordinates\":
+                                     [[[[0.0,0.0],[-0.5,0.5],[0.0,1.0],[0.5,1.0],[1.0,0.5],[0.5,0.0],[0.0,0.0]],
+                                       [[0.5,0.2],[0.6,0.5],[0.2,0.9],[-0.2,0.5],[0.1,0.2],[0.2,0.3],[0.5,0.2]]],
+                                      [[[0.1,0.7],[0.3,0.7],[0.3,0.4],[0.1,0.4],[0.1,0.7]]]],
+                             \"crs\":\"EPSG:4326\"}";
+                          
+    MapGeometry mapGeom = OperatorImportFromGeoJson.local().execute(GeoJsonImportFlags.geoJsonImportDefaults, Geometry.Type.Polygon, geoJsonString, null);
+    
+    return (Polygon)mapGeom.getGeometry();
+}
+</code></pre>
+					</td>
+				</tr>
+			</table>
+			<h3>Import from WKT</h3>
+			<p>As with <code>OperatorImportFromGeoJson</code>, when using <code>OperatorImportFromWkt</code> 
+				to create a polygon the order in which the rings are given does matter. Within an array of rings, 
+				the outer ring is always first followed by zero or more inner rings. However, the order of the arrays 
+				of rings doesn't matter. The start point of each ring must be repeated to specify the end point.
+			</p>
 			<p>The code shown below creates the same polygon as in the previous examples, but notice that the outer ring 
-				that forms the island is given first.
+				that forms the island is given first. This was done for illustrative purposes. It could have been given last, 
+				which probably would be more understandable to the reader. 
 			</p>
 			<table cellpadding="10" style="width:45%">
 				<tr>
