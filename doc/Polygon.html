@@ -11,7 +11,7 @@
 	<body>
 		<div><h1 style="float: left;">Polygons</h1>
 			<a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/Polygon.html" style="float: right;">API Reference</a><br />
-			<a href="https://github.com/Esri/geometry-api-java/wiki" style="float: right;">Wiki Home</a>
+			<a href="https://github.com/Esri/geometry-api-java/wiki/" style="float: right;">Wiki Home</a>
 			
 		</div>
 		<div style="clear:both;">
@@ -27,10 +27,12 @@
 				</tr>
 				
 			</table>
-			<p>The boundary of a polygon contains one or more outer rings and zero or more inner rings. 
-				An outer ring is oriented clockwise while an inner ring is oriented counter-clockwise. 
-				Imagine walking clockwise along an outer ring. The area to your immediate right is the 
-				interior of the polygon and to your left is the exterior. 
+			<h2 id="boundary">Boundary and Rings</h2>
+			<p>The <i>boundary</i> of a polygon is the collection of rings by which the polygon is defined. The boundary 
+				contains one or more outer rings and zero or more inner rings. An outer ring is oriented clockwise while 
+				an inner ring is oriented counter-clockwise. Imagine walking clockwise along an outer ring. The area to 
+				your immediate right is the <i>interior</i> of the polygon and to your left is the <i>exterior</i>. 
+				
 			</p>
 			<table style="margin-left:auto;margin-right:auto;width:20%">
 				<tr>
@@ -51,9 +53,11 @@
 					<td>Outer &amp; Inner Ring</td>
 				</tr>
 			</table>
-				<p>So, if a polygon has an 
-				inner ring, the inner ring looks like a hole. If the hole contains another outer ring, that 
-				outer ring looks like an island. 
+			<p>It is important to understand the boundary, interior and exterior of a geometry when using the various 
+				operators. The relational operators, for example, rely heavily on these concepts. 
+			</p>
+			<p>If a polygon has an inner ring, the inner ring looks like a hole. If the hole contains 
+				another outer ring, that outer ring looks like an island. 
 			</p>
 			<table>
 				<tr>
@@ -124,7 +128,7 @@
 			<p>When drawing a polygon, use the even-odd fill rule. The even-odd fill rule will guarantee that the polygon 
 				will draw correctly even if the ring orientation is not as described above for simple polygons. 
 			</p>
-			<h3>JSON format</h3>
+			<h3 id="JSON">JSON format</h3>
 			<p>A polygon can be represented as a JSON string. A polygon in JSON format contains an array of <code>rings</code> 
 				and an optional <code>spatialReference</code>. A polygon can also have boolean-valued <code>hasM</code> and <code>hasZ</code> fields. The default value is false 
 				for both the <code>hasM</code> and <code>hasZ</code> fields.
@@ -132,51 +136,50 @@
 			<p>Each ring is represented by an array of points. Exterior rings are oriented clockwise, while interior rings 
 				are oriented counter-clockwise. The order of the rings is irrelevant. The first point of each ring is always the same as the last point. 
 				Each point in a ring is represented as an array of numbers. See the description of 
-				<a href="Multipoints.html#JSON">JSON multipoints</a> for details on the interpretation of the point arrays. 
+				<a href="Multipoint.html#JSON">JSON multipoints</a> for details on the interpretation of the point arrays. 
 			</p>
 			<p>An empty polygon is represented with an empty array for the <code>rings</code> field.</p>
 			
 			<h4>Syntax</h4>
-			<table cellpadding="10" style="width:45%">
+			<table class="codeSample" style="width:45%">
 				<tr>
-					<td style="text-align: left;background-color: LightGray;font-size:medium;">
+					<td>
 
-<pre><code>{
+<pre>{
   "hasZ" : true | false,
   "hasM" : true | false,
   "rings": [
-             [[&lt;x11&gt;,&lt;y11&gt;,&lt;z11&gt;,&lt;m11&gt;],[&lt;x12&gt;,&lt;y12&gt;,&lt;z12&gt;,&lt;m12&gt;], ... ,[&lt;x11&gt;,&lt;y11&gt;,&lt;z11&gt;,&lt;m11&gt;]],
+             [[&lt;x<sub>11</sub>&gt;,&lt;y<sub>11</sub>&gt;,&lt;z<sub>11</sub>&gt;,&lt;m<sub>11</sub>&gt;],[&lt;x<sub>12</sub>&gt;,&lt;y<sub>12</sub>&gt;,&lt;z<sub>12</sub>&gt;,&lt;m<sub>12</sub>&gt;], ... ,[&lt;x<sub>1j</sub>&gt;,&lt;y<sub>1j</sub>&gt;,&lt;z<sub>1j</sub>&gt;,&lt;m<sub>1j</sub>&gt;]],
              ... ,
-             [[&lt;xn1&gt;,&lt;yn1&gt;,&lt;zn1&gt;,&lt;mn1&gt;],[&lt;xn2&gt;,&lt;yn2&gt;,&lt;zn2&gt;,&lt;mn2&gt;], ... ,[&lt;xn1&gt;,&lt;yn1&gt;,&lt;zn1&gt;,&lt;mn1&gt;]]
+             [[&lt;x<sub>n1</sub>&gt;,&lt;y<sub>n1</sub>&gt;,&lt;z<sub>n1</sub>&gt;,&lt;m<sub>n1</sub>&gt;],[&lt;x<sub>n2</sub>&gt;,&lt;y<sub>n2</sub>&gt;,&lt;z<sub>n2</sub>&gt;,&lt;m<sub>n2</sub>&gt;], ... ,[&lt;x<sub>nk</sub>&gt;,&lt;y<sub>nk</sub>&gt;,&lt;z<sub>nk</sub>&gt;,&lt;m<sub>nk</sub>&gt;]]
            ],
   "spatialReference" : {"wkid" : &lt;wkid&gt;}
-}
-</code></pre>
+}</pre>
 					</td>
 				</tr>
 			</table>
-			<h4>2D polygon</h4>
-			<table cellpadding="10" style="width:45%">
+			<h4>2D Polygon</h4>
+			<table class="codeSample" style="width:45%">
 				<tr>
-					<td style="text-align: left;background-color: LightGray;font-size:medium;">
+					<td>
 
-<pre><code>{
+<pre>{
   "rings": [
              [[6453,16815],[10653,16423],[14549,5204],[-7003,6939],[6453,16815]],
              [[914,7992],[3140,11429],[1510,10525],[914,7992]]
            ],
   "spatialReference" : {"wkid" : 54004}
 }
-</code></pre>
+</pre>
 					</td>
 				</tr>
 			</table>
-			<h4>3D polygon with Ms</h4>
+			<h4>3D Polygon with Ms</h4>
 			<p>Note that the third point does not have a z-value, and the second ring does not have any m-values.</p>
-			<table cellpadding="10" style="width:45%">
+			<table class="codeSample" style="width:45%">
 				<tr>
-					<td style="text-align: left;background-color: LightGray;font-size:medium;">
-<pre><code>{
+					<td>
+<pre>{
   "hasZ" : true,
   "hasM" : true,
   "rings": [
@@ -185,20 +188,20 @@
            ],
   "spatialReference" : {"wkid" : 54004}
 }
-</code></pre>
+</pre>
 					</td>
 				</tr>
 			</table>
-			<h4>Empty polygon</h4>
-			<table cellpadding="10" style="width:15%">
+			<h4>Empty Polygon</h4>
+			<table class="codeSample" style="width:15%">
 				<tr>
-					<td style="text-align: left;background-color: LightGray;font-size:medium;">
+					<td style="text-align:center">
 
 <code>{"rings": []}</code>
 					</td>
 				</tr>
 			</table>
-			<h3>GeoJSON format</h3>
+			<h3 id="GeoJSON">GeoJSON format</h3>
 			<p>A polygon can be represented in GeoJSON format. A polygon in GeoJSON format is an array of rings, 
 				with field name <code>coordinates</code>, where a ring is an array of points with the start point 
 				equal to the end point. A polygon may have an optional <code>crs</code> field representing a spatial 
@@ -217,9 +220,9 @@
 			<p>An empty polygon is represented with an empty array for the <code>coordinates</code> field.</p>
 			
 			<h4>Syntax</h4>
-			<table cellpadding="10" style="width:45%">
+			<table class="codeSample" style="width:45%">
 				<tr>
-					<td style="text-align: left;background-color: LightGray;font-size:medium;">
+					<td>
 
 <pre>{
   "type" : "Polygon",
@@ -234,9 +237,11 @@
 
 <pre>{
   "type" : "MultiPolygon",
-  "coordinates": [[&lt;outer ring&gt;, &lt;inner ring&gt;, ..., &lt;inner ring&gt;],
-                  ...,
-                  [&lt;outer ring&gt;, &lt;inner ring&gt;, ..., &lt;inner ring&gt;]],
+  "coordinates": [
+                   [&lt;outer ring&gt;, &lt;inner ring&gt;, ..., &lt;inner ring&gt;],
+                   ...,
+                   [&lt;outer ring&gt;, &lt;inner ring&gt;, ..., &lt;inner ring&gt;]
+                 ],
   "crs" : "EPSG:&lt;wkid&gt";
 }
 </pre>
@@ -245,12 +250,12 @@
 			</table>
 			<p>
 				where a ring looks like this:<br />
-				<code class="codeSnippet">[[x1, y1], [x2, y2], ..., [x1, y1]]</code>
+				<code class="codeSnippet">[[&lt;x<sub>1</sub>&gt;, &lt;y<sub>1</sub>&gt;], [&lt;x<sub>2</sub>&gt;, &lt;y<sub>2</sub>&gt;], ..., [&lt;x<sub>1</sub>&gt;, &lt;y<sub>1</sub>&gt;]]</code>
 			</p>
-			<h4>2D polygon</h4>
-			<table cellpadding="10" style="width:45%">
+			<h4>2D Polygon</h4>
+			<table class="codeSample" style="width:45%">
 				<tr>
-					<td style="text-align: left;background-color: LightGray;font-size:medium;">
+					<td>
 
 <pre>{
   "type" : "Polygon",
@@ -265,10 +270,10 @@
 					</td>
 				</tr>
 			</table>
-			<h4>2D multipolygon</h4>
-			<table cellpadding="10" style="width:45%">
+			<h4>2D MultiPolygon</h4>
+			<table class="codeSample" style="width:45%">
 				<tr>
-					<td style="text-align: left;background-color: LightGray;font-size:medium;">
+					<td>
 <pre>{
   "type" : "MultiPolygon",
   "coordinates": 
@@ -289,16 +294,16 @@
 					</td>
 				</tr>
 			</table>
-			<h4>Empty polygon</h4>
-			<table cellpadding="10" style="width:40%">
+			<h4>Empty Polygon</h4>
+			<table class="codeSample" style="width:40%">
 				<tr>
-					<td style="text-align:center;background-color: LightGray;font-size:medium;">
+					<td style="text-align:center">
 
 <code>{"type" : "Polygon", "coordinates": []}</code>
 					</td>
 				</tr>
 			</table>
-			<h3>Well-known Text (WKT) format</h3>
+			<h3 id="WKT">Well-known Text (WKT) format</h3>
 			<p>A polygon can be represented in WKT format. A polygon in WKT format is an array of rings where a ring is an 
 				array of points with the start point equal to the end point. A polygon with exactly one outer ring and zero or more inner rings is designated by the 
 				keyword <code>POLYGON</code>. A polygon with one or more outer rings and zero or more inner rings is 
@@ -319,32 +324,32 @@
 				an array of rings, the outer ring is always first. Every other ring in the array is an inner ring.  
 			</p>
 			<h4>Syntax</h4>
-			<table cellpadding="10" style="width:45%">
+			<table class="codeSample" style="width:45%">
 				<tr>
-					<td style="text-align: left;background-color: LightGray;font-size:medium;">
+					<td>
 
-<pre><code>POLYGON (&lt;outer ring&gt;, &lt;inner ring&gt;, ..., &lt;inner ring&gt;)
-</code></pre>
+<pre>POLYGON (&lt;outer ring&gt;, &lt;inner ring&gt;, ..., &lt;inner ring&gt;)
+</pre>
 					</td>
 				</tr>
 				<tr>
 					<td style="text-align: left;background-color: LightGray;font-size:medium;">
 
-<pre><code>MULTIPOLYGON ((&lt;outer ring&gt;, &lt;inner ring&gt;, ..., &lt;inner ring&gt;), 
+<pre>MULTIPOLYGON ((&lt;outer ring&gt;, &lt;inner ring&gt;, ..., &lt;inner ring&gt;), 
               ..., 
               (&lt;outer ring&gt;, &lt;inner ring&gt;, ..., &lt;inner ring&gt;))
-</code></pre>
+</pre>
 					</td>
 				</tr>
 			</table>
 			<p>
 				where a ring looks like this:<br />
-				<code class="codeSnippet">(x1 y1 z1 m1, x2 y2 z2 m2, ..., x1 y1 z1 m1)</code>
+				<code class="codeSnippet">(&lt;x<sub>1</sub>&gt; &lt;y<sub>1</sub>&gt; &lt; z<sub>1</sub>&gt; &lt;m<sub>1</sub>&gt;, &lt;x<sub>2</sub>&gt; &lt;y<sub>2</sub>&gt; &lt; z<sub>2</sub>&gt; &lt;m<sub>2</sub>&gt;, ..., &lt;x<sub>1</sub>&gt; &lt;y<sub>1</sub>&gt; &lt; z<sub>1</sub>&gt; &lt;m<sub>1</sub>&gt;)</code>
 			</p>
 			<h4>2D polygon with one outer ring and one inner ring</h4>
-			<table cellpadding="10" style="width:45%">
+			<table class="codeSample" style="width:45%">
 				<tr>
-					<td style="text-align: left;background-color: LightGray;font-size:medium;">
+					<td>
 
 <code>
 <pre>POLYGON ((6 16, -7 6, 14 5, 10 16, 6 16),(0 7, 3 11, 1 10, 0 7))</pre>
@@ -353,9 +358,9 @@
 				</tr>
 			</table>
 			<h4>2D polygon with two outer rings and three inner rings</h4>
-			<table cellpadding="10" style="width:45%">
+			<table class="codeSample" style="width:45%">
 				<tr>
-					<td style="text-align: left;background-color: LightGray;font-size:medium;">
+					<td>
 
 <code>
 <pre>MULTIPOLYGON (((5 1, 7 3, 5 5, 3 3, 5 1),(4 3, 4.5 3, 5 3.5, 4 3),(5 4, 5.5 4, 5 3.5, 5 4)),
@@ -365,9 +370,9 @@
 				</tr>
 			</table>
 			<h4>3D polygon with two outer rings and one inner ring with m-values</h4>
-			<table cellpadding="10" style="width:45%">
+			<table class="codeSample" style="width:45%">
 				<tr>
-					<td style="text-align: left;background-color: LightGray;font-size:medium;">
+					<td>
 
 <code>
 <pre>MULTIPOLYGON ZM (((5 1 1 1, 7 3 1.5 2, 5 5 2 3, 3 3 0 0, 5 1 1 1),(4 3 1 1, 4.5 3 1 2, 5 3.5 2 3, 4 3 1 4)),
@@ -400,11 +405,11 @@
 			<p>To begin each ring, we call the <code>startPath</code> method and then successsive calls to the 
 				<code>lineTo</code> method. We don't need to repeat the start point as the end point. 
 			</p>
-			<table cellpadding="10" style="width:45%">
+			<table class="codeSample" style="width:45%">
 				<tr>
-					<td style="text-align: left;background-color: LightGray;font-size:medium;">
+					<td>
 
-<pre><code>public static Polygon createPolygon1() {
+<pre>public static Polygon createPolygon1() {
 
     Polygon poly = new Polygon();
 
@@ -431,7 +436,7 @@
     
     return poly;
 }
-</code></pre>
+</pre>
 					</td>
 				</tr>
 			</table>
@@ -445,22 +450,22 @@
 				is given before the outer ring. This was done just to drive home the point that the order of the rings 
 				doesn't matter when the polygon is in JSON format.
 			</p>
-			<table cellpadding="10" style="width:45%">
+			<table class="codeSample" style="width:45%">
 				<tr>
-					<td style="text-align: left;background-color: LightGray;font-size:medium;">
+					<td>
 
-<pre><code>static Polygon createPolygonFromJson() throws JsonParseException, IOException {
+<pre>static Polygon createPolygonFromJson() throws JsonParseException, IOException {
     
-    String jsonString = "{\"rings\":[[[0.5,0.2],[0.6,0.5],[0.2,0.9],[-0.2,0.5],[0.1,0.2],[0.2,0.3],[0.5,0.2]],
-                                     [[0.0,0.0],[-0.5,0.5],[0.0,1.0],[0.5,1.0],[1.0,0.5],[0.5,0.0],[0.0,0.0]],
-                                     [[0.1,0.7],[0.3,0.7],[0.3,0.4],[0.1,0.4],[0.1,0.7]]],
-                          \"spatialReference\":{\"wkid\":4326}}";
+    String jsonString = "{\"rings\":[[[0.5,0.2],[0.6,0.5],[0.2,0.9],[-0.2,0.5],[0.1,0.2],[0.2,0.3],[0.5,0.2]],"
+                      + "[[0.0,0.0],[-0.5,0.5],[0.0,1.0],[0.5,1.0],[1.0,0.5],[0.5,0.0],[0.0,0.0]],"
+                      + "[[0.1,0.7],[0.3,0.7],[0.3,0.4],[0.1,0.4],[0.1,0.7]]],"            
+                      + " \"spatialReference\":{\"wkid\":4326}}";              
                           
     MapGeometry mapGeom = OperatorImportFromJson.local().execute(Geometry.Type.Polygon, jsonString);
     
     return (Polygon)mapGeom.getGeometry();
 }
-</code></pre>
+</pre>
 					</td>
 				</tr>
 			</table>
@@ -473,24 +478,23 @@
 			</p>
 			<p>The code shown below creates the same polygon as in the previous examples. 
 			</p>
-			<table cellpadding="10" style="width:45%">
+			<table class="codeSample" style="width:45%">
 				<tr>
-					<td style="text-align: left;background-color: LightGray;font-size:medium;">
+					<td>
 
-<pre><code>static Polygon createPolygonFromGeoJson() throws JsonParseException, IOException {
+<pre>static Polygon createPolygonFromGeoJson() throws JsonParseException, IOException {
     
-    String geoJsonString = "{\"type\":\"MultiPolygon\",
-                             \"coordinates\":
-                                     [[[[0.0,0.0],[-0.5,0.5],[0.0,1.0],[0.5,1.0],[1.0,0.5],[0.5,0.0],[0.0,0.0]],
-                                       [[0.5,0.2],[0.6,0.5],[0.2,0.9],[-0.2,0.5],[0.1,0.2],[0.2,0.3],[0.5,0.2]]],
-                                      [[[0.1,0.7],[0.3,0.7],[0.3,0.4],[0.1,0.4],[0.1,0.7]]]],
-                             \"crs\":\"EPSG:4326\"}";
+    String geoJsonString = "{\"type\":\"MultiPolygon\","
+                         + "\"coordinates\":[[[[0.0,0.0],[-0.5,0.5],[0.0,1.0],[0.5,1.0],[1.0,0.5],[0.5,0.0],[0.0,0.0]],"
+                         + "[[0.5,0.2],[0.6,0.5],[0.2,0.9],[-0.2,0.5],[0.1,0.2],[0.2,0.3],[0.5,0.2]]],"
+                         + "[[[0.1,0.7],[0.3,0.7],[0.3,0.4],[0.1,0.4],[0.1,0.7]]]],"
+                         + "\"crs\":\"EPSG:4326\"}";
                           
     MapGeometry mapGeom = OperatorImportFromGeoJson.local().execute(GeoJsonImportFlags.geoJsonImportDefaults, Geometry.Type.Polygon, geoJsonString, null);
     
     return (Polygon)mapGeom.getGeometry();
 }
-</code></pre>
+</pre>
 					</td>
 				</tr>
 			</table>
@@ -504,21 +508,21 @@
 				that forms the island is given first. This was done for illustrative purposes. It could have been given last, 
 				which probably would be more understandable to the reader. 
 			</p>
-			<table cellpadding="10" style="width:45%">
+			<table class="codeSample" style="width:45%">
 				<tr>
-					<td style="text-align: left;background-color: LightGray;font-size:medium;">
+					<td>
 
-<pre><code>static Polygon createPolygonFromWkt() throws JsonParseException, IOException {
+<pre>static Polygon createPolygonFromWKT() throws JsonParseException, IOException {
     
-    String wktString = "MULTIPOLYGON (((0.1 0.7, 0.1 0.4, 0.3 0.4, 0.3 0.7, 0.1 0.7)), 
-                                      ((0 0, 0.5 0, 1 0.5, 0.5 1, 0 1, -0.5 0.5, 0 0), 
-                                       (0.5 0.2, 0.2 0.3, 0.1 0.2, -0.2 0.5, 0.2 0.9, 0.6 0.5, 0.5 0.2)))";
+    String wktString = "MULTIPOLYGON (((0.1 0.7, 0.1 0.4, 0.3 0.4, 0.3 0.7, 0.1 0.7)),"
+                     + "((0 0, 0.5 0, 1 0.5, 0.5 1, 0 1, -0.5 0.5, 0 0),"
+                     + "(0.5 0.2, 0.2 0.3, 0.1 0.2, -0.2 0.5, 0.2 0.9, 0.6 0.5, 0.5 0.2)))";
                                        
     Geometry geom = OperatorImportFromWkt.local().execute(WktImportFlags.wktImportDefaults, Geometry.Type.Polygon, wktString, null);
     
     return (Polygon)geom;
 }
-</code></pre>
+</pre>
 					</td>
 				</tr>
 			</table>
