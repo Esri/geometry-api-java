@@ -26,6 +26,14 @@ td {
 	font-size:20px;
 }
 
+.codeSample td {
+	text-align:left;background-color:rgb(216,216,216);font-size:medium;padding:10px;
+}
+
+.imageTable td {
+	padding:15px;
+}
+
 h1 {
 	font-size:40px
 }
