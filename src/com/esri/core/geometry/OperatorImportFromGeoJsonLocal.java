@@ -42,7 +42,7 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
 		return mapGeometry;
 	}
 	
-	static JSONArray getJSONArray(JSONObject obj, String name) {
+	static JSONArray getJSONArray(JSONObject obj, String name) throws JSONException {
 		if (obj.get(name) == JSONObject.NULL)
 			return new JSONArray();
 		else
