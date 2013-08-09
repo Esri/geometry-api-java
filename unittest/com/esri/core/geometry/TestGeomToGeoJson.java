@@ -30,6 +30,7 @@ import com.esri.core.geometry.ogc.OGCPolygon;
 import junit.framework.TestCase;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonParser;
+import org.json.JSONException;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -241,7 +242,7 @@ public class TestGeomToGeoJson extends TestCase {
 
 
     @Test
-    public void testEmptyPolygon() {
+    public void testEmptyPolygon() throws JSONException {
         Polygon p = new Polygon();
         OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory.getOperator(Operator.Type.ExportToGeoJson);
         String result = exporter.execute(p);
