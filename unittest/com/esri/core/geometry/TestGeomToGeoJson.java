@@ -246,6 +246,10 @@ public class TestGeomToGeoJson extends TestCase {
         OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory.getOperator(Operator.Type.ExportToGeoJson);
         String result = exporter.execute(p);
         assertEquals("{\"type\":\"Polygon\",\"coordinates\":null}", result);
+        
+        MapGeometry imported = OperatorImportFromGeoJson.local().execute(0, Geometry.Type.Unknown, result, null);
+        assertTrue(imported.getGeometry().isEmpty());
+        assertTrue(imported.getGeometry().getType() == Geometry.Type.Polygon);
     }
 
     @Test
@@ -352,4 +356,5 @@ public class TestGeomToGeoJson extends TestCase {
         String result = GeometryEngine.geometryToGeoJson(e);
         assertEquals("{\"bbox\":[-180.0,-90.0,180.0,90.0]}", result);
     }
+
 }

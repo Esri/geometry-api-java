@@ -41,6 +41,13 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
 		MapGeometry mapGeometry = new MapGeometry(geometry, spatialReference);
 		return mapGeometry;
 	}
+	
+	static JSONArray getJSONArray(JSONObject obj, String name) {
+		if (obj.get(name) == JSONObject.NULL)
+			return new JSONArray();
+		else
+			return obj.getJSONArray(name);
+	}
 
 	@Override
 	public MapOGCStructure executeOGC(int import_flags, String geoJsonString,
@@ -80,7 +87,7 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
 				lastStructure.m_structures.add(next);
 				structureStack.add(next);
 
-				JSONArray geometries = lastObject.getJSONArray("geometries");
+				JSONArray geometries = getJSONArray(lastObject, "geometries");
 				indices.add(0);
 				numGeometries.add(geometries.length());
 
@@ -149,8 +156,7 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
 			Geometry.Type type, JSONObject geometryJSONObject)
 			throws JSONException {
 		String typeString = geometryJSONObject.getString("type");
-		JSONArray coordinateArray = geometryJSONObject
-				.getJSONArray("coordinates");
+		JSONArray coordinateArray = getJSONArray(geometryJSONObject, "coordinates");
 
 		if (typeString.equalsIgnoreCase("MultiPolygon")) {
 			if (type != Geometry.Type.Polygon && type != Geometry.Type.Unknown)
