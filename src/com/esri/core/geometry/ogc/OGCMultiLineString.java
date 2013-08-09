@@ -1,9 +1,11 @@
 package com.esri.core.geometry.ogc;
 
+import com.esri.core.geometry.GeoJsonExportFlags;
 import com.esri.core.geometry.Geometry;
 import com.esri.core.geometry.GeometryEngine;
 import com.esri.core.geometry.Operator;
 import com.esri.core.geometry.OperatorBoundary;
+import com.esri.core.geometry.OperatorExportToGeoJson;
 import com.esri.core.geometry.OperatorExportToWkb;
 import com.esri.core.geometry.OperatorFactoryLocal;
 import com.esri.core.geometry.Polyline;
@@ -24,7 +26,12 @@ public class OGCMultiLineString extends OGCMultiCurve {
 		return GeometryEngine.geometryToWkt(getEsriGeometry(),
 				WktExportFlags.wktExportMultiLineString);
 	}
-
+	@Override
+    public String asGeoJson() {
+        OperatorExportToGeoJson op = (OperatorExportToGeoJson) OperatorFactoryLocal
+                .getInstance().getOperator(Operator.Type.ExportToGeoJson);
+        return op.execute(GeoJsonExportFlags.geoJsonExportPreferMultiGeometry, null, getEsriGeometry());
+    }
 	@Override
 	public ByteBuffer asBinary() {
 		OperatorExportToWkb op = (OperatorExportToWkb) OperatorFactoryLocal

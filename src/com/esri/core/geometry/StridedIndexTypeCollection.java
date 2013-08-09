@@ -193,7 +193,7 @@ final class StridedIndexTypeCollection {
 		return true;
 	}
 
-	static int[] st_sizes = {16, 32, 64, 128, 256, 512, 1024, 2048};
+	final static int[] st_sizes = {16, 32, 64, 128, 256, 512, 1024, 2048};
 
 	private void grow_(int newsize) {
 		if (m_buffer == null) {
