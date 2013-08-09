@@ -47,5 +47,5 @@ public abstract class GeometryCursor {
 	 *This method is to be used together with the tick() method on the ListeningGeometryCursor.
 	 *Call tock() for each tick() on the ListeningGeometryCursor.
 	 */
-	protected boolean tock() { return true; }
+	public boolean tock() { return true; }
 }
