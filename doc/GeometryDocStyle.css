@@ -14,6 +14,10 @@ td {
 	font-size:20px;font-family:Arial,Verdana,Sans-serif;
 }
 
+img {
+	padding:10px;
+}
+
 .codeComment {
 	color:rgb(90,153,255);font-style:italic;
 }
@@ -26,12 +30,99 @@ td {
 	font-size:20px;
 }
 
-.codeSample td {
-	text-align:left;background-color:rgb(216,216,216);font-size:medium;padding:10px;
+.codeSample {
+	margin:auto;width:80%;text-align:center;
+}
+.codeSample pre {
+	margin:auto;text-align:left;border:1px solid black;background-color:rgb(216,216,216);padding:10px;overflow-x:auto;
+}
+
+pre.emptyGeom {
+	width:185px;text-align:center;
+}
+
+pre.classMethod {
+	width:400px;
+}
+
+pre.import {
+	width:100%;
+}
+
+pre.emptyGeoJson {
+	width:500px;text-align:center;
 }
 
 .imageTable td {
 	padding:15px;
+}
+
+.image400 {
+	margin-left:auto;margin-right:auto;height:auto;width:425px;text-align:center;border:1px solid black;
+}
+
+.image360 {
+	margin-left:auto;margin-right:auto;height:auto;width:385px;text-align:center;border:1px solid black;
+}
+
+.image240 {
+	margin-left:auto;margin-right:auto;height:auto;width:265px;text-align:center;border:1px solid black;
+}
+
+.imageGallery {
+	margin-left:auto;margin-right:auto;height:auto;width:100%;text-align:center;border:1px solid yellow;
+}
+
+.imageGallery .image240 {
+	float:left;height:290px;
+}
+
+.imageGallery .desc {
+	height:28px;border:1px solid black;
+}
+
+div.clear {
+	clear:both;
+}
+
+.imageGallery4 {
+	margin-left:auto;margin-right:auto;height:auto;width:830px;text-align:center;border:1px solid black;
+}
+
+.imageGallery4 span {
+	height:206px;width:206px;float:left;border-right:1px solid black;
+}
+
+span.lastImg {
+	border-right:none;
+}
+
+.imageGallery4 .desc {
+	clear:both;
+}
+
+.desc {
+	margin-left:auto;margin-right:auto;text-align:center;border-top:1px solid black;
+	font-family:Arial,Verdana,Sans-serif;font-size:20px;padding:3px;
+}
+
+.map {
+	margin-left:auto;margin-right:auto;height:auto;width:565px;text-align:center;border:1px solid black;	
+}
+
+.map img {
+	padding:15px;
+}
+
+#topic {
+	float:left;
+}
+
+#menu {
+	float:right;list-style-type:none;
+}
+#content {
+	clear:both;
 }
 
 h1 {
