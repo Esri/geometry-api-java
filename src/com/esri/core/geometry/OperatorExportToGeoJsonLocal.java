@@ -25,16 +25,23 @@ package com.esri.core.geometry;
 class OperatorExportToGeoJsonLocal extends OperatorExportToGeoJson {
     @Override
     JsonCursor execute(SpatialReference spatialReference, GeometryCursor geometryCursor) {
-        return new OperatorExportToGeoJsonCursor(spatialReference, geometryCursor);
+        return new OperatorExportToGeoJsonCursor(false, spatialReference, geometryCursor);
     }
 
     @Override
     public String execute(SpatialReference spatialReference, Geometry geometry) {
         SimpleGeometryCursor gc = new SimpleGeometryCursor(geometry);
-        JsonCursor cursor = new OperatorExportToGeoJsonCursor(spatialReference, gc);
+        JsonCursor cursor = new OperatorExportToGeoJsonCursor(false, spatialReference, gc);
         return cursor.next();
     }
 
+    @Override
+    public String execute(int exportFlags, SpatialReference spatialReference, Geometry geometry) {
+        SimpleGeometryCursor gc = new SimpleGeometryCursor(geometry);
+        JsonCursor cursor = new OperatorExportToGeoJsonCursor(exportFlags == GeoJsonExportFlags.geoJsonExportPreferMultiGeometry, spatialReference, gc);
+        return cursor.next();
+    }
+    
     @Override
     public String execute(Geometry geometry) {
         SimpleGeometryCursor gc = new SimpleGeometryCursor(geometry);

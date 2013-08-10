@@ -24,6 +24,9 @@ package com.esri.core.geometry;
 
 import com.esri.core.geometry.Operator.Type;
 
+/**
+ *Export to GeoJson format.
+ */
 public abstract class OperatorExportToGeoJson extends Operator {
     @Override
     public Type getType() {
@@ -34,6 +37,8 @@ public abstract class OperatorExportToGeoJson extends Operator {
 
     public abstract String execute(SpatialReference spatialReference, Geometry geometry);
 
+    public abstract String execute(int exportFlags, SpatialReference spatialReference, Geometry geometry);
+	
     public abstract String execute(Geometry geometry);
 
     public static OperatorExportToGeoJson local() {

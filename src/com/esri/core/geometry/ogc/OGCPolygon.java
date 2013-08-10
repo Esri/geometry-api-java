@@ -27,7 +27,7 @@ public class OGCPolygon extends OGCSurface {
 		polygon = geom;
 		if (geom.getExteriorRingCount() > 1)
 			throw new IllegalArgumentException(
-					"Polygon has to have one exterior ring");
+					"Polygon has to have one exterior ring. Simplify geom with OperatorSimplify.");
 		esriSR = sr;
 	}
 
