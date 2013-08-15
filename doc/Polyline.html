@@ -1,0 +1,358 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title>Polyline</title>
+		<meta name="author" content="Anne2440" />
+		<link rel="stylesheet" href="GeometryDocStyle.css">
+	</head>
+	<body>
+		<h1 id="topic">Polylines</h1>
+		<ul id="menu">
+			<li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/Polyline.html">API Reference</a></li>
+			<li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
+		</ul>
+		<div id="content">
+			<p>A <i>polyline</i> is an ordered collection of paths. Each path is a collection of contiguous line segments. 
+				A line segment is defined by a pair of consecutive points. 
+			</p>
+			<div class="image360">
+				<img src="Images/Polyline/Polyline1.jpg">
+				<div class="desc">Polyline with 3 paths</div>				
+			</div>
+			<h2 id="boundary">Boundary, Interior &amp; Exterior</h2>
+			<p>The <i>boundary</i> of a polyline is the set of start and end points of each path. The <i>interior</i> of a polyline 
+				is the set of points in the polyline that are not in the boundary. The <i>exterior</i> of a polyline is the set of 
+				points that are not in the boundary or the interior. It is important to understand the boundary, interior and exterior 
+				of a geometry when using the various operators. The relational operators, for example, rely heavily on these 
+				concepts. 
+			</p>
+			<p>For the polyline shown below, the set of points comprising the boundary is shown in red. The interior of the polyline is shown in black. 
+			</p>
+			<div class="image360">
+				<img src="Images/Polyline/Boundary1.jpg">
+				<div class="desc">Red is boundary, black is interior</div>				
+			</div>
+			<p>
+				If a vertex is contained in several paths, how do we determine if it is in the boundary of the polyline? 
+				To determine if a vertex is in the boundary of a polyline count the number of segments in which it is it
+				is contained. If that number is even, then the vertex is not in the boundary. If that number is odd, then 
+				the vertex is in the boundary. 
+			</p>
+			<p> 
+				For example, consider the polyline shown below. 
+			</p>
+			<div class="image240">
+				<img src="Images/Polyline/Boundary2.jpg">
+				<div class="desc">Red is boundary, green is ?</div>				
+			</div>
+			<p>
+				Clearly, the red vertices are in the boundary of the polyline. But what about the green one? The answer 
+				is that the green vertex is not in the boundary since it is contained in four segments. 
+			</p>
+			<p>
+				Here is another example. 
+			</p>
+			<div class="image240">
+				<img src="Images/Polyline/Boundary3.jpg">
+				<div class="desc">Red is boundary, green is ?</div>				
+			</div>
+			<p>
+				In this case, since the green vertex is contained in five segments, it is in the boundary of the polyline.
+			</p>
+			<p>
+				One way to remember this rule is to think of a single path with three vertices. 
+			</p>
+			<div class="image240">
+				<img src="Images/Polyline/Boundary4.jpg">
+				<div class="desc">Red is boundary</div>				
+			</div>
+			<p>
+				It is easy to see that the red vertices are in the boundary and the black vertex is not. Notice that the 
+				number of segments containing each of the red vertices is one, an odd number. Now count the number of segments
+				containing the black vertex. Two, an even number. 
+			</p>
+			<h2>Valid polylines</h2>
+			<p>A valid polyline is such that every path has at least two distinct points. Tolerance is used to determine if 
+				two points are distinct. In other words, if the distance between two points is less than the tolerance specified 
+				by the spatial reference, then the points are considered equal. 
+			</p>
+			<p>A <i>closed path</i> is a path with more than two distinct points and the start point equals the end point. 
+				A closed path is a valid polyline.
+			</p> 
+			<div class="image240">
+				<img src="Images/Polyline/ClosedPath.jpg">
+				<div class="desc">Closed path is valid</div>				
+			</div>
+			<p>A valid polyline is said to be <i>simple</i>.
+			See the <a href="Simplify.html">Simplify operator</a> for a more detailed specification 
+			of simple polylines.
+			</p>
+			<h3>Examples</h3>
+			<p>
+				Let's look at some examples of polylines. <br /> 
+				In the first group of examples, the green circles are the vertices of the polyline. 
+			</p>
+			<div class="imageGallery4">
+				<span><img src="Images/Polyline/ExamplePolyline1.jpg"></span>
+				<span><img src="Images/Polyline/ExamplePolyline2.jpg"></span>
+				<span><img src="Images/Polyline/ExamplePolyline3.jpg"></span>
+				<span class="lastImg"><img src="Images/Polyline/ExamplePolyline4.jpg"></span>
+				<div class="desc">Polylines</div>
+			</div>
+			<p>This example shows polylines which represent some of the major highways in the United States.</p>
+			<div class="map">
+				<img src="Images/Polyline/USHighways.jpg">
+				<div class="desc">U.S. Highways</div>				
+			</div>
+			<h3 id="JSON">JSON format</h3>
+			<p>A polyline can be represented as a JSON string. A polyline in JSON format contains an array of <code>paths</code> 
+				and an optional <code>spatialReference</code>. A polyline can also have boolean-valued <code>hasM</code> and 
+				<code>hasZ</code> fields. The default value is false for both the <code>hasM</code> and <code>hasZ</code> 
+				fields.
+			</p>
+			<p>Each path is represented by an array of points. Each point in a path is represented as an array of numbers. 
+				See the description of <a href="Multipoint.html#JSON">JSON multipoints</a> for details on the 
+				interpretation of the point arrays. 
+			</p>
+			<p>An empty polyline is represented with an empty array for the <code>paths</code> field.</p>
+			
+			<h4>Syntax</h4>
+			<div class="codeSample">
+<pre>{
+  "hasZ" : true | false,
+  "hasM" : true | false,
+  "paths": [
+             [[&lt;x<sub>11</sub>&gt;,&lt;y<sub>11</sub>&gt;,&lt;z<sub>11</sub>&gt;,&lt;m<sub>11</sub>&gt;],[&lt;x<sub>12</sub>&gt;,&lt;y<sub>12</sub>&gt;,&lt;z<sub>12</sub>&gt;,&lt;m<sub>12</sub>&gt;], ... ,[&lt;x<sub>1j</sub>&gt;,&lt;y<sub>1j</sub>&gt;,&lt;z<sub>1j</sub>&gt;,&lt;m<sub>1j</sub>&gt;]],
+             ... ,
+             [[&lt;x<sub>n1</sub>&gt;,&lt;y<sub>n1</sub>&gt;,&lt;z<sub>n1</sub>&gt;,&lt;m<sub>n1</sub>&gt;],[&lt;x<sub>n2</sub>&gt;,&lt;y<sub>n2</sub>&gt;,&lt;z<sub>n2</sub>&gt;,&lt;m<sub>n2</sub>&gt;], ... ,[&lt;x<sub>nk</sub>&gt;,&lt;y<sub>nk</sub>&gt;,&lt;z<sub>nk</sub>&gt;,&lt;m<sub>nk</sub>&gt;]]
+           ],
+  "spatialReference" : {"wkid" : &lt;wkid&gt;}
+}
+</pre>
+			</div>
+			<h4>2D polyline</h4>
+			<div class="codeSample">
+
+<pre>{
+  "paths": [
+             [[32462,-57839],[43892,-49160],[35637,-65035],[46009,-60379]],
+             [[52570,-77736],[39870,-83027],[46644,-99114]]
+           ],
+  "spatialReference" : {"wkid" : 54004}
+}
+</pre>
+			</div>
+			<h4>3D polyline with Ms</h4>
+			<p>Note that the third point does not have a z-value, and the second ring does not have any m-values.</p>
+			<div class="codeSample">
+<pre>{
+  "hasZ" : true,
+  "hasM" : true,
+  "paths": [
+             [[32462,-57839,20,1],[43892,-49160,25,2],[35637,-65035,null,3],[46009,-60379,22,4]],
+             [[52570,-77736,30],[39870,-83027,32],[46644,-99114,35]]
+           ],
+  "spatialReference" : {"wkid" : 54004}
+}
+</pre>
+			</div>
+			<h4>Empty polyline</h4>
+			<div class="codeSample">
+<pre class="emptyGeom">{"paths": []}</pre>
+			</div>
+			<h3 id="GeoJSON">GeoJSON format</h3>
+			<p>A polyline can be represented in GeoJSON format. A polyline in GeoJSON format is an array of paths, 
+				with field name <code>coordinates</code>, where a path is an array of two or more points. A polyline 
+				may have an optional <code>crs</code> field representing a spatial reference. If no spatial reference 
+				is given, the default value of GCS_WGS_1984 is used. At this time, z-values and m-values are not supported. 
+			</p>
+			<p>A polyline with exactly one path is designated by a <code>type</code> field whose value is <code>LineString</code>. 
+				A polyline with one or more paths is designated by a <code>type</code> field whose value is 
+				<code>MultiLineString</code>. 
+			</p>
+			<p>An empty polyline is represented with an empty array for the <code>coordinates</code> field.</p>
+			
+			<h4>Syntax</h4>
+			<div class="codeSample">
+
+<pre>{
+  "type" : "LineString",
+  "coordinates": [[&lt;x<sub>1</sub>&gt;,&lt;y<sub>1</sub>&gt;], ..., [&lt;x<sub>j</sub>&gt;,&lt;y<sub>j</sub>&gt;]],
+  "crs" : "EPSG:&lt;wkid&gt";
+}
+</pre>
+
+<pre>{
+  "type" : "MultiLineString",
+  "coordinates": 
+           [
+             [[&lt;x<sub>11</sub>&gt;,&lt;y<sub>11</sub>&gt;,&lt;z<sub>11</sub>&gt;,&lt;m<sub>11</sub>&gt;], ...,[&lt;x<sub>1j</sub>&gt;,&lt;y<sub>1j</sub>&gt;,&lt;z<sub>1j</sub>&gt;,&lt;m<sub>1j</sub>&gt;]],
+             ... ,
+             [[&lt;x<sub>n1</sub>&gt;,&lt;y<sub>n1</sub>&gt;,&lt;z<sub>n1</sub>&gt;,&lt;m<sub>n1</sub>&gt;], ...,[&lt;x<sub>nk</sub>&gt;,&lt;y<sub>nk</sub>&gt;,&lt;z<sub>nk</sub>&gt;,&lt;m<sub>nk</sub>&gt;]]
+           ],
+  "crs" : "EPSG:&lt;wkid&gt";
+}
+</pre>
+			</div>
+			<h4>2D LineString</h4>
+			<div class="codeSample">
+<pre>{
+  "type" : "LineString",
+  "coordinates": [[6453,16815],[10653,16423],[14549,5204],[-7003,6939],[6453,16815]]
+  "crs" : "EPSG:54004"
+}
+</pre>
+			</div>
+			<h4>2D MultiLineString</h4>
+			<div class="codeSample">
+<pre>{
+  "type" : "MultiLineString",
+  "coordinates": 
+           [
+             [[32462,-57839],[43892,-49160],[35637,-65035],[46009,-60379]],
+             [[52570,-77736],[39870,-83027],[46644,-99114]]
+           ],
+  "crs" : "EPSG:4326"
+}
+</pre>
+			</div>
+			<h4>Empty LineString</h4>
+			<div class="codeSample">
+<pre class="emptyGeoJson">{"type" : "LineString", "coordinates": []}</pre>
+			</div>
+			<h3 id="WKT">Well-known Text (WKT) format</h3>
+			<p>A polyline can be represented in WKT format. A polyline in WKT format is an array of paths where a path is an 
+				array of points. A polyline with exactly one path is designated by the keyword <code>LINESTRING</code>. 
+				A polyline with one or more outer rings and zero or more inner rings is designated by the keyword 
+				<code>MULTILINESTRING</code>. 
+			</p>
+			<p>Polylines can have z-values and m-values. To specify that a polygon has z-values, add the keyword <code>Z</code> 
+				and for m-values add the keyword <code>M</code>. To specify both z-values and m-values, add the keyword 
+				<code>ZM</code>. 
+				For example, we might begin our WKT string with <code>MULTILINESTRING Z</code>, <code>LINESTRING M</code> 
+				or <code>MULTILINESTRING ZM</code>. 
+				If a polyline has z-values or m-values or both, then a value must be given in the point array for the z-value 
+				and/or the m-value. A value of <code>null</code> or <code>"NaN"</code> will not be accepted. See the 
+				description of <a href="Multipoints.html#WKT">WKT multipoints</a> for details on the interpretation of the point arrays. 
+			</p>
+			<h4>Syntax</h4>
+			<div class="codeSample">
+<pre>LINESTRING (&lt;x<sub>1</sub>&gt; &lt;y<sub>1</sub>&gt; &lt;z<sub>1</sub>&gt; &lt;m<sub>1</sub>&gt;, ..., &lt;x<sub>j</sub>&gt; &lt;y<sub>j</sub>&gt; &lt;z<sub>j</sub>&gt; &lt;m<sub>j</sub>&gt;)</pre>
+<pre>MULTILINESTRING ((&lt;x<sub>11</sub>&gt; &lt;y<sub>11</sub>&gt; &lt;z<sub>11</sub>&gt; &lt;m<sub>11</sub>&gt;, ..., &lt;x<sub>1j</sub>&gt; &lt;y<sub>1j</sub>&gt; &lt;z<sub>1j</sub>&gt; &lt;m<sub>1j</sub>&gt;), 
+                 ..., 
+                 (&lt;x<sub>n1</sub>&gt; &lt;y<sub>n1</sub>&gt; &lt;z<sub>n1</sub>&gt; &lt;m<sub>n1</sub>&gt;, ..., &lt;x<sub>nk</sub>&gt; &lt;y<sub>nk</sub>&gt; &lt;z<sub>nk</sub>&gt; &lt;m<sub>nk</sub>&gt;))
+</pre>
+			</div>
+			<h4>2D LINESTRING</h4>
+			<div class="codeSample">
+<pre>LINESTRING (6 16, -7 6, 14 5, 10 16, 12 20, 15 24)</pre>
+			</div>
+			<h4>2D MULTILINESTRING</h4>
+			<div class="codeSample">
+<pre>MULTILINESTRING ((5 1, 7 3, 5 5, 3 3),(8 5, 9 6, 10 5, 11 6, 12 5),(11 10, 9 8))</pre>
+			</div>
+			<h4>3D MULTILINESTRING with Ms</h4>
+			<div class="codeSample">
+<pre>MULTILINESTRING ZM ((5 1 1 1, 7 3 3 2, 5 5 3 3, 3 3 1 4),
+	            (8 5 3 5, 9 6 3 6, 10 5 2 7, 11 6 2 8, 12 5 3 9), 
+	            (11 10 1 10, 9 8 1 11))</pre>
+			</div>
+			<h2>Creating a polyline</h2>
+			<p>To create a polyline, we can use the <code>Polyline</code> class methods or one of the import operators. </p>
+			<p>Each of the code samples below creates a polyline with three paths.<br />
+				The polyline looks like this:
+			</p>
+			<div class="image360">
+				<img src="Images/Polyline/CreatePolyline.jpg">
+				<div class="desc">Create this polyline</div>				
+			</div>
+			<h3><code>Polyline</code> class methods</h3>
+			<p>To begin each path, we call the <code>startPath</code> method and then successsive calls to the 
+				<code>lineTo</code> method. 
+			</p>
+			<div class="codeSample">
+<pre class="classMethod">static Polyline createPolyline1() {
+
+    Polyline line = new Polyline();
+
+    <span class="codeComment">// Path 1</span>
+    line.startPath(6.9, 9.1);
+    line.lineTo(7, 8.8);
+
+    <span class="codeComment">// Path 2</span>
+    line.startPath(6.8, 8.8);
+    line.lineTo(7, 9);
+    line.lineTo(7.2, 8.9);
+    line.lineTo(7.4, 9);
+    
+    <span class="codeComment">// Path 3</span>
+    line.startPath(7.4, 8.9);
+    line.lineTo(7.25, 8.6);
+    line.lineTo(7.15, 8.8);
+    
+    return poly;
+}
+</pre>
+			</div>
+			<h3>Import from JSON</h3>
+			<p>We first create the JSON string which represents the polyline. Note that the order of the paths doesn't 
+				matter. Only the order of the points within each path is important. We then call the <code>execute</code> 
+				method of <code>OperatorImportFromJson</code>.
+			</p>
+			<div class="codeSample">
+<pre class="import">static Polyline createPolygonFromJson() throws JsonParseException, IOException {
+    
+    String jsonString = "{\"paths\":[[[6.8,8.8],[7,9],[7.2,8.9],[7.4,9]],"
+                      + "[[7.4,8.9],[7.25,8.6],[7.15,8.8]],[[6.9, 9.1],[7, 8.8]]],"
+                      + "\"spatialReference\":{\"wkid\":4326}}";
+                          
+    MapGeometry mapGeom = OperatorImportFromJson.local().execute(Geometry.Type.Polyline, jsonString);
+    
+    return (Polyline)mapGeom.getGeometry();
+}
+</pre>
+		</div>
+			<h3>Import from GeoJSON</h3>
+			<p>We first create the GeoJSON string which represents the polyline. We then call the <code>execute</code> 
+				method of <code>OperatorImportFromGeoJson</code>.
+			</p>
+			<p>The code shown below creates the same polygon as in the previous examples. 
+			</p>
+			<div class="codeSample">
+<pre class="import">static Polyline createPolylineFromGeoJson() throws JsonParseException, IOException {
+    
+    String geoJsonString = "{\"type\":\"MultiLineString\","
+                         + "\"coordinates\":[[[6.8,8.8],[7,9],[7.2,8.9],[7.4,9]],"
+                         + "[[7.4,8.9],[7.25,8.6],[7.15,8.8]],[[6.9, 9.1],[7, 8.8]]],"
+                         + "\"crs\":\"EPSG:4326\"}";
+                          
+    MapGeometry mapGeom = OperatorImportFromGeoJson.local().execute(GeoJsonImportFlags.geoJsonImportDefaults, Geometry.Type.Polyline, geoJsonString, null);
+    
+    return (Polyline)mapGeom.getGeometry();
+}
+</pre>
+			</div>
+			<h3>Import from WKT</h3>
+			<p>We first create the WKT string which represents the polyline. We then call the <code>execute</code> 
+				method of <code>OperatorImportFromWkt</code>.
+			</p>
+			<p>The code shown below creates the same polygon as in the previous examples. 
+			</p>
+			<div class="codeSample">
+<pre class="import">static Polyline createPolylineFromWKT() throws JsonParseException, IOException {
+    
+    String wktString = "MULTILINESTRING ((6.9 9.1,7 8.8),(6.8 8.8,7 9,7.2 8.9,7.4 9),(7.4 8.9,7.25 8.6,7.15 8.8))";
+    Geometry geom = OperatorImportFromWkt.local().execute(WktImportFlags.wktImportDefaults, Geometry.Type.Polyline, wktString, null);
+    
+    return (Polyline)geom;
+}
+</pre>
+	</div>
+		</div>
+	<br /><br />
+	</body>
+</html>
+
