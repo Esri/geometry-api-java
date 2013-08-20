@@ -1,12 +1,280 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
-"http://www.w3.org/TR/html4/loose.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-		<title>New Web Project</title>
+		<title>Multipoint</title>
+		<meta name="author" content="Anne2440" />
+		<link rel="stylesheet" href="GeometryDocStyle.css">
 	</head>
 	<body>
-		<h1>New Web Project Page</h1>
+		<h1 id="topic">Multipoints</h1>
+		<ul id="menu">
+			<li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/Multipoint.html">API Reference</a></li>
+			<li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
+		</ul>
+		<div id="content">
+			<p>A <i>multipoint</i> is an ordered collection of points.</p>
+			<div class="image240">
+				<img src="Images/Multipoint/Multipoint1.jpg">
+				<div class="desc">Multipoint with 6 points</div>				
+			</div>
+			<h2 id="boundary">Boundary, Interior &amp; Exterior</h2>
+			<p>The <i>boundary</i> of a multipoint is the empty set, the <i>interior</i> is the set of points in the 
+				collection, and the <i>exterior</i> is the set of points that are not in the interior. It is important to understand the boundary, interior and exterior 
+				of a geometry when using the various operators. The relational operators, for example, rely heavily on these 
+				concepts. 
+			</p> 
+			<h2 id="simple">Valid multipoints</h2>
+			<p>A valid multipoint is such that every point in the collection is distinct. Tolerance is used to determine if 
+				two points are distinct. In other words, if the distance between each of the coordinates of two points is 
+				less than the tolerance specified by the spatial reference, then the points are considered equal. 
+			</p>
+			<p>
+				For example, consider the multipoint shown below.  
+			</p>
+			<div class="image240">
+				<img src="Images/Multipoint/Multipoint2.jpg">
+				<div class="desc">Valid multipoint?</div>				
+			</div>
+			<p>Is it a valid multipoint? It depends on the spatial reference. </p>
+			<p>Suppose the spatial reference for this multipoint uses WGS_1984_UTM_Zone_31N coordinate system with 
+				the default tolerance of 0.001 meters. 
+				The two points that are in the area outlined by the rectangle look pretty close. Let's zoom in on those 
+				two points. 
+			</p>
+			<div class="image240">
+				<img src="Images/Multipoint/Multipoint2a.jpg">
+				<div class="desc">Coordinates closer than tolerance?</div>				
+			</div>
+			<p>
+				If the distance between the x-coordinates and the distance between the y-coordinates is less than 
+				0.001 meters, then the multipoint is not a valid multipoint.
+			</p>
+			<div class="image360">
+				<img src="Images/Multipoint/Multipoint3.jpg">
+				<div class="desc">Multipoint is not valid</div>				
+			</div>
+			<p>A valid multipoint is said to be <i>simple</i>.
+			See the <a href="Simplify.html">Simplify operator</a> for a detailed specification 
+			of simple geometries.
+			</p>
+			<h3>Examples</h3>
+			<p>
+				Let's look at some examples of multipoints. <br /> 
+			</p>
+			<p>The example below shows six multipoints each of which represents major cities grouped by continent.</p>
+			<div class="map" style="width:665px">
+				<img src="Images/Multipoint/WorldCities.jpg">
+				<div class="desc">World Cities by Continent</div>				
+			</div>
+			<p>The next example shows four multipoints each of which represents major cities grouped by population.</p>
+			<div class="map" style="width:665px">
+				<img src="Images/Multipoint/WorldCities3.jpg">
+				<div class="desc">World Cities by Population</div>				
+			</div>
+			<p>Here we have 13 multipoints each of which represents points of interest along possible routes for a road trip
+				in the United States.</p>
+			<div class="map" style="width:665px">
+				<img src="Images/Multipoint/USHighwayStops.jpg">
+				<div class="desc">Points of Interest by Route</div>				
+			</div>
+			<h3 id="JSON">JSON format</h3>
+			<p>A multipoint can be represented as a JSON string. A multipoint in JSON format contains an array of <code>points</code> 
+				and an optional <code>spatialReference</code>. A multipoint can also have boolean-valued <code>hasM</code> and 
+				<code>hasZ</code> fields. The default value is false for both the <code>hasM</code> and <code>hasZ</code> 
+				fields.
+			</p>
+			<p>Each element of the <code>points</code> array is itself an array of 2, 3 or 4 numbers. It will have two 
+				elements for 2D points, 3 elements for 3D points, 2 or 3 elements for 2D points with Ms and 3 or 4 elements for 
+				3D points with Ms. In all cases, the x-coordinate is at index 0 of a point's array and the y-coordinate 
+				is at index 1. For 2D points with Ms, the m-coordinate, if present, is at index 2. For 3D points, the 
+				z-coordinate is required and is at index 2. For 3D points with Ms, the z-coordinate is at index 2 and 
+				the m-coordinate, if present, is at index 3.
+			</p>
+			<p>An empty multipoint is represented with an empty array for the <code>points</code> field.</p>
+			
+			<h4>Syntax</h4>
+			<div class="codeSample">
+<pre>{
+  "hasZ" : true | false,
+  "hasM" : true | false,
+  "points": [[&lt;x<sub>1</sub>&gt;,&lt;y<sub>1</sub>&gt;,&lt;z<sub>1</sub>&gt;,&lt;m<sub>1</sub>&gt;], ... ,[&lt;x<sub>n</sub>&gt;,&lt;y<sub>n</sub>&gt;,&lt;z<sub>n</sub>&gt;,&lt;m<sub>n</sub>&gt;]],
+  "spatialReference" : {"wkid" : &lt;wkid&gt;}
+}
+</pre>
+			</div>
+			<h4>2D multipoint</h4>
+			<div class="codeSample">
+
+<pre>{
+  "points": [[32462,-57839],[43892,-49160],[35637,-65035],[46009,-60379]],
+  "spatialReference" : {"wkid" : 54004}
+}
+</pre>
+			</div>
+			<h4>3D multipoint with Ms</h4>
+			<p>Note that the third point does not have a z-value, and the fourth point does not have an m-value.</p>
+			<div class="codeSample">
+<pre>{
+  "hasZ" : true,
+  "hasM" : true,
+  "points": [[32462,-57839,20,1],[43892,-49160,25,2],[35637,-65035,null,3],[46009,-60379,22]],
+  "spatialReference" : {"wkid" : 54004}
+}
+</pre>
+			</div>
+			<h4>Empty multipoint</h4>
+			<div class="codeSample">
+<pre class="emptyGeom">{"points": []}</pre>
+			</div>
+			<h3 id="GeoJSON">GeoJSON format</h3>
+			<p>A multipoint can be represented in GeoJSON format. A multipoint in GeoJSON format is an array of points, 
+				with field name <code>coordinates</code>, where a point is an array of two or more coordinate values. 
+				A multipoint may have an optional <code>crs</code> field representing a spatial reference. If no spatial 
+				reference is given, the default value of GCS_WGS_1984 is used. At this time, z-values and m-values are 
+				not supported. 
+			</p>
+			<p>A multipoint with one or more points is designated by a <code>type</code> field whose value is 
+				<code>MultiPoint</code>. 
+			</p>
+			<p>An empty multipoint is represented with an empty array for the <code>coordinates</code> field.</p>
+			
+			<h4>Syntax</h4>
+			<div class="codeSample">
+<pre>{
+  "type" : "MultiPoint",
+  "coordinates": [[&lt;x<sub>1</sub>&gt;,&lt;y<sub>1</sub>&gt;], ...,[&lt;x<sub>n</sub>&gt;,&lt;y<sub>n</sub>&gt;]],
+  "crs" : "EPSG:&lt;wkid&gt";
+}
+</pre>
+			</div>
+			<h4>2D MultiPoint</h4>
+			<div class="codeSample">
+<pre>{
+  "type" : "MultiPoint",
+  "coordinates": [[6453,16815],[10653,16423],[14549,5204],[-7003,6939],[6453,16815]],
+  "crs" : "EPSG:54004"
+}
+</pre>
+			</div>
+			<h4>Empty MultiPoint</h4>
+			<div class="codeSample">
+<pre class="emptyGeoJson">{"type" : "MultiPoint", "coordinates": []}</pre>
+			</div>
+			<h3 id="WKT">Well-known Text (WKT) format</h3>
+			<p>A multipoint can be represented in WKT format. A multipoint in WKT format is an array of points where a point is an 
+				array of coordinates.  A multipoint with one or more points is designated by the keyword <code>MULTIPOINT</code>. 
+			</p>
+			<p>Multipoints can have z-values and m-values. To specify that a multipoint has z-values, add the keyword <code>Z</code> 
+				and for m-values add the keyword <code>M</code>. To specify both z-values and m-values, add the keyword 
+				<code>ZM</code>. 
+				For example, we might begin our WKT string with <code>MULTIPOINT Z</code>, <code>MULTIPOINT M</code> 
+				or <code>MULTIPOINT ZM</code>. 
+				If a multipoint has z-values or m-values or both, then a value must be given in the point array for the z-value 
+				and/or the m-value. A value of <code>null</code> or <code>"NaN"</code> will not be accepted. The x-coordinate of
+				the point is always at index 0, and the y-coordinate is always at index 1. For 2D points with Ms, the m-coordinate 
+				is at index 2. For 3D points, the z-coordinate is required and is at index 2. For 3D points with Ms, the z-coordinate 
+				is at index 2 and the m-coordinate is at index 3. 
+			</p>
+			<h4>Syntax</h4>
+			<div class="codeSample">
+<pre>MULTIPOINT ((&lt;x<sub>1</sub>&gt; &lt;y<sub>1</sub>&gt; &lt;z<sub>1</sub>&gt; &lt;m<sub>1</sub>&gt;, ..., &lt;x<sub>n</sub>&gt; &lt;y<sub>n</sub>&gt; &lt;z<sub>n</sub>&gt; &lt;m<sub>n</sub>&gt;))
+</pre>
+			</div>
+			<h4>2D MULTIPOINT</h4>
+			<div class="codeSample">
+<pre>MULTIPOINT ((6453 16815),(10653 16423),(14549 5204),(-7003 6939),(6453 16815))</pre>
+			</div>
+			<h4>2D MULTIPOINT with Ms</h4>
+			<div class="codeSample">
+<pre>MULTIPOINT M ((6453 1681 1),(106 1642 2),(145 520 3),(-700 69 8),(64 16 11))</pre>
+			</div>
+			<h4>3D MULTIPOINT</h4>
+			<div class="codeSample">
+<pre>MULTIPOINT Z ((6453 1681 20),(106 1642 25),(145 520 26),(-700 69 27),(64 16 30))</pre>
+			</div>
+			<h4>3D MULTIPOINT with Ms</h4>
+			<div class="codeSample">
+<pre>MULTIPOINT ZM ((6453 1681 20 1),(106 1642 25 2),(145 520 26 3),(-700 69 27 8),(64 16 30 11))</pre>
+			</div>
+			<h2>Creating a multipoint</h2>
+			<p>To create a multipoint, we can use the <code>MultiPoint</code> class methods or one of the import operators. </p>
+			<p>Each of the code samples below creates a multipoint with six points.<br />
+				The multipoint looks like this:
+			</p>
+			<div class="image360">
+				<img src="Images/Multipoint/CreateMultipoint.jpg">
+				<div class="desc">Create this multipoint</div>				
+			</div>
+			<h3><code>MultiPoint</code> class methods</h3>
+			<p>We create a new <code>MultiPoint</code> and add points by calling the <code>add</code> method.</p>
+			<div class="codeSample">
+<pre class="classMethod">static MultiPoint createMultipoint1() {
+
+    MultiPoint mPoint = new MultiPoint();
+
+    <span class="codeComment">// Add points</span>
+    mPoint.add(1, 1);
+    mPoint.add(0.5, -0.5);
+    mPoint.add(1, -1.5);
+    mPoint.add(-1, -1);
+    mPoint.add(-2, -0.5);
+    mPoint.add(-1.5, 1.5);
+
+    return mPoint;
+}
+</pre>
+			</div>
+			<h3>Import from JSON</h3>
+			<p>We first create the JSON string which represents the multipoint. We then call the <code>execute</code> method of <code>OperatorImportFromJson</code>.
+			</p>
+			<div class="codeSample">
+<pre class="import">static MultiPoint createMultipointFromJson() throws JsonParseException, IOException {
+    
+    String jsonString = "{\"points\":[[1,1],[0.5,-0.5],[1,-1.5],[-1,-1],[-2,-0.5],[-1.5,1.5]],"
+            + "\"spatialReference\":{\"wkid\":4326}}";
+                          
+    MapGeometry mapGeom = OperatorImportFromJson.local().execute(Geometry.Type.MultiPoint, jsonString);
+    
+    return (MultiPoint)mapGeom.getGeometry();
+}
+</pre>
+		</div>
+			<h3>Import from GeoJSON</h3>
+			<p>We first create the GeoJSON string which represents the multipoint. We then call the <code>execute</code> 
+				method of <code>OperatorImportFromGeoJson</code>.
+			</p>
+			<div class="codeSample">
+<pre class="import">static MultiPoint createMultipointFromGeoJson() throws JsonParseException, IOException {
+    
+    String geoJsonString = "{\"type\":\"MultiPoint\","
+                         + "\"coordinates\":[[1,1],[0.5,-0.5],[1,-1.5],[-1,-1],[-2,-0.5],[-1.5,1.5]],"
+                         + "\"crs\":\"EPSG:4326\"}";
+                          
+    MapGeometry mapGeom = OperatorImportFromGeoJson.local().execute(GeoJsonImportFlags.geoJsonImportDefaults, Geometry.Type.MultiPoint, geoJsonString, null);
+    
+    return (MultiPoint)mapGeom.getGeometry();
+}
+</pre>
+			</div>
+			<h3>Import from WKT</h3>
+			<p>We first create the WKT string which represents the multipoint. We then call the <code>execute</code> 
+				method of <code>OperatorImportFromWkt</code>.
+			</p>
+			<div class="codeSample">
+<pre class="import">static MultiPoint createMultipointFromWKT() throws JsonParseException, IOException {
+    
+    String wktString = "MULTIPOINT ((1 1),(0.5 -0.5),(1 -1.5),(-1 -1),(-2 -0.5),(-1.5 1.5))";
+    Geometry geom = OperatorImportFromWkt.local().execute(WktImportFlags.wktImportDefaults, Geometry.Type.MultiPoint, wktString, null);
+    
+    return (MultiPoint)geom;
+}
+</pre>
+	</div>
+	<br /><br />	
+		</div>
 	</body>
 </html>
 

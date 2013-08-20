@@ -189,9 +189,7 @@
   "type" : "MultiLineString",
   "coordinates": 
            [
-             [[&lt;x<sub>11</sub>&gt;,&lt;y<sub>11</sub>&gt;,&lt;z<sub>11</sub>&gt;,&lt;m<sub>11</sub>&gt;], ...,[&lt;x<sub>1j</sub>&gt;,&lt;y<sub>1j</sub>&gt;,&lt;z<sub>1j</sub>&gt;,&lt;m<sub>1j</sub>&gt;]],
-             ... ,
-             [[&lt;x<sub>n1</sub>&gt;,&lt;y<sub>n1</sub>&gt;,&lt;z<sub>n1</sub>&gt;,&lt;m<sub>n1</sub>&gt;], ...,[&lt;x<sub>nk</sub>&gt;,&lt;y<sub>nk</sub>&gt;,&lt;z<sub>nk</sub>&gt;,&lt;m<sub>nk</sub>&gt;]]
+             [[&lt;x<sub>11</sub>&gt;,&lt;y<sub>11</sub>&gt;], ...,[&lt;x<sub>1j</sub>&gt;,&lt;y<sub>1j</sub>&gt;]], ... , [[&lt;x<sub>n1</sub>&gt;,&lt;y<sub>n1</sub>&gt;,&lt;], ...,[&lt;x<sub>nk</sub>&gt;,&lt;y<sub>nk</sub>&gt;]]
            ],
   "crs" : "EPSG:&lt;wkid&gt";
 }
@@ -229,7 +227,7 @@
 				A polyline with one or more outer rings and zero or more inner rings is designated by the keyword 
 				<code>MULTILINESTRING</code>. 
 			</p>
-			<p>Polylines can have z-values and m-values. To specify that a polygon has z-values, add the keyword <code>Z</code> 
+			<p>Polylines can have z-values and m-values. To specify that a polyline has z-values, add the keyword <code>Z</code> 
 				and for m-values add the keyword <code>M</code>. To specify both z-values and m-values, add the keyword 
 				<code>ZM</code>. 
 				For example, we might begin our WKT string with <code>MULTILINESTRING Z</code>, <code>LINESTRING M</code> 
