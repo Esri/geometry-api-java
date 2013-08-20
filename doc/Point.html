@@ -1,0 +1,194 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title>Point</title>
+		<meta name="author" content="Anne2440" />
+		<link rel="stylesheet" href="GeometryDocStyle.css">
+	</head>
+	<body>
+		<h1 id="topic">Points</h1>
+		<ul id="menu">
+			<li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/Point.html">API Reference</a></li>
+			<li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
+		</ul>
+		<div id="content">
+			<p>A <i>point</i> represents a single location in space and are the building blocks for all other geometry types. 
+				A point has, at a minimum, an x-coordinate and a y-coordinate. The coordinates of a point can be in linear 
+				units such as feet or meters, or they can be in angular units such as degrees or radians. The associated 
+				spatial reference specifies the units of the coordinates. In the case of a geographic coordinate system, the 
+				x-coordinate is the longitude and the y-coordinate is the latitude. 
+			</p>
+			<div class="image400">
+				<img src="Images/Point/Point1.jpg">
+				<div class="desc">Point in meters</div>				
+			</div>
+			<h2 id="boundary">Boundary, Interior &amp; Exterior</h2>
+			<p>The <i>boundary</i> of a point is the empty set, the <i>interior</i> is the point itself, and the <i>exterior</i> 
+				is the set of points that are not in the interior. It is important to understand the boundary, interior and exterior 
+				of a geometry when using the various operators. The relational operators, for example, rely heavily on these 
+				concepts. 
+			</p> 
+			<h2 id="simple">Valid points</h2>
+			<p>Every point is valid. <p>A valid geometry is said to be <i>simple</i>.
+			See the <a href="Simplify.html">Simplify operator</a> for a detailed specification 
+			of simple geometries.
+			</p>
+			<h3 id="JSON">JSON format</h3>
+			<p>A point can be represented as a JSON string. A point in JSON format contains <code>x</code> and <code>y</code> 
+				fields and an optional <code>spatialReference</code>. A point can also have <code>m</code> and <code>z</code> 
+				fields. 
+			</p>
+			<p>An point is empty when its <code>x</code> field is present and has the value <code>null</code> or the string "Nan". 
+				An empty point has no location in space.
+			</p>
+			
+			<h4>Syntax</h4>
+			<div class="codeSample">
+<pre class="point">{ "x": &lt;x&gt;, "y": &lt;y&gt;, "z": &lt;z&gt;, "m": &lt;m&gt;, "spatialReference" : {"wkid" : &lt;wkid&gt;} }</pre>
+			</div>
+			<h4>2D point</h4>
+			<div class="codeSample">
+
+<pre class="point">{ "x": 32462, "y": -57839, "spatialReference" : {"wkid" : 54004} }</pre>
+			</div>
+			<h4>3D point with Ms</h4>
+			<div class="codeSample">
+<pre class="point">{ "x": 32462, "y": -57839, "z": 20, "m": 1, "spatialReference" : {"wkid" : 54004} }</pre>
+			</div>
+			<h4>Empty point</h4>
+			<div class="codeSample">
+<pre class="emptyGeom">{ "x": null }</pre>
+<pre class="emptyGeom">{ "x": "NaN" }</pre>
+			</div>
+			<h3 id="GeoJSON">GeoJSON format</h3>
+			<p>A point can be represented in GeoJSON format. A point in GeoJSON format is an array of coordinate values  
+				with field name <code>coordinates</code>. A point may have an optional <code>crs</code> field representing 
+				a spatial reference. If no spatial reference is given, the default value of GCS_WGS_1984 is used. At this 
+				time, z-values and m-values are not supported. 
+			</p>
+			<p>A point is designated by a <code>type</code> field whose value is <code>Point</code>. 
+			</p>
+			<p>An empty point is represented with an empty array for the <code>coordinates</code> field.</p>
+			
+			<h4>Syntax</h4>
+			<div class="codeSample">
+<pre class="point">{ "type" : "Point", "coordinates": [&lt;x&gt;, &lt;y&gt;], "crs" : "EPSG:&lt;wkid&gt"; }</pre>
+		</div>
+			<h4>2D Point</h4>
+			<div class="codeSample">
+<pre class="point">{ "type" : "Point", "coordinates": [6453, 16815], "crs" : "EPSG:54004" }</pre>
+			</div>
+			<h4>Empty Point</h4>
+			<div class="codeSample">
+<pre class="emptyGeoJson">{"type" : "Point", "coordinates": []}</pre>
+			</div>
+			<h3 id="WKT">Well-known Text (WKT) format</h3>
+			<p>A point can be represented in WKT format. A point in WKT format is an array of coordinate values. 
+				A point is designated by the keyword <code>POINT</code>. 
+			</p>
+			<p>Points can have z-values and m-values. To specify that a point has z-values, add the keyword <code>Z</code> 
+				and for m-values add the keyword <code>M</code>. To specify both z-values and m-values, add the keyword 
+				<code>ZM</code>. 
+				For example, we might begin our WKT string with <code>POINT Z</code>, <code>POINT M</code> 
+				or <code>POINT ZM</code>. 
+				If a point has z-values or m-values or both, then a value must be given in the coordinate array for the z-value 
+				and/or the m-value. A value of <code>null</code> or <code>"NaN"</code> will not be accepted. The x-coordinate of
+				the point is always at index 0, and the y-coordinate is always at index 1. For 2D points with Ms, the m-coordinate 
+				is at index 2. For 3D points, the z-coordinate is required and is at index 2. For 3D points with Ms, the z-coordinate 
+				is at index 2 and the m-coordinate is at index 3. 
+			</p>
+			<h4>Syntax</h4>
+			<div class="codeSample">
+<pre class="wktPoint">POINT (&lt;x&gt; &lt;y&gt; &lt;z&gt; &lt;m&gt;)</pre>
+			</div>
+			<h4>2D POINT</h4>
+			<div class="codeSample">
+<pre class="wktPoint">POINT (6453 16815)</pre>
+			</div>
+			<h4>2D POINT with Ms</h4>
+			<div class="codeSample">
+<pre class="wktPoint">POINT M (6453 1681 1)</pre>
+			</div>
+			<h4>3D POINT</h4>
+			<div class="codeSample">
+<pre class="wktPoint">POINT Z (6453 1681 20)</pre>
+			</div>
+			<h4>3D POINT with Ms</h4>
+			<div class="codeSample">
+<pre class="wktPoint">POINT ZM (6453 1681 20 1)</pre>
+			</div>
+			<h2>Creating a point</h2>
+			<p>To create a point, we can use the <code>Point</code> class methods or one of the import operators. </p>
+			<p>Each of the code samples below creates a point which represents the summit of Mount Elbert, the highest 
+				mountain in the Rocky Mountains. <br />
+				The point looks like this on a map:
+			</p>
+			<div class="image400" style="width:480px">
+				<img src="Images/Point/CreatePoint.jpg">
+				<div class="desc">Create this point</div>				
+			</div>
+			<h3><code>Point</code> class methods</h3>
+			<p>We create a new <code>Point</code> and set the xy-coordinates simultaneously in the constructor.</p>
+			<div class="codeSample">
+<pre class="pointConstructor">static Point createPoint1() {
+
+    Point pt = new Point(-106.4453583, 39.11775);
+    
+    return pt;
+}
+</pre>
+			</div>
+			<h3>Import from JSON</h3>
+			<p>We first create the JSON string which represents the point. We then call the <code>execute</code> method of <code>OperatorImportFromJson</code>.
+			</p>
+			<div class="codeSample">
+<pre class="import">static Point createPointFromJson() throws JsonParseException, IOException {
+    
+    String jsonString = "{\"x\":-106.4453583,\"y\":39.11775,\"spatialReference\":{\"wkid\":4326}}";
+                          
+    MapGeometry mapGeom = OperatorImportFromJson.local().execute(Geometry.Type.Point, jsonString);
+    
+    return (Point)mapGeom.getGeometry();
+}
+</pre>
+		</div>
+			<h3>Import from GeoJSON</h3>
+			<p>We first create the GeoJSON string which represents the point. We then call the <code>execute</code> 
+				method of <code>OperatorImportFromGeoJson</code>.
+			</p>
+			<div class="codeSample">
+<pre class="import">static Point createPointFromGeoJson() throws JsonParseException, IOException {
+    
+    String geoJsonString = "{\"type\":\"Point\",\"coordinates\":[-106.4453583,39.11775],\"crs\":\"EPSG:4326\"}";
+                          
+    MapGeometry mapGeom = OperatorImportFromGeoJson.local().execute(GeoJsonImportFlags.geoJsonImportDefaults, Geometry.Type.Point, geoJsonString, null);
+    
+    return (Point)mapGeom.getGeometry();
+}
+</pre>
+			</div>
+			<h3>Import from WKT</h3>
+			<p>We first create the WKT string which represents the point. We then call the <code>execute</code> 
+				method of <code>OperatorImportFromWkt</code>.
+			</p>
+			<div class="codeSample">
+<pre class="import">static Point createPointFromWKT() throws JsonParseException, IOException {
+    
+    String wktString = "Point (-106.4453583 39.11775)";
+    Geometry geom = OperatorImportFromWkt.local().execute(WktImportFlags.wktImportDefaults, Geometry.Type.Point, wktString, null);
+    
+    return (Point)geom;
+ }
+</pre>
+	</div>
+	<br /><br />	
+		
+			
+		</div>
+
+	</body>
+</html>
+
