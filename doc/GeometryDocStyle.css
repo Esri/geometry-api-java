@@ -41,8 +41,20 @@ pre.emptyGeom {
 	width:185px;text-align:center;
 }
 
+pre.wktPoint {
+	width:40%;text-align:center;
+}
+
+pre.point {
+	text-align:center;
+}
+
 pre.classMethod {
 	width:400px;
+}
+
+pre.pointConstructor {
+	width:550px;
 }
 
 pre.import {
