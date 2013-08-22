@@ -23,7 +23,7 @@ img {
 }
 
 .codeSnippet {
-	margin-left:4%;font-size:20px;
+	margin-left:2%;
 }
 
 .codeInText {
@@ -34,19 +34,15 @@ img {
 	margin:auto;width:80%;text-align:center;
 }
 .codeSample pre {
-	margin:auto;text-align:left;border:1px solid black;background-color:rgb(216,216,216);padding:10px;overflow-x:auto;
+	margin:auto;padding:20px 5px 30px 15px;text-align:left;border:1px solid black;background-color:rgb(216,216,216);overflow-x:auto;overflow-y:hidden;
 }
 
 pre.emptyGeom {
-	width:185px;text-align:center;
-}
-
-pre.wktPoint {
-	width:40%;text-align:center;
+	width:185px;text-align:center;padding:10px;
 }
 
 pre.point {
-	text-align:center;
+	text-align:center;padding:10px;
 }
 
 pre.classMethod {
@@ -59,10 +55,6 @@ pre.pointConstructor {
 
 pre.import {
 	width:100%;
-}
-
-pre.emptyGeoJson {
-	width:500px;text-align:center;
 }
 
 .imageTable td {
