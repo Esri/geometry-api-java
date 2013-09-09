@@ -560,9 +560,7 @@ public final class Line extends Segment implements Serializable {
 		if (other == this)
 			return true;
 
-		// FIXME review use of Java's instance of to see if it complies with
-		// Borgs
-		if (other instanceof Line)// (!IS_INSTANCE_OF(other, Line))
+		if (other instanceof Line)
 			return false;
 
 		return _equalsImpl((Segment) other);
@@ -992,7 +990,6 @@ public final class Line extends Segment implements Serializable {
 		return 0;
 	}
 
-	// FIXME In Native borg this has no implementation
 	@Override
 	void _copyToImpl(Segment dst) {
 		// TODO Auto-generated method stub

@@ -780,8 +780,10 @@ final class PlaneSweepCrackerHelper {
 		int clusterStart = getEdgeCluster(edge, 0);
 		Point2D pt = getClusterXY(clusterStart);
 		if (!pt.isEqual(newStart)) {
-			if (pt.compare(m_sweep_point) > 0
-					&& newStart.compare(m_sweep_point) < 0) {
+	        int res1 = pt.compare(m_sweep_point);
+	        int res2 = newStart.compare(m_sweep_point);
+	        //if (pt.compare(m_sweep_point) > 0 && newStart.compare(m_sweep_point) < 0)
+	        if (res1 * res2 < 0) {
 				m_complications = true;// point is not yet have been processed
 										// but moved before the sweep point,
 										// this will require
@@ -799,8 +801,10 @@ final class PlaneSweepCrackerHelper {
 		int clusterEnd = getEdgeCluster(edge, 1);
 		pt = getClusterXY(clusterEnd);
 		if (!pt.isEqual(newEnd)) {
-			if (pt.compare(m_sweep_point) > 0
-					&& newEnd.compare(m_sweep_point) < 0) {
+	        int res1 = pt.compare(m_sweep_point);
+	        int res2 = newEnd.compare(m_sweep_point);
+	        //if (pt.compare(m_sweep_point) > 0 && newEnd.compare(m_sweep_point) < 0)
+	        if (res1 * res2 < 0) {			
 				m_complications = true;// point is not yet have been processed
 										// but moved before the sweep point.
 			}

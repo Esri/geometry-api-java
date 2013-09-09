@@ -431,9 +431,6 @@ public class TestSimplify extends TestCase {
 				true, null, null);
 		assertTrue(res);
 
-		// FIXME Bowtie. once simplify is fixed this should result in a
-		// simplified geom
-
 		int pointCount = simplePolygon5.getPointCount();
 		assertTrue(pointCount == 6);
 

@@ -136,6 +136,14 @@ public final class Envelope extends Geometry implements Serializable {
 		m_envelope.setCoords(xmin, ymin, xmax, ymax);
 	}
 
+	/**
+	 * Sets the envelope from the array of points. The result envelope is a
+	 * bounding box of all the points in the array. If the array has zero
+	 * length, the envelope will be empty.
+	 * 
+	 * @param points
+	 *            The point array.
+	 */
 	void setCoords(Point[] points) {
 		_touch();
 		setEmpty();
@@ -700,10 +708,8 @@ public final class Envelope extends Geometry implements Serializable {
 
 	static void _attributeCopy(double[] src, int srcStart, double[] dst,
 			int dstStart, int count) {
-		// FIXME performance!!!!
-		// System.arraycopy(src, srcStart, dst, dstStart, count);
-		for (int i = 0; i < count; i++)
-			dst[dstStart + i] = src[i + srcStart];
+		if (count > 0)
+			System.arraycopy(src, srcStart, dst, dstStart, count);
 	}
 
 	double _getAttributeAsDbl(int endPoint, int semantics, int ordinate) {

@@ -77,35 +77,9 @@ public class TestMultiPoint extends TestCase {
 			MultiPoint mpoint = new MultiPoint();
 			assertTrue(mpoint != null);
 
-			// FIXME uncomment when assertions are fixed
-			// try
-			// {
-			// // OutputDebugString(L"Test an assert\n");
-			// // GeometryException::m_assertOnException = false;
-			//
-			// Point pt2 = mpoint.getPoint(0);;
-			// }
-			// catch(GeometryException except)
-			// {
-			// assertTrue(except.index_out_of_bounds);
-			// GeometryException::m_assertOnException = true;
-			// }
 
 			MultiPoint mpoint1 = new MultiPoint();
 			assertTrue(mpoint1 != null);
-			// FIXME uncomment when assertions are fixed
-			// try
-			// {
-			// OutputDebugString(L"Test an assert\n");
-			// GeometryException::m_assertOnException = false;
-			// Point ppp;
-			// mpoint.getPointByVal(0, ppp);
-			// }
-			// catch(GeometryException except)
-			// {
-			// assertTrue(except.index_out_of_bounds);
-			// GeometryException::m_assertOnException = true;
-			// }
 
 			mpoint.setEmpty();
 			Point pt = new Point(0, 0);
@@ -129,20 +103,6 @@ public class TestMultiPoint extends TestCase {
 			mpoint.add(pt);
 			Point pt3 = mpoint.getPoint(0);
 			assertTrue(pt3.getX() == 0 && pt3.getY() == 0/* && pt3.getZ() == 0 */);
-			// assertFalse(mpoint->HasAttribute(VertexDescription::Semantics::Z));
-			// FIXME once transform3D is public
-			// Transformation3D transform3D = GCNEW Transformation3D;
-			// transform3D.setTranslate(1, 1, 0);
-			// mpoint.applyTransformation(transform3D);
-
-			// assertTrue(mpoint->HasAttribute(VertexDescription::Semantics::Z));
-			// pt3 = mpoint.getPoint(0);
-			// assertTrue(pt3.x == 1 && pt3.y == 1 && pt3.z == 0);
-			// transform3D.setTranslate(56, 12, 333);
-			// mpoint.applyTransformation(transform3D);
-			// pt3 = mpoint.getXYZ(0);
-			// assertTrue(pt3.x == 57 && pt3.y == 13 && pt3.z == 333);
-			// CompareGeometryContent(mpoint, &pt3, 1);
 		}
 
 		{ // test QueryInterval

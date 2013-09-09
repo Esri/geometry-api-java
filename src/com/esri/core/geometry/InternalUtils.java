@@ -108,9 +108,8 @@ class InternalUtils {
 
 		int i1 = inputGeom.getPathStart(iPath);
 		int i2 = inputGeom.getPathEnd(iPath);
-		Point2D pt = new Point2D();// = null;
+		Point2D pt = new Point2D();
 
-		// FIXME test to see if Point2D should be null
 		while (i1 < i2) {
 			xyStream.read(i1, pt);
 			pt.x += shift;

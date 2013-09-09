@@ -404,8 +404,6 @@ final class SegmentIteratorImpl {
 		AttributeStreamOfInt8 segFlagStream = m_parent
 				.getSegmentFlagsStreamRef();
 
-		// FIXME Review this implementation of segment flags and the switch
-		// statement below.
 		int segFlag = SegmentFlags.enumLineSeg;
 		if (segFlagStream != null)
 			segFlag = (segFlagStream.read(startVertexIndex) & SegmentFlags.enumSegmentMask);

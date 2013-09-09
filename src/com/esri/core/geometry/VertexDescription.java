@@ -59,16 +59,14 @@ public class VertexDescription {
 	static int[] _interpolation = { Interpolation.LINEAR, Interpolation.LINEAR,
 			Interpolation.LINEAR, Interpolation.NONE, Interpolation.ANGULAR,
 			Interpolation.LINEAR, Interpolation.LINEAR, Interpolation.LINEAR,
-			Interpolation.NONE, // FIXME this last value doesnt exist in native
+			Interpolation.NONE,
 	};
 
 	static int[] _persistence = { Persistence.enumDouble,
 			Persistence.enumDouble, Persistence.enumDouble,
 			Persistence.enumInt32, Persistence.enumFloat,
 			Persistence.enumFloat, Persistence.enumFloat,
-			Persistence.enumFloat, Persistence.enumInt32, // FIXME, this last
-															// Int32 doesn't
-															// exist in native
+			Persistence.enumFloat, Persistence.enumInt32,
 	};
 
 	static int[] _persistencesize = { 4, 8, 4, 8, 1, 2 };

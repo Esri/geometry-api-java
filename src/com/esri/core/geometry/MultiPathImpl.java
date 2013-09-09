@@ -131,7 +131,6 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 	// Reviewed vs. Native Jan 11, 2011
 	public void startPath(Point point) {
 		if (point.isEmpty())
-			// FIXME exc
 			throw new IllegalArgumentException();// throw new
 													// IllegalArgumentException();
 
@@ -292,18 +291,15 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 	public void openPath(int pathIndex) {
 		_touch();
 		if (m_bPolygon)
-			// FIXME exc
 			throw new GeometryException("internal error");// do not call this
 															// method on a
 															// polygon
 
 		int pathCount = getPathCount();
 		if (pathIndex > getPathCount())
-			// FIXME exc
 			throw new IllegalArgumentException();
 
 		if (m_pathFlags == null)
-			// FIXME exc
 			throw new GeometryException("internal error");
 
 		m_pathFlags.clearBits(pathIndex, (byte) PathFlags.enumClosed);
@@ -359,7 +355,6 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 	public void openAllPathsAndDuplicateStartVertex() {
 		_touch();
 		if (m_bPolygon)
-			// FIXME
 			throw new GeometryException("internal error");// do not call this
 															// method on a
 															// polygon
@@ -579,15 +574,13 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 		if (segment.getType() == Type.Line) {
 			Point point = new Point();
 			if (bStartNewPath || isEmpty()) {
-				// FIXME change getStart to queryStart!!!!!!!
 				segment.queryStart(point);
 				startPath(point);
 			}
-			// FIXME change getStart to queryEnd
+
 			segment.queryEnd(point);
 			lineTo(point);
 		} else {
-			// FIXME
 			throw new GeometryException("internal error");
 		}
 	}
@@ -665,9 +658,6 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 			addPath(src, i, !bReversePaths);
 	}
 
-	// Reviewed vs. Native Jan 11, 2011
-	// FIXME THERE IS POTENTIALLY A BUG WITH the use of AttributeStream
-	// InsertRange
 	public void addPath(MultiPathImpl src, int srcPathIndex, boolean bForward) {
 		insertPath(-1, src, srcPathIndex, bForward);
 	}
@@ -676,56 +666,6 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 	public void addPath(Point2D[] _points, int count, boolean bForward) {
 		insertPath(-1, _points, 0, count, bForward);
 	}
-
-	// FIXME add add to attributestream base
-	// public void addPath(double[][] _points, int count, boolean bForward)
-	// {
-	// m_bPathStarted = false;
-	//
-	// int oldPointCount = m_pointCount;
-	// _verifyAllStreams();
-	//
-	// int newPointCount = oldPointCount + count;
-	// if (oldPointCount > 0)
-	// m_paths.add(newPointCount);
-	// else
-	// {
-	// // _ASSERT(m_paths.size() == 2);
-	// m_paths.write(1, newPointCount);
-	// }
-	//
-	// _resizeImpl(newPointCount);
-	//
-	// _verifyAllStreams();
-	//
-	// if (m_segmentParamIndex != null)
-	// {
-	// m_segmentParamIndex.resize(m_pointCount, -1);
-	// m_segmentFlags.resize(m_pointCount, (byte)SegmentFlags.enumLineSeg);
-	// }
-	//
-	// if (oldPointCount > 0)
-	// m_pathFlags.add(0);
-	//
-	// // _ASSERT(m_pathFlags.size() == m_paths.size());
-	//
-	// if (m_bPolygon)
-	// {
-	// //Marc the path as closed
-	// m_pathFlags.write(m_pathFlags.size() - 2, (byte)PathFlags.enumClosed);
-	// }
-	//
-	// int j = oldPointCount;
-	// AttributeStreamOfDbl points =
-	// (AttributeStreamOfDbl)m_vertexAttributes[0];
-	// for (int i = 0; i < count; i++, j++)
-	// {
-	// int index = (bForward ? i : count - i - 1);
-	// points.write(2 * j, _points[index][0]);
-	// points.write(2 * j + 1, _points[index][1]);
-	// }
-	// }
-	//
 
 	public void addSegmentsFromPath(MultiPathImpl src, int src_path_index,
 			int src_segment_from, int src_segment_count,
@@ -866,7 +806,6 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 		_verifyAllStreams();
 		int pathCount = getPathCount();
 		if (pathIndex >= pathCount)
-			// FIXME exc
 			throw new IllegalArgumentException();
 
 		int reversedPathStart = getPathStart(pathIndex);
@@ -1797,29 +1736,24 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 					case SegmentFlags.enumBezierSeg: {
 						ptControl.x = m_segmentParams.read(segIndex);
 						ptControl.y = m_segmentParams.read(segIndex + 1);
-						// FIXME rohit has transform returning the object rather
-						// than transforming the input
 						transform.transform(ptControl, ptControl);
 						m_segmentParams.write(segIndex, ptControl.x);
 						m_segmentParams.write(segIndex + 1, ptControl.y);
 
 						ptControl.x = m_segmentParams.read(segIndex + 3);
 						ptControl.y = m_segmentParams.read(segIndex + 4);
-						// FIXME rohit has transform returning the object rather
-						// than transforming the input
 						transform.transform(ptControl, ptControl);
 						m_segmentParams.write(segIndex + 3, ptControl.x);
 						m_segmentParams.write(segIndex + 4, ptControl.y);
 					}
 						break;
 					case SegmentFlags.enumArcSeg:
-						throw new GeometryException("internal error");// FIXME
+						throw new GeometryException("internal error");
 
 					}
 				}
 			}
-			// FIXME rohit has transform returning the object rather than
-			// transforming the input
+
 			transform.transform(ptStart, ptStart);
 			points.write(ipoint * 2, ptStart.x);
 			points.write(ipoint * 2 + 1, ptStart.y);
@@ -1872,11 +1806,12 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 					}
 						break;
 					case SegmentFlags.enumArcSeg:
-						throw new GeometryException("internal error");// FIXME
+						throw new GeometryException("internal error");
 
 					}
 				}
 			}
+			
 			ptStart = transform.transform(ptStart);
 			points.write(ipoint * 2, ptStart.x);
 			points.write(ipoint * 2 + 1, ptStart.y);
@@ -1911,7 +1846,6 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 		dstPoly.m_bPathStarted = false;
 		dstPoly.m_curveParamwritePoint = m_curveParamwritePoint;
 
-		// FIXME there is no cloning in here. Is this necessary?
 		if (m_paths != null)
 			dstPoly.m_paths = new AttributeStreamOfInt32(m_paths);
 		else
@@ -1968,25 +1902,6 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 		return len.getResult();
 	}
 
-	// FIXME figure out hascode
-	// int getHashCode()
-	// {
-	// int hashCode = MultiVertexGeometryImpl.getHashCode();
-	//
-	// if (!isEmptyImpl())
-	// {
-	// int pathCount = getPathCount();
-	//
-	// if (m_paths != null)
-	// m_paths.calculateHashImpl(hashCode, 0, pathCount + 1);
-	//
-	// if (m_pathFlags != null)
-	// m_pathFlags.calculateHashImpl(hashCode, 0, pathCount);
-	// }
-	//
-	// return hashCode;
-	// }
-
 	@Override
 	public boolean equals(Object other) {
 		if (other == this)
@@ -2026,7 +1941,6 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 	 */
 	public SegmentIteratorImpl querySegmentIteratorAtVertex(int startVertexIndex) {
 		if (startVertexIndex < 0 || startVertexIndex >= getPointCount())
-			// FIXME
 			throw new IndexOutOfBoundsException();
 
 		SegmentIteratorImpl iter = new SegmentIteratorImpl(this,

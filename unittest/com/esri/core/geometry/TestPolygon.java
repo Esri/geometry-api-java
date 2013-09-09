@@ -77,147 +77,6 @@ public class TestPolygon extends TestCase {
 		number = poly.getStateFlag();
 		assertTrue(Math.abs(poly.calculateArea2D() + 100) < 1e-12);
 		number = poly.getStateFlag();
-
-		// FIXME
-		// env.queryCoornerByVal(index, ptDst)
-		// SPtrOfArrayOf(Point2D) corners = new ArrayOf(Point2D)(4);
-		// env.QueryCorners(corners);
-		// poly.setEmpty();
-		// poly.addPath(corners, corners.length, true);
-
-		// assertTrue(Math.abs(poly.calculateArea2D() - 100) < 1e-12);
-
-		// {
-		// SegmentIterator segIter1 = poly.querySegmentIterator();
-		// while (segIter1.nextPath())
-		// {
-		// while (segIter1.hasNextSegment())
-		// {
-		// Segment seg = segIter1.nextSegment();
-		// double len = seg.calculateLength2D();
-		// assertTrue(len != 0);
-		// }
-		// }
-		// }
-
-		// env.QueryCornersReversed(corners);
-		// poly.setEmpty();
-		// poly.addPath(corners, corners.length, true);
-		// assertTrue(Math.abs(poly.calculateArea2D() + 100) < 1e-12);
-		//
-		// poly.setEmpty();
-		// env.SetCoords(-200, -200, 200, 200);
-		// poly.addEnvelope(env, false);
-		// env.SetCoords(-100, -100, 100, 100);
-		// poly.addEnvelope(env, true);
-		// assertTrue(Math.abs(poly.calculateArea2D() - (400 * 400 - 200 * 200))
-		// < 1e-12);
-		// assertTrue(Math.abs(poly.calculateRingArea2D(1) - (- 200 * 200)) <
-		// 1e-12);
-		// assertTrue(Math.abs(poly.calculateRingArea2D(0) - (400 * 400)) <
-		// 1e-12);
-		// assertTrue(Math.abs(poly.calculateLength2D() - (400 * 4 + 200 * 4)) <
-		// 1e-12);
-
-		// test CopyTo;
-		// Polygon polyCopy = new Polygon();
-		// poly.copyTo(polyCopy);
-		// assertTrue(poly.calculateArea2D() == polyCopy.calculateArea2D());
-		// assertTrue(poly.calculateRingArea2D(1) ==
-		// polyCopy.calculateRingArea2D(1));
-		// assertTrue(poly.calculateRingArea2D(1) ==
-		// polyCopy.calculateRingArea2D(1));
-		// assertTrue(poly.calculateLength2D() == polyCopy.calculateLength2D());
-		// }
-		//
-		// Polygon poly = new Polygon();
-		// poly.startPath(10, 1);
-		// poly.lineTo(15, 20);
-		// poly.lineTo(30, 14);
-		// poly.lineTo(60, 144);
-		//
-		// assertTrue(poly.getPointCount() == 4);
-		// assertTrue(poly.getPathCount() == 1);
-		// SPtrOfArrayOf(Point2D) xy = poly.getCoordinates2D();
-		// assertTrue(xy[0].x == 10); assertTrue(xy[0].y == 1);
-		// assertTrue(xy[1].x == 15); assertTrue(xy[1].y == 20);
-		// assertTrue(xy[2].x == 30); assertTrue(xy[2].y == 14);
-		// assertTrue(xy[3].x == 60); assertTrue(xy[3].y == 144);
-
-		// poly.startPath(20, 13);
-		// poly.lineTo(150, 120);
-		// poly.lineTo(300, 414);
-		// poly.lineTo(610, 14);
-		// poly.lineTo(6210, 140);
-		//
-		// assertTrue(poly.getPointCount() == 9);
-		// assertTrue(poly.getPathCount() == 2);
-		// assertTrue(poly.isClosedPath(0));
-		// assertTrue(poly.isClosedPath(1));
-		// assertFalse(poly.hasNonLinearSegments(0));
-		// assertFalse(poly.hasNonLinearSegments(1));
-		//
-		// {
-		// SegmentIterator segIter1 = poly.querySegmentIterator();
-		// while (segIter1.nextPath())
-		// {
-		// while (segIter1.hasNextSegment())
-		// {
-		// Segment seg = segIter1.nextSegment();
-		// double len = seg.calculateLength2D();
-		// assertTrue(len != 0);
-		// }
-		// }
-		// }
-
-		// {
-		// MultiPathImpl::Pointer mpImpl =
-		// (MultiPathImpl::Pointer)poly->_GetImpl();
-		// AttributeStreamBase xy =
-		// mpImpl.getAttributeStreamRef(enum_value2(VertexDescription,
-		// Semantics, POSITION));
-		// double x = xy.readAsDbl(2 * 0);
-		// double y = xy.readAsDbl(2 * 0 + 1);
-		// assertTrue(x == 10); assertTrue(y == 1);
-		// x = xy.readAsDbl(2 * 1);
-		// y = xy.readAsDbl(2 * 1 + 1);
-		// assertTrue(x == 15); assertTrue(y == 20);
-		// x = xy.readAsDbl(2 * 2);
-		// y = xy.readAsDbl(2 * 2 + 1);
-		// assertTrue(x == 30); assertTrue(y == 14);
-		// x = xy.readAsDbl(2 * 3);
-		// y = xy.readAsDbl(2 * 3 + 1);
-		// assertTrue(x == 60); assertTrue(y == 144);
-		//
-		// x = xy.readAsDbl(2 * 4);
-		// y = xy.readAsDbl(2 * 4 + 1);
-		// assertTrue(x == 20); assertTrue(y == 13);
-		// x = xy.readAsDbl(2 * 5);
-		// y = xy.readAsDbl(2 * 5 + 1);
-		// assertTrue(x == 150); assertTrue(y == 120);
-		// x = xy.readAsDbl(2 * 6);
-		// y = xy.readAsDbl(2 * 6 + 1);
-		// assertTrue(x == 300); assertTrue(y == 414);
-		// x = xy.readAsDbl(2 * 7);
-		// y = xy.readAsDbl(2 * 7 + 1);
-		// assertTrue(x == 610); assertTrue(y == 14);
-		// x = xy.readAsDbl(2 * 8);
-		// y = xy.readAsDbl(2 * 8 + 1);
-		// assertTrue(x == 6210); assertTrue(y == 140);
-		//
-		// assertTrue(Math.abs(mpImpl.calculateArea2D() - 71752.5) < 1e-6);
-		// assertTrue(Math.abs(mpImpl.calculateLength2D() - 13117.917692934170)
-		// < 1e-6);
-		//
-		// AttributeStreamOfIndexType parts = mpImpl.getPathStreamRef();
-		// assertTrue(parts.size() == 3);
-		// assertTrue(parts.read(0) == 0);
-		// assertTrue(parts.read(1) == 4);
-		// assertTrue(parts.read(2) == 9);
-		// assertTrue(mpImpl.getSegmentIndexStreamRef() == NULLPTR);
-		// assertTrue(mpImpl.getSegmentFlagsStreamRef() == NULLPTR);
-		// assertTrue(mpImpl.getSegmentDataStreamRef() == NULLPTR);
-		// }
 	}
 
 	@Test
@@ -299,17 +158,6 @@ public class TestPolygon extends TestCase {
 			poly2.lineTo(100, 10);
 			poly2.lineTo(100, 100);
 			poly2.lineTo(10, 100);
-
-			// FIXME
-			// RasterizedGeometry2D rg =
-			// RasterizedGeometry2D.create((Geometry)poly2, 0, 1024);
-			// RasterizedGeometry2D.HitType res = null;
-			// res = rg.queryPointInGeometry(7, 10);
-			// assertTrue(res == RasterizedGeometry2D.HitType.Outside);
-			// res = rg.queryPointInGeometry(10, 10);
-			// assertTrue(res == RasterizedGeometry2D.HitType.Border);
-			// res = rg.queryPointInGeometry(50, 50);
-			// assertTrue(res == RasterizedGeometry2D.HitType.Inside);
 		}
 
 		{
@@ -933,17 +781,6 @@ public class TestPolygon extends TestCase {
 		Point2D pt3 = poly.getXY(3);
 		assertTrue(pt3.x == 16 && pt3.y == 21);
 
-		// SPtrOfArrayOf(Point2D) points = NULLPTR;
-		// FIXME
-		// poly.insertPath(1, points, 0, 0, true);
-		// assertTrue(poly.getPathCount() == 5);
-		// assertTrue(poly.getPathStart(0) == 0);
-		// assertTrue(poly.getPathStart(1) == 4);
-		// assertTrue(poly.getPathStart(2) == 4);
-		// assertTrue(poly.getPathStart(3) == 8);
-		// assertTrue(poly.getPathStart(4) == 12);
-		// assertTrue(poly.getPointCount() == 16);
-
 		Point pt2d = new Point(-27, -27);
 
 		poly.insertPoint(1, 0, pt2d);
@@ -953,44 +790,6 @@ public class TestPolygon extends TestCase {
 		assertTrue(poly.getPathStart(2) == 9);
 		assertTrue(poly.getPathStart(3) == 13);
 		assertTrue(poly.getPointCount() == 17);
-
-		// points = new ArrayOf(Point2D)(3);
-		// points[0].x = 17;
-		// points[0].y = 17;
-		// points[1].x = 19;
-		// points[1].y = 19;
-		// points[2].x = 23;
-		// points[2].y = 23;
-
-		// poly.insertPath(1, points, 0, 3, true);
-		// assertTrue(poly.getPathCount() == 6);
-		// assertTrue(poly.getPathStart(0) == 0);
-		// assertTrue(poly.getPathStart(1) == 4);
-		// assertTrue(poly.getPathStart(2) == 7);
-		// assertTrue(poly.getPathStart(3) == 8);
-		// assertTrue(poly.getPathStart(4) == 12);
-		// assertTrue(poly.getPathStart(5) == 16);
-		// assertTrue(poly.getPointCount() == 20);
-
-		// Point2D *pointsNative = new Point2D[3];
-		// pointsNative[0].x = 29;
-		// pointsNative[0].y = 29;
-		// pointsNative[1].x = 31;
-		// pointsNative[1].y = 31;
-		// pointsNative[2].x = 37;
-		// pointsNative[2].y = 37;
-
-		// FIXME
-		// poly.insertPath(1, pointsNative, 0, 3, true);
-		// assertTrue(poly.getPathCount() == 7);
-		// assertTrue(poly.getPathStart(0) == 0);
-		// assertTrue(poly.getPathStart(1) == 4);
-		// assertTrue(poly.getPathStart(2) == 7);
-		// assertTrue(poly.getPathStart(3) == 10);
-		// assertTrue(poly.getPathStart(4) == 11);
-		// assertTrue(poly.getPathStart(5) == 15);
-		// assertTrue(poly.getPathStart(6) == 19);
-		// assertTrue(poly.getPointCount() == 23);
 	}
 
 	@Test
@@ -1222,99 +1021,13 @@ public class TestPolygon extends TestCase {
 			poly1.lineTo(300, 147);
 			poly1.lineTo(6000, 1447);
 
-			// FIXME
-			// poly1.insertPoints(1, 2, arr, 1, 3, true); //forward
-
 			assertTrue(poly1.getPathCount() == 2);
 			assertTrue(poly1.getPathStart(1) == 4);
 			assertTrue(poly1.isClosedPath(0));
 			assertTrue(poly1.isClosedPath(1));
-			// assertTrue(poly1.getPointCount() == 11);
-			// assertTrue(poly1.getPathSize(1) == 7);
-			// Point2D ptOut;
-			// ptOut = poly1.getXY(5);
-			// assertTrue(ptOut.x == 1250 && ptOut.y == 207);
-			// ptOut = poly1.getXY(6);
-			// assertTrue(ptOut.x == 15 && ptOut.y == 20);
-			// ptOut = poly1.getXY(7);
-			// assertTrue(ptOut.x == 300 && ptOut.y == 14);
-			// ptOut = poly1.getXY(8);
-			// assertTrue(ptOut.x == 314 && ptOut.y == 217);
-			// ptOut = poly1.getXY(9);
-			// assertTrue(ptOut.x == 300 && ptOut.y == 147);
-			// ptOut = poly1.getXY(10);
-			// assertTrue(ptOut.x == 6000 && ptOut.y == 1447);
-
-			// Point2D *points = new Point2D[3];
-			// points[0].x = 17;
-			// points[0].y = 17;
-			// points[1].x = 19;
-			// points[1].y = 19;
-			// points[2].x = 23;
-			// points[2].y = 23;
-
-			// FIXME
-			// poly1.insertPoints(1, 2, points, 0, 3, true);
-			// assertTrue(poly1.getPathCount() == 2);
-			// assertTrue(poly1.getPathStart(1) == 4);
-			// assertTrue(poly1.getPointCount() == 14);
-			// assertTrue(poly1.getPathSize(1) == 10);
-
-			// ptOut = poly1.getXY(5);
-			// assertTrue(ptOut.x == 1250 && ptOut.y == 207);
-			// ptOut = poly1.getXY(6);
-			// assertTrue(ptOut.x == 17 && ptOut.y == 17);
-			// ptOut = poly1.getXY(7);
-			// assertTrue(ptOut.x == 19 && ptOut.y == 19);
-			// ptOut = poly1.getXY(8);
-			// assertTrue(ptOut.x == 23 && ptOut.y == 23);
-			// ptOut = poly1.getXY(9);
-			// assertTrue(ptOut.x == 15 && ptOut.y == 20);
-			// ptOut = poly1.getXY(10);
-			// assertTrue(ptOut.x == 300 && ptOut.y == 14);
 		}
 
 		{// Test reversed insertion of an array of Point2D
-			// ArrayOf(Point2D) arr = new ArrayOf(Point2D)(5);
-			// arr[0].SetCoords(10, 1);
-			// arr[1].SetCoords(15, 20);
-			// arr[2].SetCoords(300, 14);
-			// arr[3].SetCoords(314, 217);
-			// arr[4].SetCoords(60, 144);
-
-			// Polygon poly1 = new Polygon();
-			// poly1.startPath(1, 17);
-			// poly1.lineTo(1, 207);
-			// poly1.lineTo(3, 147);
-			// poly1.lineTo(6, 1447);
-			//
-			// poly1.startPath(1000, 17);
-			// poly1.lineTo(1250, 207);
-			// poly1.lineTo(300, 147);
-			// poly1.lineTo(6000, 1447);
-			//
-			// //FIXME
-			// //poly1.insertPoints(1, 2, arr, 1, 3, false); //reversed
-			//
-			// assertTrue(poly1.getPathCount() == 2);
-			// assertTrue(poly1.getPathStart(1) == 4);
-			// assertTrue(poly1.isClosedPath(0));
-			// assertTrue(poly1.isClosedPath(1));
-			// assertTrue(poly1.getPointCount() == 11);
-			// assertTrue(poly1.getPathSize(1) == 7);
-			// Point2D ptOut;
-			// ptOut = poly1.getXY(5);
-			// assertTrue(ptOut.x == 1250 && ptOut.y == 207);
-			// ptOut = poly1.getXY(6);
-			// assertTrue(ptOut.x == 314 && ptOut.y == 217);
-			// ptOut = poly1.getXY(7);
-			// assertTrue(ptOut.x == 300 && ptOut.y == 14);
-			// ptOut = poly1.getXY(8);
-			// assertTrue(ptOut.x == 15 && ptOut.y == 20);
-			// ptOut = poly1.getXY(9);
-			// assertTrue(ptOut.x == 300 && ptOut.y == 147);
-			// ptOut = poly1.getXY(10);
-			// assertTrue(ptOut.x == 6000 && ptOut.y == 1447);
 		}
 	}
 

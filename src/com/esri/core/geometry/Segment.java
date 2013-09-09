@@ -539,9 +539,7 @@ public abstract class Segment extends Geometry implements Serializable {
 		if (isEmptyImpl())
 			throw new GeometryException("empty geometry");// ._setToDefault();
 
-		// FIXME Native has this line repeated twice! Check up on this.
 		outPoint.assignVertexDescription(m_description);
-		// outPoint.assignVertexDescription(m_description);
 
 		if (outPoint.isEmptyImpl())
 			outPoint._setToDefault();
@@ -576,7 +574,6 @@ public abstract class Segment extends Geometry implements Serializable {
 	}
 
 	double _getAttributeAsDbl(int endPoint, int semantics, int ordinate) {
-		// FIXME review rohits impl. Only an assertion in native
 		if (isEmptyImpl())
 			throw new GeometryException(
 					"This operation was performed on an Empty Geometry.");
@@ -737,7 +734,6 @@ public abstract class Segment extends Geometry implements Serializable {
 		m_yEnd = origyStart;
 
 		for (int i = 1, n = m_description.getAttributeCount(); i < n; i++) {
-			// FIXME fix stupid semantics enum
 			int semantics = m_description.getSemantics(i);// VertexDescription.Semantics
 															// semantics =
 															// m_description.getSemantics(i);
@@ -869,7 +865,6 @@ public abstract class Segment extends Geometry implements Serializable {
 	public abstract int intersectionWithAxis2D(boolean bAxisX, double ordinate,
 			double[] resultOrdinates, double[] parameters);
 
-	// FIXME Ask sergey what this method is for
 	void _reverseImpl() {
 	}
 

@@ -292,12 +292,9 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 	@Override
 	public Point3D getXYZ(int index) {
 		if (index < 0 || index >= getPointCount())
-			// FIXME exc
 			throw new IndexOutOfBoundsException();
 
 		_verifyAllStreams();
-		// AttributeStreamOfDbl v = (AttributeStreamOfDbl)
-		// m_vertexAttributes[0];
 		AttributeStreamOfDbl v = (AttributeStreamOfDbl) m_vertexAttributes[0];
 		Point3D pt = new Point3D();
 		pt.x = v.read(index * 2);
@@ -316,15 +313,12 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 	@Override
 	public void setXYZ(int index, Point3D pt) {
 		if (index < 0 || index >= getPointCount())
-			// FIXME exc
 			throw new IndexOutOfBoundsException();
 
 		addAttribute(Semantics.Z);
 
 		_verifyAllStreams();
 		notifyModified(DirtyFlags.DirtyCoordinates);
-		// AttributeStreamOfDbl v = (AttributeStreamOfDbl)
-		// m_vertexAttributes[0];
 		AttributeStreamOfDbl v = (AttributeStreamOfDbl) m_vertexAttributes[0];
 		v.write(index * 2, pt.x);
 		v.write(index * 2 + 1, pt.y);
@@ -335,12 +329,10 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 	@Override
 	public double getAttributeAsDbl(int semantics, int offset, int ordinate) {
 		if (offset < 0 || offset >= m_pointCount)
-			// FIXME exc
 			throw new IndexOutOfBoundsException();
 
 		int ncomps = VertexDescription.getComponentCount(semantics);
 		if (ordinate >= ncomps)
-			// FIXME exc
 			throw new IndexOutOfBoundsException();
 
 		_verifyAllStreams();
@@ -366,12 +358,10 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 	public void setAttribute(int semantics, int offset, int ordinate,
 			double value) {
 		if (offset < 0 || offset >= m_pointCount)
-			// FIXME exc
 			throw new IndexOutOfBoundsException();
 
 		int ncomps = VertexDescription.getComponentCount(semantics);
 		if (ordinate >= ncomps)
-			// FIXME exc
 			throw new IndexOutOfBoundsException();
 
 		addAttribute(semantics);
@@ -388,8 +378,6 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 		setAttribute(semantics, offset, ordinate, (double) value);
 	}
 
-	// FIXME change semantics to an enum
-	// Checked vs. Jan 11, 2011
 	public AttributeStreamBase getAttributeStreamRef(int semantics) {
 		throwIfEmpty();
 
@@ -400,8 +388,6 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 		return m_vertexAttributes[attributeIndex];
 	}
 
-	// FIXME change semantics to an enum
-	// Checked vs. Jan 11, 2011
 	/**
 	 * Sets a reference to the given AttributeStream of the Geometry. Once the
 	 * buffer has been obtained, the vertices of the Geometry can be manipulated
@@ -424,7 +410,6 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 		if ((stream != null)
 				&& VertexDescription.getPersistence(semantics) != stream
 						.getPersistence())// input stream has wrong persistence
-			// FIXME exc
 			throw new IllegalArgumentException();
 
 		// Do not check for the stream size here to allow several streams to be
@@ -641,7 +626,6 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 	 */
 	public void setEnvelope(Envelope env) {
 		if (!m_description.equals(env.getDescription()))
-			// FIXME exc
 			throw new IllegalArgumentException();
 
 		// m_envelope = (Envelope) env.clone();
@@ -690,15 +674,10 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 		dst.m_flagsMask = m_flagsMask;
 		dst.m_vertexAttributes = cloneAttributes;
 
-		// FIXME accelerators
-		// if(m_accelerators != null)
-		// dst.m_accelerators = m_accelerators;
-
 		try {
 			_copyToImpl(dst); // copy child props
 		} catch (Exception ex) {
 			dst.setEmpty();
-			// TODO fix exception
 			throw new RuntimeException(ex);
 		}
 	}
@@ -735,7 +714,6 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 		}
 		m_flagsMask |= flags;
 
-		// FIXME acceler
 		_clearAccelerators();
 		_touch();
 	}
@@ -853,10 +831,6 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 					m_vertexAttributes[attributeIndex] = AttributeStreamBase
 							.createAttributeStreamWithSemantics(semantics,
 									m_pointCount);
-					// FIXME when attribute stream is updated, update this code.
-					// m_vertexAttributes[attributeIndex] =
-					// AttributeStreamBase.createAttributeStream(semantics,
-					// m_pointCount);
 					m_reservedPointCount = m_pointCount;
 				}
 			}
@@ -1034,40 +1008,11 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 		return pt.length();
 	}
 
-	// FIXME Remove this method. It is not in the MultiVertexGeometryImpl...
-
-	// /**
-	// * Returns a reference to the given AttributeStream of the Geometry. Once
-	// * the stream has been obtained, the vertices of the Geometry can be
-	// * manipulated directly. Call notifyModified, when finished. The method
-	// * allocates the stream if not present.
-	// *
-	// * @param semantics
-	// * Semantics of the attribute to return stream for.
-	// * @throws Throws
-	// * empty_geometry for the empty geometry.
-	// */
-	// public AttributeStreamBase getAttributeStream(int semantics) {
-	// if (isEmpty())
-	// throw new GeometryException(
-	// "This operation was performed on an Empty Geometry.");
-	//
-	// addAttribute(semantics);
-	// _verifyAllStreams();
-	//
-	// int attributeIndex = m_description.getAttributeIndex(semantics);
-	// return m_vertexAttributes[attributeIndex];
-	// }
-
-	// FIXME
 	// ////////////////// METHODS To REMOVE ///////////////////////
 	@Override
 	public Point getPoint(int index) {
 		if (index < 0 || index >= m_pointCount)
 			throw new IndexOutOfBoundsException();
-
-		// _ASSERT(!IsEmpty());
-		// _ASSERT(m_vertexAttributes != null);
 
 		_verifyAllStreams();
 
@@ -1148,8 +1093,6 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 			dst[i] = getXYZ(i);
 		}
 	}
-
-	// FIXME
 
 	public abstract boolean _buildRasterizedGeometryAccelerator(
 			double toleranceXY, GeometryAccelerationDegree accelDegree);

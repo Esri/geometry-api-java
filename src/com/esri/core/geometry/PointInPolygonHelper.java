@@ -275,8 +275,6 @@ class PointInPolygonHelper {
 			}
 		}
 
-		// FIXME, the rest of the point in polygon tests are set up to avoid
-		// Point2D. This is the last bit
 		return _isPointInPolygonInternal(inputPolygon, new Point2D(
 				inputPointXVal, inputPointYVal), tolerance);
 	}

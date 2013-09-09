@@ -599,7 +599,7 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	 * Closes last path of the MultiPath with the Arc Segment.
 	 */
 	void closePathWithArc() {
-		throw new RuntimeException("not implemented"); /* FIXME */
+		throw new RuntimeException("not implemented");
 	}
 
 	/**

@@ -253,9 +253,6 @@ class PolygonUtils {
 		if (!segIter.nextPath() || !segIter.hasNextSegment())
 			throw new GeometryException("corrupted geometry");
 
-		// FIXME java enums can't cast to ints? what the hell?!
-		// enum_class PiPResult { PiPOutside = 0, PiPInside = 1, PiPBoundary =
-		// 2};
 		int res = 2;// 2(int)PiPResult.PiPBoundary;
 
 		while (res == 2 /* (int)PiPResult.PiPBoundary */

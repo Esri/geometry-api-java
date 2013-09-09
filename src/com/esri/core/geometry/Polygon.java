@@ -73,11 +73,6 @@ public final class Polygon extends MultiPath implements Serializable {
 		return m_impl.calculateRingArea2D(ringIndex);
 	}
 
-	// FIXME are these a java requirement?
-	// int getWKBPolygonCount() { return m_impl.getWKBPolygonCount(); }
-	// void setKnownRingOrientation(boolean bYesNo) {
-	// m_impl.setKnownRingOrientation(bYesNo); }
-
 	/**
 	 * Returns TRUE if the ring is an exterior ring. Valid only for simple
 	 * polygons.

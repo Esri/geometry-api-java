@@ -152,8 +152,6 @@ class VertexDescriptionDesignerImpl extends VertexDescription {
 
 	protected void _initMapping() {
 		m_attributeCount = 0;
-		// FIXME native has for loop for (int i = 0, j = 0; i <
-		// Semantics.MAXSEMANTICS + 1; i++)
 		for (int i = 0, j = 0; i < Semantics.MAXSEMANTICS; i++) {
 			if (m_semanticsToIndexMap[i] >= 0) {
 				m_semantics[j] = i;

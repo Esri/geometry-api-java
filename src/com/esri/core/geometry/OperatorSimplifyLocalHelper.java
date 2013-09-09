@@ -1652,27 +1652,6 @@ class OperatorSimplifyLocalHelper {
 					m_progressTracker);
 		}
 
-		// if (false)// FIXME:do not forget to change this to if(false)!!!
-		// {
-		// OperatorSimplify simplify = (OperatorSimplify)
-		// (OperatorFactoryLocal.getInstance().getOperator(Operator.Type.Simplify));
-		// NonSimpleResult nsres = new NonSimpleResult();
-		// Geometry geometry =
-		// m_editShape.getGeometry(m_editShape.getFirstGeometry());// extract
-		// the result of simplify
-		// boolean res = simplify.isSimpleAsFeature(geometry, m_sr, true, nsres,
-		// null);
-		// if (false)
-		// {
-		// ((MultiPathImpl)geometry._getImpl()).saveToTextFileDbg("c:/temp/_simplifyDbg.txt");
-		// }
-		// if (!res)
-		// {
-		// assert (nsres.m_reason.compareTo(NonSimpleResult.Reason.CrossOver) >=
-		// 0);
-		// }
-		// }
-
 		if (m_geometry.getType().equals(Geometry.Type.Polygon)) {
 			Simplificator.execute(m_editShape, m_editShape.getFirstGeometry(),
 					m_knownSimpleResult);
