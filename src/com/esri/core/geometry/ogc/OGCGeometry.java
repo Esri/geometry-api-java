@@ -634,4 +634,10 @@ public abstract class OGCGeometry {
 	public void setSpatialReference(SpatialReference esriSR_) {
 		esriSR = esriSR_;
 	}
+	
+	/**
+	 *Converts this Geometry to the OGCMulti* if it is not OGCMulti* or OGCGeometryCollection already.
+	 * @return OGCMulti* or OGCGeometryCollection instance.
+	 */
+	public abstract OGCGeometry convertToMulti();
 }

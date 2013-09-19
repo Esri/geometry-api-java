@@ -102,5 +102,11 @@ public class OGCPolygon extends OGCSurface {
 		return polygon;
 	}
 
+	@Override
+	public OGCGeometry convertToMulti()
+	{
+		return new OGCMultiPolygon(polygon, esriSR);
+	}
+	
 	Polygon polygon;
 }

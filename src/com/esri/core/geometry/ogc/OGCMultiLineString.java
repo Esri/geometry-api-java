@@ -76,5 +76,11 @@ public class OGCMultiLineString extends OGCMultiCurve {
 		return polyline;
 	}
 
+	@Override
+	public OGCGeometry convertToMulti()
+	{
+		return this;
+	}
+	
 	Polyline polyline;
 }

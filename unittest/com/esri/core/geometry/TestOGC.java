@@ -150,6 +150,8 @@ public class TestOGC extends TestCase {
 		assertTrue(ls.pointN(3).equals(OGCGeometry.fromText("POINT(-10 10)")));
 		OGCPoint p0 = ls.pointN(0);
 		assertTrue(ls.pointN(0).equals(OGCGeometry.fromText("POINT(-10 -10)")));
+		String ms = g.convertToMulti().asText();
+		assertTrue(ms.equals("MULTIPOLYGON (((-10 -10, 10 -10, 10 10, -10 10, -10 -10), (-5 -5, -5 5, 5 5, 5 -5, -5 -5)))"));
 
 	}
 
@@ -161,6 +163,8 @@ public class TestOGC extends TestCase {
 		assertTrue(p.numPoints() == 5);
 		assertTrue(p.isClosed());
 		assertTrue(p.pointN(1).equals(OGCGeometry.fromText("POINT(10 -10)")));
+		String ms = g.convertToMulti().asText();
+		assertTrue(ms.equals("MULTILINESTRING ((-10 -10, 10 -10, 10 10, -10 10, -10 -10))"));
 	}
 
 	public void testPointInPolygon() {
@@ -173,20 +177,39 @@ public class TestOGC extends TestCase {
 		assertTrue(g.disjoint(OGCGeometry.fromText("POINT(0 0)")));
 		assertTrue(!g.disjoint(OGCGeometry.fromText("POINT(9 9)")));
 		assertTrue(g.disjoint(OGCGeometry.fromText("POINT(-20 1)")));
-
 	}
 
 	public void testMultiPolygon() {
-		OGCGeometry g = OGCGeometry
-				.fromText("MULTIPOLYGON(((-10 -10, 10 -10, 10 10, -10 10, -10 -10), (-5 -5, -5 5, 5 5, 5 -5, -5 -5)))");
-		assertTrue(g.geometryType().equals("MultiPolygon")); // the type is
-																// reduced
-		assertTrue(!g.contains(OGCGeometry.fromText("POINT(0 0)")));
-		assertTrue(g.contains(OGCGeometry.fromText("POINT(9 9)")));
-		assertTrue(!g.contains(OGCGeometry.fromText("POINT(-20 1)")));
-		assertTrue(g.disjoint(OGCGeometry.fromText("POINT(0 0)")));
-		assertTrue(!g.disjoint(OGCGeometry.fromText("POINT(9 9)")));
-		assertTrue(g.disjoint(OGCGeometry.fromText("POINT(-20 1)")));
+		{
+			OGCGeometry g = OGCGeometry
+					.fromText("MULTIPOLYGON(((-10 -10, 10 -10, 10 10, -10 10, -10 -10), (-5 -5, -5 5, 5 5, 5 -5, -5 -5)))");
+			assertTrue(g.geometryType().equals("MultiPolygon")); // the type is
+																	// reduced
+			assertTrue(!g.contains(OGCGeometry.fromText("POINT(0 0)")));
+			assertTrue(g.contains(OGCGeometry.fromText("POINT(9 9)")));
+			assertTrue(!g.contains(OGCGeometry.fromText("POINT(-20 1)")));
+			assertTrue(g.disjoint(OGCGeometry.fromText("POINT(0 0)")));
+			assertTrue(!g.disjoint(OGCGeometry.fromText("POINT(9 9)")));
+			assertTrue(g.disjoint(OGCGeometry.fromText("POINT(-20 1)")));
+			assertTrue(g.convertToMulti() == g);
+		}
+		
+		{
+			OGCGeometry g = OGCGeometry
+					.fromText("MULTIPOLYGON(((-10 -10, 10 -10, 10 10, -10 10, -10 -10), (-5 -5, -5 5, 5 5, 5 -5, -5 -5)), ((90 90, 110 90, 110 110, 90 110, 90 90), (95 95, 95 105, 105 105, 105 95, 95 95)))");
+			assertTrue(g.geometryType().equals("MultiPolygon")); // the type is
+			
+			OGCMultiPolygon mp = (OGCMultiPolygon)g;
+			assertTrue(mp.numGeometries() == 2);
+			OGCGeometry p1 = mp.geometryN(0);
+			assertTrue(p1.geometryType().equals("Polygon")); // the type is
+			assertTrue(p1.contains(OGCGeometry.fromText("POINT(9 9)")));
+			assertTrue(!p1.contains(OGCGeometry.fromText("POINT(109 109)")));
+			OGCGeometry p2 = mp.geometryN(1);
+			assertTrue(p2.geometryType().equals("Polygon")); // the type is
+			assertTrue(!p2.contains(OGCGeometry.fromText("POINT(9 9)")));
+			assertTrue(p2.contains(OGCGeometry.fromText("POINT(109 109)")));
+		}
 	}
 
 	public void testMultiPolygonUnion() {
@@ -728,6 +751,10 @@ public class TestOGC extends TestCase {
 		OGCGeometry p = mp.geometryN(0);
 		String s = p.asText();
 		assertTrue(s.equals("POINT (1 0)"));
+		
+		String ms = p.convertToMulti().asText();
+		assertTrue(ms.equals("MULTIPOINT ((1 0))"));
+		
 	}
 	
 	public void testWktMultiPolygon() {

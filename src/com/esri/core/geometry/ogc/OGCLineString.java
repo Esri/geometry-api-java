@@ -107,5 +107,11 @@ public class OGCLineString extends OGCCurve {
 		return multiPath;
 	}
 
+	@Override
+	public OGCGeometry convertToMulti()
+	{
+		return new OGCMultiLineString((Polyline)multiPath, esriSR);
+	}
+	
 	MultiPath multiPath;
 }

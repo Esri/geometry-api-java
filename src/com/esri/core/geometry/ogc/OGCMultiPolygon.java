@@ -52,7 +52,7 @@ public class OGCMultiPolygon extends OGCMultiSurface {
 			if (polygon.isExteriorRing(i))
 				exterior++;
 
-			if (exterior == i + 1) {
+			if (exterior == n + 1) {
 				return new OGCPolygon(polygon, i, esriSR);
 			}
 		}
@@ -90,5 +90,11 @@ public class OGCMultiPolygon extends OGCMultiSurface {
 		return polygon;
 	}
 
+	@Override
+	public OGCGeometry convertToMulti()
+	{
+		return this;
+	}
+	
 	Polygon polygon;
 }

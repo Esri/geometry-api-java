@@ -76,6 +76,12 @@ public final class OGCPoint extends OGCGeometry {
 	public com.esri.core.geometry.Geometry getEsriGeometry() {
 		return point;
 	}
+	
+	@Override
+	public OGCGeometry convertToMulti()
+	{
+		return new OGCMultiPoint(point, esriSR);
+	}
 
 	com.esri.core.geometry.Point point;
 

@@ -305,4 +305,10 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 		}
 	}
 
+	@Override
+	public OGCGeometry convertToMulti()
+	{
+		return this;
+	}
+	
 }

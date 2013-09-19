@@ -95,5 +95,11 @@ public class OGCMultiPoint extends OGCGeometryCollection {
 		return multiPoint;
 	}
 
+	@Override
+	public OGCGeometry convertToMulti()
+	{
+		return this;
+	}
+	
 	private com.esri.core.geometry.MultiPoint multiPoint;
 }
