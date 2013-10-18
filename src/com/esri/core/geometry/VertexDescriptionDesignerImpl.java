@@ -24,6 +24,10 @@
 
 package com.esri.core.geometry;
 
+import java.util.Arrays;
+
+import com.esri.core.geometry.VertexDescription.Semantics;
+
 /**
  * This factory class allows to describe and create a VertexDescription
  * instance.
@@ -207,5 +211,52 @@ class VertexDescriptionDesignerImpl extends VertexDescription {
 
 		return true;
 	}
+	
+	// returns a mapping from the source attribute indices to the destination
+	// attribute indices.
+	static int[] mapAttributes(VertexDescription src, VertexDescription dest) {
+		int[] srcToDst = new int[src.getAttributeCount()];
+		Arrays.fill(srcToDst, -1);
+		for (int i = 0, nsrc = src.getAttributeCount(); i < nsrc; i++) {
+			srcToDst[i] = dest.getAttributeIndex(src.getSemantics(i));
+		}
+		return srcToDst;
+	}
 
+	static VertexDescription getMergedVertexDescription(VertexDescription src,
+			int semanticsToAdd) {
+		VertexDescriptionDesignerImpl vdd = new VertexDescriptionDesignerImpl(
+				src);
+		vdd.addAttribute(semanticsToAdd);
+		return vdd.getDescription();
+	}
+
+	static VertexDescription getMergedVertexDescription(VertexDescription d1, VertexDescription d2) {
+		VertexDescriptionDesignerImpl vdd = null;
+		for (int semantics = Semantics.POSITION; semantics < Semantics.MAXSEMANTICS; semantics++) {
+			if (!d1.hasAttribute(semantics) && d2.hasAttribute(semantics)) {
+				if (vdd == null) {
+					vdd = new VertexDescriptionDesignerImpl(d1);
+				}
+	
+				vdd.addAttribute(semantics);
+			}
+		}
+		
+		if (vdd != null) {
+			return vdd.getDescription();
+		}
+		
+		return d1;
+	}
+
+	static VertexDescription removeSemanticsFromVertexDescription(
+			VertexDescription src, int semanticsToRemove) {
+		VertexDescriptionDesignerImpl vdd = new VertexDescriptionDesignerImpl(
+				src);
+		vdd.removeAttribute(semanticsToRemove);
+		return vdd.getDescription();
+	}
+	
 }
+

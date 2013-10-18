@@ -24,7 +24,7 @@ package com.esri.core.geometry;
 
 class OperatorExportToGeoJsonLocal extends OperatorExportToGeoJson {
     @Override
-    JsonCursor execute(SpatialReference spatialReference, GeometryCursor geometryCursor) {
+    public JsonCursor execute(SpatialReference spatialReference, GeometryCursor geometryCursor) {
         return new OperatorExportToGeoJsonCursor(false, spatialReference, geometryCursor);
     }
 

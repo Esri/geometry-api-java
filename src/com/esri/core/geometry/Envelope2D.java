@@ -36,13 +36,13 @@ public final class Envelope2D {
 	private final int XMASK = 3;
 	private final int YMASK = 12;
 
-	double xmin;
+	public double xmin;
 
-	double ymin;
+	public double ymin;
 
-	double xmax;
+	public double xmax;
 
-	double ymax;
+	public double ymax;
 
 	public static Envelope2D construct(double _xmin, double _ymin,
 			double _xmax, double _ymax) {
@@ -987,26 +987,25 @@ public final class Envelope2D {
 		return new Point2D(x, y);
 	}
 
-	boolean isPointOnBoundary(Point2D pt, double tolerance) {
+	public boolean isPointOnBoundary(Point2D pt, double tolerance) {
 		return Math.abs(pt.x - xmin) <= tolerance
 				|| Math.abs(pt.x - xmax) <= tolerance
 				|| Math.abs(pt.y - ymin) <= tolerance
 				|| Math.abs(pt.y - ymax) <= tolerance;
 	}
 
-	double distance(/* const */Envelope2D other) /* const */
+	public double distance(/* const */Envelope2D other)
 	{
 		return Math.sqrt(sqrDistance(other));
 	}
 
-	double distance(/* const */Point2D pt2D) /* const */
+	public double distance(Point2D pt2D)
 	{
 		return Math.sqrt(sqrDistance(pt2D));
 	}
 
-	double sqrDistance(/* const */Envelope2D other) /* const */
+	public double sqrDistance(Envelope2D other)
 	{
-		// code from SG's windist
 		double dx = 0;
 		double dy = 0;
 		double nn;
@@ -1030,9 +1029,8 @@ public final class Envelope2D {
 		return dx * dx + dy * dy;
 	}
 
-	double sqrDistance(/* const */Point2D pt2D) /* const */
+	public double sqrDistance(Point2D pt2D)
 	{
-		// code from SG's windist
 		double dx = 0;
 		double dy = 0;
 		double nn;
@@ -1056,7 +1054,7 @@ public final class Envelope2D {
 		return dx * dx + dy * dy;
 	}
 
-	void queryIntervalX(Envelope1D env1D) /* const */
+	public void queryIntervalX(Envelope1D env1D)
 	{
 		if (isEmpty()) {
 			env1D.setEmpty();
@@ -1065,7 +1063,7 @@ public final class Envelope2D {
 		}
 	}
 
-	void queryIntervalY(Envelope1D env1D) /* const */
+	public void queryIntervalY(Envelope1D env1D)
 	{
 		if (isEmpty()) {
 			env1D.setEmpty();

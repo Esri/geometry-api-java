@@ -37,7 +37,7 @@ public final class Envelope extends Geometry implements Serializable {
 
 	Envelope2D m_envelope = new Envelope2D();
 
-	double[] m_attributes;// use doubles to store everything (int64 are bitcast)
+	double[] m_attributes;// use doubles to store everything
 
 	/**
 	 * Creates an envelope by defining its center, width, and height.
@@ -410,9 +410,13 @@ public final class Envelope extends Geometry implements Serializable {
 		dst._touch();
 		envDst.m_description = m_description;
 		envDst.m_envelope.setCoords(m_envelope);
-		envDst._resizeAttributes(m_description._getTotalComponents() - 2);
-		_attributeCopy(m_attributes, 0, envDst.m_attributes, 0,
-				(m_description._getTotalComponents() - 2) * 2);
+		envDst.m_attributes = null;
+		if (m_attributes != null)
+		{
+			envDst._ensureAttributes();
+			System.arraycopy(m_attributes, 0, envDst.m_attributes, 0,
+					(m_description._getTotalComponents() - 2) * 2);
+		}
 	}
 
 	@Override
@@ -597,6 +601,7 @@ public final class Envelope extends Geometry implements Serializable {
 			throw new IllegalArgumentException();
 
 		int attribute_index = m_description.getAttributeIndex(semantics);
+		_ensureAttributes();
 		if (attribute_index >= 0) {
 			return m_attributes[getEndPointOffset(m_description, end_point)
 					+ m_description.getPointAttributeOffset_(attribute_index)
@@ -622,6 +627,8 @@ public final class Envelope extends Geometry implements Serializable {
 				else
 					m_envelope.xmin = value;
 			}
+			
+			return;
 		}
 
 		int ncomps = VertexDescription.getComponentCount(semantics);
@@ -629,87 +636,88 @@ public final class Envelope extends Geometry implements Serializable {
 			throw new IllegalArgumentException();
 
 		addAttribute(semantics);
+		_ensureAttributes();
 		int attribute_index = m_description.getAttributeIndex(semantics);
 		m_attributes[getEndPointOffset(m_description, end_point)
 				+ m_description.getPointAttributeOffset_(attribute_index) - 2
 				+ ordinate] = value;
 	}
 
-	void _resizeAttributes(int newSize) {// copied from
-											// Segment::_ResizeAttributes
+	void _ensureAttributes() {
 		_touch();
+		if (m_attributes == null && m_description._getTotalComponents() > 2) {
+			m_attributes = new double[(m_description._getTotalComponents() - 2) * 2];
+			int offset0 = _getEndPointOffset(m_description, 0);
+			int offset1 = _getEndPointOffset(m_description, 1);
+			
+			int j = 0;
+			for (int i = 1, n = m_description.getAttributeCount(); i < n; i++) {
+				int semantics = m_description.getSemantics(i);
+				int nords = VertexDescription.getComponentCount(semantics);
+				double d = VertexDescription.getDefaultValue(semantics);
+				for (int ord = 0; ord < nords; ord++)
+				{
+					m_attributes[offset0 + j] = d;
+					m_attributes[offset1 + j] = d;
+					j++;
+				}
+			}
+		}
+	}
+
+	@Override
+	protected void _assignVertexDescriptionImpl(VertexDescription newDescription) {
 		if (m_attributes == null) {
-			m_attributes = new double[newSize * 2];
-		} else if (m_attributes.length < newSize * 2) {
-			double[] newBuffer = new double[newSize * 2];
-			System.arraycopy(m_attributes, 0, newBuffer, 0, m_attributes.length);
-			m_attributes = newBuffer;
-		}
-	}
-
-	@Override
-	void _beforeDropAttributeImpl(int semantics) {// copied from
-													// Segment::_BeforeDropAttributeImpl
-		if (m_envelope.isEmpty())
+			m_description = newDescription;
 			return;
-
-		// _ASSERT(semantics != enum_value2(VertexDescription, Semantics,
-		// POSITION));
-		int attributeIndex = m_description.getAttributeIndex(semantics);
-		int offset = m_description._getPointAttributeOffset(attributeIndex) - 2;
-		int comps = VertexDescription.getComponentCount(semantics);
-		int totalCompsOld = m_description._getTotalComponents() - 2;
-		if (totalCompsOld > comps) {
-			int offset0 = _getEndPointOffset(0);
-			for (int i = offset + comps; i < totalCompsOld * 2; i++)
-				m_attributes[offset0 + i - comps] = m_attributes[offset0 + i];
-
-			int offset1 = _getEndPointOffset(1) - comps; // -comp is for deleted
-															// attribute of
-															// start vertex
-			for (int i = offset + comps; i < totalCompsOld; i++)
-				m_attributes[offset1 + i - comps] = m_attributes[offset1 + i];
 		}
-	}
-
-	@Override
-	void _afterAddAttributeImpl(int semantics) {// copied from
-												// Segment::_AfterAddAttributeImpl
-		int attributeIndex = m_description.getAttributeIndex(semantics);
-		int offset = m_description._getPointAttributeOffset(attributeIndex) - 2;
-		int comps = VertexDescription.getComponentCount(semantics);
-		int totalComps = m_description._getTotalComponents() - 2;
-		_resizeAttributes(totalComps);
-		int totalCompsOld = totalComps - comps; // the total number of
-												// components before resize.
-
-		int offset0 = _getEndPointOffset(0);
-		int offset1 = _getEndPointOffset(1);
-		int offset1old = offset1 - comps;
-		for (int i = totalCompsOld - 1; i >= 0; i--) {// correct the position of
-														// the End attributes
-			m_attributes[offset1 + i] = m_attributes[offset1old + i];
+		
+		if (newDescription._getTotalComponents() > 2) {
+			int[] mapping = VertexDescriptionDesignerImpl.mapAttributes(newDescription, m_description);
+			
+			double[] newAttributes = new double[(newDescription._getTotalComponents() - 2) * 2];
+			
+			int old_offset0 = _getEndPointOffset(m_description, 0);
+			int old_offset1 = _getEndPointOffset(m_description, 1);
+	
+			int new_offset0 = _getEndPointOffset(newDescription, 0);
+			int new_offset1 = _getEndPointOffset(newDescription, 1);
+			
+			int j = 0;
+			for (int i = 1, n = newDescription.getAttributeCount(); i < n; i++) {
+				int semantics = newDescription.getSemantics(i);
+				int nords = VertexDescription.getComponentCount(semantics);
+				if (mapping[i] == -1)
+				{
+					double d = VertexDescription.getDefaultValue(semantics);
+					for (int ord = 0; ord < nords; ord++)
+					{
+						newAttributes[new_offset0 + j] = d;
+						newAttributes[new_offset1 + j] = d;
+						j++;
+					}
+				}
+				else {
+					int m = mapping[i];
+					int offset = m_description._getPointAttributeOffset(m) - 2;
+					for (int ord = 0; ord < nords; ord++)
+					{
+						newAttributes[new_offset0 + j] = m_attributes[old_offset0 + offset];
+						newAttributes[new_offset1 + j] = m_attributes[old_offset1 + offset];
+						j++;
+						offset++;
+					}
+				}
+					 
+			}
+			
+			m_attributes = newAttributes;
 		}
-
-		// move attributes for start end end points that go after the insertion
-		// point
-		for (int i = totalComps - 1; i >= offset + comps; i--) {
-			m_attributes[offset0 + i] = m_attributes[offset0 + i - comps];
-			m_attributes[offset1 + i] = m_attributes[offset1 + i - comps];
+		else {
+			m_attributes = null;
 		}
-
-		// initialize added attribute to the default value.
-		double dv = VertexDescription.getDefaultValue(semantics);
-		for (int i = 0; i < comps; i++) {
-			m_attributes[offset0 + offset + i] = dv;
-			m_attributes[offset1 + offset + i] = dv;
-		}
-	}
-
-	static void _attributeCopy(double[] src, int srcStart, double[] dst,
-			int dstStart, int count) {
-		if (count > 0)
-			System.arraycopy(src, srcStart, dst, dstStart, count);
+		
+		m_description = newDescription;
 	}
 
 	double _getAttributeAsDbl(int endPoint, int semantics, int ordinate) {
@@ -733,10 +741,8 @@ public final class Envelope extends Geometry implements Serializable {
 
 		int attributeIndex = m_description.getAttributeIndex(semantics);
 		if (attributeIndex >= 0) {
-			if (null != m_attributes)
-				_resizeAttributes(m_description._getTotalComponents() - 2);
-
-			return m_attributes[_getEndPointOffset(endPoint)
+			_ensureAttributes();
+			return m_attributes[_getEndPointOffset(m_description, endPoint)
 					+ m_description._getPointAttributeOffset(attributeIndex)
 					- 2 + ordinate];
 		} else
@@ -760,6 +766,8 @@ public final class Envelope extends Geometry implements Serializable {
 				else
 					m_envelope.xmin = value;
 			}
+			
+			return;
 		}
 
 		int ncomps = VertexDescription.getComponentCount(semantics);
@@ -769,14 +777,13 @@ public final class Envelope extends Geometry implements Serializable {
 		if (!hasAttribute(semantics)) {
 			if (VertexDescription.isDefaultValue(semantics, value))
 				return;
+			
 			addAttribute(semantics);
 		}
 
 		int attributeIndex = m_description.getAttributeIndex(semantics);
-		if (null == m_attributes)
-			_resizeAttributes(m_description._getTotalComponents() - 2);
-
-		m_attributes[_getEndPointOffset(endPoint)
+		_ensureAttributes();
+		m_attributes[_getEndPointOffset(m_description, endPoint)
 				+ m_description._getPointAttributeOffset(attributeIndex) - 2
 				+ ordinate] = value;
 	}
@@ -785,8 +792,8 @@ public final class Envelope extends Geometry implements Serializable {
 		return (int) _getAttributeAsDbl(endPoint, semantics, ordinate);
 	}
 
-	int _getEndPointOffset(int endPoint) {
-		return endPoint * (m_description._getTotalComponents() - 2);
+	static int _getEndPointOffset(VertexDescription vd, int endPoint) {
+		return endPoint * (vd._getTotalComponents() - 2);
 	}
 
 	boolean isIntersecting(Envelope2D other) {

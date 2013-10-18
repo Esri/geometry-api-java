@@ -42,7 +42,7 @@ public abstract class OperatorExportToJson extends Operator {
      *
      * @return Returns a JsonCursor.
      */
-    abstract JsonCursor execute(SpatialReference spatialReference,
+    public abstract JsonCursor execute(SpatialReference spatialReference,
             GeometryCursor geometryCursor);
 
     /**

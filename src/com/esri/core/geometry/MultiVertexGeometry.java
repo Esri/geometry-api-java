@@ -36,17 +36,10 @@ abstract class MultiVertexGeometry extends Geometry implements
 		Serializable {
 
 	@Override
-	void _afterAddAttributeImpl(int semantics) {
-		// TODO Auto-generated method stub
-
+	protected void _assignVertexDescriptionImpl(VertexDescription newDescription) {
+		throw new GeometryException("invalid call");
 	}
-
-	@Override
-	void _beforeDropAttributeImpl(int semantics) {
-		// TODO Auto-generated method stub
-
-	}
-
+	
 	// Multipart methods:
 	/**
 	 * Returns the total vertex count in this Geometry.

@@ -424,59 +424,35 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 		notifyModified(DirtyFlags.DirtyAll);
 	}
 
-	// Checked vs. Jan 11, 2011
 	@Override
-	void _beforeDropAttributeImpl(int semantics) {
-		_touch();
-		int attributeIndex = m_description.getAttributeIndex(semantics);
-		// _ASSERT(attributeIndex >= 0);
-
+	protected void _assignVertexDescriptionImpl(VertexDescription newDescription) {
 		AttributeStreamBase[] newAttributes = null;
+		
 		if (m_vertexAttributes != null) {
-			newAttributes = new AttributeStreamBase[m_description
-					.getAttributeCount() - 1];
+			int[] mapping = VertexDescriptionDesignerImpl.mapAttributes(
+					newDescription, m_description);
+			
+			newAttributes = new AttributeStreamBase[newDescription
+			                    					.getAttributeCount()];
 
-			for (int i = 0; i < attributeIndex; i++)
-				newAttributes[i] = m_vertexAttributes[i];
-			for (int i = attributeIndex + 1; i < m_description
-					.getAttributeCount(); i++)
-				newAttributes[i - 1] = m_vertexAttributes[i];
-		}
+			for (int i = 0, n = newDescription.getAttributeCount(); i < n; i++) {
+				if (mapping[i] != -1) {
+					int m = mapping[i];
+					newAttributes[i] = m_vertexAttributes[m];
+				}
 
-		m_vertexAttributes = newAttributes; // late assignment to try to stay
-											// valid if out-of memory happens.
-		notifyModified(DirtyFlags.DirtyAll);
-	}
-
-	// Checked vs. Jan 11, 2011
-	@Override
-	void _afterAddAttributeImpl(int semantics) {
-		_touch();
-		int attributeIndex = m_description.getAttributeIndex(semantics);
-		// _ASSERT(attributeIndex >= 0);
-
-		AttributeStreamBase[] newAttributes = null;
-		if (m_vertexAttributes != null) {
-			newAttributes = new AttributeStreamBase[m_description
-					.getAttributeCount()];
-
-			if (m_vertexAttributes != null) {
-				// Do not create new stream The stream will be created when one
-				// queries or sets a point to it.
-				for (int i = 0; i < attributeIndex; i++)
-					newAttributes[i] = m_vertexAttributes[i];
-				for (int i = attributeIndex + 1; i < m_description
-						.getAttributeCount(); i++)
-					newAttributes[i] = m_vertexAttributes[i - 1];
 			}
 		}
-
+		else {
+			//if there are no streams we do not create them
+		}
+		
+		m_description = newDescription;
 		m_vertexAttributes = newAttributes; // late assignment to try to stay
-											// valid if out-of memory happens.
 		m_reservedPointCount = -1;// we need to recreate the new attribute then
 		notifyModified(DirtyFlags.DirtyAll);
 	}
-
+	
 	// Checked vs. Jan 11, 2011
 	protected void _updateEnvelope(Envelope2D env) {
 		_updateAllDirtyIntervals(true);

@@ -33,10 +33,10 @@ import java.util.Comparator;
  * Basic 2D point class. Contains only two double fields.
  * 
  */
-final class Point2D {
+public final class Point2D {
 
 	public double x;
-	public double y;
+	double y;
 
 	public Point2D() {
 	}
@@ -46,7 +46,6 @@ final class Point2D {
 		this.y = y;
 	}
 
-	// Header definitions
 	public static Point2D construct(double x, double y) {
 		return new Point2D(x, y);
 	}
@@ -65,7 +64,7 @@ final class Point2D {
 		return x == other.x && y == other.y;
 	}
 
-	boolean isEqual(Point2D other, double tol) {
+	public boolean isEqual(Point2D other, double tol) {
 		return (Math.abs(x - other.x) <= tol) && (Math.abs(y - other.y) <= tol);
 	}
 
@@ -74,7 +73,7 @@ final class Point2D {
 		y -= other.y;
 	}
 
-	void sub(Point2D p1, Point2D p2) {
+	public void sub(Point2D p1, Point2D p2) {
 		x = p1.x - p2.x;
 		y = p1.y - p2.y;
 	}
@@ -132,12 +131,12 @@ final class Point2D {
 	/**
 	 * Compares two vertices lexicographicaly.
 	 */
-	int compare(Point2D other) {
+	public int compare(Point2D other) {
 		return y < other.y ? -1 : (y > other.y ? 1 : (x < other.x ? -1
 				: (x > other.x ? 1 : 0)));
 	}
 
-	void normalize(Point2D other) {
+	public void normalize(Point2D other) {
 		double len = other.length();
 		if (len == 0) {
 			x = 1.0;
@@ -163,15 +162,15 @@ final class Point2D {
 		return Math.sqrt(x * x + y * y);
 	}
 
-	double sqrLength() {
+	public double sqrLength() {
 		return x * x + y * y;
 	}
 
-	static double distance(Point2D pt1, Point2D pt2) {
+	public static double distance(Point2D pt1, Point2D pt2) {
 		return Math.sqrt(sqrDistance(pt1, pt2));
 	}
 
-	double dotProduct(Point2D other) {
+	public double dotProduct(Point2D other) {
 		return x * other.x + y * other.y;
 	}
 
@@ -179,11 +178,11 @@ final class Point2D {
 		return Math.abs(x * other.x) + Math.abs(y * other.y);
 	}
 
-	double crossProduct(Point2D other) {
+	public double crossProduct(Point2D other) {
 		return x * other.y - y * other.x;
 	}
 
-	void rotateDirect(double Cos, double Sin) // corresponds to the
+	public void rotateDirect(double Cos, double Sin) // corresponds to the
 												// Transformation2D.SetRotate(cos,
 												// sin).Transform(pt)
 	{
@@ -193,7 +192,7 @@ final class Point2D {
 		y = yy;
 	}
 
-	void rotateReverse(double Cos, double Sin) {
+	public void rotateReverse(double Cos, double Sin) {
 		double xx = x * Cos + y * Sin;
 		double yy = -x * Sin + y * Cos;
 		x = xx;
@@ -204,7 +203,7 @@ final class Point2D {
 	 * 90 degree rotation, anticlockwise. Equivalent to RotateDirect(cos(pi/2),
 	 * sin(pi/2)).
 	 */
-	void leftPerpendicular() {
+	public void leftPerpendicular() {
 		double xx = x;
 		x = -y;
 		y = xx;
@@ -214,7 +213,7 @@ final class Point2D {
 	 * 90 degree rotation, anticlockwise. Equivalent to RotateDirect(cos(pi/2),
 	 * sin(pi/2)).
 	 */
-	void leftPerpendicular(Point2D pt) {
+	public void leftPerpendicular(Point2D pt) {
 		x = -pt.y;
 		y = pt.x;
 	}
@@ -223,7 +222,7 @@ final class Point2D {
 	 * 270 degree rotation, anticlockwise. Equivalent to
 	 * RotateDirect(-cos(pi/2), sin(-pi/2)).
 	 */
-	void rightPerpendicular() {
+	public void rightPerpendicular() {
 		double xx = x;
 		x = y;
 		y = -xx;
@@ -233,7 +232,7 @@ final class Point2D {
 	 * 270 degree rotation, anticlockwise. Equivalent to
 	 * RotateDirect(-cos(pi/2), sin(-pi/2)).
 	 */
-	void rightPerpendicular(Point2D pt) {
+	public void rightPerpendicular(Point2D pt) {
 		x = pt.y;
 		y = -pt.x;
 	}
@@ -300,21 +299,11 @@ final class Point2D {
 		}
 	}
 
-	// Header definitions
-
-	// public Point2D mul(double factor) {
-	// return new Point2D(x * factor, y * factor);
-	// }
-
 	public static double sqrDistance(Point2D pt1, Point2D pt2) {
 		double dx = pt1.x - pt2.x;
 		double dy = pt1.y - pt2.y;
 		return dx * dx + dy * dy;
 	}
-
-	// Header definitions
-
-	// Cpp definitions
 
 	@Override
 	public String toString() {
@@ -383,7 +372,7 @@ final class Point2D {
 	 * for counter-clockwise, -1 for clockwise, and 0 for collinear. May use
 	 * high precision arithmetics for some special degenerate cases.
 	 */
-	static int orientationRobust(Point2D p, Point2D q, Point2D r) {
+	public static int orientationRobust(Point2D p, Point2D q, Point2D r) {
 		ECoordinate det_ec = new ECoordinate();
 		det_ec.set(q.x);
 		det_ec.sub(p.x);

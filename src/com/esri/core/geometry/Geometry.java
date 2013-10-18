@@ -158,19 +158,10 @@ public abstract class Geometry implements Serializable {
 		if (src == m_description)
 			return;
 
-		for (int i = Semantics.POSITION; i < Semantics.MAXSEMANTICS; i++) {
-			if (m_description.hasAttribute(i) && (!src.hasAttribute(i)))
-				_beforeDropAttributeImpl(i);
-		}
-
-		VertexDescription olddescription = m_description;
-		m_description = src;
-
-		for (int i = Semantics.POSITION; i < Semantics.MAXSEMANTICS; i++) {
-			if (!olddescription.hasAttribute(i) && src.hasAttribute(i))
-				_afterAddAttributeImpl(i);
-		}
+		_assignVertexDescriptionImpl(src);
 	}
+	
+	 protected abstract void _assignVertexDescriptionImpl(VertexDescription src);
 
 	/**
 	 * Merges the new VertexDescription by adding missing attributes from the
@@ -183,30 +174,11 @@ public abstract class Geometry implements Serializable {
 			return;
 
 		// check if we need to do anything (if the src has same attributes)
-		boolean bNeedAction = false;
-		VertexDescriptionDesignerImpl vdd = null;
-		for (int i = Semantics.POSITION; i < Semantics.MAXSEMANTICS; i++) {
-			if (!m_description.hasAttribute(i) && src.hasAttribute(i)) {
-				if (!bNeedAction) {
-					bNeedAction = true;
-					vdd = new VertexDescriptionDesignerImpl(m_description);
-				}
-
-				vdd.addAttribute(i);
-			}
-		}
-
-		if (!bNeedAction)
+		VertexDescription newdescription = VertexDescriptionDesignerImpl.getMergedVertexDescription(m_description, src);
+		if (newdescription == m_description)
 			return;
-
-		VertexDescription olddescription = m_description;
-		m_description = vdd.getDescription();
-		for (int i = Semantics.POSITION; i < Semantics.MAXSEMANTICS; i++) {
-			if (!olddescription.hasAttribute(i)
-					&& m_description.hasAttribute(i)) {
-				_afterAddAttributeImpl(i);
-			}
-		}
+		
+		_assignVertexDescriptionImpl(newdescription);
 	}
 
 	/**
@@ -225,16 +197,9 @@ public abstract class Geometry implements Serializable {
 		_touch();
 		if (m_description.hasAttribute(semantics))
 			return;
-
-		// Create a designer instance out of existing description.
-		VertexDescriptionDesignerImpl vdd = new VertexDescriptionDesignerImpl(
-				m_description);
-		// Add the attribute to the description designer.
-		vdd.addAttribute(semantics);
-		// Obtain new description.
-		m_description = vdd.getDescription();
-		// Let it be known we have added the attribute.
-		_afterAddAttributeImpl(semantics);
+		
+		VertexDescription newvd = VertexDescriptionDesignerImpl.getMergedVertexDescription(m_description, semantics);
+		_assignVertexDescriptionImpl(newvd);
 	}
 
 	/**
@@ -248,15 +213,8 @@ public abstract class Geometry implements Serializable {
 		if (!m_description.hasAttribute(semantics))
 			return;
 
-		// Create a designer instance out of existing description.
-		VertexDescriptionDesignerImpl vdd = new VertexDescriptionDesignerImpl(
-				m_description);
-		// Remove the attribute from the description designer.
-		vdd.removeAttribute(semantics);
-		// Let know we are dropping the attribute.
-		_beforeDropAttributeImpl(semantics);
-		// Obtain new description.
-		m_description = vdd.getDescription();
+		VertexDescription newvd = VertexDescriptionDesignerImpl.removeSemanticsFromVertexDescription(m_description, semantics);
+		_assignVertexDescriptionImpl(newvd);
 	}
 
 	/**
@@ -382,18 +340,6 @@ public abstract class Geometry implements Serializable {
 	public double calculateLength2D() {
 		return 0;
 	}
-
-	/*
-	 * Called before the new description pointer is set. Caller is supposed to
-	 * get rid of the Geometry attribute value.
-	 */
-	abstract void _beforeDropAttributeImpl(int semantics);
-
-	/*
-	 * Called after the new description pointer is set. Caller is supposed to
-	 * add the Geometry attribute value.
-	 */
-	abstract void _afterAddAttributeImpl(int semantics);
 
 	protected Object _getImpl() {
 		throw new RuntimeException("invalid call");

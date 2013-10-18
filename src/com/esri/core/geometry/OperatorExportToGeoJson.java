@@ -33,7 +33,7 @@ public abstract class OperatorExportToGeoJson extends Operator {
         return Type.ExportToGeoJson;
     }
 
-    abstract JsonCursor execute(SpatialReference spatialReference, GeometryCursor geometryCursor);
+    public abstract JsonCursor execute(SpatialReference spatialReference, GeometryCursor geometryCursor);
 
     public abstract String execute(SpatialReference spatialReference, Geometry geometry);
 

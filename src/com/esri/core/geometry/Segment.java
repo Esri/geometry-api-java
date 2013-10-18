@@ -439,7 +439,7 @@ public abstract class Segment extends Geometry implements Serializable {
 		}
 
 		if (m_description.hasZ())
-			pt.z = m_attributes[_getEndPointOffset(endPoint)];
+			pt.z = m_attributes[_getEndPointOffset(m_description, endPoint)];
 		else
 			pt.z = VertexDescription.getDefaultValue(Semantics.Z);
 
@@ -472,67 +472,57 @@ public abstract class Segment extends Geometry implements Serializable {
 		}
 
 		if (bHasZ)
-			m_attributes[_getEndPointOffset(endPoint)] = pt.z;
+			m_attributes[_getEndPointOffset(m_description, endPoint)] = pt.z;
 
 	}
 
 	@Override
-	void _beforeDropAttributeImpl(int semantics) {
-		_touch();
-		if (isEmptyImpl())
+	protected void _assignVertexDescriptionImpl(VertexDescription newDescription) {
+		if (m_attributes == null) {
+			m_description = newDescription;
 			return;
-
-		// _ASSERT(semantics != enum_value2(VertexDescription, Semantics,
-		// POSITION));
-		int attributeIndex = m_description.getAttributeIndex(semantics);
-		int offset = m_description._getPointAttributeOffset(attributeIndex) - 2;
-		int comps = VertexDescription.getComponentCount(semantics);
-		int totalCompsOld = m_description._getTotalComponents() - 2;
-		if (totalCompsOld > comps) {
-			int offset0 = _getEndPointOffset(0);
-			for (int i = offset + comps; i < totalCompsOld * 2; i++)
-				m_attributes[offset0 + i - comps] = m_attributes[offset0 + i];
-
-			int offset1 = _getEndPointOffset(1) - comps; // -comp is for deleted
-															// attribute of
-															// start vertex
-			for (int i = offset + comps; i < totalCompsOld; i++)
-				m_attributes[offset1 + i - comps] = m_attributes[offset1 + i];
 		}
-	}
+		
+		int[] mapping = VertexDescriptionDesignerImpl.mapAttributes(newDescription, m_description);
+		
+		double[] newAttributes = new double[(newDescription._getTotalComponents() - 2) * 2];
+		
+		int old_offset0 = _getEndPointOffset(m_description, 0);
+		int old_offset1 = _getEndPointOffset(m_description, 1);
 
-	@Override
-	void _afterAddAttributeImpl(int semantics) {
-		_touch();
-		int attributeIndex = m_description.getAttributeIndex(semantics);
-		int offset = m_description._getPointAttributeOffset(attributeIndex) - 2;
-		int comps = VertexDescription.getComponentCount(semantics);
-		int totalComps = m_description._getTotalComponents() - 2;
-		_resizeAttributes(totalComps);
-		int totalCompsOld = totalComps - comps; // the total number of
-												// components before resize.
-
-		int offset0 = _getEndPointOffset(0);
-		int offset1 = _getEndPointOffset(1);
-		int offset1old = offset1 - comps;
-		for (int i = totalCompsOld - 1; i >= 0; i--) {// correct the position of
-														// the End attributes
-			m_attributes[offset1 + i] = m_attributes[offset1old + i];
+		int new_offset0 = _getEndPointOffset(newDescription, 0);
+		int new_offset1 = _getEndPointOffset(newDescription, 1);
+		
+		int j = 0;
+		for (int i = 1, n = newDescription.getAttributeCount(); i < n; i++) {
+			int semantics = newDescription.getSemantics(i);
+			int nords = VertexDescription.getComponentCount(semantics);
+			if (mapping[i] == -1)
+			{
+				double d = VertexDescription.getDefaultValue(semantics);
+				for (int ord = 0; ord < nords; ord++)
+				{
+					newAttributes[new_offset0 + j] = d;
+					newAttributes[new_offset1 + j] = d;
+					j++;
+				}
+			}
+			else {
+				int m = mapping[i];
+				int offset = m_description._getPointAttributeOffset(m) - 2;
+				for (int ord = 0; ord < nords; ord++)
+				{
+					newAttributes[new_offset0 + j] = m_attributes[old_offset0 + offset];
+					newAttributes[new_offset1 + j] = m_attributes[old_offset1 + offset];
+					j++;
+					offset++;
+				}
+			}
+				 
 		}
-
-		// move attributes for start end end points that go after the insertion
-		// point
-		for (int i = totalComps - 1; i >= offset + comps; i--) {
-			m_attributes[offset0 + i] = m_attributes[offset0 + i - comps];
-			m_attributes[offset1 + i] = m_attributes[offset1 + i - comps];
-		}
-
-		// initialize added attribute to the default value.
-		double dv = VertexDescription.getDefaultValue(semantics);
-		for (int i = 0; i < comps; i++) {
-			m_attributes[offset0 + offset + i] = dv;
-			m_attributes[offset1 + offset + i] = dv;
-		}
+		
+		m_attributes = newAttributes;
+		m_description = newDescription;
 	}
 
 	private void _get(int endPoint, Point outPoint) {
@@ -595,7 +585,7 @@ public abstract class Segment extends Geometry implements Serializable {
 			if (m_attributes != null)
 				_resizeAttributes(m_description._getTotalComponents() - 2);
 
-			return m_attributes[_getEndPointOffset(endPoint)
+			return m_attributes[_getEndPointOffset(m_description, endPoint)
 					+ m_description._getPointAttributeOffset(attributeIndex)
 					- 2 + ordinate];
 		} else
@@ -622,11 +612,12 @@ public abstract class Segment extends Geometry implements Serializable {
 		}
 
 		if (semantics == Semantics.POSITION) {
-			if (endPoint != 0)
+			if (endPoint != 0) {
 				if (ordinate != 0)
 					m_yEnd = value;
 				else
 					m_xEnd = value;
+			}
 			else if (ordinate != 0)
 				m_yStart = value;
 			else
@@ -634,10 +625,10 @@ public abstract class Segment extends Geometry implements Serializable {
 			return;
 		}
 
-		if (m_attributes != null)
+		if (m_attributes == null)
 			_resizeAttributes(m_description._getTotalComponents() - 2);
 
-		m_attributes[_getEndPointOffset(endPoint)
+		m_attributes[_getEndPointOffset(m_description, endPoint)
 				+ m_description._getPointAttributeOffset(attributeIndex) - 2
 				+ ordinate] = value;
 
@@ -786,8 +777,8 @@ public abstract class Segment extends Geometry implements Serializable {
 	 */
 	abstract double _calculateArea2DHelper(double xorg, double yorg);
 
-	int _getEndPointOffset(int endPoint) {
-		return endPoint * (m_description._getTotalComponents() - 2);
+	static int _getEndPointOffset(VertexDescription vd, int endPoint) {
+		return endPoint * (vd._getTotalComponents() - 2);
 	}
 
 	/**

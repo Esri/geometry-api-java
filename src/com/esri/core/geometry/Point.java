@@ -364,41 +364,44 @@ public final class Point extends Geometry implements Serializable {
 	}
 
 	@Override
-	void _afterAddAttributeImpl(int semantics) {
-		_touch();
-		if (m_attributes == null)
+	protected void _assignVertexDescriptionImpl(VertexDescription newDescription) {
+		if (m_attributes == null) {
+			m_description = newDescription;
 			return;
-
-		int attributeIndex = m_description.getAttributeIndex(semantics);
-		int offset = m_description._getPointAttributeOffset(attributeIndex);
-		int comps = VertexDescription.getComponentCount(semantics);
-		int totalComps = m_description._getTotalComponents();
-		resizeAttributes(totalComps);
-
-		for (int i = totalComps - 1; i >= offset + comps; i--)
-			m_attributes[i] = m_attributes[i - comps];
-
-		double dv = VertexDescription.getDefaultValue(semantics);
-		for (int i = 0; i < comps; i++)
-			m_attributes[offset + i] = dv;
-	}
-
-	@Override
-	void _beforeDropAttributeImpl(int semantics) {
-		_touch();
-		if (m_attributes == null)
-			return;
-
-		// _ASSERT(semantics != enum_value2(VertexDescription, Semantics,
-		// POSITION));
-		int attributeIndex = m_description.getAttributeIndex(semantics);
-		int offset = m_description._getPointAttributeOffset(attributeIndex);
-		int comps = VertexDescription.getComponentCount(semantics);
-		int totalCompsOld = m_description._getTotalComponents();
-		if (totalCompsOld > comps) {
-			for (int i = offset + comps; i < totalCompsOld; i++)
-				m_attributes[i - comps] = m_attributes[i];
 		}
+		
+		int[] mapping = VertexDescriptionDesignerImpl.mapAttributes(newDescription, m_description);
+		
+		double[] newAttributes = new double[newDescription._getTotalComponents()];
+		
+		int j = 0;
+		for (int i = 0, n = newDescription.getAttributeCount(); i < n; i++) {
+			int semantics = newDescription.getSemantics(i);
+			int nords = VertexDescription.getComponentCount(semantics);
+			if (mapping[i] == -1)
+			{
+				double d = VertexDescription.getDefaultValue(semantics);
+				for (int ord = 0; ord < nords; ord++)
+				{
+					newAttributes[j] = d;
+					j++;
+				}
+			}
+			else {
+				int m = mapping[i];
+				int offset = m_description._getPointAttributeOffset(m);
+				for (int ord = 0; ord < nords; ord++)
+				{
+					newAttributes[j] = m_attributes[offset];
+					j++;
+					offset++;
+				}
+			}
+				 
+		}
+		
+		m_attributes = newAttributes;
+		m_description = newDescription;
 	}
 
 	/**
@@ -531,8 +534,8 @@ public final class Point extends Geometry implements Serializable {
 	}
 
 	static void attributeCopy(double[] src, double[] dst, int count) {
-		for (int i = 0; i < count; i++)
-			dst[i] = src[i];
+		if (count > 0)
+			System.arraycopy(src, 0, dst, 0, count);
 	}
 
 	/**

@@ -483,18 +483,7 @@ class OperatorIntersectionCursor extends GeometryCursor {
 			polygonQuadTree = accel.getQuadTree();
 
 		if (polygonQuadTree == null && polygonImpl.getPointCount() > 20) {
-			Envelope2D env = new Envelope2D();
-			polygon.queryEnvelope2D(env);
-			QuadTreeImpl polygonQuadTreeNew = new QuadTreeImpl(env, 8);
-			while (polygonIter.nextPath()) {
-				while (polygonIter.hasNextSegment()) {
-					Segment seg = polygonIter.nextSegment();
-					seg.queryEnvelope2D(env);
-					polygonQuadTreeNew.insert(polygonIter.getStartPointIndex(),
-							env);
-				}
-			}
-			polygonQuadTree = polygonQuadTreeNew;
+			polygonQuadTree = InternalUtils.buildQuadTree(polygonImpl);
 		}
 
 		Polyline result_polyline = (Polyline) polyline.createInstance();

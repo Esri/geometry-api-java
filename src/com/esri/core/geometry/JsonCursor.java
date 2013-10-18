@@ -26,7 +26,7 @@ package com.esri.core.geometry;
 /**
  * An abstract Json String Cursor class.
  */
-abstract class JsonCursor {
+public abstract class JsonCursor {
 
 	/**
 	 * Moves the cursor to the next string. Returns null when reached the end.

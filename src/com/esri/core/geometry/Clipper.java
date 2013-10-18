@@ -592,7 +592,7 @@ class Clipper {
 			} while (vertex != first_vertex);
 		}
 	}
-
+	
 	void splitSegments_(boolean b_axis_x, double clip_value) {
 		// After the clipping, we could have produced unwanted segment overlaps
 		// along the clipping envelope boundary.
@@ -630,12 +630,8 @@ class Clipper {
 			return;
 		}
 
-		// SORTDYNAMICARRAYEX(&sorted_vertices, int, 0, sorted_vertices.size(),
-		// Clipper_vertex_comparer, this);
 		sorted_vertices.Sort(0, sorted_vertices.size(),
 				new ClipperVertexComparer(this));
-		// std::sort(sorted_vertices.get_ptr(), sorted_vertices.get_ptr() +
-		// sorted_vertices.size(), Clipper_vertex_comparer(this));
 
 		Point2D pt_tmp = new Point2D(); // forward declare for java port
 										// optimization
@@ -653,119 +649,123 @@ class Clipper {
 			int vert = sorted_vertices.get(index);
 			m_shape.getXY(vert, pt);
 			if (!pt.isEqual(pt_0)) {
-				if (index_0 != -1) {
-					// add new intervals, that started at pt_0
-					for (int i = index_0; i < index; i++) {
-						int v = sorted_vertices.get(i);
-						int nextv = m_shape.getNextVertex(v);
-						int prevv = m_shape.getPrevVertex(v);
-						boolean bAdded = false;
-						if (compareVertices_(v, nextv) < 0) {
-							m_shape.getXY(nextv, pt_tmp);
-							if (b_axis_x ? pt_tmp.y == clip_value
-									: pt_tmp.x == clip_value) {
-								active_intervals.add(v);
-								bAdded = true;
-								m_shape.setUserIndex(v, node2, 1);
-							}
-						}
-						if (compareVertices_(v, prevv) < 0) {
-							m_shape.getXY(prevv, pt_tmp);
-							if (b_axis_x ? pt_tmp.y == clip_value
-									: pt_tmp.x == clip_value) {
-								if (!bAdded)
-									active_intervals.add(v);
-								m_shape.setUserIndex(v, node1, 1);
-							}
-						}
-					}
-
-					// Split all active intervals at new point
-					for (int ia = 0, na = active_intervals.size(); ia < na; ia++) {
-						int v = active_intervals.get(ia);
-						int n_1 = m_shape.getUserIndex(v, node1);
-						int n_2 = m_shape.getUserIndex(v, node2);
-						if (n_1 == 1) {
-							int prevv = m_shape.getPrevVertex(v);
-							m_shape.getXY(prevv, pt_1);
-							double[] t = new double[1];
-							t[0] = 0;
-							if (!pt_1.isEqual(pt)) {// Split the active segment
-								double active_segment_length = Point2D
-										.distance(pt_0, pt_1);
-								t[0] = Point2D.distance(pt_1, pt)
-										/ active_segment_length;
-								assert (t[0] >= 0 && t[0] <= 1.0);
-								if (t[0] == 0)
-									t[0] = NumberUtils.doubleEps();// some
-																	// roundoff
-																	// issue.
-																	// split
-																	// anyway.
-								else if (t[0] == 1.0) {
-									t[0] = 1.0 - NumberUtils.doubleEps();// some
-																			// roundoff
-																			// issue.
-																			// split
-																			// anyway.
-									assert (t[0] != 1.0);
-								}
-
-								int split_count = m_shape.splitSegment(prevv,
-										t, 1);
-								assert (split_count > 0);
-								int v_1 = m_shape.getPrevVertex(v);
-								m_shape.setXY(v_1, pt);
-								new_active_intervals.add(v_1);
-								m_shape.setUserIndex(v_1, node1, 1);
-								m_shape.setUserIndex(v_1, node2, -1);
-							} else {
-								// The active segment ends at the current point.
-								// We skip it, and it goes away.
-							}
-						}
-						if (n_2 == 1) {
-							int nextv = m_shape.getNextVertex(v);
-							m_shape.getXY(nextv, pt_1);
-							double[] t = new double[1];
-							t[0] = 0;
-							if (!pt_1.isEqual(pt)) {
-								double active_segment_length = Point2D
-										.distance(pt_0, pt_1);
-								t[0] = Point2D.distance(pt_0, pt)
-										/ active_segment_length;
-								assert (t[0] >= 0 && t[0] <= 1.0);
-								if (t[0] == 0)
-									t[0] = NumberUtils.doubleEps();// some
-																	// roundoff
-																	// issue.
-																	// split
-																	// anyway.
-								else if (t[0] == 1.0) {
-									t[0] = 1.0 - NumberUtils.doubleEps();// some
-																			// roundoff
-																			// issue.
-																			// split
-																			// anyway.
-									assert (t[0] != 1.0);
-								}
-
-								int split_count = m_shape.splitSegment(v, t, 1);
-								assert (split_count > 0);
-								int v_1 = m_shape.getNextVertex(v);
-								m_shape.setXY(v_1, pt);
-								new_active_intervals.add(v_1);
-								m_shape.setUserIndex(v_1, node1, -1);
-								m_shape.setUserIndex(v_1, node2, 1);
-							}
-						}
-					}
-
-					AttributeStreamOfInt32 tmp = active_intervals;
-					active_intervals = new_active_intervals;
-					new_active_intervals = tmp;
-					new_active_intervals.clear(false);
+				if (index_0 == -1) {
+					index_0 = index;
+					pt_0.setCoords(pt);
+					continue;
 				}
+		          
+				// add new intervals, that started at pt_0
+				for (int i = index_0; i < index; i++) {
+					int v = sorted_vertices.get(i);
+					int nextv = m_shape.getNextVertex(v);
+					int prevv = m_shape.getPrevVertex(v);
+					boolean bAdded = false;
+					if (compareVertices_(v, nextv) < 0) {
+						m_shape.getXY(nextv, pt_tmp);
+						if (b_axis_x ? pt_tmp.y == clip_value
+								: pt_tmp.x == clip_value) {
+							active_intervals.add(v);
+							bAdded = true;
+							m_shape.setUserIndex(v, node2, 1);
+						}
+					}
+					if (compareVertices_(v, prevv) < 0) {
+						m_shape.getXY(prevv, pt_tmp);
+						if (b_axis_x ? pt_tmp.y == clip_value
+								: pt_tmp.x == clip_value) {
+							if (!bAdded)
+								active_intervals.add(v);
+							m_shape.setUserIndex(v, node1, 1);
+						}
+					}
+				}
+
+				// Split all active intervals at new point
+				for (int ia = 0, na = active_intervals.size(); ia < na; ia++) {
+					int v = active_intervals.get(ia);
+					int n_1 = m_shape.getUserIndex(v, node1);
+					int n_2 = m_shape.getUserIndex(v, node2);
+					if (n_1 == 1) {
+						int prevv = m_shape.getPrevVertex(v);
+						m_shape.getXY(prevv, pt_1);
+						double[] t = new double[1];
+						t[0] = 0;
+						if (!pt_1.isEqual(pt)) {// Split the active segment
+							double active_segment_length = Point2D
+									.distance(pt_0, pt_1);
+							t[0] = Point2D.distance(pt_1, pt)
+									/ active_segment_length;
+							assert (t[0] >= 0 && t[0] <= 1.0);
+							if (t[0] == 0)
+								t[0] = NumberUtils.doubleEps();// some
+																// roundoff
+																// issue.
+																// split
+																// anyway.
+							else if (t[0] == 1.0) {
+								t[0] = 1.0 - NumberUtils.doubleEps();// some
+																		// roundoff
+																		// issue.
+																		// split
+																		// anyway.
+								assert (t[0] != 1.0);
+							}
+
+							int split_count = m_shape.splitSegment(prevv,
+									t, 1);
+							assert (split_count > 0);
+							int v_1 = m_shape.getPrevVertex(v);
+							m_shape.setXY(v_1, pt);
+							new_active_intervals.add(v_1);
+							m_shape.setUserIndex(v_1, node1, 1);
+							m_shape.setUserIndex(v_1, node2, -1);
+						} else {
+							// The active segment ends at the current point.
+							// We skip it, and it goes away.
+						}
+					}
+					if (n_2 == 1) {
+						int nextv = m_shape.getNextVertex(v);
+						m_shape.getXY(nextv, pt_1);
+						double[] t = new double[1];
+						t[0] = 0;
+						if (!pt_1.isEqual(pt)) {
+							double active_segment_length = Point2D
+									.distance(pt_0, pt_1);
+							t[0] = Point2D.distance(pt_0, pt)
+									/ active_segment_length;
+							assert (t[0] >= 0 && t[0] <= 1.0);
+							if (t[0] == 0)
+								t[0] = NumberUtils.doubleEps();// some
+																// roundoff
+																// issue.
+																// split
+																// anyway.
+							else if (t[0] == 1.0) {
+								t[0] = 1.0 - NumberUtils.doubleEps();// some
+																		// roundoff
+																		// issue.
+																		// split
+																		// anyway.
+								assert (t[0] != 1.0);
+							}
+
+							int split_count = m_shape.splitSegment(v, t, 1);
+							assert (split_count > 0);
+							int v_1 = m_shape.getNextVertex(v);
+							m_shape.setXY(v_1, pt);
+							new_active_intervals.add(v_1);
+							m_shape.setUserIndex(v_1, node1, -1);
+							m_shape.setUserIndex(v_1, node2, 1);
+						}
+					}
+				}
+
+				AttributeStreamOfInt32 tmp = active_intervals;
+				active_intervals = new_active_intervals;
+				new_active_intervals = tmp;
+				new_active_intervals.clear(false);
 
 				index_0 = index;
 				pt_0.setCoords(pt);

@@ -29,6 +29,7 @@ import java.io.Serializable;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
 
+import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.SpatialReferenceSerializer;
 import com.esri.core.geometry.VertexDescription;
 
@@ -87,48 +88,87 @@ public abstract class SpatialReference implements Serializable {
 	 *             if parsing has failed
 	 */
 	public static SpatialReference fromJson(JsonParser parser) throws Exception {
-		int wkid = 0;
-		String wkt = null;
-		if (!JSONUtils.isObjectStart(parser))
-			return null;
-
-		while (parser.nextToken() != JsonToken.END_OBJECT) {
-			String fieldName = parser.getCurrentName();
-			parser.nextToken();
-			if (parser.getCurrentToken() == JsonToken.VALUE_NULL) {
-				continue;
-			}
-
-			if ("latestWkid".equals(fieldName)) {// get wkid
-				wkid = parser.getIntValue();
-			} else if ("wkid".equals(fieldName)) {// get wkid
-				wkid = parser.getIntValue();
-			} else if ("wkt".equals(fieldName)) {
-				wkt = parser.getText();
-			} else {
-				parser.skipChildren();
-			}
-		}
-		// END _OBJECT
-
-		if (wkid > 0) // 1. Try to use wkid
-		{
-			try {
-				return SpatialReference.create(wkid);
-			} catch (IllegalArgumentException ex) {
-				// if (wkt == null || wkt.length() == 0) //Here this will be our
-				// default.
-				// throw ex;
-			}
-		}
-
-		if (wkt != null && wkt.length() != 0) // try to use wkt.
-		{
-			return SpatialReference.create(wkt);
-		}
-
-		return null;
+		return fromJson(new JsonParserReader(parser));
 	}
+	
+	static SpatialReference fromJson(JsonReader parser) throws Exception {
+		// Note this class is processed specially: it is expected that the
+		// iterator points to the first element of the SR object.
+		boolean bFoundWkid = false;
+		boolean bFoundLatestWkid = false;
+		boolean bFoundVcsWkid = false;
+		boolean bFoundLatestVcsWkid = false;
+		boolean bFoundWkt = false;
+
+		int wkid = -1;
+		int latestWkid = -1;
+		int vcs_wkid = -1;
+		int latestVcsWkid = -1;
+		String wkt = null;
+		while (parser.nextToken() != JsonToken.END_OBJECT) {
+			String name = parser.currentString();
+			parser.nextToken();
+
+			if (!bFoundWkid && name.equals("wkid")) {
+				bFoundWkid = true;
+
+				if (parser.currentToken() == JsonToken.VALUE_NUMBER_INT)
+					wkid = parser.currentIntValue();
+			} else if (!bFoundLatestWkid && name.equals("latestWkid")) {
+				bFoundLatestWkid = true;
+
+				if (parser.currentToken() == JsonToken.VALUE_NUMBER_INT)
+					latestWkid = parser.currentIntValue();
+			} else if (!bFoundWkt && name.equals("wkt")) {
+				bFoundWkt = true;
+
+				if (parser.currentToken() == JsonToken.VALUE_STRING)
+					wkt = parser.currentString();
+			} else if (!bFoundVcsWkid && name.equals("vcsWkid")) {
+				bFoundVcsWkid = true;
+
+				if (parser.currentToken() == JsonToken.VALUE_NUMBER_INT)
+					vcs_wkid = parser.currentIntValue();
+			} else if (!bFoundLatestVcsWkid && name.equals("latestVcsWkid")) {
+				bFoundLatestVcsWkid = true;
+
+				if (parser.currentToken() == JsonToken.VALUE_NUMBER_INT)
+					latestVcsWkid = parser.currentIntValue();
+			}
+		}
+
+		if (latestVcsWkid <= 0 && vcs_wkid > 0) {
+			latestVcsWkid = vcs_wkid;
+		}
+
+		// iter.step_out_after(); do not step out for the spatial reference,
+		// because this method is used standalone
+
+		SpatialReference spatial_reference = null;
+
+		if (wkt != null && wkt.length() != 0) {
+			try {
+				spatial_reference = SpatialReference.create(wkt);
+			} catch (Exception e) {
+			}
+		}
+
+		if (spatial_reference == null && latestWkid > 0) {
+			try {
+				spatial_reference = SpatialReference.create(latestWkid);
+			} catch (Exception e) {
+			}
+		}
+
+		if (spatial_reference == null && wkid > 0) {
+			try {
+				spatial_reference = SpatialReference.create(wkid);
+			} catch (Exception e) {
+			}
+		}
+
+		return spatial_reference;
+	}	
 
 	/**
 	 * Returns the well known ID for the horizontal coordinate system of the
