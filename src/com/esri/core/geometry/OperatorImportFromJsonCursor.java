@@ -26,7 +26,6 @@ package com.esri.core.geometry;
 
 import com.esri.core.geometry.MultiVertexGeometryImpl.DirtyFlags;
 import com.esri.core.geometry.VertexDescription.Semantics;
-import java.io.IOException;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
@@ -57,12 +56,12 @@ class OperatorImportFromJsonCursor extends MapGeometryCursor {
 		JsonParser jsonParser;
 		if ((jsonParser = m_inputJsonParsers.next()) != null) {
 			m_index = m_inputJsonParsers.getID();
-			return importFromJsonParser(m_type, jsonParser);
+			return importFromJsonParser(m_type, new JsonParserReader(jsonParser));
 		}
 		return null;
 	}
 
-	private static MapGeometry importFromJsonParser(int gt, JsonParser parser) {
+	static MapGeometry importFromJsonParser(int gt, JsonReader parser) {
 		MapGeometry mp;
 
 		try {
@@ -110,25 +109,25 @@ class OperatorImportFromJsonCursor extends MapGeometryCursor {
 			SpatialReference spatial_reference = null;
 
 			while (parser.nextToken() != JsonToken.END_OBJECT) {
-				String name = parser.getCurrentName();
+				String name = parser.currentString();
 				parser.nextToken();
 
 				if (!bFoundSpatial_reference && name.equals("spatialReference")) {
 					bFoundSpatial_reference = true;
 
-					if (parser.getCurrentToken() == JsonToken.START_OBJECT) {
+					if (parser.currentToken() == JsonToken.START_OBJECT) {
 						spatial_reference = SpatialReference.fromJson(parser);
 					} else {
-						if (parser.getCurrentToken() != JsonToken.VALUE_NULL)
+						if (parser.currentToken() != JsonToken.VALUE_NULL)
 							throw new GeometryException(
 									"failed to parse spatial reference: object or null is expected");
 					}
 				} else if (!bFoundHasZ && name.equals("hasZ")) {
 					bFoundHasZ = true;
-					bHasZ = (parser.getCurrentToken() == JsonToken.VALUE_TRUE);
+					bHasZ = (parser.currentToken() == JsonToken.VALUE_TRUE);
 				} else if (!bFoundHasM && name.equals("hasM")) {
 					bFoundHasM = true;
-					bHasM = (parser.getCurrentToken() == JsonToken.VALUE_TRUE);
+					bHasM = (parser.currentToken() == JsonToken.VALUE_TRUE);
 				} else if (!bFoundPolygon
 						&& name.equals("rings")
 						&& (gt == Geometry.GeometryType.Unknown || gt == Geometry.GeometryType.Polygon)) {
@@ -279,55 +278,55 @@ class OperatorImportFromJsonCursor extends MapGeometryCursor {
 		return mp;
 	}
 
-	public static MapGeometry fromJsonToUnknown(JsonParser parser)
+	public static MapGeometry fromJsonToUnknown(JsonReader parser)
 			throws Exception {
 
 		return importFromJsonParser(Geometry.GeometryType.Unknown, parser);
 	}
 
-	public static MapGeometry fromJsonToEnvelope(JsonParser parser)
+	public static MapGeometry fromJsonToEnvelope(JsonReader parser)
 			throws Exception {
 		return importFromJsonParser(Geometry.GeometryType.Envelope, parser);
 	}
 
-	public static MapGeometry fromJsonToPoint(JsonParser parser)
+	public static MapGeometry fromJsonToPoint(JsonReader parser)
 			throws Exception {
 		return importFromJsonParser(Geometry.GeometryType.Point, parser);
 	}
 
-	public static MapGeometry fromJsonToPolygon(JsonParser parser)
+	public static MapGeometry fromJsonToPolygon(JsonReader parser)
 			throws Exception {
 		return importFromJsonParser(Geometry.GeometryType.Polygon, parser);
 	}
 
-	public static MapGeometry fromJsonToPolyline(JsonParser parser)
+	public static MapGeometry fromJsonToPolyline(JsonReader parser)
 			throws Exception {
 		return importFromJsonParser(Geometry.GeometryType.Polyline, parser);
 	}
 
-	public static MapGeometry fromJsonToMultiPoint(JsonParser parser)
+	public static MapGeometry fromJsonToMultiPoint(JsonReader parser)
 			throws Exception {
 		return importFromJsonParser(Geometry.GeometryType.MultiPoint, parser);
 	}
 
-	private static void windup(JsonParser parser) throws IOException,
+	private static void windup(JsonReader parser) throws Exception,
 			JsonParseException {
 		parser.skipChildren();
 	}
 
-	private static double readDouble(JsonParser parser) throws IOException,
+	private static double readDouble(JsonReader parser) throws Exception,
 			JsonParseException {
-		if (parser.getCurrentToken() == JsonToken.VALUE_NULL
-				|| parser.getCurrentToken() == JsonToken.VALUE_STRING
-				&& parser.getCurrentName().equals("NaN"))
+		if (parser.currentToken() == JsonToken.VALUE_NULL
+				|| parser.currentToken() == JsonToken.VALUE_STRING
+				&& parser.currentString().equals("NaN"))
 			return NumberUtils.NaN();
 		else
-			return parser.getValueAsDouble();
+			return parser.currentDoubleValue();
 	}
 
-	private static Geometry importFromJsonMultiPoint(JsonParser parser,
+	private static Geometry importFromJsonMultiPoint(JsonReader parser,
 			AttributeStreamOfDbl as, AttributeStreamOfDbl bs) throws Exception {
-		if (parser.getCurrentToken() != JsonToken.START_ARRAY)
+		if (parser.currentToken() != JsonToken.START_ARRAY)
 			throw new GeometryException(
 					"failed to parse multipoint: array of vertices is expected");
 
@@ -343,7 +342,7 @@ class OperatorImportFromJsonCursor extends MapGeometryCursor {
 		int sz;
 		double[] buf = new double[4];
 		while (parser.nextToken() != JsonToken.END_ARRAY) {
-			if (parser.getCurrentToken() != JsonToken.START_ARRAY)
+			if (parser.currentToken() != JsonToken.START_ARRAY)
 				throw new GeometryException(
 						"failed to parse multipoint: array is expected, multipoint vertices consist of arrays of cooridinates");
 
@@ -408,9 +407,9 @@ class OperatorImportFromJsonCursor extends MapGeometryCursor {
 	}
 
 	private static Geometry importFromJsonMultiPath(boolean b_polygon,
-			JsonParser parser, AttributeStreamOfDbl as, AttributeStreamOfDbl bs)
+			JsonReader parser, AttributeStreamOfDbl as, AttributeStreamOfDbl bs)
 			throws Exception {
-		if (parser.getCurrentToken() != JsonToken.START_ARRAY)
+		if (parser.currentToken() != JsonToken.START_ARRAY)
 			throw new GeometryException(
 					"failed to parse multipath: array of array of vertices is expected");
 
@@ -439,7 +438,7 @@ class OperatorImportFromJsonCursor extends MapGeometryCursor {
 
 		// At start of rings
 		while (parser.nextToken() != JsonToken.END_ARRAY) {
-			if (parser.getCurrentToken() != JsonToken.START_ARRAY)
+			if (parser.currentToken() != JsonToken.START_ARRAY)
 				throw new GeometryException(
 						"failed to parse multipath: ring/path array is expected");
 
@@ -449,8 +448,8 @@ class OperatorImportFromJsonCursor extends MapGeometryCursor {
 			int szstart = 0;
 
 			parser.nextToken();
-			while (parser.getCurrentToken() != JsonToken.END_ARRAY) {
-				if (parser.getCurrentToken() != JsonToken.START_ARRAY)
+			while (parser.currentToken() != JsonToken.END_ARRAY) {
+				if (parser.currentToken() != JsonToken.START_ARRAY)
 					throw new GeometryException(
 							"failed to parse multipath: array is expected, rings/paths vertices consist of arrays of cooridinates");
 
@@ -524,7 +523,7 @@ class OperatorImportFromJsonCursor extends MapGeometryCursor {
 					point_count++;
 					pathPointCount++;
 				} while (pathPointCount < requiredSize
-						&& parser.getCurrentToken() == JsonToken.END_ARRAY);
+						&& parser.currentToken() == JsonToken.END_ARRAY);
 			}
 
 			if (b_polygon && pathPointCount > requiredSize && sz == szstart

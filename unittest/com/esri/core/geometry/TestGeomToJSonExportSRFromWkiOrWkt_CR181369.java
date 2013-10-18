@@ -76,12 +76,6 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 			String pointEmptyString = GeometryEngine.geometryToJson(
 					spatialReferenceWebMerc1, pointEmpty);
 			pointWebMerc1Parser = factory.createJsonParser(pointEmptyString);
-			// FIXME
-			// pointWebMerc1MP =
-			// GeometryEngine.jsonToGeometry(pointWebMerc1Parser);
-			// assertTrue(pointWebMerc1MP.getGeometry().isEmpty());
-			// assertTrue(spatialReferenceWebMerc1.getID() ==
-			// pointWebMerc1MP.getSpatialReference().getID());
 		}
 
 		JsonParser pointWebMerc2Parser = factory
@@ -138,7 +132,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 			String s = GeometryEngine.geometryToJson(spatialReferenceWebMerc1,
 					p);
 			assertTrue(s
-					.equals("{\"x\":10.0,\"y\":20.0,\"z\":30.0,\"m\":null,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}}"));
+					.equals("{\"x\":10,\"y\":20,\"z\":30,\"m\":null,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}}"));
 		}
 
 		{// import
@@ -198,12 +192,6 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 				bAnswer = false;
 			}
 
-			// FIXME
-			// MultiPoint mPointEmpty = new MultiPoint();
-			// String mPointEmptyString =
-			// GeometryEngine.geometryToJson(spatialReferenceWGS84,
-			// mPointEmpty);
-			// mPointWgs84Parser = factory.createJsonParser(mPointEmptyString);
 		}
 
 		{
@@ -219,7 +207,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 			p.add(20.0, 40.0, 60.0);
 			s = GeometryEngine.geometryToJson(spatialReferenceWebMerc1, p);
 			assertTrue(s
-					.equals("{\"hasZ\":true,\"hasM\":true,\"points\":[[10.0,20.0,30.0,null],[20.0,40.0,60.0,null]],\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}}"));
+					.equals("{\"hasZ\":true,\"hasM\":true,\"points\":[[10,20,30,null],[20,40,60,null]],\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}}"));
 		}
 		{
 			String points = "{\"hasM\" : false, \"hasZ\" : true, \"uncle remus\" : null, \"points\" : [ [0,0,1], [0.0,10.0,1], [10.0,10.0,1], [10.0,0.0,1, 6666] ],\"spatialReference\" : {\"wkid\" : 4326}}";
@@ -315,7 +303,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 			p.setAttribute(VertexDescription.Semantics.M, 1, 0, 5);
 			s = GeometryEngine.geometryToJson(spatialReferenceWebMerc1, p);
 			assertTrue(s
-					.equals("{\"hasZ\":true,\"hasM\":true,\"paths\":[[[0.0,0.0,3.0,null],[0.0,1.0,0.0,5.0]],[[2.0,2.0,0.0,null],[3.0,3.0,0.0,null]]],\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}}"));
+					.equals("{\"hasZ\":true,\"hasM\":true,\"paths\":[[[0,0,3,null],[0,1,0,5]],[[2,2,0,null],[3,3,0,null]]],\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}}"));
 		}
 
 		{
@@ -412,7 +400,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 			p.setAttribute(VertexDescription.Semantics.M, 5, 0, 5);
 			s = GeometryEngine.geometryToJson(spatialReferenceWebMerc1, p);
 			assertTrue(s
-					.equals("{\"hasZ\":true,\"hasM\":true,\"rings\":[[[0.0,0.0,3.0,null],[0.0,1.0,0.0,7.0],[4.0,4.0,0.0,5.0],[0.0,0.0,3.0,null]],[[2.0,2.0,0.0,null],[3.0,3.0,0.0,null],[7.0,8.0,0.0,5.0],[2.0,2.0,0.0,null]]],\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}}"));
+					.equals("{\"hasZ\":true,\"hasM\":true,\"rings\":[[[0,0,3,null],[0,1,0,7],[4,4,0,5],[0,0,3,null]],[[2,2,0,null],[3,3,0,null],[7,8,0,5],[2,2,0,null]]],\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}}"));
 		}
 
 		{
@@ -484,7 +472,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 			e.setInterval(VertexDescription.Semantics.M, 0, m);
 			s = GeometryEngine.geometryToJson(spatialReferenceWebMerc1, e);
 			assertTrue(s
-					.equals("{\"xmin\":0.0,\"ymin\":1.0,\"xmax\":2.0,\"ymax\":3.0,\"zmin\":5.0,\"zmax\":7.0,\"mmin\":11.0,\"mmax\":13.0,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}}"));
+					.equals("{\"xmin\":0,\"ymin\":1,\"xmax\":2,\"ymax\":3,\"zmin\":5,\"zmax\":7,\"mmin\":11,\"mmax\":13,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}}"));
 		}
 
 		{// import

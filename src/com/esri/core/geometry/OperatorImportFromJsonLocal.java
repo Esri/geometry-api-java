@@ -28,6 +28,8 @@ import java.io.IOException;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.JsonParser;
+import org.json.JSONObject;
+import org.json.JSONException;
 
 import com.esri.core.geometry.ogc.OGCGeometry;
 
@@ -55,4 +57,12 @@ class OperatorImportFromJsonLocal extends OperatorImportFromJson {
 		jsonParserPt.nextToken();
 		return execute(type, jsonParserPt);
 	}	
+	@Override
+	public MapGeometry execute(Geometry.Type type, JSONObject jsonObject)
+    throws JSONException, IOException {
+		if (jsonObject == null)
+			return null;
+		
+		return OperatorImportFromJsonCursor.importFromJsonParser(type.value(), new JsonValueReader(jsonObject));
+	}
 }

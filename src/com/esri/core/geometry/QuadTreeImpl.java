@@ -44,7 +44,7 @@ class QuadTreeImpl {
 
 			if (m_query_box.isIntersecting(m_quad_tree.m_extent)) {
 				int type = query.getType().value();
-				m_b_linear = Geometry.isLinear(type);
+				m_b_linear = Geometry.isSegment(type);
 
 				if (m_b_linear) {
 					Segment segment = (Segment) query;

@@ -23,35 +23,46 @@
  */
 package com.esri.core.geometry;
 
+import java.util.Map;
+
 import com.esri.core.geometry.Operator.Type;
 
 /**
- *Export to JSON format.
+ * Export to JSON format.
  */
 public abstract class OperatorExportToJson extends Operator {
-	@Override
-	public Type getType() {
-		return Type.ExportToJson;
-	}
 
-	/**
-	 * Performs the ExportToJson operation
-	 * 
-	 * @return Returns a JsonCursor.
-	 */
-	abstract JsonCursor execute(SpatialReference spatialReference,
-			GeometryCursor geometryCursor);
+    @Override
+    public Type getType() {
+        return Type.ExportToJson;
+    }
 
-	/**
-	 *Performs the ExportToJson operation
-	 *@return Returns a String.
-	 */
-	public abstract String execute(SpatialReference spatialReference,
-			Geometry geometry);
+    /**
+     * Performs the ExportToJson operation
+     *
+     * @return Returns a JsonCursor.
+     */
+    abstract JsonCursor execute(SpatialReference spatialReference,
+            GeometryCursor geometryCursor);
 
-	public static OperatorExportToJson local() {
-		return (OperatorExportToJson) OperatorFactoryLocal.getInstance()
-				.getOperator(Type.ExportToJson);
-	}
+    /**
+     * Performs the ExportToJson operation
+     *
+     * @return Returns a String.
+     */
+    public abstract String execute(SpatialReference spatialReference,
+            Geometry geometry);
 
+    /**
+     * Performs the ExportToJson operation
+     *
+     * @return Returns a String.
+     */
+    public abstract String execute(SpatialReference spatialReference,
+            Geometry geometry, Map<String, Object> exportProperties);
+
+    public static OperatorExportToJson local() {
+        return (OperatorExportToJson) OperatorFactoryLocal.getInstance()
+                .getOperator(Type.ExportToJson);
+    }
 }

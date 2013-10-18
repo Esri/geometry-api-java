@@ -34,6 +34,19 @@ public class TestQuadTree extends TestCase {
 			assertTrue(index == 6 || index == 8 || index == 14);
 			element_handle = qtIter.next();
 		}
+		
+		Envelope2D envelope = new Envelope2D(34, 9, 66, 46);
+		Polygon queryPolygon = new Polygon();
+		queryPolygon.addEnvelope(envelope, true);
+
+			qtIter.resetIterator(queryline, 0.0);
+
+		element_handle = qtIter.next();
+		while (element_handle > 0) {
+			int index = quadtree.getElement(element_handle);
+			assertTrue(index == 6 || index == 8 || index == 14);
+			element_handle = qtIter.next();
+		}
 	}
 
 	@Test
