@@ -36,7 +36,7 @@ import java.util.Comparator;
 public final class Point2D {
 
 	public double x;
-	double y;
+	public double y;
 
 	public Point2D() {
 	}

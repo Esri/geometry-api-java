@@ -2,103 +2,13 @@ package com.esri.core.geometry;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.net.URI;
 import java.util.Scanner;
-
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.UriBuilder;
 
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonParser;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
-import com.sun.jersey.api.representation.Form;
-
 public class GeometryUtils {
-	static WebResource service4Proj;
-	static String url4Proj = "http://sampleserver1.arcgisonline.com/ArcGIS/rest/services/Geometry/GeometryServer/project";
-	static WebResource service4Simplify;
-	static String url4Simplify = "http://sampleserver1.arcgisonline.com/ArcGIS/rest/services/Geometry/GeometryServer/simplify";
-	static WebResource service4Relation;
-	static String url4Relation = "http://sampleserver1.arcgisonline.com/arcgis/rest/services/Geometry/GeometryServer/relation";
-
-	static {
-		ClientConfig config = new DefaultClientConfig();
-		Client client = Client.create(config);
-		service4Proj = client.resource(getBaseURI4Proj());
-		service4Simplify = client.resource(getBaseURI4Simplify());
-		service4Relation = client.resource(url4Relation);
-	}
-
-	private static URI getBaseURI4Proj() {
-		return UriBuilder.fromUri(url4Proj).build();
-	}
-
-	private static URI getBaseURI4Simplify() {
-		return UriBuilder.fromUri(url4Simplify).build();
-	}
-
-	public static Geometry getGeometryForProjectFromRestWS(int srIn, int srOut,
-			Geometry geomIn) {
-		String jsonStr4Geom = GeometryEngine.geometryToJson(srIn, geomIn);
-		String jsonStrNew = "{\"geometryType\":\"" + getGeometryType(geomIn)
-				+ "\",\"geometries\":[" + jsonStr4Geom + "]}";
-
-		Form f = new Form();
-		f.add("inSR", srIn);
-		f.add("outSR", srOut);
-		f.add("geometries", jsonStrNew);
-		f.add("f", "json");
-
-		ClientResponse response = service4Proj.type(
-				MediaType.APPLICATION_FORM_URLENCODED).post(
-				ClientResponse.class, f);
-		@SuppressWarnings("unused")
-		boolean isOK = response.getClientResponseStatus() == ClientResponse.Status.OK;
-		Object obj = response.getEntity(String.class);
-		String jsonStr = obj.toString();
-		int idx2 = jsonStr.lastIndexOf("]");
-		int idx1 = jsonStr.indexOf("[");
-		if (idx1 == -1 || idx2 == -1)
-			return null;
-		String jsonStrGeom = jsonStr.substring(idx1 + 1, idx2);
-		Geometry geometryObj = getGeometryFromJSon(jsonStrGeom);
-		return geometryObj;
-	}
-
-	public static Geometry getGeometryForSimplifyFromRestWS(int sr,
-			Geometry geomIn) {
-		String jsonStr4Geom = GeometryEngine.geometryToJson(
-				SpatialReference.create(sr), geomIn);
-		String jsonStrNew = "{\"geometryType\":\"" + getGeometryType(geomIn)
-				+ "\",\"geometries\":[" + jsonStr4Geom + "]}";
-
-		Form f = new Form();
-		f.add("sr", sr);
-		f.add("geometries", jsonStrNew);
-		f.add("f", "json");
-
-		ClientResponse response = service4Simplify.type(
-				MediaType.APPLICATION_FORM_URLENCODED).post(
-				ClientResponse.class, f);
-		@SuppressWarnings("unused")
-		boolean isOK = response.getClientResponseStatus() == ClientResponse.Status.OK;
-		Object obj = response.getEntity(String.class);
-		String jsonStr = obj.toString();
-		int idx2 = jsonStr.lastIndexOf("]");
-		int idx1 = jsonStr.indexOf("[");
-		if (idx1 == -1 || idx2 == -1)
-			return null;
-		String jsonStrGeom = jsonStr.substring(idx1 + 1, idx2);
-		Geometry geometryObj = getGeometryFromJSon(jsonStrGeom);
-		return geometryObj;
-	}
-
-	static String getGeometryType(Geometry geomIn) {
+	public static String getGeometryType(Geometry geomIn) {
 		// there are five types: esriGeometryPoint
 		// esriGeometryMultipoint
 		// esriGeometryPolyline
@@ -132,7 +42,8 @@ public class GeometryUtils {
 	}
 
 	public static void testMultiplePath(MultiPath mp1, MultiPath mp2) {
-		int count1 = mp1.getPointCount();
+		return;
+		/*int count1 = mp1.getPointCount();
 		int count2 = mp2.getPointCount();
 
 		System.out.println("From Rest vertices count: " + count1);
@@ -155,45 +66,11 @@ public class GeometryUtils {
 			// Assert.assertTrue(deltaX<1e-7);
 			// Assert.assertTrue(deltaY<1e-7);
 		}
+		*/
 	}
 
 	public enum SpatialRelationType {
 		esriGeometryRelationCross, esriGeometryRelationDisjoint, esriGeometryRelationIn, esriGeometryRelationInteriorIntersection, esriGeometryRelationIntersection, esriGeometryRelationLineCoincidence, esriGeometryRelationLineTouch, esriGeometryRelationOverlap, esriGeometryRelationPointTouch, esriGeometryRelationTouch, esriGeometryRelationWithin, esriGeometryRelationRelation
-	}
-
-	public static boolean isRelationTrue(Geometry geometry1,
-			Geometry geometry2, SpatialReference sr,
-			SpatialRelationType relation, String relationParam) {
-		String jsonStr4Geom1 = getJSonStringFromGeometry(geometry1, sr);
-		String jsonStr4Geom2 = getJSonStringFromGeometry(geometry2, sr);
-
-		Form f = new Form();
-		f.add("sr", sr.getID());
-		f.add("geometries1", jsonStr4Geom1);
-		f.add("geometries2", jsonStr4Geom2);
-
-		@SuppressWarnings("unused")
-		String enumName = relation.name();
-
-		f.add("relation", relation.name());
-		f.add("f", "json");
-		f.add("relationParam", relationParam);
-
-		ClientResponse response = service4Relation.type(
-				MediaType.APPLICATION_FORM_URLENCODED).post(
-				ClientResponse.class, f);
-		@SuppressWarnings("unused")
-		boolean isOK = response.getClientResponseStatus() == ClientResponse.Status.OK;
-		Object obj = response.getEntity(String.class);
-		String jsonStr = obj.toString();
-		int idx = jsonStr
-				.lastIndexOf("geometry1Index\":0,\"geometry2Index\":0");
-
-		if (idx == -1) {
-			return false;
-		} else {
-			return true;
-		}
 	}
 
 	static String getJSonStringFromGeometry(Geometry geomIn, SpatialReference sr) {

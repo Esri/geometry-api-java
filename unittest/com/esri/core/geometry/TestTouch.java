@@ -35,15 +35,6 @@ public class TestTouch extends TestCase {
 			isTouched2 = false;
 		}
 		assertEquals(isTouched && isTouched2, true);
-
-		boolean isTouchedFromRest = GeometryUtils
-				.isRelationTrue(
-						pl,
-						baseGeom,
-						sr,
-						GeometryUtils.SpatialRelationType.esriGeometryRelationTouch,
-						"");
-		assertTrue(isTouchedFromRest == isTouched);
 	}
 
 	@Test
@@ -67,15 +58,6 @@ public class TestTouch extends TestCase {
 			isTouched2 = false;
 		}
 		assertEquals(isTouched && isTouched2, true);
-
-		boolean isTouchedFromRest = GeometryUtils
-				.isRelationTrue(
-						pg,
-						baseGeom,
-						sr,
-						GeometryUtils.SpatialRelationType.esriGeometryRelationTouch,
-						"");
-		assertTrue(isTouchedFromRest == isTouched);
 	}
 
 	@Test
@@ -139,14 +121,6 @@ public class TestTouch extends TestCase {
 			isTouched = false;
 		}
 		assertEquals(isTouched, true);
-		boolean isTouchedFromRest = GeometryUtils
-				.isRelationTrue(
-						compPl,
-						basePl,
-						sr,
-						GeometryUtils.SpatialRelationType.esriGeometryRelationTouch,
-						"");
-		assertTrue(isTouchedFromRest == isTouched);
 	}
 
 	@Test
@@ -175,14 +149,6 @@ public class TestTouch extends TestCase {
 		}
 		assertEquals(isTouched, true);
 
-		boolean isTouchedFromRest = GeometryUtils
-				.isRelationTrue(
-						compPl,
-						basePl,
-						sr,
-						GeometryUtils.SpatialRelationType.esriGeometryRelationTouch,
-						"");
-		assertTrue(isTouchedFromRest == isTouched);
 	}
 
 	@Test
@@ -205,14 +171,6 @@ public class TestTouch extends TestCase {
 		}
 		assertEquals(isTouched, true);
 
-		boolean isTouchedFromRest = GeometryUtils
-				.isRelationTrue(
-						env,
-						env2,
-						sr,
-						GeometryUtils.SpatialRelationType.esriGeometryRelationTouch,
-						"");
-		assertTrue(isTouchedFromRest == isTouched);
 	}
 
 	@Test
@@ -238,14 +196,6 @@ public class TestTouch extends TestCase {
 		}
 		assertEquals(isTouched, true);
 
-		boolean isTouchedFromRest = GeometryUtils
-				.isRelationTrue(
-						env,
-						basePl,
-						sr,
-						GeometryUtils.SpatialRelationType.esriGeometryRelationTouch,
-						"");
-		assertTrue(isTouchedFromRest == isTouched);
 	}
 
 	@Test
@@ -270,14 +220,6 @@ public class TestTouch extends TestCase {
 		}
 		assertEquals(isTouched, true);
 
-		boolean isTouchedFromRest = GeometryUtils
-				.isRelationTrue(
-						env,
-						basePl,
-						sr,
-						GeometryUtils.SpatialRelationType.esriGeometryRelationTouch,
-						"");
-		assertTrue(isTouchedFromRest == isTouched);
 	}
 
 	@Test
@@ -297,14 +239,6 @@ public class TestTouch extends TestCase {
 		}
 		assertEquals(isTouched, true);
 
-		boolean isTouchedFromRest = GeometryUtils
-				.isRelationTrue(
-						p,
-						env,
-						sr,
-						GeometryUtils.SpatialRelationType.esriGeometryRelationTouch,
-						"");
-		assertTrue(isTouchedFromRest == isTouched);
 	}
 
 	@Test
@@ -325,14 +259,6 @@ public class TestTouch extends TestCase {
 									// "G1 TOUCH G2");
 		assertEquals(isTouched, false);
 
-		boolean isTouchedFromRest = GeometryUtils
-				.isRelationTrue(
-						compPl,
-						basePl,
-						sr,
-						GeometryUtils.SpatialRelationType.esriGeometryRelationTouch,
-						"");
-		assertTrue(isTouchedFromRest == isTouched);
 	}
 
 	@Test
@@ -356,17 +282,6 @@ public class TestTouch extends TestCase {
 		boolean isTouched = GeometryEngine.touches(p, compPl, sr);
 		assertTrue(!isTouched);
 
-		boolean isTouchedFromRest = GeometryUtils
-				.isRelationTrue(
-						compPl,
-						p,
-						sr,
-						GeometryUtils.SpatialRelationType.esriGeometryRelationTouch,
-						"");
-		assertTrue(isTouchedFromRest == isTouched);
-		// We do not treat polyline that is not explicitly closed as closed.
-		// Keep the case to demonstrate the difference between ArcObjects and
-		// Borg here.
 	}
 
 	@Test
@@ -394,14 +309,6 @@ public class TestTouch extends TestCase {
 		boolean isTouched = GeometryEngine.touches(pl, compPl, sr);
 		assertEquals(isTouched, true);
 
-		boolean isTouchedFromRest = GeometryUtils
-				.isRelationTrue(
-						compPl,
-						pl,
-						sr,
-						GeometryUtils.SpatialRelationType.esriGeometryRelationTouch,
-						"");
-		assertTrue(isTouchedFromRest == isTouched);
 	}
 
 	@Test
@@ -433,14 +340,6 @@ public class TestTouch extends TestCase {
 		boolean isTouched = GeometryEngine.touches(pl, compPg, sr);
 		assertEquals(isTouched, true);
 
-		boolean isTouchedFromRest = GeometryUtils
-				.isRelationTrue(
-						compPg,
-						pl,
-						sr,
-						GeometryUtils.SpatialRelationType.esriGeometryRelationTouch,
-						"");
-		assertTrue(isTouchedFromRest == isTouched);
 	}
 
 	@Test
@@ -507,14 +406,6 @@ public class TestTouch extends TestCase {
 		boolean isTouched = GeometryEngine.touches(pl, compPl, sr);
 		assertEquals(isTouched, true);
 
-		boolean isTouchedFromRest = GeometryUtils
-				.isRelationTrue(
-						compPl,
-						pl,
-						sr,
-						GeometryUtils.SpatialRelationType.esriGeometryRelationTouch,
-						"");
-		assertTrue(isTouchedFromRest == isTouched);
 	}
 
 	@Test

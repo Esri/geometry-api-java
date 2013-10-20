@@ -552,7 +552,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 			return false;
 		if (!(Wkt != null && Wkt.length() > 0))
 			return false;
-		System.out.println("WKT1: " + Wkt);
+		//System.out.println("WKT1: " + Wkt);
 		SpatialReference sr2 = SpatialReference.create(Wkt);
 		int wki2 = sr2.getID();
 		if (expectWki2 > 0) {
