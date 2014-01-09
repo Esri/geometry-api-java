@@ -315,7 +315,7 @@ final class JSONObjectEnumerator {
 			throw new GeometryException("invalid call");
 		}
 
-		return m_jsonObject.get(m_keys[m_currentIndex]);
+		return m_jsonObject.opt(m_keys[m_currentIndex]);
 	}
 
 	boolean next() {

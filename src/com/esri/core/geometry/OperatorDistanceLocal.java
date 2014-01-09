@@ -41,6 +41,9 @@ class OperatorDistanceLocal extends OperatorDistance {
 		Geometry geometryA = geom1;
 		Geometry geometryB = geom2;
 
+		if (geometryA.isEmpty() || geometryB.isEmpty())
+			return NumberUtils.TheNaN;		
+
 		Polygon polygonA;
 		Polygon polygonB;
 		MultiPoint multiPointA;
@@ -49,23 +52,41 @@ class OperatorDistanceLocal extends OperatorDistance {
 		// if geometryA is an envelope use a polygon instead (if geom1 was
 		// folded, then geometryA will already be a polygon)
 		// if geometryA is a point use a multipoint instead
-		if (geometryA.getType().equals(Geometry.Type.Point)) {
+		Geometry.Type gtA = geometryA.getType();
+		Geometry.Type gtB = geometryB.getType();
+		if (gtA == Geometry.Type.Point) {
+			if (gtB == Geometry.Type.Point) {
+				return Point2D.distance(((Point)geometryA).getXY(), ((Point)geometryB).getXY());
+			}
+			else if (gtB == Geometry.Type.Envelope) {
+				Envelope2D envB = new Envelope2D();
+				geometryB.queryEnvelope2D(envB);
+				return envB.distance(((Point)geometryA).getXY());
+			}
+			
 			multiPointA = new MultiPoint();
 			multiPointA.add((Point) geometryA);
 			geometryA = multiPointA;
-		} else if (geometryA.getType().equals(Geometry.Type.Envelope)) {
+		} else if (gtA == Geometry.Type.Envelope) {
+			if (gtB == Geometry.Type.Envelope) {
+				Envelope2D envA = new Envelope2D();
+				geometryA.queryEnvelope2D(envA);
+				Envelope2D envB = new Envelope2D();
+				geometryB.queryEnvelope2D(envB);
+				return envB.distance(envA);
+			}
 			polygonA = new Polygon();
 			polygonA.addEnvelope((Envelope) geometryA, false);
-			geometryB = polygonA;
+			geometryA = polygonA;
 		}
 
 		// if geom_2 is an envelope use a polygon instead
 		// if geom_2 is a point use a multipoint instead
-		if (geometryB.getType().equals(Geometry.Type.Point)) {
+		if (gtB == Geometry.Type.Point) {
 			multiPointB = new MultiPoint();
 			multiPointB.add((Point) geometryB);
 			geometryB = multiPointB;
-		} else if (geometryB.getType().equals(Geometry.Type.Envelope)) {
+		} else if (gtB == Geometry.Type.Envelope) {
 			polygonB = new Polygon();
 			polygonB.addEnvelope((Envelope) geometryB, false);
 			geometryB = polygonB;
@@ -404,7 +425,7 @@ class OperatorDistanceLocal extends OperatorDistance {
 		double calculate(/* const */Geometry geometryA, /* const */
 		Geometry geometryB) {
 			if (geometryA.isEmpty() || geometryB.isEmpty())
-				return 0.0;
+				return NumberUtils.TheNaN;
 
 			geometryA.queryEnvelope2D(m_env2DgeometryA);
 			geometryB.queryEnvelope2D(m_env2DgeometryB);

@@ -63,6 +63,14 @@ public class TestDistance extends TestCase {
 	}
 
 	@Test
+	public static void testDistanceBetweenPointAndEnvelope() {
+		Envelope env = new Envelope(23,23, 23,23);
+        Point pt = new Point(30, 30);
+        double dist = GeometryEngine.distance(env, pt, null);  // expect just under 10.
+		assertTrue(Math.abs(dist - 9.8994949) < 0.0001);
+	}
+	
+	@Test
 	public static void testDistanceBetweenHugeGeometries() {
 		/* const */int N = 1000; // Should be even
 		/* const */double theoreticalDistance = 0.77;

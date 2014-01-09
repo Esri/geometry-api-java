@@ -607,6 +607,7 @@ class OperatorIntersectionCursor extends GeometryCursor {
 
 								resultPolylineImpl.addSegment(resSeg, false);
 								state = stateAddSegment;
+								inCount = 0;
 							} else {
 								status = analyseClipSegment_(polygon, resSeg,
 										tolerance);

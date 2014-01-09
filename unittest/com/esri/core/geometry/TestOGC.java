@@ -704,14 +704,27 @@ public class TestOGC extends TestCase {
 		String wk2 = "polygon((0 1, 2 1, 0 3, 0 1))";
 		OGCGeometry g0 = OGCGeometry.fromText(wkt);
 		OGCGeometry g1 = OGCGeometry.fromText(wk2);
-		g0.setSpatialReference(null);
-		g1.setSpatialReference(null);
+		g0.setSpatialReference(SpatialReference.create(4326));
+		g1.setSpatialReference(SpatialReference.create(4326));
 		OGCGeometry rslt = g0.intersection(g1);
 		assertTrue(rslt != null);
 		assertTrue(rslt.geometryType().equals("Polygon"));
+		assertTrue(rslt.esriSR.getID() == 4326);
 		String s = rslt.asText();
 	}
 
+	public void testIsectTriaJson1() throws JsonParseException, IOException {
+		String json1 = "{\"rings\":[[[1, 0], [3, 0], [1, 2], [1, 0]]], \"spatialReference\":{\"wkid\":4326}}";
+		String json2 = "{\"rings\":[[[0, 1], [2, 1], [0, 3], [0, 1]]], \"spatialReference\":{\"wkid\":4326}}";
+		OGCGeometry g0 = OGCGeometry.fromJson(json1);
+		OGCGeometry g1 = OGCGeometry.fromJson(json2);
+		OGCGeometry rslt = g0.intersection(g1);
+		assertTrue(rslt != null);
+		assertTrue(rslt.geometryType().equals("Polygon"));
+		assertTrue(rslt.esriSR.getID() == 4326);
+		String s = GeometryEngine.geometryToJson(rslt.getEsriSpatialReference().getID(), rslt.getEsriGeometry());
+	}
+	
 	public void testIsectTria2() {
 		String wkt = "polygon((1 0, 3 0, 1 2, 1 0))";
 		String wk2 = "polygon((0 3, 2 1, 3 1, 0 3))";
@@ -731,12 +744,13 @@ public class TestOGC extends TestCase {
 		String wk2 = "polygon((2 2, 2 1, 3 1, 2 2))";
 		OGCGeometry g0 = OGCGeometry.fromText(wkt);
 		OGCGeometry g1 = OGCGeometry.fromText(wk2);
-		g0.setSpatialReference(null);
-		g1.setSpatialReference(null);
+		g0.setSpatialReference(SpatialReference.create(4326));
+		g1.setSpatialReference(SpatialReference.create(4326));
 		OGCGeometry rslt = g0.intersection(g1);
 		assertTrue(rslt != null);
 		assertTrue(rslt.dimension() == 0);
 		assertTrue(rslt.geometryType().equals("Point"));
+		assertTrue(rslt.esriSR.getID() == 4326);
 		String s = rslt.asText();
 	}
 
