@@ -352,7 +352,7 @@ final class JSONArrayEnumerator {
 			throw new GeometryException("invalid call");
 		}
 
-		return m_jsonArray.get(m_currentIndex);
+		return m_jsonArray.opt(m_currentIndex);
 	}
 
 	boolean next() {
