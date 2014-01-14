@@ -512,7 +512,8 @@ class Simplificator {
 						coincidentCount = 0;
 					}
 
-					vlistindex = m_sortedVertices.getNext(vlistindex);
+					if (vlistindex != -1)//vlistindex can be set to -1 after ProcessBunch call above
+						vlistindex = m_sortedVertices.getNext(vlistindex);
 				}
 
 				m_nextVertexToProcess = -1;

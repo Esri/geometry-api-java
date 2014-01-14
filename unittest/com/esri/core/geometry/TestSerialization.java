@@ -2,6 +2,7 @@ package com.esri.core.geometry;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -291,4 +292,47 @@ public class TestSerialization extends TestCase {
 			fail("Spatial Reference serialization failure");
 		}
 	}
-}
+
+	@Test
+	public void testSerializeEnvelope2D() {
+		try {
+			ByteArrayOutputStream streamOut = new ByteArrayOutputStream();
+			ObjectOutputStream oo = new ObjectOutputStream(streamOut);
+			Envelope2D env = new Envelope2D(1.213948734, 2.213948734, 11.213948734, 12.213948734);
+			oo.writeObject(env);
+			ByteArrayInputStream streamIn = new ByteArrayInputStream(
+					streamOut.toByteArray());
+			ObjectInputStream ii = new ObjectInputStream(streamIn);
+			Envelope2D envRes = (Envelope2D)ii.readObject();
+			assertTrue(envRes.equals(env));
+		} catch (Exception ex) {
+			fail("Envelope2D serialization failure");
+		}
+
+//		try
+//		{
+//			 FileOutputStream streamOut = new FileOutputStream(
+//			 "c:/temp/savedEnvelope2D.txt");
+//			 ObjectOutputStream oo = new ObjectOutputStream(streamOut);
+//			 Envelope2D e = new Envelope2D(177.123, 188.234, 999.122, 888.999);
+//			 oo.writeObject(e);
+//		 }
+//		 catch(Exception ex)
+//		 {
+//		   fail("Envelope2D serialization failure");
+//		 }
+
+		try {
+			InputStream s = TestSerialization.class
+					.getResourceAsStream("savedEnvelope2D.txt");
+			ObjectInputStream ii = new ObjectInputStream(s);
+			Envelope2D e = (Envelope2D) ii
+					.readObject();
+			assertTrue(e != null);
+			assertTrue(e.equals(new Envelope2D(177.123, 188.234, 999.122, 888.999)));
+		} catch (Exception ex) {
+			fail("Envelope2D serialization failure");
+		}
+	}
+
+}

@@ -991,5 +991,15 @@ public class TestIntersection extends TestCase {
 		Geometry result2 = res.next();
 		assertTrue(result.equals(result2));
 	}
-	
+
+	@Test
+	public void testIntersectionIssueLinePoly1() {
+		String wkt1 = new String("polygon((0 0, 10 0, 10 10, 0 10, 0 0))");
+		String wkt2 = new String("linestring(9 5, 10 5, 9 4, 8 3)");
+		Geometry g1 = OperatorImportFromWkt.local().execute(0, Geometry.Type.Unknown, wkt1, null);
+		Geometry g2 = OperatorImportFromWkt.local().execute(0, Geometry.Type.Unknown, wkt2, null);
+		Geometry res = OperatorIntersection.local().execute(g1, g2, null, null);
+		assertTrue(((Polyline)res).getPathCount() == 1);
+		assertTrue(((Polyline)res).getPointCount() == 4);
+	}	
 }

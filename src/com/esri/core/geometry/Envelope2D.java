@@ -24,17 +24,21 @@
 
 package com.esri.core.geometry;
 
+import java.io.IOException;
+import java.io.ObjectStreamException;
+import java.io.Serializable;
+
 /**
  * An axis parallel 2-dimensional rectangle.
  */
-public final class Envelope2D {
-
-	private final int XLESSXMIN = 1;
+public final class Envelope2D implements Serializable {
+	private static final long serialVersionUID = 1L;
+	private final static int XLESSXMIN = 1;
 	// private final int XGREATERXMAX = 2;
-	private final int YLESSYMIN = 4;
+	private final static int YLESSYMIN = 4;
 	// private final int YGREATERYMAX = 8;
-	private final int XMASK = 3;
-	private final int YMASK = 12;
+	private final static int XMASK = 3;
+	private final static int YMASK = 12;
 
 	public double xmin;
 
@@ -994,16 +998,28 @@ public final class Envelope2D {
 				|| Math.abs(pt.y - ymax) <= tolerance;
 	}
 
+	/**
+	 * Calculates minimum distance from this envelope to the other.
+	 * Returns 0 for empty envelopes.
+	 */
 	public double distance(/* const */Envelope2D other)
 	{
 		return Math.sqrt(sqrDistance(other));
 	}
 
+	/**
+	 * Calculates minimum distance from this envelope to the point.
+	 * Returns 0 for empty envelopes.
+	 */
 	public double distance(Point2D pt2D)
 	{
 		return Math.sqrt(sqrDistance(pt2D));
 	}
 
+	/**
+	 * Calculates minimum squared distance from this envelope to the other.
+	 * Returns 0 for empty envelopes.
+	 */
 	public double sqrDistance(Envelope2D other)
 	{
 		double dx = 0;
@@ -1029,6 +1045,10 @@ public final class Envelope2D {
 		return dx * dx + dy * dy;
 	}
 
+	/**
+	 * Calculates minimum squared distance from this envelope to the point.
+	 * Returns 0 for empty envelopes.
+	 */
 	public double sqrDistance(Point2D pt2D)
 	{
 		double dx = 0;
@@ -1071,4 +1091,15 @@ public final class Envelope2D {
 			env1D.setCoords(ymin, ymax);
 		}
 	}
+	
+	 private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+		 out.defaultWriteObject();
+	 }
+	 private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+		 in.defaultReadObject();
+	 }
+	 private void readObjectNoData() throws ObjectStreamException {
+		 setEmpty();
+	 }
+
 }

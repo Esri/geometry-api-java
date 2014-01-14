@@ -95,7 +95,14 @@ final class StridedIndexTypeCollection {
 		int element = m_firstFree;
 		if (element == -1) {
 			if (m_last == m_capacity) {
-				grow_(m_capacity != 0 ? ((m_capacity + 1) * 3 / 2) : 1);
+				long newcap = m_capacity != 0 ? (((long)m_capacity + 1) * 3 / 2) : (long)1;
+				if (newcap > Integer.MAX_VALUE)
+					newcap = Integer.MAX_VALUE;//cannot grow past 2gb elements presently
+				
+				if (newcap == m_capacity)
+					throw new IndexOutOfBoundsException();
+				
+				grow_(newcap);
 			}
 
 			element = ((m_last / m_blockSize) << m_blockPower)
@@ -195,22 +202,25 @@ final class StridedIndexTypeCollection {
 
 	final static int[] st_sizes = {16, 32, 64, 128, 256, 512, 1024, 2048};
 
-	private void grow_(int newsize) {
+	private void grow_(long newsize) {
 		if (m_buffer == null) {
 			m_buffer = new ArrayList<int[]>();
 		}
 
 		assert (newsize > m_capacity);
 
-		int nblocks = (newsize + m_blockSize - 1) / m_blockSize;
-		m_buffer.ensureCapacity(nblocks);
+		long nblocks = (newsize + m_blockSize - 1) / m_blockSize;
+		if (nblocks > Integer.MAX_VALUE)
+			throw new IndexOutOfBoundsException();
+		
+		m_buffer.ensureCapacity((int)nblocks);
 		if (nblocks == 1) {
 			// When less than one block is needed we allocate smaller arrays
 			// than m_realBlockSize to avoid initialization cost.
 			int oldsz = m_capacity > 0 ? m_capacity : 0;
 			assert (oldsz < newsize);
 			int i = 0;
-			int realnewsize = newsize * m_realStride;
+			int realnewsize = (int)newsize * m_realStride;
 			while (realnewsize > st_sizes[i])
 				// get the size to allocate. Using fixed sizes to reduce
 				// fragmentation.
@@ -225,6 +235,9 @@ final class StridedIndexTypeCollection {
 			}
 			m_capacity = b.length / m_realStride;
 		} else {
+			if (nblocks * m_blockSize > Integer.MAX_VALUE)
+				throw new IndexOutOfBoundsException();
+			
 			if (m_buffer.size() == 1) {
 				if (m_buffer.get(0).length < m_realBlockSize) {
 					// resize the first buffer to ensure it is equal the
