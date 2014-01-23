@@ -557,7 +557,7 @@ public final class Envelope2D implements Serializable {
 	/**
 	 * Returns True if the envelope contains the point (boundary exclusive).
 	 */
-	boolean containsExclusive(double x, double y) {
+	public boolean containsExclusive(double x, double y) {
 		// Note: This will return False, if envelope is empty, thus no need to
 		// call is_empty().
 		return x > xmin && x < xmax && y > ymin && y < ymax;
@@ -566,7 +566,7 @@ public final class Envelope2D implements Serializable {
 	/**
 	 * Returns True if the envelope contains the point (boundary exclusive).
 	 */
-	boolean containsExclusive(Point2D pt) {
+	public boolean containsExclusive(Point2D pt) {
 		return contains(pt.x, pt.y);
 	}
 
@@ -978,7 +978,7 @@ public final class Envelope2D implements Serializable {
 	 * Returns True, envelope is degenerate (Width or Height are less than
 	 * tolerance). Note: this returns False for Empty envelope.
 	 */
-	boolean isDegenerate(double tolerance) {
+	public boolean isDegenerate(double tolerance) {
 		return !isEmpty()
 				&& (getWidth() <= tolerance || getHeight() <= tolerance);
 	}
