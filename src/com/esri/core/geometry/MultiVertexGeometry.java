@@ -40,7 +40,6 @@ public abstract class MultiVertexGeometry extends Geometry implements
 		throw new GeometryException("invalid call");
 	}
 	
-	// Multipart methods:
 	/**
 	 * Returns the total vertex count in this Geometry.
 	 */
@@ -56,7 +55,7 @@ public abstract class MultiVertexGeometry extends Geometry implements
 	 */
 	public void getPoint(int index, Point ptOut) {
 		getPointByVal(index, ptOut);
-	}// Java only
+	}
 
 	/**
 	 * Sets the vertex at given index of the Geometry.
