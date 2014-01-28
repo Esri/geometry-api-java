@@ -76,7 +76,7 @@ public final class MultiPoint extends MultiVertexGeometry implements
 	}
 
 	@Override
-	void getXY(int index, Point2D pt) {
+	public void getXY(int index, Point2D pt) {
 		m_impl.getXY(index, pt);
 	}
 
@@ -86,12 +86,12 @@ public final class MultiPoint extends MultiVertexGeometry implements
 	}
 
 	@Override
-	void queryCoordinates(Point2D[] dst) {
+	public void queryCoordinates(Point2D[] dst) {
 		m_impl.queryCoordinates(dst);
 	}
 
 	@Override
-	void queryCoordinates(Point[] dst) {
+	public void queryCoordinates(Point[] dst) {
 		m_impl.queryCoordinates(dst);
 	}
 
@@ -215,7 +215,7 @@ public final class MultiPoint extends MultiVertexGeometry implements
 	}
 
 	@Override
-	void setXY(int index, Point2D pt) {
+	public void setXY(int index, Point2D pt) {
 		m_impl.setXY(index, pt);
 	}
 

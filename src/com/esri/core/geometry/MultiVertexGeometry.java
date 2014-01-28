@@ -32,7 +32,7 @@ import java.io.Serializable;
  * The vertex attributes are stored in separate arrays of corresponding type.
  * There are as many arrays as there are attributes in the vertex.
  */
-abstract class MultiVertexGeometry extends Geometry implements
+public abstract class MultiVertexGeometry extends Geometry implements
 		Serializable {
 
 	@Override
@@ -40,7 +40,6 @@ abstract class MultiVertexGeometry extends Geometry implements
 		throw new GeometryException("invalid call");
 	}
 	
-	// Multipart methods:
 	/**
 	 * Returns the total vertex count in this Geometry.
 	 */
@@ -56,7 +55,7 @@ abstract class MultiVertexGeometry extends Geometry implements
 	 */
 	public void getPoint(int index, Point ptOut) {
 		getPointByVal(index, ptOut);
-	}// Java only
+	}
 
 	/**
 	 * Sets the vertex at given index of the Geometry.
@@ -80,13 +79,13 @@ abstract class MultiVertexGeometry extends Geometry implements
 	 */
 	public abstract Point2D getXY(int index);
 
-	abstract void getXY(int index, Point2D pt);
+	public abstract void getXY(int index, Point2D pt);
 
 	/**
 	 * Sets XY coordinates of the given vertex of the Geometry. All other
 	 * attributes are unchanged.
 	 */
-	abstract void setXY(int index, Point2D pt);
+	public abstract void setXY(int index, Point2D pt);
 
 	/**
 	 * Returns XYZ coordinates of the given vertex of the Geometry. If the
@@ -119,13 +118,13 @@ abstract class MultiVertexGeometry extends Geometry implements
 		return arr;
 	}
 
-	abstract void queryCoordinates(Point[] dst);
+	public abstract void queryCoordinates(Point[] dst);
 
 	/**
 	 * Queries XY coordinates as an array. The array must be larg enough (See
 	 * GetPointCount()).
 	 */
-	abstract void queryCoordinates(Point2D[] dst);
+	public abstract void queryCoordinates(Point2D[] dst);
 
 	/**
 	 * Queries XYZ coordinates as an array. The array must be larg enough (See
@@ -147,7 +146,7 @@ abstract class MultiVertexGeometry extends Geometry implements
 	 *            If attribute is not present, the default value is returned.
 	 *            See VertexDescription::GetDefaultValue() method.
 	 */
-	public abstract double getAttributeAsDbl(int semantics, int index,
+	abstract double getAttributeAsDbl(int semantics, int index,
 			int ordinate);
 
 	/**
@@ -165,7 +164,7 @@ abstract class MultiVertexGeometry extends Geometry implements
 	 *            See VertexDescription::GetDefaultValue() method. Avoid using
 	 *            this method on non-integer atributes.
 	 */
-	public abstract int getAttributeAsInt(int semantics, int index, int ordinate);
+	abstract int getAttributeAsInt(int semantics, int index, int ordinate);
 
 	/**
 	 * Sets the value of given attribute at given posisiotnsis.
@@ -183,7 +182,7 @@ abstract class MultiVertexGeometry extends Geometry implements
 	 * 
 	 *            If the attribute is not present in this Geometry, it is added.
 	 */
-	public abstract void setAttribute(int semantics, int index, int ordinate,
+	abstract void setAttribute(int semantics, int index, int ordinate,
 			double value);
 
 	/**
@@ -191,7 +190,7 @@ abstract class MultiVertexGeometry extends Geometry implements
 	 * non-integer atributes because some double attributes may have NaN default
 	 * values (e.g. Ms)
 	 */
-	public abstract void setAttribute(int semantics, int index, int ordinate,
+	abstract void setAttribute(int semantics, int index, int ordinate,
 			int value);
 
 	/**

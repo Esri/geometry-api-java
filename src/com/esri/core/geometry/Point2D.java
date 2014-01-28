@@ -250,9 +250,7 @@ public final class Point2D {
 	// between vectors (1,0) and (0, 1), second between (0, 1) and (-1, 0), etc.
 	// Angle intervals corresponding to quarters: 1 : [0 : 90); 2 : [90 : 180);
 	// 3 : [180 : 270); 4 : [270 : 360)
-	int _getQuarter() {
-		// _ASSERT(x != 0 || y != 0 || !NumberUtils.isNaN(x) ||
-		// !NumberUtils.isNaN(y));
+	final int _getQuarter() {
 		if (x > 0) {
 			if (y >= 0)
 				return 1; // x > 0 && y <= 0
@@ -270,18 +268,29 @@ public final class Point2D {
 		}
 	}
 
+	/**
+	* Calculates which quarter of XY plane the vector lies in. First quarter is
+	* between vectors (1,0) and (0, 1), second between (0, 1) and (-1, 0), etc.
+	* The quarters are numbered counterclockwise.
+	* Angle intervals corresponding to quarters: 1 : [0 : 90); 2 : [90 : 180);
+	* 3 : [180 : 270); 4 : [270 : 360)
+	*/
+	public int getQuarter() { return _getQuarter(); }
+	
 	// Assume vector v1 and v2 have same origin. The function compares the
-	// vectors by angle from the x acis to the vector in the counter clockwise
+	// vectors by angle from the x axis to the vector in the counter clockwise
 	// direction.
-	// > >
-	// \ /
+	//   >    >
+	//   \   /
 	// V3 \ / V1
-	// ----------------/-------------------->X In this example,
-	// __compareVectors(V1, V2) == -1.
-	// \ _compareVectors(V1, V3) == -1
-	// \ V2 _compareVectors(V2, V3) == 1
-	// >
-	static int _compareVectors(Point2D v1, Point2D v2) {
+	//     \
+	//      \
+	//       >V2
+	// _compareVectors(V1, V2) == -1.
+	// _compareVectors(V1, V3) == -1
+	// _compareVectors(V2, V3) == 1
+	//
+	final static int _compareVectors(Point2D v1, Point2D v2) {
 		int q1 = v1._getQuarter();
 		int q2 = v2._getQuarter();
 
@@ -292,6 +301,21 @@ public final class Point2D {
 			return q1 < q2 ? -1 : 1;
 	}
 
+	/**
+	 * Assume vector v1 and v2 have same origin. The function compares the
+	 * vectors by angle in the counter clockwise direction from the axis X.
+	 * 
+	 * For example, V1 makes 30 degree angle counterclockwise from horizontal x axis
+	 * V2, makes 270, V3 makes 90, then 
+	 * compareVectors(V1, V2) == -1.
+	 * compareVectors(V1, V3) == -1.
+	 * compareVectors(V2, V3) == 1.
+	 * @return Returns 1 if v1 is less than v2, 0 if equal, and 1 if greater.
+	 */
+	public static int compareVectors(Point2D v1, Point2D v2) {
+		return _compareVectors(v1, v2);
+	}
+	
 	static class CompareVectors implements Comparator<Point2D> {
 		@Override
 		public int compare(Point2D v1, Point2D v2) {

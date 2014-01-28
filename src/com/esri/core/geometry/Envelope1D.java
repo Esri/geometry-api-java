@@ -48,7 +48,7 @@ public final class Envelope1D {
 		normalize();
 	}
 
-	void normalize() {
+	public void normalize() {
 		if (NumberUtils.isNaN(vmin))
 			return;
 		if (vmin > vmax) {
@@ -175,7 +175,7 @@ public final class Envelope1D {
 		normalizeNoNaN_();
 	}
 
-	double snapClip(double v) /* const */
+	public double snapClip(double v) /* const */
 	{
 		return NumberUtils.snap(v, vmin, vmax);
 	}
