@@ -500,17 +500,17 @@ final class RasterizedGeometry2DImpl extends RasterizedGeometry2D {
 	}
 
 	@Override
-	double getToleranceXY() {
+	public double getToleranceXY() {
 		return m_toleranceXY;
 	}
 
 	@Override
-	int getRasterSize() {
+	public int getRasterSize() {
 		return m_width * m_scanLineSize;
 	}
 
 	@Override
-	boolean dbgSaveToBitmap(String fileName) {
+	public boolean dbgSaveToBitmap(String fileName) {
 		try {
 			FileOutputStream outfile = new FileOutputStream(fileName);
 

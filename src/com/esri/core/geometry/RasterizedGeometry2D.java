@@ -25,7 +25,7 @@ package com.esri.core.geometry;
 
 import com.esri.core.geometry.Geometry.GeometryAccelerationDegree;
 
-abstract class RasterizedGeometry2D {
+public abstract class RasterizedGeometry2D {
 
 	public enum HitType {
 		Outside(0), // the test geometry is well outside the geometry bounds
@@ -33,7 +33,7 @@ abstract class RasterizedGeometry2D {
 		Border(2); // the test geometry is close to the bounds or intersects the
 					// bounds
 
-		private int enumVal;
+		int enumVal;
 
 		private HitType(int val) {
 			enumVal = val;
@@ -41,7 +41,7 @@ abstract class RasterizedGeometry2D {
 	}
 
 	/**
-	 * Test a point agains the RasterizedGeometry
+	 * Test a point against the RasterizedGeometry
 	 */
 	public abstract HitType queryPointInGeometry(double x, double y);
 
@@ -54,11 +54,11 @@ abstract class RasterizedGeometry2D {
 	 * Creates a rasterized geometry from a given Geometry.
 	 * 
 	 * @param geom
-	 *            The input geometry to rasterize.
+	 *            The input geometry to rasterize. It has to be a MultiVertexGeometry instance.
 	 * @param toleranceXY
 	 *            The tolerance of the rasterization. Raster pixels that are
 	 *            closer than given tolerance to the Geometry will be set.
-	 * @param rasterSize
+	 * @param rasterSizeBytes
 	 *            The max size of the raster in bytes. The raster has size of
 	 *            rasterSize x rasterSize. Polygons are rasterized into 2 bpp
 	 *            (bits per pixel) rasters while other geometries are rasterized
@@ -75,7 +75,7 @@ abstract class RasterizedGeometry2D {
 		return (RasterizedGeometry2D) gc;
 	}
 
-	public static RasterizedGeometry2D create(MultiVertexGeometryImpl geom,
+	static RasterizedGeometry2D create(MultiVertexGeometryImpl geom,
 			double toleranceXY, int rasterSizeBytes) {
 		if (!canUseAccelerator(geom))
 			throw new IllegalArgumentException();
@@ -121,19 +121,19 @@ abstract class RasterizedGeometry2D {
 	/**
 	 * Returns the tolerance for which the rasterized Geometry has been built.
 	 */
-	abstract double getToleranceXY();
+	public abstract double getToleranceXY();
 
 	/**
 	 * Returns raster size in bytes
 	 */
-	abstract int getRasterSize();
+	public abstract int getRasterSize();
 
 	/**
-	 * Dumps the raster to file for debug purposes.
+	 * Dumps the raster to a bmp file for debug purposes.
 	 * 
 	 * @param fileName
 	 * @returns true if success, false otherwise.
 	 */
-	abstract boolean dbgSaveToBitmap(String fileName);
+	public abstract boolean dbgSaveToBitmap(String fileName);
 
 }
