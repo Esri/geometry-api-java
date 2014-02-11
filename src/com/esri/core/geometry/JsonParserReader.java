@@ -29,19 +29,43 @@ import org.codehaus.jackson.JsonToken;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+final class JsonParserReader extends JsonReader {
 
-abstract class JsonReader {
+	private JsonParser m_jsonParser;
 
-	abstract JsonToken nextToken() throws Exception;
+	JsonParserReader(JsonParser jsonParser) {
+		m_jsonParser = jsonParser;
+	}
 
-	abstract JsonToken currentToken() throws Exception;
+	@Override
+	JsonToken nextToken() throws Exception {
+		JsonToken token = m_jsonParser.nextToken();
+		return token;
+	}
 
-	abstract void skipChildren() throws Exception;
+	@Override
+	JsonToken currentToken() throws Exception {
+		return m_jsonParser.getCurrentToken();
+	}
 
-	abstract String currentString() throws Exception;
+	@Override
+	void skipChildren() throws Exception {
+		m_jsonParser.skipChildren();
+	}
 
-	abstract double currentDoubleValue() throws Exception;
+	@Override
+	String currentString() throws Exception {
+		return m_jsonParser.getText();
+	}
 
-	abstract int currentIntValue() throws Exception;
+	@Override
+	double currentDoubleValue() throws Exception {
+		return m_jsonParser.getValueAsDouble();
+	}
+
+	@Override
+	int currentIntValue() throws Exception {
+		return m_jsonParser.getValueAsInt();
+	}
 }
 
