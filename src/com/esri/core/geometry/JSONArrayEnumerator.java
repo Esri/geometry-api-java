@@ -29,19 +29,39 @@ import org.codehaus.jackson.JsonToken;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+final class JSONArrayEnumerator {
 
-abstract class JsonReader {
+	private JSONArray m_jsonArray;
+	private boolean m_bStarted;
+	private int m_currentIndex;
 
-	abstract JsonToken nextToken() throws Exception;
+	JSONArrayEnumerator(JSONArray jsonArray) {
+		m_bStarted = false;
+		m_currentIndex = -1;
+		m_jsonArray = jsonArray;
+	}
 
-	abstract JsonToken currentToken() throws Exception;
+	Object getCurrentObject() {
+		if (!m_bStarted) {
+			throw new GeometryException("invalid call");
+		}
 
-	abstract void skipChildren() throws Exception;
+		if (m_currentIndex == m_jsonArray.length()) {
+			throw new GeometryException("invalid call");
+		}
 
-	abstract String currentString() throws Exception;
+		return m_jsonArray.opt(m_currentIndex);
+	}
 
-	abstract double currentDoubleValue() throws Exception;
+	boolean next() {
+		if (!m_bStarted) {
+			m_currentIndex = 0;
+			m_bStarted = true;
+		} else if (m_currentIndex != m_jsonArray.length()) {
+			m_currentIndex++;
+		}
 
-	abstract int currentIntValue() throws Exception;
+		return m_currentIndex != m_jsonArray.length();
+	}
 }
 

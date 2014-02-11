@@ -132,7 +132,7 @@ public abstract class RasterizedGeometry2D {
 	 * Dumps the raster to a bmp file for debug purposes.
 	 * 
 	 * @param fileName
-	 * @returns true if success, false otherwise.
+	 * @return true if success, false otherwise.
 	 */
 	public abstract boolean dbgSaveToBitmap(String fileName);
 
