@@ -6,5 +6,28 @@ esri-geometry-api.jar
 .classpath
 description.jardesc
 *.bak
-.settings
-target/
+
+# Intellij project files
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Eclipse project files
+.settings/
+libs/
+
+# SublimeText
+/*.sublime-project
+*.sublime-workspace
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db
