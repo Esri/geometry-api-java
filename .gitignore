@@ -6,6 +6,7 @@ esri-geometry-api.jar
 .classpath
 description.jardesc
 *.bak
+*.properties
 
 # Intellij project files
 *.iml
