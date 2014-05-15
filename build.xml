@@ -2,19 +2,23 @@
 <project default="all">
 
 	<property name="dir.src" value="src" />
-	<property name="dir.unittest" value="unittest" />
+	<property name="dir.src.main" value="src/main" />
+	<property name="dir.src.main.java" value="src/main/java" />
+	<property name="dir.src.main.resources" value="src/main/resources" />
+	<property name="dir.src.test" value="src/test" />
+	<property name="dir.src.test.java" value="src/test/java" />
+	<property name="dir.src.test.resources" value="src/test/resources" />
 	<property name="dir.build" value="bin" />
+	<property name="dir.depfiles" value="DepFiles" />
 	<property name="dir.javadoc" value="javadoc" />
 	<property name="dir.result" value="results" />
 	<property name="dir.root" value="." />
 	<property name="file.jarname" value="esri-geometry-api.jar" />
 
 	<path id="project.classpath">
-		<pathelement location="${dir.root}/DepFiles/public/jackson-core-asl-1.9.11.jar" />
-		<pathelement location="${dir.root}/DepFiles/public/java-json.jar" />
-		<pathelement location="${dir.root}/DepFiles/unittest/jersey-client-1.5.jar" />
-		<pathelement location="${dir.root}/DepFiles/unittest/jersey-core-1.5.jar" />
-		<pathelement location="${dir.root}/DepFiles/unittest/junit-4.8.2.jar" />
+		<pathelement location="${dir.depfiles}/public/jackson-core-asl-1.9.11.jar" />
+		<pathelement location="${dir.depfiles}/public/java-json.jar" />
+		<pathelement location="${dir.depfiles}/unittest/junit-4.8.2.jar" />
 		<pathelement location="${dir.build}" />
 	</path>
 
@@ -23,9 +27,9 @@
 	<target name="build">
 		<delete dir="${dir.build}" />
 		<mkdir dir="${dir.build}" />
-		<javac srcdir="." includes="src/**"  classpathref="project.classpath" destdir="${dir.build}" debug="false" />
+		<javac srcdir="." includes="${dir.src.main.java}/**"  classpathref="project.classpath" destdir="${dir.build}" debug="false" />
 		<copy todir="${dir.build}">
-			<fileset dir="${dir.src}" includes = "**/*.txt" />
+			<fileset dir="${dir.src.main.resources}" includes = "**/*.txt" />
 		</copy>
 	</target>
 
@@ -37,9 +41,9 @@
 	</target>
 
 	<target name="build.unittest" depends = "jar">
-		<javac srcdir="." includes="unittest/**"  classpathref="project.classpath" destdir="${dir.build}" debug="false" />
+		<javac srcdir="." includes="${dir.src.test.java}/**"  classpathref="project.classpath" destdir="${dir.build}" debug="false" />
 		<copy todir="${dir.build}">
-			<fileset dir="${dir.unittest}" includes="**/*.txt" />
+			<fileset dir="${dir.src.test.resources}" includes="**/*.txt" />
 		</copy>
 	</target>
 
@@ -78,11 +82,18 @@
 	</target>
 	
 	<target name="javadoc" depends="jar">
-		<javadoc access="public" author="true" classpathref="project.classpath" destdir="${dir.javadoc}" doctitle="Esri-geometry-api" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" packagenames="com.esri.core.geometry.*" source="1.5" sourcepath="${dir.src}" splitindex="true" use="true" version="true">
+		<javadoc access="public" author="true" classpathref="project.classpath" destdir="${dir.javadoc}" doctitle="Esri-geometry-api" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" packagenames="com.esri.core.geometry.*" source="1.5" sourcepath="${dir.src.main.java}" splitindex="true" use="true" version="true">
 			<link href="http://help.arcgis.com/EN/sdk/10.0/Java_AO_ADF/api/arcobjects" />
 			<link href="http://docs.oracle.com/javase/6/docs/api/" />
 		</javadoc>
 	</target>
 
+	<target name="javadoc1">
+		<javadoc access="public" author="true" classpathref="project.classpath" destdir="${dir.javadoc}" doctitle="Esri-geometry-api" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" packagenames="com.esri.core.geometry.*" source="1.5" sourcepath="${dir.src.main.java}" splitindex="true" use="true" version="true">
+			<link href="http://help.arcgis.com/EN/sdk/10.0/Java_AO_ADF/api/arcobjects" />
+			<link href="http://docs.oracle.com/javase/6/docs/api/" />
+		</javadoc>
+	</target>
+	
 </project>
 
