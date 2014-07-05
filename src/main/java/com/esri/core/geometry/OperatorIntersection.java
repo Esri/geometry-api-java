@@ -25,11 +25,12 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.Operator.Type;
+import com.esri.core.geometry.IOperatorAWithB;
 
 /**
  *Intersection of geometries by a given geometry.
  */
-public abstract class OperatorIntersection extends Operator {
+public abstract class OperatorIntersection extends Operator implements IOperatorAWithB {
 	@Override
 	public Type getType() {
 		return Type.Intersection;

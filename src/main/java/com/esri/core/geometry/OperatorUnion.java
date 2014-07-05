@@ -25,13 +25,14 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.Operator.Type;
+import com.esri.core.geometry.IOperatorAWithB;
 
 /**
  * 
  * Union of geometries.
  *
  */
-public abstract class OperatorUnion extends Operator {
+public abstract class OperatorUnion extends Operator implements IOperatorAWithB {
 	@Override
 	public Type getType() {
 		return Type.Union;
