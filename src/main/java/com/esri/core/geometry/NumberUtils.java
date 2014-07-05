@@ -24,13 +24,13 @@
 
 package com.esri.core.geometry;
 
-class NumberUtils {
+public class NumberUtils {
 
-	static int snap(int v, int minv, int maxv) {
+	public static int snap(int v, int minv, int maxv) {
 		return v < minv ? minv : v > maxv ? maxv : v;
 	}
 
-	static long snap(long v, long minv, long maxv) {
+	public static long snap(long v, long minv, long maxv) {
 		return v < minv ? minv : v > maxv ? maxv : v;
 	}
 
