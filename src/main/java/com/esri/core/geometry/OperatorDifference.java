@@ -25,12 +25,12 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.Operator.Type;
-import com.esri.core.geometry.IOperatorAWithB;
+import com.esri.core.geometry.CombineOperator;
 
 /**
  * Difference of geometries.
  */
-public abstract class OperatorDifference extends Operator implements IOperatorAWithB {
+public abstract class OperatorDifference extends Operator implements CombineOperator {
 
 	@Override
 	public Type getType() {

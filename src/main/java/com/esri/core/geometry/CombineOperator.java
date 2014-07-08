@@ -30,7 +30,7 @@ import com.esri.core.geometry.ProgressTracker;
 /**
  * Interface for operators that act on two geometries to produce a new geometry as result.
  */
-public interface IOperatorAWithB {
+public interface CombineOperator {
 
 	/**
 	 * Operation on two geometries, returning a third. Examples include
