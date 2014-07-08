@@ -84,6 +84,12 @@ public abstract class OGCGeometry {
 		return GeometryEngine.geometryToWkt(getEsriGeometry(), 0);
 	}
 
+    public String toString() {
+        String snippet = asText();
+        if (snippet.length() > 200) { snippet = snippet.substring(0, 197)+"..."; }
+        return String.format("%s: %s", this.getClass().getSimpleName(), snippet);
+    }
+
 	public ByteBuffer asBinary() {
 		OperatorExportToWkb op = (OperatorExportToWkb) OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.ExportToWkb);

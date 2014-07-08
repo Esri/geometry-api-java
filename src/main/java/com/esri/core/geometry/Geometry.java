@@ -26,6 +26,8 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.VertexDescription.Semantics;
+import com.esri.core.geometry.GeometryEngine;
+import com.esri.core.geometry.WktExportFlags;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
 
@@ -506,6 +508,12 @@ public abstract class Geometry implements Serializable {
 		src.copyTo(geom);
 		return geom;
 	}
+
+    public String toString() {
+        String snippet = GeometryEngine.geometryToWkt(this, WktExportFlags.wktExportDefaults);
+        if (snippet.length() > 200) { snippet = snippet.substring(0, 197)+"..."; }
+        return String.format("%s: %s", this.getClass().getSimpleName(), snippet);
+    }
 
 	/**
 	 * The stateFlag value changes with changes applied to this geometry. This
