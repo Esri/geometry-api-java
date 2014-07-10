@@ -42,7 +42,7 @@ class OperatorExportToWktLocal extends OperatorExportToWkt {
 					|| (export_flags & WktExportFlags.wktExportMultiLineString) != 0
 					|| (export_flags & WktExportFlags.wktExportPoint) != 0
 					|| (export_flags & WktExportFlags.wktExportMultiPoint) != 0)
-				throw new IllegalArgumentException();
+				throw new IllegalArgumentException("Cannot export a Polygon as Line/Point : "+export_flags);
 
 			exportPolygonToWkt(export_flags, (Polygon) geometry, string);
 			return;
@@ -52,7 +52,7 @@ class OperatorExportToWktLocal extends OperatorExportToWkt {
 					|| (export_flags & WktExportFlags.wktExportMultiPolygon) != 0
 					|| (export_flags & WktExportFlags.wktExportPoint) != 0
 					|| (export_flags & WktExportFlags.wktExportMultiPoint) != 0)
-				throw new IllegalArgumentException();
+				throw new IllegalArgumentException("Cannot export a Polyline as (Multi)Polygon/(Multi)Point : "+export_flags);
 
 			exportPolylineToWkt(export_flags, (Polyline) geometry, string);
 			return;
@@ -62,7 +62,7 @@ class OperatorExportToWktLocal extends OperatorExportToWkt {
 					|| (export_flags & WktExportFlags.wktExportMultiLineString) != 0
 					|| (export_flags & WktExportFlags.wktExportPolygon) != 0
 					|| (export_flags & WktExportFlags.wktExportMultiPolygon) != 0)
-				throw new IllegalArgumentException();
+				throw new IllegalArgumentException("Cannot export a MultiPoint as (Multi)LineString/(Multi)Polygon: "+export_flags);
 
 			exportMultiPointToWkt(export_flags, (MultiPoint) geometry, string);
 			return;
@@ -72,7 +72,7 @@ class OperatorExportToWktLocal extends OperatorExportToWkt {
 					|| (export_flags & WktExportFlags.wktExportMultiLineString) != 0
 					|| (export_flags & WktExportFlags.wktExportPolygon) != 0
 					|| (export_flags & WktExportFlags.wktExportMultiPolygon) != 0)
-				throw new IllegalArgumentException();
+				throw new IllegalArgumentException("Cannot export a Point as (Multi)LineString/(Multi)Polygon: "+export_flags);
 
 			exportPointToWkt(export_flags, (Point) geometry, string);
 			return;
@@ -82,7 +82,7 @@ class OperatorExportToWktLocal extends OperatorExportToWkt {
 					|| (export_flags & WktExportFlags.wktExportMultiLineString) != 0
 					|| (export_flags & WktExportFlags.wktExportPoint) != 0
 					|| (export_flags & WktExportFlags.wktExportMultiPoint) != 0)
-				throw new IllegalArgumentException();
+				throw new IllegalArgumentException("Cannot export an Envelop as (Multi)LineString/(Multi)Point: "+export_flags);
 
 			exportEnvelopeToWkt(export_flags, (Envelope) geometry, string);
 			return;
@@ -149,7 +149,7 @@ class OperatorExportToWktLocal extends OperatorExportToWkt {
 
 		if ((export_flags & WktExportFlags.wktExportPolygon) != 0) {
 			if (polygon_count > 1)
-				throw new IllegalArgumentException();
+				throw new IllegalArgumentException("Cannot export a Polygon with specified export flags: "+export_flags);
 
 			polygonTaggedText_(precision, b_export_zs, b_export_ms, zs, ms,
 					position, path_flags, paths, path_count, string);
@@ -207,7 +207,7 @@ class OperatorExportToWktLocal extends OperatorExportToWkt {
 
 		if ((export_flags & WktExportFlags.wktExportLineString) != 0) {
 			if (path_count > 1)
-				throw new IllegalArgumentException();
+				throw new IllegalArgumentException("Cannot export a LineString with specified export flags: "+export_flags);
 
 			lineStringTaggedText_(precision, b_export_zs, b_export_ms, zs, ms,
 					position, path_flags, paths, string);
@@ -256,7 +256,7 @@ class OperatorExportToWktLocal extends OperatorExportToWkt {
 
 		if ((export_flags & WktExportFlags.wktExportPoint) != 0) {
 			if (point_count > 1)
-				throw new IllegalArgumentException();
+				throw new IllegalArgumentException("Cannot export a Point with specified export flags: "+export_flags);
 
 			pointTaggedTextFromMultiPoint_(precision, b_export_zs, b_export_ms,
 					zs, ms, position, string);

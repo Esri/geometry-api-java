@@ -24,12 +24,13 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.Operator.Type;
+import com.esri.core.geometry.CombineOperator;
 
 /**
  * Symmetric difference (XOR) operation between geometries. 
  *
  */
-public abstract class OperatorSymmetricDifference extends Operator {
+public abstract class OperatorSymmetricDifference extends Operator implements CombineOperator {
 	@Override
 	public Type getType() {
 		return Type.Difference;

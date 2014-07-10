@@ -264,7 +264,9 @@ final class WktParser {
 			m_current_token_type = WktToken.geometrycollection;
 			m_function_stack.add(State.geometryCollectionStart);
 		} else {
-			throw new IllegalArgumentException();
+            String snippet = (m_wkt_string.length() > 200 ?
+                m_wkt_string.substring(0,200)+"..." : m_wkt_string);
+			throw new IllegalArgumentException("Could not parse Well-Known Text: "+snippet);
 		}
 
 		m_function_stack.add(State.attributes);
