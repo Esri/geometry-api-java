@@ -100,7 +100,7 @@ public abstract class RasterizedGeometry2D {
 			value = 1024 * 1024 * 2 / 8;// 256k
 			break;
 		default:
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 		}
 
 		return value;

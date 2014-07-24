@@ -332,10 +332,25 @@ public final class Envelope2D implements Serializable {
 	public void queryCorners(Point2D[] corners) {
 		if ((corners == null) || (corners.length < 4))
 			throw new IllegalArgumentException();
-		corners[0] = new Point2D(xmin, ymin);
-		corners[1] = new Point2D(xmin, ymax);
-		corners[2] = new Point2D(xmax, ymax);
-		corners[3] = new Point2D(xmax, ymin);
+		if (corners[0] != null)
+			corners[0].setCoords(xmin, ymin);
+		else
+			corners[0] = new Point2D(xmin, ymin);
+
+		if (corners[1] != null)
+			corners[1].setCoords(xmin, ymax);
+		else
+			corners[1] = new Point2D(xmin, ymax);
+
+		if (corners[2] != null)
+			corners[2].setCoords(xmax, ymax);
+		else
+			corners[2] = new Point2D(xmax, ymax);
+
+		if (corners[3] != null)
+			corners[3].setCoords(xmax, ymin);
+		else
+			corners[3] = new Point2D(xmax, ymin);
 	}
 
 	/**
@@ -346,10 +361,25 @@ public final class Envelope2D implements Serializable {
 	public void queryCornersReversed(Point2D[] corners) {
 		if (corners == null || ((corners != null) && (corners.length < 4)))
 			throw new IllegalArgumentException();
-		corners[0] = new Point2D(xmin, ymin);
-		corners[1] = new Point2D(xmax, ymin);
-		corners[2] = new Point2D(xmax, ymax);
-		corners[3] = new Point2D(xmin, ymax);
+		if (corners[0] != null)
+			corners[0].setCoords(xmin, ymin);
+		else
+			corners[0] = new Point2D(xmin, ymin);
+
+		if (corners[1] != null)
+			corners[1].setCoords(xmax, ymin);
+		else
+			corners[1] = new Point2D(xmax, ymin);
+
+		if (corners[2] != null)
+			corners[2].setCoords(xmax, ymax);
+		else
+			corners[2] = new Point2D(xmax, ymax);
+		
+		if (corners[3] != null)
+			corners[3].setCoords(xmin, ymax);
+		else
+			corners[3] = new Point2D(xmin, ymax);
 	}
 
 	public double getArea() {
@@ -516,20 +546,20 @@ public final class Envelope2D implements Serializable {
 		ymax = c.getY() + cy;
 	}
 
-	public Point getLowerLeft() {
-		return new Point(xmin, ymin);
+	public Point2D getLowerLeft() {
+		return new Point2D(xmin, ymin);
 	}
 
-	public Point getUpperLeft() {
-		return new Point(xmin, ymax);
+	public Point2D getUpperLeft() {
+		return new Point2D(xmin, ymax);
 	}
 
-	public Point getLowerRight() {
-		return new Point(xmax, ymin);
+	public Point2D getLowerRight() {
+		return new Point2D(xmax, ymin);
 	}
 
-	public Point getUpperRight() {
-		return new Point(xmax, ymax);
+	public Point2D getUpperRight() {
+		return new Point2D(xmax, ymax);
 	}
 
 	public boolean contains(Point p) {
@@ -541,7 +571,9 @@ public final class Envelope2D implements Serializable {
 	}
 
 	public boolean contains(double x, double y) {
-		return (!isEmpty() && (x >= xmin && x <= xmax && y >= ymin && y <= ymax));
+		// Note: This will return False, if envelope is empty, thus no need to
+		// call is_empty().
+		return x >= xmin && x <= xmax && y >= ymin && y <= ymax;
 	}
 
 	/**
@@ -567,7 +599,7 @@ public final class Envelope2D implements Serializable {
 	 * Returns True if the envelope contains the point (boundary exclusive).
 	 */
 	public boolean containsExclusive(Point2D pt) {
-		return contains(pt.x, pt.y);
+		return containsExclusive(pt.x, pt.y);
 	}
 
 	/**

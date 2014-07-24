@@ -55,8 +55,16 @@ class SegmentBuffer implements Serializable {
 				Line ln = (Line) seg;
 				m_line = ln;
 			}
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 		}
+	}
+	
+	public void create(Geometry.Type type)
+	{
+		if (type == Geometry.Type.Line)
+			createLine();
+		else
+			throw new GeometryException("not implemented");
 	}
 
 	public void createLine() {

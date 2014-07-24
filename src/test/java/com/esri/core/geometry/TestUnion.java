@@ -17,7 +17,6 @@ public class TestUnion extends TestCase {
 	@Test
 	public static void testUnion() {
 		Point pt = new Point(10, 20);
-		System.out.println(pt.getX());
 
 		Point pt2 = new Point();
 		pt2.setXY(10, 10);
@@ -34,6 +33,5 @@ public class TestUnion extends TestCase {
 
 		GeometryCursor outputCursor = union.execute(inputGeometries, sr, null);
 		Geometry result = outputCursor.next();
-		System.out.println(result);
 	}
 }

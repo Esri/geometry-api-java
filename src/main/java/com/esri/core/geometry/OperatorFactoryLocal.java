@@ -83,6 +83,15 @@ public class OperatorFactoryLocal extends OperatorFactory {
 		st_supportedOperators.put(Type.Simplify, new OperatorSimplifyLocal());
 		st_supportedOperators.put(Type.Offset, new OperatorOffsetLocal());
 
+		st_supportedOperators.put(Type.GeodeticDensifyByLength,
+				new OperatorGeodeticDensifyLocal());
+		
+	  st_supportedOperators.put(Type.ShapePreservingDensify,
+		    new OperatorShapePreservingDensifyLocal());	
+		
+	  st_supportedOperators.put(Type.GeodesicBuffer,
+		    new OperatorGeodesicBufferLocal());	
+
 		st_supportedOperators.put(Type.GeodeticLength,
 				new OperatorGeodeticLengthLocal());
 		st_supportedOperators.put(Type.GeodeticArea,
@@ -118,23 +127,14 @@ public class OperatorFactoryLocal extends OperatorFactory {
 				new OperatorConvexHullLocal());
 		st_supportedOperators.put(Type.Boundary, new OperatorBoundaryLocal());
 
-		// LabelPoint,
-		// Simplify,
-		//
+		// LabelPoint, - not ported
 
 	}
 
 	private OperatorFactoryLocal() {
-		m_bNewTopo = false;// use sg by default
-		// m_bNewTopo = true;//use sg by default
 
 	}
 
-	/**
-	 * A temporary way to switch to new topo engine from SG. Set it to true, to
-	 * switch. Need to be changed once at the startup of the program.
-	 */
-	boolean m_bNewTopo;
 
 	/**
 	 *Returns a reference to the singleton.

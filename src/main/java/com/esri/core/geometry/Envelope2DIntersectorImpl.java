@@ -39,17 +39,23 @@ class Envelope2DIntersectorImpl {
 		reset_();
 		m_b_add_red_red = true;
 
-		if (m_envelopes_red == null)
+		if (m_envelopes_red == null) {
+			m_elements_red = new AttributeStreamOfInt32(0);
 			m_envelopes_red = new ArrayList<Envelope2D>(0);
-		else
+		} else {
+			m_elements_red.resizePreserveCapacity(0);
 			m_envelopes_red.clear();
+		}
 	}
 
-	void addEnvelope(Envelope2D envelope) {
+	void addEnvelope(int element, Envelope2D envelope) {
 		if (!m_b_add_red_red)
 			throw new GeometryException("invalid call");
 
-		m_envelopes_red.add(envelope);
+		Envelope2D e = new Envelope2D();
+		e.setCoords(envelope);
+		m_elements_red.add(element);
+		m_envelopes_red.add(e);
 	}
 
 	void endConstruction() {
@@ -68,17 +74,23 @@ class Envelope2DIntersectorImpl {
 		reset_();
 		m_b_add_red = true;
 
-		if (m_envelopes_red == null)
+		if (m_envelopes_red == null) {
+			m_elements_red = new AttributeStreamOfInt32(0);
 			m_envelopes_red = new ArrayList<Envelope2D>(0);
-		else
+		} else {
+			m_elements_red.resizePreserveCapacity(0);
 			m_envelopes_red.clear();
+		}
 	}
 
-	void addRedEnvelope(Envelope2D red_envelope) {
+	void addRedEnvelope(int element, Envelope2D red_envelope) {
 		if (!m_b_add_red)
 			throw new GeometryException("invalid call");
 
-		m_envelopes_red.add(red_envelope);
+		Envelope2D e = new Envelope2D();
+		e.setCoords(red_envelope);
+		m_elements_red.add(element);
+		m_envelopes_red.add(e);
 	}
 
 	void endRedConstruction() {
@@ -104,17 +116,23 @@ class Envelope2DIntersectorImpl {
 		reset_();
 		m_b_add_blue = true;
 
-		if (m_envelopes_blue == null)
+		if (m_envelopes_blue == null) {
+			m_elements_blue = new AttributeStreamOfInt32(0);
 			m_envelopes_blue = new ArrayList<Envelope2D>(0);
-		else
+		} else {
+			m_elements_blue.resizePreserveCapacity(0);
 			m_envelopes_blue.clear();
+		}
 	}
 
-	void addBlueEnvelope(Envelope2D blue_envelope) {
+	void addBlueEnvelope(int element, Envelope2D blue_envelope) {
 		if (!m_b_add_blue)
 			throw new GeometryException("invalid call");
 
-		m_envelopes_blue.add(blue_envelope);
+		Envelope2D e = new Envelope2D();
+		e.setCoords(blue_envelope);
+		m_elements_blue.add(element);
+		m_envelopes_blue.add(e);
 	}
 
 	void endBlueConstruction() {
@@ -202,7 +220,7 @@ class Envelope2DIntersectorImpl {
 				b_searching = resetBlue_();
 				break;
 			default:
-				throw new GeometryException("internal error");
+				throw GeometryException.GeometryInternalError();
 			}
 		}
 
@@ -250,9 +268,22 @@ class Envelope2DIntersectorImpl {
 		return m_envelopes_blue.get(handle_b);
 	}
 
+	/*
+	 * Returns the user element associated with handle_a.
+	 */
+	int getRedElement(int handle_a) {
+		return m_elements_red.read(handle_a);
+	}
+
+	/*
+	 * Returns the user element associated with handle_b.
+	 */
+
+	int getBlueElement(int handle_b) {
+		return m_elements_blue.read(handle_b);
+	}
+
 	private double m_tolerance;
-	private ArrayList<Envelope2D> m_envelopes_red;
-	private ArrayList<Envelope2D> m_envelopes_blue;
 	private int m_sweep_index_red;
 	private int m_sweep_index_blue;
 	private int m_envelope_handle_a;
@@ -262,6 +293,11 @@ class Envelope2DIntersectorImpl {
 	private IntervalTreeImpl.IntervalTreeIteratorImpl m_iterator_red;
 	private IntervalTreeImpl.IntervalTreeIteratorImpl m_iterator_blue;
 	private Envelope2D m_envelope_helper = new Envelope2D();
+
+	private ArrayList<Envelope2D> m_envelopes_red;
+	private ArrayList<Envelope2D> m_envelopes_blue;
+	private AttributeStreamOfInt32 m_elements_red;
+	private AttributeStreamOfInt32 m_elements_blue;
 
 	private AttributeStreamOfInt32 m_sorted_end_indices_red;
 	private AttributeStreamOfInt32 m_sorted_end_indices_blue;

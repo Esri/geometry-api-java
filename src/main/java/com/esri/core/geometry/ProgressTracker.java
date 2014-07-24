@@ -34,4 +34,13 @@ public abstract class ProgressTracker {
 	 *@return true, if the operation can continue. Returns False, when the operation has to terminate due to a user cancelation.
 	 */
 	public abstract boolean progress(int step, int totalExpectedSteps);
+	
+	/**
+	 * Checks the tracker and throws UserCancelException if tracker is not null and progress returns false
+	 * @param tracker can be null, then the method does nothing.
+	 */
+	public static void checkAndThrow(ProgressTracker tracker) {
+		if (tracker != null && !tracker.progress(-1, -1))
+			throw new UserCancelException();
+	}
 }

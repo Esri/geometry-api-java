@@ -660,7 +660,7 @@ class ConstructOffset {
 		if (multiPath.isClosedPath(pathIndex)) {
 			// check if last point is a duplicate of first
 			Point2D ptStart = multiPath.getXY(startVertex);
-			while (multiPath.getXY(endVertex - 1).equals(ptStart))
+			while (multiPath.getXY(endVertex - 1).isEqual(ptStart))
 				endVertex--;
 
 			// we need at least three points for a polygon
@@ -679,11 +679,11 @@ class ConstructOffset {
 			// remove duplicate points at extremities
 			Point2D ptStart = multiPath.getXY(startVertex);
 			while ((startVertex < endVertex)
-					&& multiPath.getXY(startVertex + 1).equals(ptStart))
+					&& multiPath.getXY(startVertex + 1).isEqual(ptStart))
 				startVertex++;
 			Point2D ptEnd = multiPath.getXY(endVertex - 1);
 			while ((startVertex < endVertex)
-					&& multiPath.getXY(endVertex - 2).equals(ptEnd))
+					&& multiPath.getXY(endVertex - 2).isEqual(ptEnd))
 				endVertex--;
 
 			// we need at least two points for a polyline

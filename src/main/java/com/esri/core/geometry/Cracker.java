@@ -40,6 +40,7 @@ class Cracker {
 	private double m_tolerance_cluster;
 	private Treap m_sweep_structure;
 	private SweepComparator m_sweep_comparator;
+	private boolean m_bAllowCoincident;
 
 	boolean crackBruteForce_() {
 		EditShape.VertexIterator iter_1 = m_shape.queryVertexIterator(false);
@@ -57,9 +58,7 @@ class Cracker {
 
 		for (int vertex_1 = iter_1.next(); vertex_1 != -1; vertex_1 = iter_1
 				.next()) {
-			if ((m_progress_tracker != null)
-					&& !(m_progress_tracker.progress(-1, -1)))
-				throw new RuntimeException("user_canceled");
+			ProgressTracker.checkAndThrow(m_progress_tracker);
 
 			int GT_1 = m_shape.getGeometryType(iter_1.currentGeometry());
 
@@ -218,10 +217,10 @@ class Cracker {
 	}
 
 	boolean needsCrackingImpl_() {
+		boolean b_needs_cracking = false;
+		
 		if (m_sweep_structure == null)
 			m_sweep_structure = new Treap();
-
-		boolean b_needs_cracking = false;
 
 		AttributeStreamOfInt32 event_q = new AttributeStreamOfInt32(0);
 		event_q.reserve(m_shape.getTotalPointCount() + 1);
@@ -237,20 +236,21 @@ class Cracker {
 		// create user indices to store edges that end at vertices.
 		int edge_index_1 = m_shape.createUserIndex();
 		int edge_index_2 = m_shape.createUserIndex();
-		m_sweep_comparator = new SweepComparator(m_shape, m_tolerance, true);
+		m_sweep_comparator = new SweepComparator(m_shape, m_tolerance, !m_bAllowCoincident);
 		m_sweep_structure.setComparator(m_sweep_comparator);
 
-		AttributeStreamOfInt32 new_edges = new AttributeStreamOfInt32(0);
 		AttributeStreamOfInt32 swept_edges_to_delete = new AttributeStreamOfInt32(
 				0);
 		AttributeStreamOfInt32 edges_to_insert = new AttributeStreamOfInt32(0);
 
 		// Go throught the sorted vertices
 		int event_q_index = 0;
+		Point2D cluster_pt = new Point2D();
 
 		// sweep-line algorithm:
 		for (int vertex = event_q.get(event_q_index++); vertex != -1;) {
-			Point2D cluster_pt = m_shape.getXY(vertex);
+			m_shape.getXY(vertex, cluster_pt);
+			
 			do {
 				int next_vertex = m_shape.getNextVertex(vertex);
 				int prev_vertex = m_shape.getPrevVertex(vertex);
@@ -310,16 +310,6 @@ class Cracker {
 																			// search.
 				{
 					assert (new_left == -1);
-					// if (false)
-					// {
-					// dbg_print_sweep_structure_();
-					// }
-					// if (false)
-					// {
-					// dbg_print_sweep_edge_(edge);
-					// dbg_print_sweep_edge_(left);
-					// dbg_print_sweep_edge_(new_left);
-					// }
 					new_left = left;
 				}
 
@@ -328,18 +318,13 @@ class Cracker {
 					assert (new_right == -1);
 					new_right = right;
 				}
-				// #ifndef DEBUG
-				// if (new_left != -1 && new_right != -1)
-				// break;
-				// #endif
+//#ifdef NDEBUG				
+				if (new_left != -1 && new_right != -1)
+					break;
+//#endif
 			}
 
 			assert (new_left == -1 || new_left != new_right);
-
-			// if (false)
-			// {
-			// dbg_print_sweep_structure_();
-			// }
 
 			m_sweep_comparator.setSweepY(cluster_pt.y, cluster_pt.x);
 
@@ -348,9 +333,9 @@ class Cracker {
 				int edge = swept_edges_to_delete.get(i);
 				m_sweep_structure.deleteNode(edge, -1);
 			}
-			swept_edges_to_delete.resizePreserveCapacity(0);
+			swept_edges_to_delete.clear(false);
 
-			if (new_left != -1 && new_right != -1) {
+			if (!b_continuing_segment_chain_optimization && new_left != -1 && new_right != -1) {
 				if (checkForIntersections_(new_left, new_right)) {
 					b_needs_cracking = true;
 					m_non_simple_result = m_sweep_comparator.getResult();
@@ -361,9 +346,8 @@ class Cracker {
 			for (int i = 0, n = edges_to_insert.size(); i < n; i += 2) {
 				int v = edges_to_insert.get(i);
 				int otherv = edges_to_insert.get(i + 1);
-				;
 
-				int new_edge_1;
+				int new_edge_1 = -1;
 				if (b_continuing_segment_chain_optimization) {
 					new_edge_1 = m_sweep_structure.addElementAtPosition(
 							new_left, new_right, v, true, true, -1);
@@ -392,7 +376,6 @@ class Cracker {
 																		// vertex.
 				}
 
-				// DbgCheckSweepStructure();
 				if (m_sweep_comparator.intersectionDetected()) {
 					m_non_simple_result = m_sweep_comparator.getResult();
 					b_needs_cracking = true;
@@ -407,16 +390,6 @@ class Cracker {
 					m_shape.setUserIndex(otherv, edge_index_2, new_edge_1);
 				}
 			}
-			/*
-			 * for (int i = 0, n = new_edges.size(); i < n; i++) { int edge =
-			 * new_edges.get(i); int left = m_sweep_structure.get_prev(edge);
-			 * int right = m_sweep_structure.get_next(edge); if (left != -1) {
-			 * if (check_for_intersections_(left, edge)) { b_needs_cracking =
-			 * true; m_non_simple_result = m_sweep_comparator->get_result();
-			 * break; } } if (right != -1) { if (check_for_intersections_(right,
-			 * edge)) { b_needs_cracking = true; m_non_simple_result =
-			 * m_sweep_comparator->get_result(); break; } } }
-			 */
 
 			if (b_needs_cracking)
 				break;
@@ -427,9 +400,6 @@ class Cracker {
 
 		m_shape.removeUserIndex(edge_index_1);
 		m_shape.removeUserIndex(edge_index_2);
-		// DEBUGPRINTF("number of compare calls: %d\n", g_dbg);
-		// DEBUGPRINTF("total point count: %d\n",
-		// m_shape->get_total_point_count());
 		return b_needs_cracking;
 	}
 
@@ -450,6 +420,7 @@ class Cracker {
 	// void dbg_check_sweep_structure_();
 	Cracker(ProgressTracker progress_tracker) {
 		m_progress_tracker = progress_tracker;
+		m_bAllowCoincident = true;
 	}
 
 	static boolean canBeCracked(EditShape shape) {
@@ -480,13 +451,7 @@ class Cracker {
 		{
 			b_cracked = cracker.crackBruteForce_();
 		} else {
-			// bool b_cracked_1 = cracker.crack_quad_tree_();
-			// bool b_cracked_2 = cracker.crack_quad_tree_();
-			// assert(!b_cracked_2);
-
 			boolean b_cracked_1 = cracker.crackerPlaneSweep_();
-			// bool b_cracked_1 = cracker.crack_quad_tree_();
-			// bool b_cracked_1 = cracker.crack_envelope_2D_intersector_();
 			return b_cracked_1;
 		}
 		return b_cracked;
@@ -499,7 +464,7 @@ class Cracker {
 	}
 
 	// Used for IsSimple.
-	static boolean needsCracking(EditShape shape, double tolerance,
+	static boolean needsCracking(boolean allowCoincident, EditShape shape, double tolerance,
 			NonSimpleResult result, ProgressTracker progress_tracker) {
 		if (!canBeCracked(shape))
 			return false;
@@ -509,6 +474,7 @@ class Cracker {
 		cracker.m_shape = shape;
 		cracker.m_tolerance = tolerance;
 		cracker.m_extent = shape_env;
+		cracker.m_bAllowCoincident = allowCoincident;
 		if (cracker.needsCrackingImpl_()) {
 			if (result != null)
 				result.Assign(cracker.m_non_simple_result);
@@ -525,6 +491,7 @@ class Cracker {
 		cracker.m_shape = shape;
 		cracker.m_tolerance = tolerance;
 		cracker.m_extent = shape_env;
+		cracker.m_bAllowCoincident = allowCoincident;
 		boolean b_res = cracker.needsCrackingImpl_();
 
 		transform.setSwapCoordinates();

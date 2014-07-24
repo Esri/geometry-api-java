@@ -49,4 +49,15 @@ class OperatorProjectLocal extends OperatorProject {
 		throw new GeometryException("not implemented");
 	}
 
+	@Override
+	public Geometry foldInto360RangeGeodetic(/* const */Geometry _geom, /* const */
+	SpatialReference pannableSR, /* GeodeticCurveType */int curveType) {
+		throw new GeometryException("not implemented");
+	}
+
+	@Override
+	public Geometry foldInto360Range(/* const */Geometry geom, /* const */
+	SpatialReference pannableSR) {
+		throw new GeometryException("not implemented");
+	}
 }

@@ -1,10 +1,11 @@
 package com.esri.core.geometry;
 
 import static org.junit.Assert.*;
+import junit.framework.TestCase;
 
 import org.junit.Test;
 
-public class TestAttributes {
+public class TestAttributes extends TestCase{
 
 	@Test
 	public void testPoint() {

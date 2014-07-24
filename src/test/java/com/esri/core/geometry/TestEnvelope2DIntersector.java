@@ -49,7 +49,7 @@ public class TestEnvelope2DIntersector extends TestCase {
 
 		intersector.startConstruction();
 		for (int i = 0; i < envelopes.size(); i++)
-			intersector.addEnvelope(envelopes.get(i));
+			intersector.addEnvelope(i, envelopes.get(i));
 		intersector.endConstruction();
 
 		int count = 0;
@@ -69,7 +69,7 @@ public class TestEnvelope2DIntersector extends TestCase {
 		intersector2.setTolerance(0.0);
 		intersector2.startConstruction();
 		for (int i = 0; i < envelopes.size(); i++)
-			intersector2.addEnvelope(envelopes.get(i));
+			intersector2.addEnvelope(i, envelopes.get(i));
 		intersector2.endConstruction();
 
 		count = 0;
@@ -100,7 +100,7 @@ public class TestEnvelope2DIntersector extends TestCase {
 
 		intersector3.startConstruction();
 		for (int i = 0; i < envelopes.size(); i++)
-			intersector3.addEnvelope(envelopes.get(i));
+			intersector3.addEnvelope(i, envelopes.get(i));
 		intersector3.endConstruction();
 		;
 		count = 0;
@@ -128,7 +128,7 @@ public class TestEnvelope2DIntersector extends TestCase {
 
 		intersector4.startConstruction();
 		for (int i = 0; i < envelopes.size(); i++)
-			intersector4.addEnvelope(envelopes.get(i));
+			intersector4.addEnvelope(i, envelopes.get(i));
 		intersector4.endConstruction();
 
 		count = 0;
@@ -156,7 +156,7 @@ public class TestEnvelope2DIntersector extends TestCase {
 
 		intersector5.startConstruction();
 		for (int i = 0; i < envelopes.size(); i++)
-			intersector5.addEnvelope(envelopes.get(i));
+			intersector5.addEnvelope(i, envelopes.get(i));
 		intersector5.endConstruction();
 
 		count = 0;
@@ -305,12 +305,12 @@ public class TestEnvelope2DIntersector extends TestCase {
 
 			intersector.startRedConstruction();
 			for (int i = 0; i < envelopes_red.size(); i++)
-				intersector.addRedEnvelope(envelopes_red.get(i));
+				intersector.addRedEnvelope(i, envelopes_red.get(i));
 			intersector.endRedConstruction();
 
 			intersector.startBlueConstruction();
 			for (int i = 0; i < envelopes_blue.size(); i++)
-				intersector.addBlueEnvelope(envelopes_blue.get(i));
+				intersector.addBlueEnvelope(i, envelopes_blue.get(i));
 			intersector.endBlueConstruction();
 
 			while (intersector.next())

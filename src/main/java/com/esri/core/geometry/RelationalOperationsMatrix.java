@@ -122,7 +122,7 @@ class RelationalOperationsMatrix {
 			case Geometry.GeometryType.Polygon:
 				bRelation = polygonRelatePolyline_((Polygon) (_geometryB),
 						(Polyline) (_geometryA), tolerance,
-						transposeMatrix_(scl), progress_tracker);
+						getTransposeMatrix_(scl), progress_tracker);
 				break;
 
 			case Geometry.GeometryType.Polyline:
@@ -151,14 +151,14 @@ class RelationalOperationsMatrix {
 			switch (typeB) {
 			case Geometry.GeometryType.Polygon:
 				bRelation = polygonRelatePoint_((Polygon) (_geometryB),
-						(Point) (_geometryA), tolerance, transposeMatrix_(scl),
-						progress_tracker);
+						(Point) (_geometryA), tolerance,
+						getTransposeMatrix_(scl), progress_tracker);
 				break;
 
 			case Geometry.GeometryType.Polyline:
 				bRelation = polylineRelatePoint_((Polyline) (_geometryB),
-						(Point) (_geometryA), tolerance, transposeMatrix_(scl),
-						progress_tracker);
+						(Point) (_geometryA), tolerance,
+						getTransposeMatrix_(scl), progress_tracker);
 				break;
 
 			case Geometry.GeometryType.Point:
@@ -168,8 +168,8 @@ class RelationalOperationsMatrix {
 
 			case Geometry.GeometryType.MultiPoint:
 				bRelation = multiPointRelatePoint_((MultiPoint) (_geometryB),
-						(Point) (_geometryA), tolerance, transposeMatrix_(scl),
-						progress_tracker);
+						(Point) (_geometryA), tolerance,
+						getTransposeMatrix_(scl), progress_tracker);
 				break;
 
 			default:
@@ -182,13 +182,13 @@ class RelationalOperationsMatrix {
 			case Geometry.GeometryType.Polygon:
 				bRelation = polygonRelateMultiPoint_((Polygon) (_geometryB),
 						(MultiPoint) (_geometryA), tolerance,
-						transposeMatrix_(scl), progress_tracker);
+						getTransposeMatrix_(scl), progress_tracker);
 				break;
 
 			case Geometry.GeometryType.Polyline:
 				bRelation = polylineRelateMultiPoint_((Polyline) (_geometryB),
 						(MultiPoint) (_geometryA), tolerance,
-						transposeMatrix_(scl), progress_tracker);
+						getTransposeMatrix_(scl), progress_tracker);
 				break;
 
 			case Geometry.GeometryType.MultiPoint:
@@ -229,13 +229,47 @@ class RelationalOperationsMatrix {
 		relOps.setPredicates_(scl);
 		relOps.setAreaAreaPredicates_();
 
-		EditShape edit_shape = new EditShape();
-		int geom_a = edit_shape.addGeometry(polygon_a);
-		int geom_b = edit_shape.addGeometry(polygon_b);
-		relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance,
-				progress_tracker);
-		relOps.computeMatrixTopoGraphHalfEdges_(geom_a, geom_b);
-		relOps.m_topo_graph.removeShape();
+		Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D();
+		polygon_a.queryEnvelope2D(env_a);
+		polygon_b.queryEnvelope2D(env_b);
+
+		boolean bRelationKnown = false;
+		boolean b_disjoint = RelationalOperations.envelopeDisjointEnvelope_(
+				env_a, env_b, tolerance, progress_tracker);
+
+		if (b_disjoint) {
+			relOps.areaAreaDisjointPredicates_();
+			bRelationKnown = true;
+		}
+
+		if (!bRelationKnown) {
+			// Quick rasterize test to see whether the the geometries are
+			// disjoint, or if one is contained in the other.
+			int relation = RelationalOperations
+					.tryRasterizedContainsOrDisjoint_(polygon_a, polygon_b,
+							tolerance, false);
+
+			if (relation == RelationalOperations.Relation.disjoint) {
+				relOps.areaAreaDisjointPredicates_();
+				bRelationKnown = true;
+			} else if (relation == RelationalOperations.Relation.contains) {
+				relOps.areaAreaContainsPredicates_();
+				bRelationKnown = true;
+			} else if (relation == RelationalOperations.Relation.within) {
+				relOps.areaAreaWithinPredicates_();
+				bRelationKnown = true;
+			}
+		}
+
+		if (!bRelationKnown) {
+			EditShape edit_shape = new EditShape();
+			int geom_a = edit_shape.addGeometry(polygon_a);
+			int geom_b = edit_shape.addGeometry(polygon_b);
+			relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance,
+					progress_tracker);
+			relOps.computeMatrixTopoGraphHalfEdges_(geom_a, geom_b);
+			relOps.m_topo_graph.removeShape();
+		}
 
 		boolean bRelation = relationCompare_(relOps.m_matrix, relOps.m_scl);
 		return bRelation;
@@ -250,18 +284,58 @@ class RelationalOperationsMatrix {
 		relOps.setPredicates_(scl);
 		relOps.setAreaLinePredicates_();
 
-		EditShape edit_shape = new EditShape();
-		int geom_a = edit_shape.addGeometry(polygon_a);
-		int geom_b = edit_shape.addGeometry(polyline_b);
-		relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance,
-				progress_tracker);
-		relOps.m_cluster_index_b = relOps.m_topo_graph
-				.createUserIndexForClusters();
-		markClusters_(geom_b, relOps.m_topo_graph, relOps.m_cluster_index_b);
-		relOps.computeMatrixTopoGraphHalfEdges_(geom_a, geom_b);
-		relOps.m_topo_graph
-				.deleteUserIndexForClusters(relOps.m_cluster_index_b);
-		relOps.m_topo_graph.removeShape();
+		Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D();
+		polygon_a.queryEnvelope2D(env_a);
+		polyline_b.queryEnvelope2D(env_b);
+
+		boolean bRelationKnown = false;
+		boolean b_disjoint = RelationalOperations.envelopeDisjointEnvelope_(
+				env_a, env_b, tolerance, progress_tracker);
+
+		if (b_disjoint) {
+			relOps.areaLineDisjointPredicates_(polyline_b); // passing polyline
+															// to get boundary
+															// information
+			bRelationKnown = true;
+		}
+
+		if (!bRelationKnown) {
+			// Quick rasterize test to see whether the the geometries are
+			// disjoint, or if one is contained in the other.
+			int relation = RelationalOperations
+					.tryRasterizedContainsOrDisjoint_(polygon_a, polyline_b,
+							tolerance, false);
+
+			if (relation == RelationalOperations.Relation.disjoint) {
+				relOps.areaLineDisjointPredicates_(polyline_b); // passing
+																// polyline to
+																// get boundary
+																// information
+				bRelationKnown = true;
+			} else if (relation == RelationalOperations.Relation.contains) {
+				relOps.areaLineContainsPredicates_(polyline_b); // passing
+																// polyline to
+																// get boundary
+																// information
+				bRelationKnown = true;
+			}
+		}
+
+		if (!bRelationKnown) {
+			EditShape edit_shape = new EditShape();
+			int geom_a = edit_shape.addGeometry(polygon_a);
+			int geom_b = edit_shape.addGeometry(polyline_b);
+			relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance,
+					progress_tracker);
+			relOps.m_cluster_index_b = relOps.m_topo_graph
+					.createUserIndexForClusters();
+			markClusterEndPoints_(geom_b, relOps.m_topo_graph,
+					relOps.m_cluster_index_b);
+			relOps.computeMatrixTopoGraphHalfEdges_(geom_a, geom_b);
+			relOps.m_topo_graph
+					.deleteUserIndexForClusters(relOps.m_cluster_index_b);
+			relOps.m_topo_graph.removeShape();
+		}
 
 		boolean bRelation = relationCompare_(relOps.m_matrix, relOps.m_scl);
 		return bRelation;
@@ -276,13 +350,44 @@ class RelationalOperationsMatrix {
 		relOps.setPredicates_(scl);
 		relOps.setAreaPointPredicates_();
 
-		EditShape edit_shape = new EditShape();
-		int geom_a = edit_shape.addGeometry(polygon_a);
-		int geom_b = edit_shape.addGeometry(multipoint_b);
-		relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance,
-				progress_tracker);
-		relOps.computeMatrixTopoGraphClusters_(geom_a, geom_b);
-		relOps.m_topo_graph.removeShape();
+		Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D();
+		polygon_a.queryEnvelope2D(env_a);
+		multipoint_b.queryEnvelope2D(env_b);
+
+		boolean bRelationKnown = false;
+		boolean b_disjoint = RelationalOperations.envelopeDisjointEnvelope_(
+				env_a, env_b, tolerance, progress_tracker);
+
+		if (b_disjoint) {
+			relOps.areaPointDisjointPredicates_();
+			bRelationKnown = true;
+		}
+
+		if (!bRelationKnown) {
+			// Quick rasterize test to see whether the the geometries are
+			// disjoint, or if one is contained in the other.
+			int relation = RelationalOperations
+					.tryRasterizedContainsOrDisjoint_(polygon_a, multipoint_b,
+							tolerance, false);
+
+			if (relation == RelationalOperations.Relation.disjoint) {
+				relOps.areaPointDisjointPredicates_();
+				bRelationKnown = true;
+			} else if (relation == RelationalOperations.Relation.contains) {
+				relOps.areaPointContainsPredicates_();
+				bRelationKnown = true;
+			}
+		}
+
+		if (!bRelationKnown) {
+			EditShape edit_shape = new EditShape();
+			int geom_a = edit_shape.addGeometry(polygon_a);
+			int geom_b = edit_shape.addGeometry(multipoint_b);
+			relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance,
+					progress_tracker);
+			relOps.computeMatrixTopoGraphClusters_(geom_a, geom_b);
+			relOps.m_topo_graph.removeShape();
+		}
 
 		boolean bRelation = relationCompare_(relOps.m_matrix, relOps.m_scl);
 		return bRelation;
@@ -297,23 +402,53 @@ class RelationalOperationsMatrix {
 		relOps.setPredicates_(scl);
 		relOps.setLineLinePredicates_();
 
-		EditShape edit_shape = new EditShape();
-		int geom_a = edit_shape.addGeometry(polyline_a);
-		int geom_b = edit_shape.addGeometry(polyline_b);
-		relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance,
-				progress_tracker);
-		relOps.m_cluster_index_a = relOps.m_topo_graph
-				.createUserIndexForClusters();
-		relOps.m_cluster_index_b = relOps.m_topo_graph
-				.createUserIndexForClusters();
-		markClusters_(geom_a, relOps.m_topo_graph, relOps.m_cluster_index_a);
-		markClusters_(geom_b, relOps.m_topo_graph, relOps.m_cluster_index_b);
-		relOps.computeMatrixTopoGraphHalfEdges_(geom_a, geom_b);
-		relOps.m_topo_graph
-				.deleteUserIndexForClusters(relOps.m_cluster_index_a);
-		relOps.m_topo_graph
-				.deleteUserIndexForClusters(relOps.m_cluster_index_b);
-		relOps.m_topo_graph.removeShape();
+		Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D();
+		polyline_a.queryEnvelope2D(env_a);
+		polyline_b.queryEnvelope2D(env_b);
+
+		boolean bRelationKnown = false;
+		boolean b_disjoint = RelationalOperations.envelopeDisjointEnvelope_(
+				env_a, env_b, tolerance, progress_tracker);
+
+		if (b_disjoint) {
+			relOps.lineLineDisjointPredicates_(polyline_a, polyline_b);
+			bRelationKnown = true;
+		}
+
+		if (!bRelationKnown) {
+			// Quick rasterize test to see whether the the geometries are
+			// disjoint, or if one is contained in the other.
+			int relation = RelationalOperations
+					.tryRasterizedContainsOrDisjoint_(polyline_a, polyline_b,
+							tolerance, false);
+
+			if (relation == RelationalOperations.Relation.disjoint) {
+				relOps.lineLineDisjointPredicates_(polyline_a, polyline_b);
+				bRelationKnown = true;
+			}
+		}
+
+		if (!bRelationKnown) {
+			EditShape edit_shape = new EditShape();
+			int geom_a = edit_shape.addGeometry(polyline_a);
+			int geom_b = edit_shape.addGeometry(polyline_b);
+			relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance,
+					progress_tracker);
+			relOps.m_cluster_index_a = relOps.m_topo_graph
+					.createUserIndexForClusters();
+			relOps.m_cluster_index_b = relOps.m_topo_graph
+					.createUserIndexForClusters();
+			markClusterEndPoints_(geom_a, relOps.m_topo_graph,
+					relOps.m_cluster_index_a);
+			markClusterEndPoints_(geom_b, relOps.m_topo_graph,
+					relOps.m_cluster_index_b);
+			relOps.computeMatrixTopoGraphHalfEdges_(geom_a, geom_b);
+			relOps.m_topo_graph
+					.deleteUserIndexForClusters(relOps.m_cluster_index_a);
+			relOps.m_topo_graph
+					.deleteUserIndexForClusters(relOps.m_cluster_index_b);
+			relOps.m_topo_graph.removeShape();
+		}
 
 		boolean bRelation = relationCompare_(relOps.m_matrix, relOps.m_scl);
 		return bRelation;
@@ -328,18 +463,47 @@ class RelationalOperationsMatrix {
 		relOps.setPredicates_(scl);
 		relOps.setLinePointPredicates_();
 
-		EditShape edit_shape = new EditShape();
-		int geom_a = edit_shape.addGeometry(polyline_a);
-		int geom_b = edit_shape.addGeometry(multipoint_b);
-		relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance,
-				progress_tracker);
-		relOps.m_cluster_index_a = relOps.m_topo_graph
-				.createUserIndexForClusters();
-		markClusters_(geom_a, relOps.m_topo_graph, relOps.m_cluster_index_a);
-		relOps.computeMatrixTopoGraphClusters_(geom_a, geom_b);
-		relOps.m_topo_graph
-				.deleteUserIndexForClusters(relOps.m_cluster_index_a);
-		relOps.m_topo_graph.removeShape();
+		Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D();
+		polyline_a.queryEnvelope2D(env_a);
+		multipoint_b.queryEnvelope2D(env_b);
+
+		boolean bRelationKnown = false;
+		boolean b_disjoint = RelationalOperations.envelopeDisjointEnvelope_(
+				env_a, env_b, tolerance, progress_tracker);
+
+		if (b_disjoint) {
+			relOps.linePointDisjointPredicates_(polyline_a);
+			bRelationKnown = true;
+		}
+
+		if (!bRelationKnown) {
+			// Quick rasterize test to see whether the the geometries are
+			// disjoint, or if one is contained in the other.
+			int relation = RelationalOperations
+					.tryRasterizedContainsOrDisjoint_(polyline_a, multipoint_b,
+							tolerance, false);
+
+			if (relation == RelationalOperations.Relation.disjoint) {
+				relOps.linePointDisjointPredicates_(polyline_a);
+				bRelationKnown = true;
+			}
+		}
+
+		if (!bRelationKnown) {
+			EditShape edit_shape = new EditShape();
+			int geom_a = edit_shape.addGeometry(polyline_a);
+			int geom_b = edit_shape.addGeometry(multipoint_b);
+			relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance,
+					progress_tracker);
+			relOps.m_cluster_index_a = relOps.m_topo_graph
+					.createUserIndexForClusters();
+			markClusterEndPoints_(geom_a, relOps.m_topo_graph,
+					relOps.m_cluster_index_a);
+			relOps.computeMatrixTopoGraphClusters_(geom_a, geom_b);
+			relOps.m_topo_graph
+					.deleteUserIndexForClusters(relOps.m_cluster_index_a);
+			relOps.m_topo_graph.removeShape();
+		}
 
 		boolean bRelation = relationCompare_(relOps.m_matrix, relOps.m_scl);
 		return bRelation;
@@ -354,13 +518,28 @@ class RelationalOperationsMatrix {
 		relOps.setPredicates_(scl);
 		relOps.setPointPointPredicates_();
 
-		EditShape edit_shape = new EditShape();
-		int geom_a = edit_shape.addGeometry(multipoint_a);
-		int geom_b = edit_shape.addGeometry(multipoint_b);
-		relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance,
-				progress_tracker);
-		relOps.computeMatrixTopoGraphClusters_(geom_a, geom_b);
-		relOps.m_topo_graph.removeShape();
+		Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D();
+		multipoint_a.queryEnvelope2D(env_a);
+		multipoint_b.queryEnvelope2D(env_b);
+
+		boolean bRelationKnown = false;
+		boolean b_disjoint = RelationalOperations.envelopeDisjointEnvelope_(
+				env_a, env_b, tolerance, progress_tracker);
+
+		if (b_disjoint) {
+			relOps.pointPointDisjointPredicates_();
+			bRelationKnown = true;
+		}
+
+		if (!bRelationKnown) {
+			EditShape edit_shape = new EditShape();
+			int geom_a = edit_shape.addGeometry(multipoint_a);
+			int geom_b = edit_shape.addGeometry(multipoint_b);
+			relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance,
+					progress_tracker);
+			relOps.computeMatrixTopoGraphClusters_(geom_a, geom_b);
+			relOps.m_topo_graph.removeShape();
+		}
 
 		boolean bRelation = relationCompare_(relOps.m_matrix, relOps.m_scl);
 		return bRelation;
@@ -369,27 +548,44 @@ class RelationalOperationsMatrix {
 	// Returns true if the relation holds.
 	static boolean polygonRelatePoint_(Polygon polygon_a, Point point_b,
 			double tolerance, String scl, ProgressTracker progress_tracker) {
+		RelationalOperationsMatrix relOps = new RelationalOperationsMatrix();
+		relOps.resetMatrix_();
+		relOps.setPredicates_(scl);
+		relOps.setAreaPointPredicates_();
+
+		Envelope2D env_a = new Envelope2D();
+		polygon_a.queryEnvelope2D(env_a);
 		Point2D pt_b = point_b.getXY();
-		int[] matrix = new int[9];
 
-		for (int i = 0; i < 8; i++)
-			matrix[i] = -1;
+		boolean bRelationKnown = false;
+		boolean b_disjoint = RelationalOperations.pointDisjointEnvelope_(pt_b,
+				env_a, tolerance, progress_tracker);
 
-		PolygonUtils.PiPResult res = PolygonUtils.isPointInPolygon2D(polygon_a,
-				pt_b, tolerance);
+		if (b_disjoint) {
+			relOps.areaPointDisjointPredicates_();
+			bRelationKnown = true;
+		}
 
-		if (res == PolygonUtils.PiPResult.PiPInside)
-			matrix[MatrixPredicate.InteriorInterior] = 0;
-		else if (res == PolygonUtils.PiPResult.PiPBoundary)
-			matrix[MatrixPredicate.BoundaryInterior] = 0;
-		else
-			matrix[MatrixPredicate.ExteriorInterior] = 0;
+		if (!bRelationKnown) {
+			PolygonUtils.PiPResult res = PolygonUtils.isPointInPolygon2D(
+					polygon_a, pt_b, tolerance); // uses accelerator
 
-		matrix[MatrixPredicate.InteriorExterior] = 2;
-		matrix[MatrixPredicate.BoundaryExterior] = 1;
-		matrix[MatrixPredicate.ExteriorExterior] = 2;
+			if (res == PolygonUtils.PiPResult.PiPInside) {
+				relOps.m_matrix[MatrixPredicate.InteriorInterior] = 0;
+				relOps.m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+				relOps.m_matrix[MatrixPredicate.ExteriorInterior] = -1;
+			} else if (res == PolygonUtils.PiPResult.PiPBoundary) {
+				relOps.m_matrix[MatrixPredicate.InteriorInterior] = -1;
+				relOps.m_matrix[MatrixPredicate.BoundaryInterior] = 0;
+				relOps.m_matrix[MatrixPredicate.ExteriorInterior] = -1;
+			} else {
+				relOps.m_matrix[MatrixPredicate.InteriorInterior] = -1;
+				relOps.m_matrix[MatrixPredicate.ExteriorInterior] = 0;
+				relOps.m_matrix[MatrixPredicate.ExteriorInterior] = -1;
+			}
+		}
 
-		boolean bRelation = relationCompare_(matrix, scl);
+		boolean bRelation = relationCompare_(relOps.m_matrix, scl);
 		return bRelation;
 	}
 
@@ -401,21 +597,92 @@ class RelationalOperationsMatrix {
 		relOps.setPredicates_(scl);
 		relOps.setLinePointPredicates_();
 
-		MultiPoint multipoint_b = new MultiPoint();
-		multipoint_b.add(point_b);
+		Envelope2D env_a = new Envelope2D();
+		polyline_a.queryEnvelope2D(env_a);
+		Point2D pt_b = point_b.getXY();
 
-		EditShape edit_shape = new EditShape();
-		int geom_a = edit_shape.addGeometry(polyline_a);
-		int geom_b = edit_shape.addGeometry(multipoint_b);
-		relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance,
-				progress_tracker);
-		relOps.m_cluster_index_a = relOps.m_topo_graph
-				.createUserIndexForClusters();
-		markClusters_(geom_a, relOps.m_topo_graph, relOps.m_cluster_index_a);
-		relOps.computeMatrixTopoGraphClusters_(geom_a, geom_b);
-		relOps.m_topo_graph
-				.deleteUserIndexForClusters(relOps.m_cluster_index_a);
-		relOps.m_topo_graph.removeShape();
+		boolean bRelationKnown = false;
+		boolean b_disjoint = RelationalOperations.pointDisjointEnvelope_(pt_b,
+				env_a, tolerance, progress_tracker);
+
+		if (b_disjoint) {
+			relOps.linePointDisjointPredicates_(polyline_a);
+			bRelationKnown = true;
+		}
+
+		if (!bRelationKnown) {
+			MultiPoint boundary_a = null;
+			boolean b_boundary_contains_point_known = false;
+			boolean b_boundary_contains_point = false;
+
+			if (relOps.m_perform_predicates[MatrixPredicate.InteriorInterior]
+					|| relOps.m_perform_predicates[MatrixPredicate.ExteriorInterior]) {
+				boolean b_intersects = RelationalOperations
+						.linearPathIntersectsPoint_(polyline_a, pt_b, tolerance);
+
+				if (b_intersects) {
+					if (relOps.m_perform_predicates[MatrixPredicate.InteriorInterior]) {
+						boundary_a = (MultiPoint) Boundary.calculate(
+								polyline_a, progress_tracker);
+						b_boundary_contains_point = !RelationalOperations
+								.multiPointDisjointPointImpl_(boundary_a, pt_b,
+										tolerance, progress_tracker);
+						b_boundary_contains_point_known = true;
+
+						if (b_boundary_contains_point)
+							relOps.m_matrix[MatrixPredicate.InteriorInterior] = -1;
+						else
+							relOps.m_matrix[MatrixPredicate.InteriorInterior] = 0;
+					}
+
+					relOps.m_matrix[MatrixPredicate.ExteriorInterior] = -1;
+				} else {
+					relOps.m_matrix[MatrixPredicate.InteriorInterior] = -1;
+					relOps.m_matrix[MatrixPredicate.ExteriorInterior] = 0;
+				}
+			}
+
+			if (relOps.m_perform_predicates[MatrixPredicate.BoundaryInterior]) {
+				if (boundary_a != null && boundary_a.isEmpty()) {
+					relOps.m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+				} else {
+					if (!b_boundary_contains_point_known) {
+						if (boundary_a == null)
+							boundary_a = (MultiPoint) Boundary.calculate(
+									polyline_a, progress_tracker);
+
+						b_boundary_contains_point = !RelationalOperations
+								.multiPointDisjointPointImpl_(boundary_a, pt_b,
+										tolerance, progress_tracker);
+						b_boundary_contains_point_known = true;
+					}
+
+					relOps.m_matrix[MatrixPredicate.BoundaryInterior] = (b_boundary_contains_point ? 0
+							: -1);
+				}
+			}
+
+			if (relOps.m_perform_predicates[MatrixPredicate.BoundaryExterior]) {
+				if (boundary_a != null && boundary_a.isEmpty()) {
+					relOps.m_matrix[MatrixPredicate.BoundaryExterior] = -1;
+				} else {
+					if (b_boundary_contains_point_known
+							&& !b_boundary_contains_point) {
+						relOps.m_matrix[MatrixPredicate.BoundaryExterior] = 0;
+					} else {
+						if (boundary_a == null)
+							boundary_a = (MultiPoint) Boundary.calculate(
+									polyline_a, progress_tracker);
+
+						boolean b_boundary_equals_point = RelationalOperations
+								.multiPointEqualsPoint_(boundary_a, point_b,
+										tolerance, progress_tracker);
+						relOps.m_matrix[MatrixPredicate.BoundaryExterior] = (b_boundary_equals_point ? -1
+								: 0);
+					}
+				}
+			}
+		}
 
 		boolean bRelation = relationCompare_(relOps.m_matrix, relOps.m_scl);
 		return bRelation;
@@ -425,43 +692,58 @@ class RelationalOperationsMatrix {
 	static boolean multiPointRelatePoint_(MultiPoint multipoint_a,
 			Point point_b, double tolerance, String scl,
 			ProgressTracker progress_tracker) {
+		RelationalOperationsMatrix relOps = new RelationalOperationsMatrix();
+		relOps.resetMatrix_();
+		relOps.setPredicates_(scl);
+		relOps.setPointPointPredicates_();
+
+		Envelope2D env_a = new Envelope2D();
+		multipoint_a.queryEnvelope2D(env_a);
 		Point2D pt_b = point_b.getXY();
-		int[] matrix = new int[9];
 
-		for (int i = 0; i < 8; i++)
-			matrix[i] = -1;
+		boolean bRelationKnown = false;
+		boolean b_disjoint = RelationalOperations.pointDisjointEnvelope_(pt_b,
+				env_a, tolerance, progress_tracker);
 
-		boolean b_intersects = false;
-		boolean b_multipoint_contained = true;
-		double tolerance_sq = tolerance * tolerance;
-		Point2D pt_a = new Point2D();
+		if (b_disjoint) {
+			relOps.pointPointDisjointPredicates_();
+			bRelationKnown = true;
+		}
 
-		for (int i = 0; i < multipoint_a.getPointCount(); i++) {
-			multipoint_a.getXY(i, pt_a);
+		if (!bRelationKnown) {
+			boolean b_intersects = false;
+			boolean b_multipoint_contained = true;
+			double tolerance_sq = tolerance * tolerance;
 
-			if (Point2D.sqrDistance(pt_a, pt_b) <= tolerance_sq) {
-				b_intersects = true;
-			} else {
-				b_multipoint_contained = false;
+			for (int i = 0; i < multipoint_a.getPointCount(); i++) {
+				Point2D pt_a = multipoint_a.getXY(i);
+
+				if (Point2D.sqrDistance(pt_a, pt_b) <= tolerance_sq)
+					b_intersects = true;
+				else
+					b_multipoint_contained = false;
+
+				if (b_intersects && !b_multipoint_contained)
+					break;
 			}
 
-			if (b_intersects && !b_multipoint_contained)
-				break;
+			if (b_intersects) {
+				relOps.m_matrix[MatrixPredicate.InteriorInterior] = 0;
+
+				if (!b_multipoint_contained)
+					relOps.m_matrix[MatrixPredicate.InteriorExterior] = 0;
+				else
+					relOps.m_matrix[MatrixPredicate.InteriorExterior] = -1;
+
+				relOps.m_matrix[MatrixPredicate.ExteriorInterior] = -1;
+			} else {
+				relOps.m_matrix[MatrixPredicate.InteriorInterior] = -1;
+				relOps.m_matrix[MatrixPredicate.InteriorExterior] = 0;
+				relOps.m_matrix[MatrixPredicate.ExteriorInterior] = 0;
+			}
 		}
 
-		if (b_intersects) {
-			matrix[MatrixPredicate.InteriorInterior] = 0;
-
-			if (!b_multipoint_contained)
-				matrix[MatrixPredicate.InteriorExterior] = 0;
-		} else {
-			matrix[MatrixPredicate.InteriorExterior] = 0;
-			matrix[MatrixPredicate.ExteriorInterior] = 0;
-		}
-
-		matrix[MatrixPredicate.ExteriorExterior] = 2;
-
-		boolean bRelation = relationCompare_(matrix, scl);
+		boolean bRelation = relationCompare_(relOps.m_matrix, scl);
 		return bRelation;
 	}
 
@@ -472,7 +754,7 @@ class RelationalOperationsMatrix {
 		Point2D pt_b = point_b.getXY();
 		int[] matrix = new int[9];
 
-		for (int i = 1; i < 8; i++)
+		for (int i = 0; i < 9; i++)
 			matrix[i] = -1;
 
 		if (Point2D.sqrDistance(pt_a, pt_b) <= tolerance * tolerance) {
@@ -520,6 +802,9 @@ class RelationalOperationsMatrix {
 				assert (matrix[i] != -2);
 				if (matrix[i] != 2)
 					return false;
+				break;
+
+			default:
 				break;
 			}
 		}
@@ -684,8 +969,8 @@ class RelationalOperationsMatrix {
 
 	// Marks each cluster of the topoGraph as belonging to an interior vertex of
 	// the geometry and/or a boundary index of the geometry.
-	private static void markClusters_(int geometry, TopoGraph topoGraph,
-			int clusterIndex) {
+	private static void markClusterEndPoints_(int geometry,
+			TopoGraph topoGraph, int clusterIndex) {
 		EditShape edit_shape = topoGraph.getShape();
 
 		for (int path = edit_shape.getFirstPath(geometry); path != -1; path = edit_shape
@@ -718,7 +1003,7 @@ class RelationalOperationsMatrix {
 		}
 	}
 
-	private static String transposeMatrix_(String scl) {
+	private static String getTransposeMatrix_(String scl) {
 		String transpose = new String();
 		transpose += scl.charAt(0);
 		transpose += scl.charAt(3);
@@ -741,6 +1026,20 @@ class RelationalOperationsMatrix {
 	private void resetMatrix_() {
 		for (int i = 0; i < 9; i++)
 			m_matrix[i] = -2;
+	}
+
+	private void transposeMatrix_() {
+		int temp1 = m_matrix[1];
+		int temp2 = m_matrix[2];
+		int temp5 = m_matrix[5];
+
+		m_matrix[1] = m_matrix[3];
+		m_matrix[2] = m_matrix[6];
+		m_matrix[5] = m_matrix[7];
+
+		m_matrix[3] = temp1;
+		m_matrix[6] = temp2;
+		m_matrix[7] = temp5;
 	}
 
 	// Sets the relation predicates from the scl string.
@@ -770,6 +1069,9 @@ class RelationalOperationsMatrix {
 	private boolean isPredicateKnown_(int predicate, int dim) {
 		assert (m_scl.charAt(predicate) != '*');
 
+		if (m_matrix[predicate] == -2)
+			return false;
+
 		if (m_matrix[predicate] == -1) {
 			m_perform_predicates[predicate] = false;
 			m_predicate_count--;
@@ -785,13 +1087,9 @@ class RelationalOperationsMatrix {
 				return true;
 			}
 		} else {
-			if (m_matrix[predicate] == -2) {
-				return false;
-			} else {
-				m_perform_predicates[predicate] = false;
-				m_predicate_count--;
-				return true;
-			}
+			m_perform_predicates[predicate] = false;
+			m_predicate_count--;
+			return true;
 		}
 	}
 
@@ -1016,6 +1314,129 @@ class RelationalOperationsMatrix {
 		}
 
 		return bRelationKnown;
+	}
+
+	private void areaAreaDisjointPredicates_() {
+		m_matrix[MatrixPredicate.InteriorInterior] = -1;
+		m_matrix[MatrixPredicate.InteriorBoundary] = -1;
+		m_matrix[MatrixPredicate.InteriorExterior] = 2;
+		m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+		m_matrix[MatrixPredicate.BoundaryBoundary] = -1;
+		m_matrix[MatrixPredicate.BoundaryExterior] = 1;
+		m_matrix[MatrixPredicate.ExteriorInterior] = 2;
+		m_matrix[MatrixPredicate.ExteriorBoundary] = 1;
+
+		// all other predicates should already be set by
+		// set_area_area_predicates
+	}
+
+	private void areaAreaContainsPredicates_() {
+		m_matrix[MatrixPredicate.InteriorInterior] = 2;
+		m_matrix[MatrixPredicate.InteriorBoundary] = 1;
+		m_matrix[MatrixPredicate.InteriorExterior] = 2;
+		m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+		m_matrix[MatrixPredicate.BoundaryBoundary] = -1;
+		m_matrix[MatrixPredicate.BoundaryExterior] = 1;
+		m_matrix[MatrixPredicate.ExteriorInterior] = -1;
+		m_matrix[MatrixPredicate.ExteriorBoundary] = -1;
+
+		// all other predicates should already be set by
+		// set_area_area_predicates
+	}
+
+	private void areaAreaWithinPredicates_() {
+		areaAreaContainsPredicates_();
+		transposeMatrix_();
+	}
+
+	private void areaLineDisjointPredicates_(Polyline polyline) {
+		m_matrix[MatrixPredicate.InteriorInterior] = -1;
+		m_matrix[MatrixPredicate.InteriorBoundary] = -1;
+		m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+		m_matrix[MatrixPredicate.BoundaryBoundary] = -1;
+		m_matrix[MatrixPredicate.BoundaryExterior] = 1;
+		m_matrix[MatrixPredicate.ExteriorInterior] = 1;
+
+		if (m_perform_predicates[MatrixPredicate.ExteriorBoundary]) {
+			boolean has_non_empty_boundary = Boundary.hasNonEmptyBoundary(
+					polyline, null);
+			m_matrix[MatrixPredicate.ExteriorBoundary] = (has_non_empty_boundary ? 0
+					: -1);
+		}
+	}
+
+	private void areaLineContainsPredicates_(Polyline polyline) {
+		m_matrix[MatrixPredicate.InteriorInterior] = 1;
+
+		if (m_perform_predicates[MatrixPredicate.InteriorBoundary]) {
+			boolean has_non_empty_boundary = Boundary.hasNonEmptyBoundary(
+					polyline, null);
+			m_matrix[MatrixPredicate.InteriorBoundary] = (has_non_empty_boundary ? 0
+					: -1);
+		}
+
+		m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+		m_matrix[MatrixPredicate.BoundaryBoundary] = -1;
+		m_matrix[MatrixPredicate.BoundaryExterior] = 1;
+		m_matrix[MatrixPredicate.ExteriorInterior] = -1;
+		m_matrix[MatrixPredicate.ExteriorBoundary] = -1;
+	}
+
+	private void areaPointDisjointPredicates_() {
+		m_matrix[MatrixPredicate.InteriorInterior] = -1;
+		m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+		m_matrix[MatrixPredicate.ExteriorInterior] = 0;
+	}
+
+	private void areaPointContainsPredicates_() {
+		m_matrix[MatrixPredicate.InteriorInterior] = 0;
+		m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+		m_matrix[MatrixPredicate.ExteriorInterior] = -1;
+	}
+
+	private void lineLineDisjointPredicates_(Polyline polyline_a,
+			Polyline polyline_b) {
+		m_matrix[MatrixPredicate.InteriorInterior] = -1;
+		m_matrix[MatrixPredicate.InteriorBoundary] = -1;
+		m_matrix[MatrixPredicate.InteriorExterior] = 1;
+		m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+		m_matrix[MatrixPredicate.BoundaryBoundary] = -1;
+
+		if (m_perform_predicates[MatrixPredicate.BoundaryExterior]) {
+			boolean has_non_empty_boundary_a = Boundary.hasNonEmptyBoundary(
+					polyline_a, null);
+			m_matrix[MatrixPredicate.BoundaryExterior] = (has_non_empty_boundary_a ? 0
+					: -1);
+		}
+
+		m_matrix[MatrixPredicate.ExteriorInterior] = 1;
+
+		if (m_perform_predicates[MatrixPredicate.ExteriorBoundary]) {
+			boolean has_non_empty_boundary_b = Boundary.hasNonEmptyBoundary(
+					polyline_b, null);
+			m_matrix[MatrixPredicate.ExteriorBoundary] = (has_non_empty_boundary_b ? 0
+					: -1);
+		}
+	}
+
+	private void linePointDisjointPredicates_(Polyline polyline) {
+		m_matrix[MatrixPredicate.InteriorInterior] = -1;
+		m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+
+		if (m_perform_predicates[MatrixPredicate.BoundaryExterior]) {
+			boolean has_non_empty_boundary = Boundary.hasNonEmptyBoundary(
+					polyline, null);
+			m_matrix[MatrixPredicate.BoundaryExterior] = (has_non_empty_boundary ? 0
+					: -1);
+		}
+
+		m_matrix[MatrixPredicate.ExteriorInterior] = 0;
+	}
+
+	private void pointPointDisjointPredicates_() {
+		m_matrix[MatrixPredicate.InteriorInterior] = -1;
+		m_matrix[MatrixPredicate.InteriorExterior] = 0;
+		m_matrix[MatrixPredicate.ExteriorInterior] = 0;
 	}
 
 	// Invokes the 9 relational predicates of area vs Line.
@@ -1792,7 +2213,7 @@ class RelationalOperationsMatrix {
 									id_a, id_b);
 							break;
 						default:
-							throw new GeometryException("internal error");
+							throw GeometryException.GeometryInternalError();
 						}
 
 						if (bRelationKnown)
@@ -1844,7 +2265,7 @@ class RelationalOperationsMatrix {
 				bRelationKnown = pointPointPredicates_(cluster, id_a, id_b);
 				break;
 			default:
-				throw new GeometryException("internal error");
+				throw GeometryException.GeometryInternalError();
 			}
 
 			if (bRelationKnown)
@@ -1857,21 +2278,25 @@ class RelationalOperationsMatrix {
 
 	// Call this method to set the edit shape, if the edit shape has been
 	// cracked and clustered already.
-	private void setEditShape_(EditShape shape) {
-		m_topo_graph.setEditShape(shape, null);
+	private void setEditShape_(EditShape shape, ProgressTracker progressTracker) {
+		m_topo_graph.setEditShape(shape, progressTracker);
 	}
 
-	// Call this method to set the edit shape, if the edit shape has not been
-	// cracked and clustered already.
 	private void setEditShapeCrackAndCluster_(EditShape shape,
 			double tolerance, ProgressTracker progress_tracker) {
+		editShapeCrackAndCluster_(shape, tolerance, progress_tracker);
+		setEditShape_(shape, progress_tracker);
+	}
+
+	private void editShapeCrackAndCluster_(EditShape shape, double tolerance,
+			ProgressTracker progress_tracker) {
 		CrackAndCluster.execute(shape, tolerance, progress_tracker);
 		for (int geometry = shape.getFirstGeometry(); geometry != -1; geometry = shape
 				.getNextGeometry(geometry)) {
-			if (shape.getGeometryType(geometry) == Geometry.GeometryType.Polygon)
-				Simplificator.execute(shape, geometry, -1);
+			if (shape.getGeometryType(geometry) == Geometry.Type.Polygon
+					.value())
+				Simplificator.execute(shape, geometry, -1, false);
 		}
-		setEditShape_(shape);
 	}
 
 	// Upgrades the geometry to a feature geometry.

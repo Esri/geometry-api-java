@@ -40,6 +40,10 @@ public class TestSimplify extends TestCase {
 	}
 
 	public Polygon makeNonSimplePolygon2() {
+		//MapGeometry mg = OperatorFactoryLocal.loadGeometryFromJSONFileDbg("c:/temp/simplify_polygon_gnomonic.txt");
+		//Geometry res = OperatorSimplify.local().execute(mg.getGeometry(), mg.getSpatialReference(), true, null);
+		
+		
 		Polygon poly = new Polygon();
 		poly.startPath(0, 0);
 		poly.lineTo(0, 15);

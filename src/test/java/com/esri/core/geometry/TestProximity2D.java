@@ -130,6 +130,18 @@ public class TestProximity2D extends TestCase {
 				true);
 		resultPoint0 = result0.getCoordinate();
 		assertTrue(resultPoint0.getX() == 0.0 && resultPoint0.getY() == 2.0);
+
+		Polygon pp = new Polygon();
+		pp.startPath(0, 0);
+		pp.lineTo(0, 10);
+		pp.lineTo(10, 10);
+		pp.lineTo(10, 0);
+
+		inputPoint.setXY(15, -5);
+
+		result0 = proximityOp.getNearestCoordinate(pp, inputPoint, true, true);
+		boolean is_right = result0.isRightSide();
+		assertTrue(!is_right);
 	}
 
 	Polygon MakePolygon() {
@@ -227,13 +239,24 @@ public class TestProximity2D extends TestCase {
 		point.setXY(-110, 20);
 		Proximity2DResult result = proximity.getNearestCoordinate(polygon,
 				point, false);
-		System.out.println("The closest coordinate is "
-				+ result.getCoordinate());
-		System.out.println("The closest point is " + result.getDistance());
 		Point point2 = new Point();
 		point2.setXY(-120, 12);
 		@SuppressWarnings("unused")
 		Proximity2DResult[] results = proximity.getNearestVertices(polygon,
 				point2, 10, 12);
+	}
+
+	@Test
+	public static void testCR254240() {
+		OperatorProximity2D proximityOp = OperatorProximity2D.local();
+
+		Point inputPoint = new Point(-12, 12);
+		Polyline line = new Polyline();
+		line.startPath(-10, 0);
+		line.lineTo(0, 0);
+
+		Proximity2DResult result = proximityOp.getNearestCoordinate(line,
+				inputPoint, false, true);
+		assertTrue(result.isRightSide() == false);
 	}
 }

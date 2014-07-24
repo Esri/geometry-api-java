@@ -65,8 +65,7 @@ class OperatorIntersectionLocal extends OperatorIntersection {
 		if (!canAccelerateGeometry(geometry))
 			return false;
 
-		double tol = spatialReference != null ? spatialReference
-				.getTolerance(VertexDescription.Semantics.POSITION) : 0;
+		double tol = InternalUtils.calculateToleranceFromGeometry(spatialReference, geometry, false);
 		boolean accelerated = ((MultiVertexGeometryImpl) geometry._getImpl())
 				._buildQuadTreeAccelerator(accelDegree);
 		accelerated |= ((MultiVertexGeometryImpl) geometry._getImpl())

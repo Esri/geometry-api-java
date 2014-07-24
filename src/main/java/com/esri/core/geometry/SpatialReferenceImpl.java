@@ -41,9 +41,9 @@ import com.esri.core.geometry.SpatialReferenceImpl;
 import com.esri.core.geometry.VertexDescription.Semantics;
 
 class SpatialReferenceImpl extends SpatialReference {
-	static boolean no_projection_engine = true;
-	public static int c_SULIMIT32 = 2147483645;
-	public static long c_SULIMIT64 = 9007199254740990L;
+	static final boolean no_projection_engine = true;
+	public final static int c_SULIMIT32 = 2147483645;
+	public final static long c_SULIMIT64 = 9007199254740990L;
 
 	enum Precision {
 		Integer32, Integer64, FloatingPoint
@@ -126,7 +126,7 @@ class SpatialReferenceImpl extends SpatialReference {
 			break;
 		default:
 			// TODO
-			throw new GeometryException("internal error");// fixme
+			throw GeometryException.GeometryInternalError();
 		}
 
 		env2D.setCoords(getFalseX(), getFalseY(), getFalseX() + delta,

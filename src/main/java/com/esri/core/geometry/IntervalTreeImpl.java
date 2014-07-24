@@ -112,7 +112,7 @@ final class IntervalTreeImpl {
 					b_searching = initialize_();
 					break;
 				default:
-					throw new GeometryException("internal error");
+					throw GeometryException.GeometryInternalError();
 				}
 			}
 

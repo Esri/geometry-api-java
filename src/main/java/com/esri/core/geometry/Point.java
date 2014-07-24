@@ -25,6 +25,7 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.VertexDescription.Semantics;
+
 import java.io.Serializable;
 
 /**
@@ -66,6 +67,10 @@ public final class Point extends Geometry implements Serializable {
 		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();
 		setXY(x, y);
 	}
+	public Point(Point2D pt) {
+		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();
+		setXY(pt);
+	}
 
 	/**
 	 * Creates a 3D point with specified X, Y and Z coordinates. In case of
@@ -91,7 +96,7 @@ public final class Point extends Geometry implements Serializable {
 	/**
 	 * Returns XY coordinates of this point.
 	 */
-	Point2D getXY() {
+	public final Point2D getXY() {
 		if (isEmptyImpl())
 			throw new GeometryException(
 					"This operation should not be performed on an empty geometry.");
@@ -102,10 +107,21 @@ public final class Point extends Geometry implements Serializable {
 	}
 
 	/**
+	 * Returns XY coordinates of this point.
+	 */
+	public final void getXY(Point2D pt) {
+		if (isEmptyImpl())
+			throw new GeometryException(
+					"This operation should not be performed on an empty geometry.");
+
+		pt.setCoords(m_attributes[0], m_attributes[1]);
+	}
+	
+	/**
 	 * Sets the XY coordinates of this point. param pt The point to create the X
 	 * and Y coordinate from.
 	 */
-	void setXY(Point2D pt) {
+	public final void setXY(Point2D pt) {
 		_touch();
 		setXY(pt.x, pt.y);
 	}
@@ -602,4 +618,9 @@ public final class Point extends Geometry implements Serializable {
 		}
 		return hashCode;
 	}
+
+    @Override
+    public Geometry getBoundary() {
+        return null;
+    }
 }

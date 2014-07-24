@@ -25,7 +25,6 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.Operator.Type;
-import com.esri.core.geometry.CombineOperator;
 
 /**
  *Intersection of geometries by a given geometry.
@@ -60,7 +59,7 @@ public abstract class OperatorIntersection extends Operator implements CombineOp
 	 *The bitmask of values (1 << dim), where dim is the desired dimension value, is used to indicate
 	 *what dimensions of geometry one wants to be returned. For example, to return
 	 *multipoints and lines only, pass (1 << 0) | (1 << 1), which is equivalen to 1 | 2, or 3.
-	 *\return Returns the cursor of the intersection result. The cursors' get_geometry_ID method returns the current ID of the input geometry
+	 *@return Returns the cursor of the intersection result. The cursors' get_geometry_ID method returns the current ID of the input geometry
 	 *being processed. Wh dimensionMask is a bitmask, there will be n result geometries per one input geometry returned, where n is the number
 	 *of bits set in the bitmask. For example, if the dimensionMask is 5, there will be two geometries per one input geometry.
 	 *
@@ -85,6 +84,7 @@ public abstract class OperatorIntersection extends Operator implements CombineOp
 	 *where mask can be either -1 or min(1 << input_geometry.getDimension(), 1 << intersector.getDimension());
 	 *@param inputGeometry is the Geometry instance to be intersected by the intersector.
 	 *@param intersector is the intersector Geometry.
+	 *@param sr The spatial reference to get the tolerance value from. Can be null, then the tolerance is calculated from the input geometries.
 	 *@return Returns the intersected Geometry.
 	 */
 	public abstract Geometry execute(Geometry inputGeometry,

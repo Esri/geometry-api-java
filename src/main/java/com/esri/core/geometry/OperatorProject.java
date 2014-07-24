@@ -71,11 +71,39 @@ abstract class OperatorProject extends Operator {
 	 * @return projected coordinates in the interleaved form.
 	 */
 	public abstract double[] transform(ProjectionTransformation transform,
-			double[] coordsSrc, int pointCount);
+					double[] coordsSrc, int pointCount);
+
+	/**
+	 * Folds a geometry into the 360 degree range of the associated spatial reference. If the spatial reference be a 'pannable' PCS or GCS. For other spatial types, the function throws an invalid
+	 * argument exception. A pannable PCS it a Rectangular PCS where the x coordinate range is equivalent to a 360 degree range on the defining geographic Coordinate System(GCS). If the spatial
+	 * reference is a GCS then it is always pannable(default 360 range for spatial reference in GCS coordinates is -180 to 180)
+	 *
+	 * If the geometry is an Envelope fold_into_360_range returns a polygon, unless the Envelope is empty, in which case the empty envelope is returned. The result geometry will be completely inside of
+	 * the coordinate system extent. The folding happens where geometry intersects the min or max meridian of the spatial reference and when geometry is completely outside of the min-max meridian range.
+	 * Folding does not preserve geodetic area or length. Folding does not preserve perimeter of a polygon.
+	 *
+	 * @param geom The geometry to be folded.
+	 * @param pannableSR The pannable Spatial Reference.
+	 * @return Folded geometry.
+	 */
+	public abstract Geometry foldInto360Range(Geometry geom, SpatialReference pannableSR);
+
+	/**
+	 * Same as fold_into_360_range. The difference is that this function preserves geodetic area of polygons and geodetic length of polylines. It does not preserve regular area and length or perimeter
+	 * of polygons. Also, this function might change tangent of the lines at the points of folding.
+	 *
+	 * If the geometry is an Envelope fold_into_360_range returns a polygon, unless the Envelope is empty, in which case the empty envelope is returned. The result geometry will be completely inside of
+	 * the coordinate system extent. The folding happens where geometry intersects the min or max meridian of the spatial reference and when geometry is completely outside of the min-max meridian range.
+	 *
+	 * @param geom The geometry to be folded.
+	 * @param pannableSR The pannable Spatial Reference.
+	 * @param curveType The type of geodetic curve to use to produce vertices at the points of folding. \return Folded geometry.
+	 */
+	public abstract Geometry foldInto360RangeGeodetic(Geometry geom, SpatialReference pannableSR, int curveType);
 
 	public static OperatorProject local() {
 		return (OperatorProject) OperatorFactoryLocal.getInstance()
-				.getOperator(Type.Project);
+						.getOperator(Type.Project);
 	}
 
 }

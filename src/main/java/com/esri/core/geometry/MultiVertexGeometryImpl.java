@@ -561,7 +561,6 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 		if (!(other instanceof MultiVertexGeometryImpl))
 			return false;
 
-		// Borg Implementation
 		MultiVertexGeometryImpl otherMulti = (MultiVertexGeometryImpl) other;
 
 		if (!(m_description.equals(otherMulti.m_description)))
@@ -829,7 +828,7 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 	}
 
 	// Checked vs. Jan 11, 2011
-	int QueryCoordinates(Point2D[] dst, int dstSize, int beginIndex,
+	int queryCoordinates(Point2D[] dst, int dstSize, int beginIndex,
 			int endIndex) {
 		int endIndexC = endIndex < 0 ? m_pointCount : endIndex;
 		endIndexC = Math.min(endIndexC, beginIndex + dstSize);
@@ -841,7 +840,7 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 		AttributeStreamOfDbl xy = (AttributeStreamOfDbl) getAttributeStreamRef(VertexDescription.Semantics.POSITION);
 		int j = 0;
 		double[] dstArray = new double[dst.length * 2];
-		xy.readRange(2 * beginIndex, endIndexC - beginIndex, dstArray, j, true);
+		xy.readRange(2 * beginIndex, (endIndexC - beginIndex) * 2, dstArray, j, true);
 
 		for (int i = 0; i < dst.length; i++) {
 			dst[i] = new Point2D(dstArray[i * 2], dstArray[i * 2 + 1]);
@@ -932,7 +931,7 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 			_setDirtyFlag(DirtyFlags.IsWeakSimple, true);
 			_setDirtyFlag(DirtyFlags.IsStrongSimple, true);
 		} else
-			throw new GeometryException("internal error");// what?
+			throw GeometryException.GeometryInternalError();// what?
 	}
 
 	double _getSimpleTolerance() {

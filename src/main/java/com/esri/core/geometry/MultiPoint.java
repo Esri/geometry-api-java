@@ -359,4 +359,9 @@ public final class MultiPoint extends MultiVertexGeometry implements
 	public int getStateFlag() {
 		return m_impl.getStateFlag();
 	}
+
+    @Override
+    public Geometry getBoundary() {
+        return m_impl.getBoundary();
+    }
 }

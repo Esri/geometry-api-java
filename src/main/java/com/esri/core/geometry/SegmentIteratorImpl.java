@@ -51,6 +51,8 @@ final class SegmentIteratorImpl {
 
 	protected int m_segmentCount;
 
+	protected int m_pathBegin;
+
 	protected MultiPathImpl m_parent; // parent of the iterator.
 
 	protected boolean m_bCirculator; // If true, the iterator circulates around
@@ -67,6 +69,7 @@ final class SegmentIteratorImpl {
 		m_segmentCount = _getSegmentCount(m_nextPathIndex);
 		m_bCirculator = false;
 		m_currentSegment = null;
+		m_pathBegin = -1;
 		m_dummyPoint = new Point2D();
 	}
 
@@ -84,6 +87,7 @@ final class SegmentIteratorImpl {
 		m_segmentCount = _getSegmentCount(m_currentPathIndex);
 		m_bCirculator = false;
 		m_currentSegment = null;
+		m_pathBegin = m_parent.getPathStart(m_currentPathIndex);
 		m_dummyPoint = new Point2D();
 	}
 
@@ -105,6 +109,7 @@ final class SegmentIteratorImpl {
 		m_segmentCount = _getSegmentCount(m_nextPathIndex);
 		m_bCirculator = false;
 		m_currentSegment = null;
+		m_pathBegin = m_parent.getPathStart(m_currentPathIndex);
 		m_dummyPoint = new Point2D();
 	}
 
@@ -118,6 +123,7 @@ final class SegmentIteratorImpl {
 		m_nextPathIndex = src.m_nextPathIndex;
 		m_segmentCount = src.m_segmentCount;
 		m_bCirculator = src.m_bCirculator;
+		m_pathBegin = src.m_pathBegin;
 		m_currentSegment = null;
 	}
 
@@ -195,13 +201,17 @@ final class SegmentIteratorImpl {
 	}
 
 	public void resetToVertex(int vertexIndex) {
+		resetToVertex(vertexIndex, -1);
+	}
+
+	public void resetToVertex(int vertexIndex, int _pathIndex) {
 		if (m_currentPathIndex >= 0
 				&& m_currentPathIndex < m_parent.getPathCount()) {// check if we
 																	// are in
 																	// the
 																	// current
 																	// path
-			int start = m_parent.getPathStart(m_currentPathIndex);
+			int start = _getPathBegin();
 			if (vertexIndex >= start
 					&& vertexIndex < m_parent.getPathEnd(m_currentPathIndex)) {
 				m_currentSegmentIndex = -1;
@@ -210,12 +220,21 @@ final class SegmentIteratorImpl {
 			}
 		}
 
-		int pathIndex = m_parent.getPathIndexFromPointIndex(vertexIndex);
-		m_nextPathIndex = pathIndex + 1;
-		m_currentPathIndex = pathIndex;
+		int path_index;
+		if (_pathIndex >= 0 && _pathIndex < m_parent.getPathCount()
+				&& vertexIndex >= m_parent.getPathStart(_pathIndex)
+				&& vertexIndex < m_parent.getPathEnd(_pathIndex)) {
+			path_index = _pathIndex;
+		} else {
+			path_index = m_parent.getPathIndexFromPointIndex(vertexIndex);
+		}
+
+		m_nextPathIndex = path_index + 1;
+		m_currentPathIndex = path_index;
 		m_currentSegmentIndex = -1;
-		m_nextSegmentIndex = vertexIndex - m_parent.getPathStart(pathIndex);
-		m_segmentCount = _getSegmentCount(pathIndex);
+		m_nextSegmentIndex = vertexIndex - m_parent.getPathStart(path_index);
+		m_segmentCount = _getSegmentCount(path_index);
+		m_pathBegin = m_parent.getPathStart(m_currentPathIndex);
 	}
 
 	/**
@@ -231,6 +250,7 @@ final class SegmentIteratorImpl {
 		m_currentSegmentIndex = -1;
 		m_nextSegmentIndex = 0;
 		m_segmentCount = _getSegmentCount(m_currentPathIndex);
+		m_pathBegin = m_parent.getPathStart(m_currentPathIndex);
 		m_nextPathIndex++;
 		return true;
 	}
@@ -249,6 +269,7 @@ final class SegmentIteratorImpl {
 		m_nextSegmentIndex = 0;
 		m_segmentCount = _getSegmentCount(m_nextPathIndex);
 		m_currentPathIndex = m_nextPathIndex;
+		m_pathBegin = m_parent.getPathStart(m_currentPathIndex);
 		resetToLastSegment();
 		return true;
 	}
@@ -264,6 +285,7 @@ final class SegmentIteratorImpl {
 		m_segmentCount = -1;
 		m_nextPathIndex = 0;
 		m_currentPathIndex = -1;
+		m_pathBegin = -1;
 	}
 
 	/**
@@ -276,6 +298,7 @@ final class SegmentIteratorImpl {
 		m_currentSegmentIndex = -1;
 		m_nextSegmentIndex = -1;
 		m_segmentCount = -1;
+		m_pathBegin = -1;
 	}
 
 	/**
@@ -293,6 +316,7 @@ final class SegmentIteratorImpl {
 		m_currentSegmentIndex = -1;
 		m_nextSegmentIndex = -1;
 		m_segmentCount = -1;
+		m_pathBegin = -1;
 	}
 
 	public int _getSegmentCount(int pathIndex) {
@@ -416,13 +440,13 @@ final class SegmentIteratorImpl {
 			m_currentSegment = (Line) m_line;
 			break;
 		case SegmentFlags.enumBezierSeg:
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 			// break;
 		case SegmentFlags.enumArcSeg:
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 			// break;
 		default:
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 		}
 
 		m_currentSegment.assignVertexDescription(vertexDescr);

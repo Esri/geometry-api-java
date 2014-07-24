@@ -303,6 +303,10 @@ final class AttributeStreamOfInt32 extends AttributeStreamBase {
 		return m_buffer[m_size - 1];
 	}
 
+	public void setLast(int v) {
+		m_buffer[m_size - 1] = v;
+	}
+	
 	public void removeLast() {
 		resize(m_size - 1);
 	}

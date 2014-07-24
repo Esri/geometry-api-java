@@ -41,6 +41,7 @@ class Simplificator {
 	private int m_firstCoincidentVertex;
 	private int m_knownSimpleResult;
 	private boolean m_bWinding;
+	private boolean m_fixSelfTangency;
 
 	private void _beforeRemoveVertex(int vertex, boolean bChangePathFirst) {
 		int vertexlistIndex = m_shape.getUserIndex(vertex,
@@ -525,7 +526,7 @@ class Simplificator {
 				}
 
 				if (iRepeatNum++ > 10) {
-					throw new GeometryException("internal error.");
+					throw GeometryException.GeometryInternalError();
 				}
 
 				if (bNeedRepeat)
@@ -549,7 +550,7 @@ class Simplificator {
 		m_shape.removeUserIndex(m_userIndexSortedAngleIndexToVertex);
 
 		bChanged |= RingOrientationFixer.execute(m_shape, m_geometry,
-				m_sortedVertices);
+				m_sortedVertices, m_fixSelfTangency);
 
 		return bChanged;
 	}
@@ -984,12 +985,13 @@ class Simplificator {
 	}
 
 	public static boolean execute(EditShape shape, int geometry,
-			int knownSimpleResult) {
+			int knownSimpleResult, boolean fixSelfTangency) {
 		Simplificator simplificator = new Simplificator();
 		simplificator.m_shape = shape;
 		// simplificator.m_bWinding = bWinding;
 		simplificator.m_geometry = geometry;
 		simplificator.m_knownSimpleResult = knownSimpleResult;
+		simplificator.m_fixSelfTangency = fixSelfTangency;
 		return simplificator._simplify();
 	}
 
@@ -999,6 +1001,11 @@ class Simplificator {
 		Point2D pt2 = new Point2D();
 		m_shape.getXY(v2, pt2);
 		int res = pt1.compare(pt2);
+		if (res == 0) {// sort equal vertices by the path ID
+			res = Integer.compare(m_shape.getPathFromVertex(v1),
+					m_shape.getPathFromVertex(v2));
+		}
+
 		return res;
 	}
 

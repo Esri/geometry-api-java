@@ -97,7 +97,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 					wkbBuffer);
 
 		default: {
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 			// return -1;
 		}
 		}

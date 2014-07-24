@@ -102,7 +102,7 @@ class Cutter {
 	static EditShape CutPolyline(boolean bConsiderTouch, Polyline cuttee,
 			Polyline cutter, double tolerance,
 			ArrayList<OperatorCutLocal.CutPair> cutPairs,
-			AttributeStreamOfInt32 segmentCounts) {
+			AttributeStreamOfInt32 segmentCounts, ProgressTracker progressTracker) {
 		if (cuttee.isEmpty()) {
 			OperatorCutLocal.CutPair cutPair;
 			cutPair = new OperatorCutLocal.CutPair(cuttee,
@@ -116,7 +116,7 @@ class Cutter {
 		EditShape editShape = new EditShape();
 		int cutteeHandle = editShape.addGeometry(cuttee);
 		int cutterHandle = editShape.addGeometry(cutter);
-		CrackAndCluster.execute(editShape, tolerance, null);
+		CrackAndCluster.execute(editShape, tolerance, progressTracker);
 
 		int order = 0;
 		int orderIndex = editShape.createUserIndex();
@@ -1150,7 +1150,7 @@ class Cutter {
 			return _cutterStartTangents(bConsiderTouch, shape, cutEvents,
 					icutEvent, tangent0, tangent1);
 
-		throw new GeometryException("internal error");
+		throw GeometryException.GeometryInternalError();
 	}
 
 	static boolean _cutterEndTangents(boolean bConsiderTouch, EditShape shape,
@@ -1423,6 +1423,6 @@ class Cutter {
 			return false;
 		}
 
-		throw new GeometryException("internal error");
+		throw GeometryException.GeometryInternalError();
 	}
 }

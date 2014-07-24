@@ -30,9 +30,199 @@ import java.util.Collections;
 
 class OperatorProximity2DLocal extends OperatorProximity2D {
 
+	class Side_helper {
+		int m_i1;
+		int m_i2;
+		boolean m_bRight1;
+		boolean m_bRight2;
+
+		void reset() {
+			m_i1 = -1;
+			m_i2 = -1;
+			m_bRight1 = false;
+			m_bRight2 = false;
+		}
+
+		int find_non_degenerate(SegmentIterator segIter, int vertexIndex,
+				int pathIndex) {
+			segIter.resetToVertex(vertexIndex, pathIndex);
+
+			while (segIter.hasNextSegment()) {
+				Segment segment = segIter.nextSegment();
+				double length = segment.calculateLength2D();
+
+				if (length != 0.0)
+					return segIter.getStartPointIndex();
+			}
+
+			segIter.resetToVertex(vertexIndex, pathIndex);
+
+			while (segIter.hasPreviousSegment()) {
+				Segment segment = segIter.previousSegment();
+				double length = segment.calculateLength2D();
+
+				if (length != 0)
+					return segIter.getStartPointIndex();
+			}
+
+			return -1;
+		}
+
+		int find_prev_non_degenerate(SegmentIterator segIter, int index) {
+			segIter.resetToVertex(index, -1);
+
+			while (segIter.hasPreviousSegment()) {
+				Segment segment = segIter.previousSegment();
+				double length = segment.calculateLength2D();
+
+				if (length != 0)
+					return segIter.getStartPointIndex();
+			}
+
+			return -1;
+		}
+
+		int find_next_non_degenerate(SegmentIterator segIter, int index) {
+			segIter.resetToVertex(index, -1);
+			segIter.nextSegment();
+
+			while (segIter.hasNextSegment()) {
+				Segment segment = segIter.nextSegment();
+				double length = segment.calculateLength2D();
+
+				if (length != 0)
+					return segIter.getStartPointIndex();
+			}
+
+			return -1;
+		}
+
+		void find_analysis_pair_from_index(Point2D inputPoint,
+				SegmentIterator segIter, int vertexIndex, int pathIndex) {
+			m_i1 = find_non_degenerate(segIter, vertexIndex, pathIndex);
+
+			if (m_i1 != -1) {
+				segIter.resetToVertex(m_i1, -1);
+				Segment segment1 = segIter.nextSegment();
+				double t1 = segment1.getClosestCoordinate(inputPoint, false);
+				Point2D p1 = segment1.getCoord2D(t1);
+				double d1 = Point2D.sqrDistance(p1, inputPoint);
+				Point2D pq = new Point2D();
+				pq.setCoords(p1);
+				pq.sub(segment1.getStartXY());
+				Point2D pr = new Point2D();
+				pr.setCoords(inputPoint);
+				pr.sub(segment1.getStartXY());
+				m_bRight1 = (pq.crossProduct(pr) < 0);
+
+				m_i2 = find_next_non_degenerate(segIter, m_i1);
+				if (m_i2 != -1) {
+					segIter.resetToVertex(m_i2, -1);
+					Segment segment2 = segIter.nextSegment();
+					double t2 = segment2
+							.getClosestCoordinate(inputPoint, false);
+					Point2D p2 = segment2.getCoord2D(t2);
+					double d2 = Point2D.sqrDistance(p2, inputPoint);
+
+					if (d2 > d1) {
+						m_i2 = -1;
+					} else {
+						pq.setCoords(p2);
+						pq.sub(segment2.getStartXY());
+						pr.setCoords(inputPoint);
+						pr.sub(segment2.getStartXY());
+						m_bRight2 = (pq.crossProduct(pr) < 0);
+					}
+				}
+
+				if (m_i2 == -1) {
+					m_i2 = find_prev_non_degenerate(segIter, m_i1);
+					if (m_i2 != -1) {
+						segIter.resetToVertex(m_i2, -1);
+						Segment segment2 = segIter.nextSegment();
+						double t2 = segment2.getClosestCoordinate(inputPoint,
+								false);
+						Point2D p2 = segment2.getCoord2D(t2);
+						double d2 = Point2D.sqrDistance(p2, inputPoint);
+
+						if (d2 > d1)
+							m_i2 = -1;
+						else {
+							pq.setCoords(p2);
+							pq.sub(segment2.getStartXY());
+							pr.setCoords(inputPoint);
+							pr.sub(segment2.getStartXY());
+							m_bRight2 = (pq.crossProduct(pr) < 0);
+
+							int itemp = m_i1;
+							m_i1 = m_i2;
+							m_i2 = itemp;
+
+							boolean btemp = m_bRight1;
+							m_bRight1 = m_bRight2;
+							m_bRight2 = btemp;
+						}
+					}
+				}
+			}
+		}
+
+		// Try to find two segements that are not degenerate
+		boolean calc_side(Point2D inputPoint, boolean bRight,
+				MultiPath multipath, int vertexIndex, int pathIndex) {
+			SegmentIterator segIter = multipath.querySegmentIterator();
+
+			find_analysis_pair_from_index(inputPoint, segIter, vertexIndex,
+					pathIndex);
+
+			if (m_i1 != -1 && m_i2 == -1) {// could not find a pair of segments
+				return m_bRight1;
+			}
+
+			if (m_i1 != -1 && m_i2 != -1) {
+				if (m_bRight1 == m_bRight2)
+					return m_bRight1;// no conflicting result for the side
+				else {
+					// the conflicting result, that we are trying to resolve,
+					// happens in the obtuse (outer) side of the turn only.
+					segIter.resetToVertex(m_i1, -1);
+					Segment segment1 = segIter.nextSegment();
+					Point2D tang1 = segment1._getTangent(1.0);
+
+					segIter.resetToVertex(m_i2, -1);
+					Segment segment2 = segIter.nextSegment();
+					Point2D tang2 = segment2._getTangent(0.0);
+
+					double cross = tang1.crossProduct(tang2);
+
+					if (cross >= 0) // the obtuse angle is on the right side
+					{
+						return true;
+					} else // the obtuse angle is on the right side
+					{
+						return false;
+					}
+				}
+			} else {
+				assert (m_i1 == -1 && m_i2 == -1);
+				return bRight;// could not resolve the side. So just return the
+								// old value.
+			}
+		}
+	}
+
 	@Override
 	public Proximity2DResult getNearestCoordinate(Geometry geom,
 			Point inputPoint, boolean bTestPolygonInterior) {
+
+		return getNearestCoordinate(geom, inputPoint, bTestPolygonInterior,
+				false);
+	}
+
+	@Override
+	public Proximity2DResult getNearestCoordinate(Geometry geom,
+			Point inputPoint, boolean bTestPolygonInterior,
+			boolean bCalculateLeftRightSide) {
 		if (geom.isEmpty())
 			return new Proximity2DResult();
 
@@ -55,8 +245,8 @@ class OperatorProximity2DLocal extends OperatorProximity2D {
 					(MultiVertexGeometry) proxmityTestGeom, inputPoint2D);
 		case Geometry.GeometryType.Polyline:
 		case Geometry.GeometryType.Polygon:
-			return polyPathGetNearestCoordinate((MultiPath) proxmityTestGeom,
-					inputPoint2D, bTestPolygonInterior);
+			return multiPathGetNearestCoordinate((MultiPath) proxmityTestGeom,
+					inputPoint2D, bTestPolygonInterior, bCalculateLeftRightSide);
 		default: {
 			throw new GeometryException("not implemented");
 		}
@@ -129,62 +319,90 @@ class OperatorProximity2DLocal extends OperatorProximity2D {
 		}
 	}
 
-	Proximity2DResult polyPathGetNearestCoordinate(MultiPath geom,
-			Point2D inputPoint, boolean bTestPolygonInterior) {
-		Proximity2DResult result = new Proximity2DResult();
+	Proximity2DResult multiPathGetNearestCoordinate(MultiPath geom,
+			Point2D inputPoint, boolean bTestPolygonInterior,
+			boolean bCalculateLeftRightSide) {
+		if (geom.getType() == Geometry.Type.Polygon && bTestPolygonInterior) {
+			Envelope2D env = new Envelope2D();
+			geom.queryEnvelope2D(env);
+			double tolerance = InternalUtils.calculateToleranceFromGeometry(
+					null, env, false);
 
-		if (geom.getType() == (Geometry.Type.Polygon) && bTestPolygonInterior) {
-			OperatorFactoryLocal factory = OperatorFactoryLocal.getInstance();
-			OperatorDisjoint operatorDisjoint = (OperatorDisjoint) factory
-					.getOperator(Type.Disjoint);
+			PolygonUtils.PiPResult pipResult;
 
-			Point point = new Point(geom.getDescription());
-			point.setXY(inputPoint.x, inputPoint.y);
+			if (bCalculateLeftRightSide)
+				pipResult = PolygonUtils.isPointInPolygon2D((Polygon) geom,
+						inputPoint, 0.0);
+			else
+				pipResult = PolygonUtils.isPointInPolygon2D((Polygon) geom,
+						inputPoint, tolerance);
 
-			boolean disjoint = operatorDisjoint
-					.execute(geom, point, null, null);
-			if (!disjoint) {
-				result._setParams(inputPoint.x, inputPoint.y, 0, 0.0);
+			if (pipResult != PolygonUtils.PiPResult.PiPOutside) {
+				Proximity2DResult result = new Proximity2DResult(inputPoint, 0,
+						0.0);
+
+				if (bCalculateLeftRightSide)
+					result.setRightSide(true);
+
 				return result;
 			}
 		}
 
-		MultiPathImpl mpImpl = (MultiPathImpl) geom._getImpl();
-		SegmentIteratorImpl segIter = mpImpl.querySegmentIterator();
+		SegmentIterator segIter = geom.querySegmentIterator();
 
-		Point2D closest = null;// new Point2D();
-		int closestIndex = 0;
+		Point2D closest = new Point2D();
+		int closestVertexIndex = -1;
+		int closestPathIndex = -1;
 		double closestDistanceSq = NumberUtils.doubleMax();
+		boolean bRight = false;
+		int num_candidates = 0;
 
 		while (segIter.nextPath()) {
 			while (segIter.hasNextSegment()) {
 				Segment segment = segIter.nextSegment();
 				double t = segment.getClosestCoordinate(inputPoint, false);
+
 				Point2D point = segment.getCoord2D(t);
 
 				double distanceSq = Point2D.sqrDistance(point, inputPoint);
 				if (distanceSq < closestDistanceSq) {
+					num_candidates = 1;
 					closest = point;
-					closestIndex = segIter.getStartPointIndex();
+					closestVertexIndex = segIter.getStartPointIndex();
+					closestPathIndex = segIter.getPathIndex();
 					closestDistanceSq = distanceSq;
+				} else if (distanceSq == closestDistanceSq) {
+					num_candidates++;
 				}
 			}
 		}
 
-		result._setParams(closest.x, closest.y, closestIndex,
-				Math.sqrt(closestDistanceSq));
+		Proximity2DResult result = new Proximity2DResult(closest,
+				closestVertexIndex, Math.sqrt(closestDistanceSq));
+
+		if (bCalculateLeftRightSide) {
+			segIter.resetToVertex(closestVertexIndex, closestPathIndex);
+			Segment segment = segIter.nextSegment();
+			bRight = (Point2D.orientationRobust(inputPoint,
+					segment.getStartXY(), segment.getEndXY()) < 0);
+
+			if (num_candidates > 1) {
+				Side_helper sideHelper = new Side_helper();
+				sideHelper.reset();
+				bRight = sideHelper.calc_side(inputPoint, bRight, geom,
+						closestVertexIndex, closestPathIndex);
+			}
+
+			result.setRightSide(bRight);
+		}
 
 		return result;
 	}
 
-	Proximity2DResult pointGetNearestVertex(Point geom, Point2D inputPoint) {
-		Proximity2DResult result = new Proximity2DResult();
-
+	Proximity2DResult pointGetNearestVertex(Point geom, Point2D input_point) {
 		Point2D pt = geom.getXY();
-		double distance = Point2D.distance(pt, inputPoint);
-		result._setParams(pt.x, pt.y, 0, distance);
-
-		return result;
+		double distance = Point2D.distance(pt, input_point);
+		return new Proximity2DResult(pt, 0, distance);
 	}
 
 	Proximity2DResult multiVertexGetNearestVertex(MultiVertexGeometry geom,

@@ -84,24 +84,27 @@ public abstract class OGCGeometry {
 		return GeometryEngine.geometryToWkt(getEsriGeometry(), 0);
 	}
 
-    public String toString() {
-        String snippet = asText();
-        if (snippet.length() > 200) { snippet = snippet.substring(0, 197)+"..."; }
-        return String.format("%s: %s", this.getClass().getSimpleName(), snippet);
-    }
-
 	public ByteBuffer asBinary() {
 		OperatorExportToWkb op = (OperatorExportToWkb) OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.ExportToWkb);
 		return op.execute(0, getEsriGeometry(), null);
 	}
 
-    public String asGeoJson() {
-        OperatorExportToGeoJson op = (OperatorExportToGeoJson) OperatorFactoryLocal
-                .getInstance().getOperator(Operator.Type.ExportToGeoJson);
-        return op.execute(getEsriGeometry());
-    }
+	public String asGeoJson() {
+		OperatorExportToGeoJson op = (OperatorExportToGeoJson) OperatorFactoryLocal
+				.getInstance().getOperator(Operator.Type.ExportToGeoJson);
+		return op.execute(getEsriGeometry());
+	}
+	
+	/**
+	 * 
+	 * @return Convert to REST JSON.
+	 */
+	public String asJson() {
+		return GeometryEngine.geometryToJson(esriSR, getEsriGeometry());
+	}
 
+	
 	public boolean isEmpty() {
 		return getEsriGeometry().isEmpty();
 	}
@@ -137,10 +140,12 @@ public abstract class OGCGeometry {
 	 * "simple" for each geometry type.
 	 * 
 	 * The method has O(n log n) complexity when the input geometry is simple.
-	 * For non-simple geometries, it terminates immediately when the first issue is
-	 * encountered.
+	 * For non-simple geometries, it terminates immediately when the first issue
+	 * is encountered.
 	 * 
 	 * @return True if geometry is simple and false otherwise.
+	 * 
+	 * Note: If isSimple is true, then isSimpleRelaxed is true too. 
 	 */
 	public boolean isSimple() {
 		return OperatorSimplifyOGC.local().isSimpleOGC(getEsriGeometry(),
@@ -151,25 +156,46 @@ public abstract class OGCGeometry {
 	 * Extension method - checks if geometry is simple for Geodatabase.
 	 * 
 	 * @return Returns true if geometry is simple, false otherwise.
+	 * 
+	 * Note: If isSimpleRelaxed is true, then isSimple is either true or false. Geodatabase has more relaxed requirements for simple geometries than OGC.
 	 */
 	public boolean isSimpleRelaxed() {
 		OperatorSimplify op = (OperatorSimplify) OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Simplify);
-		return op
-				.isSimpleAsFeature(getEsriGeometry(), esriSR, true, null, null);
+		return op.isSimpleAsFeature(getEsriGeometry(), esriSR, true, null, null);
 	}
 
+	@Deprecated
+	/**
+	 * Use makeSimpleRelaxed instead.
+	 */
+	public OGCGeometry MakeSimpleRelaxed(boolean forceProcessing) {
+		return makeSimpleRelaxed(forceProcessing);
+	}
 	/**
 	 * Makes a simple geometry for Geodatabase.
 	 * 
 	 * @return Returns simplified geometry.
+	 * 
+	 * Note: isSimpleRelaxed should return true after this operation.
 	 */
-	public OGCGeometry MakeSimpleRelaxed(boolean forceProcessing) {
+	public OGCGeometry makeSimpleRelaxed(boolean forceProcessing) {
 		OperatorSimplify op = (OperatorSimplify) OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Simplify);
 		return OGCGeometry.createFromEsriGeometry(
 				op.execute(getEsriGeometry(), esriSR, forceProcessing, null),
 				esriSR);
+	}
+	
+	/**
+	 * Resolves topological issues in this geometry and makes it Simple according to OGC specification.
+	 * 
+	 * @return Returns simplified geometry.
+	 * 
+	 * Note: isSimple and isSimpleRelaxed should return true after this operation. 
+	 */
+	public OGCGeometry makeSimple() {
+		return simplifyBunch_(getEsriGeometryCursor());
 	}
 
 	public boolean is3D() {
@@ -184,14 +210,17 @@ public abstract class OGCGeometry {
 
 	abstract public OGCGeometry boundary();
 
-	// query
+	/**
+	 * OGC equals
+	 * 
+	 */
 	public boolean equals(OGCGeometry another) {
 		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
 		com.esri.core.geometry.Geometry geom2 = another.getEsriGeometry();
 		return com.esri.core.geometry.GeometryEngine.equals(geom1, geom2,
 				getEsriSpatialReference());
 	}
-
+	
 	public boolean disjoint(OGCGeometry another) {
 		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
 		com.esri.core.geometry.Geometry geom2 = another.getEsriGeometry();
@@ -264,14 +293,6 @@ public abstract class OGCGeometry {
 	// As a result there are at most three geometries, each geometry is Simple.
 	// Afterwards
 	// it produces a single OGCGeometry.
-	//
-	// Note: Not complete yet. We'll use this method to implement the OGC
-	// Simplify (or MakeValid method)
-	// At this moment, method removes self intersections, and clusters vertices,
-	// but may sometimes
-	// produce geometries with self-tangency or polygons with disconnected
-	// interior
-	// which are simple for ArcObjects, but non-simple for OGC.
 	private OGCGeometry simplifyBunch_(GeometryCursor gc) {
 		// Combines geometries into multipoint, polyline, and polygon types,
 		// simplifying them and unioning them,
@@ -640,10 +661,22 @@ public abstract class OGCGeometry {
 	public void setSpatialReference(SpatialReference esriSR_) {
 		esriSR = esriSR_;
 	}
-	
+
 	/**
-	 *Converts this Geometry to the OGCMulti* if it is not OGCMulti* or OGCGeometryCollection already.
+	 * Converts this Geometry to the OGCMulti* if it is not OGCMulti* or
+	 * OGCGeometryCollection already.
+	 * 
 	 * @return OGCMulti* or OGCGeometryCollection instance.
 	 */
 	public abstract OGCGeometry convertToMulti();
+
+	@Override
+	public String toString() {
+		String snippet = asText();
+		if (snippet.length() > 200) {
+			snippet = snippet.substring(0, 197) + "...";
+		}
+		return String
+				.format("%s: %s", this.getClass().getSimpleName(), snippet);
+	}
 }

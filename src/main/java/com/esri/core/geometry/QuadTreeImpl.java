@@ -159,15 +159,8 @@ class QuadTreeImpl {
 						child_extents[2] = new Envelope2D();
 						child_extents[3] = new Envelope2D();
 					}
-					child_extents[0].setCoords(x_mid, y_mid,
-							current_extent.xmax, current_extent.ymax); // northeast
-					child_extents[1].setCoords(current_extent.xmin, y_mid,
-							x_mid, current_extent.ymax); // northwest
-					child_extents[2].setCoords(current_extent.xmin,
-							current_extent.ymin, x_mid, y_mid); // southwest
-					child_extents[3].setCoords(x_mid, current_extent.ymin,
-							current_extent.xmax, y_mid); // southeast
 
+					setChildExtents_(current_extent, child_extents);
 					m_quads_stack.removeLast();
 					m_extents_stack.remove(m_extents_stack.size() - 1);
 
@@ -352,15 +345,6 @@ class QuadTreeImpl {
 	}
 
 	/**
-	 * Removes the quad and all its children corresponding to the input
-	 * quad_handle. \param quad_handle The handle corresponding to the quad to
-	 * be removed.
-	 */
-	void removeQuad(int quad_handle) {
-		removeQuad_(quad_handle);
-	}
-
-	/**
 	 * Returns the element at the given element_handle. \param element_handle
 	 * The handle corresponding to the element to be retrieved.
 	 */
@@ -481,14 +465,9 @@ class QuadTreeImpl {
 	private int insert_(int element, Envelope2D bounding_box, int height,
 			Envelope2D quad_extent, int quad_handle, boolean b_flushing,
 			int flushed_element_handle) {
-		Point2D bb_center = new Point2D();
-		bounding_box.queryCenter(bb_center);
+		if (!quad_extent.contains(bounding_box)) {
+			assert (!b_flushing);
 
-		Envelope2D current_extent = new Envelope2D();
-		current_extent.setCoords(quad_extent);
-
-		int current_quad_handle = quad_handle;
-		if (!current_extent.contains(bounding_box)) {
 			if (height == 0)
 				return -1;
 
@@ -496,8 +475,16 @@ class QuadTreeImpl {
 					b_flushing, flushed_element_handle);
 		}
 
-		// Should this memory be cached for reuse?
-		Point2D quad_center = new Point2D();
+		if (!b_flushing) {
+			for (int q = quad_handle; q != -1; q = getParent_(q))
+				setSubTreeElementCount_(q, getSubTreeElementCount_(q) + 1);
+		}
+
+		Envelope2D current_extent = new Envelope2D();
+		current_extent.setCoords(quad_extent);
+
+		int current_quad_handle = quad_handle;
+
 		Envelope2D[] child_extents = new Envelope2D[4];
 		child_extents[0] = new Envelope2D();
 		child_extents[1] = new Envelope2D();
@@ -507,46 +494,40 @@ class QuadTreeImpl {
 		int current_height;
 		for (current_height = height; current_height < m_height
 				&& canPushDown_(current_quad_handle); current_height++) {
-			double x_mid = 0.5 * (current_extent.xmin + current_extent.xmax);
-			double y_mid = 0.5 * (current_extent.ymin + current_extent.ymax);
+			setChildExtents_(current_extent, child_extents);
 
-			child_extents[0].setCoords(x_mid, y_mid, current_extent.xmax,
-					current_extent.ymax); // northeast
-			child_extents[1].setCoords(current_extent.xmin, y_mid, x_mid,
-					current_extent.ymax); // northwest
-			child_extents[2].setCoords(current_extent.xmin,
-					current_extent.ymin, x_mid, y_mid); // southwest
-			child_extents[3].setCoords(x_mid, current_extent.ymin,
-					current_extent.xmax, y_mid); // southeast
+			boolean b_contains = false;
 
-			// Find the first child quadrant that contains the bounding box, and
-			// recursively insert into that child (greedy algorithm)
-			double mind = NumberUtils.doubleMax();
-			int quadrant = -1;
 			for (int i = 0; i < 4; i++) {
-				child_extents[i].queryCenter(quad_center);
-				double d = Point2D.sqrDistance(quad_center, bb_center);
-				if (d < mind) {
-					mind = d;
-					quadrant = i;
+				if (child_extents[i].contains(bounding_box)) {
+					b_contains = true;
+
+					int child_handle = getChild_(current_quad_handle, i);
+					if (child_handle == -1)
+						child_handle = createChild_(current_quad_handle, i);
+
+					setSubTreeElementCount_(child_handle,
+							getSubTreeElementCount_(child_handle) + 1);
+
+					current_quad_handle = child_handle;
+					current_extent.setCoords(child_extents[i]);
+					break;
 				}
 			}
 
-			if (child_extents[quadrant].contains(bounding_box)) {
-				int child_handle = getChild_(current_quad_handle, quadrant);
-				if (child_handle == -1)
-					child_handle = createChild_(current_quad_handle, quadrant);
-
-				current_quad_handle = child_handle;
-				current_extent.setCoords(child_extents[quadrant]);
-				setSubTreeElementCount_(current_quad_handle,
-						getSubTreeElementCount_(current_quad_handle) + 1);
-				continue;
-			}
-
-			break;
+			if (!b_contains)
+				break;
 		}
 
+		return insertAtQuad_(element, bounding_box, current_height,
+				current_extent, current_quad_handle, b_flushing, quad_handle,
+				flushed_element_handle);
+	}
+
+	private int insertAtQuad_(int element, Envelope2D bounding_box,
+			int current_height, Envelope2D current_extent,
+			int current_quad_handle, boolean b_flushing, int quad_handle,
+			int flushed_element_handle) {
 		// If the bounding box is not contained in any of the current_node's
 		// children, or if the current_height is m_height, then insert the
 		// element and
@@ -554,7 +535,7 @@ class QuadTreeImpl {
 
 		int head_element_handle = getFirstElement_(current_quad_handle);
 		int tail_element_handle = getLastElement_(current_quad_handle);
-		int element_handle;
+		int element_handle = -1;
 
 		if (b_flushing) {
 			assert (flushed_element_handle != -1);
@@ -575,8 +556,6 @@ class QuadTreeImpl {
 													// (next_element_handle).
 			setBoundingBox_(getBoxHandle_(element_handle), bounding_box); // insert
 																			// bounding_box
-			setSubTreeElementCount_(quad_handle,
-					getSubTreeElementCount_(quad_handle) + 1);
 		}
 
 		assert (!b_flushing || element_handle == flushed_element_handle);
@@ -650,49 +629,19 @@ class QuadTreeImpl {
 		return next_element_handle;
 	}
 
-	private void removeQuad_(int quad_handle) {
-		int subTreeElementCount = getSubTreeElementCount_(quad_handle);
-		if (subTreeElementCount > 0)
-			for (int q = getParent_(quad_handle); q != -1; q = getParent_(q))
-				setSubTreeElementCount_(q, getSubTreeElementCount_(q)
-						- subTreeElementCount);
+	private static void setChildExtents_(Envelope2D current_extent,
+			Envelope2D[] child_extents) {
+		double x_mid = 0.5 * (current_extent.xmin + current_extent.xmax);
+		double y_mid = 0.5 * (current_extent.ymin + current_extent.ymax);
 
-		removeQuadHelper_(quad_handle);
-
-		int parent = getParent_(quad_handle);
-
-		if (parent != -1) {
-			for (int quadrant = 0; quadrant < 4; quadrant++) {
-				if (getChild_(parent, quadrant) == quad_handle) {
-					setChild_(parent, quadrant, -1);
-					break;
-				}
-			}
-		}
-	}
-
-	private void removeQuadHelper_(int quad_handle) {
-		for (int element_handle = getFirstElement_(quad_handle); element_handle != -1; element_handle = getNextElement_(element_handle)) {
-			m_free_boxes.add(getBoxHandle_(element_handle));
-			m_element_nodes.deleteElement(element_handle);
-		}
-
-		for (int quadrant = 0; quadrant < 4; quadrant++) {
-			int child_handle = getChild_(quad_handle, quadrant);
-			if (child_handle != -1) {
-				removeQuadHelper_(child_handle);
-				setChild_(quad_handle, quadrant, -1);
-			}
-		}
-
-		if (quad_handle != m_root) {
-			m_quad_tree_nodes.deleteElement(quad_handle);
-		} else {
-			setSubTreeElementCount_(m_root, 0);
-			setLocalElementCount_(m_root, 0);
-			setFirstElement_(m_root, -1);
-			setLastElement_(m_root, -1);
-		}
+		child_extents[0].setCoords(x_mid, y_mid, current_extent.xmax,
+				current_extent.ymax); // northeast
+		child_extents[1].setCoords(current_extent.xmin, y_mid, x_mid,
+				current_extent.ymax); // northwest
+		child_extents[2].setCoords(current_extent.xmin, current_extent.ymin,
+				x_mid, y_mid); // southwest
+		child_extents[3].setCoords(x_mid, current_extent.ymin,
+				current_extent.xmax, y_mid); // southeast
 	}
 
 	private boolean canFlush_(int quad_handle) {

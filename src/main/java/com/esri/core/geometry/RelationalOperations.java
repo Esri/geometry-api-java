@@ -1691,8 +1691,9 @@ class RelationalOperations {
 			ProgressTracker progress_tracker) {
 		// Quick rasterize test to see whether the the geometries are disjoint.
 		if (tryRasterizedContainsOrDisjoint_(polyline_a, multipoint_b,
-				tolerance, false) == Relation.disjoint)
+				tolerance, false) == Relation.disjoint) {
 			return false;
+		}
 
 		SegmentIteratorImpl segIterA = ((MultiPathImpl) polyline_a._getImpl())
 				.querySegmentIterator();
@@ -1707,8 +1708,25 @@ class RelationalOperations {
 		envInter.setCoords(env_a);
 		envInter.intersect(env_b);
 
-		QuadTreeImpl quadTreeA = InternalUtils.buildQuadTree(
-				(MultiPathImpl) (polyline_a._getImpl()), envInter);
+		QuadTreeImpl qtA;
+		QuadTreeImpl quadTreeA;
+
+		GeometryAccelerators accel = ((MultiPathImpl) (polyline_a._getImpl()))
+				._getAccelerators();
+
+		if (accel != null) {
+			quadTreeA = accel.getQuadTree();
+			if (quadTreeA == null) {
+				qtA = InternalUtils.buildQuadTree(
+						(MultiPathImpl) polyline_a._getImpl(), envInter);
+				quadTreeA = qtA;
+			}
+		} else {
+			qtA = InternalUtils.buildQuadTree(
+					(MultiPathImpl) polyline_a._getImpl(), envInter);
+			quadTreeA = qtA;
+		}
+
 		QuadTreeImpl.QuadTreeIteratorImpl qtIterA = quadTreeA.getIterator();
 
 		Point2D ptB = new Point2D(), closest = new Point2D();
@@ -1717,14 +1735,16 @@ class RelationalOperations {
 
 		AttributeStreamOfInt8 intersects = new AttributeStreamOfInt8(
 				multipoint_b.getPointCount());
-		for (int i = 0; i < multipoint_b.getPointCount(); i++)
+		for (int i = 0; i < multipoint_b.getPointCount(); i++) {
 			intersects.write(i, (byte) 0);
+		}
 
 		for (int i = 0; i < multipoint_b.getPointCount(); i++) {
 			multipoint_b.getXY(i, ptB);
 
-			if (!envInter.contains(ptB))
+			if (!envInter.contains(ptB)) {
 				continue;
+			}
 
 			env_b.setCoords(ptB.x, ptB.y, ptB.x, ptB.y);
 			qtIterA.resetIterator(env_b, tolerance);
@@ -1746,16 +1766,18 @@ class RelationalOperations {
 			}
 		}
 
-		if (!b_intersects)
+		if (!b_intersects) {
 			return false;
+		}
 
 		MultiPoint boundary_a = (MultiPoint) (polyline_a.getBoundary());
 		MultiPoint multipoint_b_inter = new MultiPoint();
 		Point2D pt = new Point2D();
 
 		for (int i = 0; i < multipoint_b.getPointCount(); i++) {
-			if (intersects.read(i) == 0)
+			if (intersects.read(i) == 0) {
 				continue;
+			}
 
 			multipoint_b.getXY(i, pt);
 			multipoint_b_inter.add(pt.x, pt.y);
@@ -1771,8 +1793,9 @@ class RelationalOperations {
 			ProgressTracker progress_tracker) {
 		// Quick rasterize test to see whether the the geometries are disjoint.
 		if (tryRasterizedContainsOrDisjoint_(polyline_a, multipoint_b,
-				tolerance, false) == Relation.disjoint)
+				tolerance, false) == Relation.disjoint) {
 			return false;
+		}
 
 		SegmentIteratorImpl segIterA = ((MultiPathImpl) polyline_a._getImpl())
 				.querySegmentIterator();
@@ -1787,8 +1810,25 @@ class RelationalOperations {
 		envInter.setCoords(env_a);
 		envInter.intersect(env_b);
 
-		QuadTreeImpl quadTreeA = InternalUtils.buildQuadTree(
-				(MultiPathImpl) polyline_a._getImpl(), envInter);
+		QuadTreeImpl qtA;
+		QuadTreeImpl quadTreeA;
+
+		GeometryAccelerators accel = ((MultiPathImpl) (polyline_a._getImpl()))
+				._getAccelerators();
+
+		if (accel != null) {
+			quadTreeA = accel.getQuadTree();
+			if (quadTreeA == null) {
+				qtA = InternalUtils.buildQuadTree(
+						(MultiPathImpl) polyline_a._getImpl(), envInter);
+				quadTreeA = qtA;
+			}
+		} else {
+			qtA = InternalUtils.buildQuadTree(
+					(MultiPathImpl) polyline_a._getImpl(), envInter);
+			quadTreeA = qtA;
+		}
+
 		QuadTreeImpl.QuadTreeIteratorImpl qtIterA = quadTreeA.getIterator();
 
 		Point2D ptB = new Point2D(), closest = new Point2D();
@@ -1798,8 +1838,9 @@ class RelationalOperations {
 
 		AttributeStreamOfInt8 intersects = new AttributeStreamOfInt8(
 				multipoint_b.getPointCount());
-		for (int i = 0; i < multipoint_b.getPointCount(); i++)
+		for (int i = 0; i < multipoint_b.getPointCount(); i++) {
 			intersects.write(i, (byte) 0);
+		}
 
 		for (int i = 0; i < multipoint_b.getPointCount(); i++) {
 			multipoint_b.getXY(i, ptB);
@@ -1831,20 +1872,23 @@ class RelationalOperations {
 				}
 			}
 
-			if (!b_covered)
+			if (!b_covered) {
 				b_exterior_found = true;
+			}
 		}
 
-		if (!b_intersects || !b_exterior_found)
+		if (!b_intersects || !b_exterior_found) {
 			return false;
+		}
 
 		MultiPoint boundary_a = (MultiPoint) (polyline_a.getBoundary());
 		MultiPoint multipoint_b_inter = new MultiPoint();
 		Point2D pt = new Point2D();
 
 		for (int i = 0; i < multipoint_b.getPointCount(); i++) {
-			if (intersects.read(i) == 0)
+			if (intersects.read(i) == 0) {
 				continue;
+			}
 
 			multipoint_b.getXY(i, pt);
 			multipoint_b_inter.add(pt.x, pt.y);
@@ -2231,7 +2275,7 @@ class RelationalOperations {
 	}
 
 	// Returns true if multipoint_a equals point_b.
-	private static boolean multiPointEqualsPoint_(MultiPoint multipoint_a,
+	static boolean multiPointEqualsPoint_(MultiPoint multipoint_a,
 			Point point_b, double tolerance, ProgressTracker progress_tracker) {
 		Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D();
 		multipoint_a.queryEnvelope2D(env_a);
@@ -2598,8 +2642,8 @@ class RelationalOperations {
 	}
 
 	// Returns true if pt_a is disjoint from env_b.
-	private static boolean pointDisjointEnvelope_(Point2D pt_a,
-			Envelope2D env_b, double tolerance, ProgressTracker progress_tracker) {
+	static boolean pointDisjointEnvelope_(Point2D pt_a, Envelope2D env_b,
+			double tolerance, ProgressTracker progress_tracker) {
 		Envelope2D env_b_inflated = new Envelope2D();
 		env_b_inflated.setCoords(env_b);
 		env_b_inflated.inflate(tolerance, tolerance);
@@ -2707,7 +2751,7 @@ class RelationalOperations {
 	}
 
 	// Returns true if env_a is disjoint from env_b.
-	private static boolean envelopeDisjointEnvelope_(Envelope2D env_a,
+	static boolean envelopeDisjointEnvelope_(Envelope2D env_a,
 			Envelope2D env_b, double tolerance, ProgressTracker progress_tracker) {
 		Envelope2D env_b_inflated = new Envelope2D();
 		env_b_inflated.setCoords(env_b);
@@ -3019,59 +3063,69 @@ class RelationalOperations {
 	private static boolean polygonDisjointMultiPath_(Polygon polygon_a,
 			MultiPath multipath_b, double tolerance,
 			ProgressTracker progress_tracker) {
-		Point2D pt_a = new Point2D(), pt_b = new Point2D();
+		Point2D pt_a, pt_b;
 		Envelope2D env_a_inf = new Envelope2D(), env_b_inf = new Envelope2D();
 
-		AttributeStreamOfInt32 parts_a = new AttributeStreamOfInt32(0);
-		AttributeStreamOfInt32 parts_b = new AttributeStreamOfInt32(0);
+		MultiPathImpl multi_path_impl_a = (MultiPathImpl) polygon_a._getImpl();
+		MultiPathImpl multi_path_impl_b = (MultiPathImpl) multipath_b
+				._getImpl();
 
+		boolean b_simple_a = multi_path_impl_a.getIsSimple(0.0) >= 1;
+		boolean b_simple_b = multi_path_impl_b.getIsSimple(0.0) >= 1;
 		Envelope2DIntersectorImpl intersector = InternalUtils
-				.getEnvelope2DIntersectorForOGCParts(
-						(MultiPathImpl) polygon_a._getImpl(),
-						(MultiPathImpl) multipath_b._getImpl(), tolerance,
-						parts_a, parts_b);
+				.getEnvelope2DIntersectorForParts(multi_path_impl_a,
+						multi_path_impl_b, tolerance, b_simple_a, b_simple_b);
 
 		if (intersector != null) {
-			while (intersector.next()) {
-				int index_a = intersector.getHandleA();
-				int index_b = intersector.getHandleB();
-				int path_a = parts_a.get(index_a);
-				int path_b = parts_b.get(index_b);
-
-				multipath_b.getXY(multipath_b.getPathStart(path_b), pt_b);
-				env_a_inf.setCoords(intersector.getRedEnvelope(index_a));
-				env_a_inf.inflate(tolerance, tolerance);
-
-				if (env_a_inf.contains(pt_b)) {
-					PolygonUtils.PiPResult result = PolygonUtils
-							.isPointInPolygon2D(polygon_a, pt_b, 0.0);
-
-					if (result != PolygonUtils.PiPResult.PiPOutside)
-						return false;
-				}
-
-				if (multipath_b.getType().value() == Geometry.GeometryType.Polygon) {
-					polygon_a.getXY(polygon_a.getPathStart(path_a), pt_a);
-					env_b_inf.setCoords(intersector.getBlueEnvelope(index_b));
-					env_b_inf.inflate(tolerance, tolerance);
-
-					if (env_b_inf.contains(pt_a)) {
-						PolygonUtils.PiPResult result = PolygonUtils
-								.isPointInPolygon2D((Polygon) multipath_b,
-										pt_a, 0.0);
-
-						if (result != PolygonUtils.PiPResult.PiPOutside)
-							return false;
-					}
-				}
+			if (!intersector.next()) {
+				return true; // no rings intersect
 			}
+		} else {
+			return true; // no rings intersect
 		}
 
 		boolean b_intersects = linearPathIntersectsLinearPath_(polygon_a,
 				multipath_b, tolerance);
 
-		if (b_intersects)
+		if (b_intersects) {
 			return false;
+		}
+
+		do {
+			int index_a = intersector.getHandleA();
+			int index_b = intersector.getHandleB();
+			int path_a = intersector.getRedElement(index_a);
+			int path_b = intersector.getBlueElement(index_b);
+
+			pt_b = multipath_b.getXY(multipath_b.getPathStart(path_b));
+			env_a_inf.setCoords(intersector.getRedEnvelope(index_a));
+			env_a_inf.inflate(tolerance, tolerance);
+
+			if (env_a_inf.contains(pt_b)) {
+				PolygonUtils.PiPResult result = PolygonUtils
+						.isPointInPolygon2D(polygon_a, pt_b, 0.0);
+
+				if (result != PolygonUtils.PiPResult.PiPOutside) {
+					return false;
+				}
+			}
+
+			if (multipath_b.getType() == Geometry.Type.Polygon) {
+				pt_a = polygon_a.getXY(polygon_a.getPathStart(path_a));
+				env_b_inf.setCoords(intersector.getBlueEnvelope(index_b));
+				env_b_inf.inflate(tolerance, tolerance);
+
+				if (env_b_inf.contains(pt_a)) {
+					PolygonUtils.PiPResult result = PolygonUtils
+							.isPointInPolygon2D((Polygon) multipath_b, pt_a,
+									0.0);
+
+					if (result != PolygonUtils.PiPResult.PiPOutside) {
+						return false;
+					}
+				}
+			}
+		} while (intersector.next());
 
 		return true;
 	}
@@ -3386,8 +3440,25 @@ class RelationalOperations {
 		SegmentIteratorImpl segIterB = ((MultiPathImpl) multipathB._getImpl())
 				.querySegmentIterator();
 
-		QuadTreeImpl quadTreeB = InternalUtils.buildQuadTree(
-				((MultiPathImpl) multipathB._getImpl()), envInter);
+		QuadTreeImpl qtB;
+		QuadTreeImpl quadTreeB;
+
+		GeometryAccelerators accel = ((MultiPathImpl) multipathB._getImpl())
+				._getAccelerators();
+
+		if (accel != null) {
+			quadTreeB = accel.getQuadTree();
+			if (quadTreeB == null) {
+				qtB = InternalUtils.buildQuadTree(
+						(MultiPathImpl) multipathB._getImpl(), envInter);
+				quadTreeB = qtB;
+			}
+		} else {
+			qtB = InternalUtils.buildQuadTree(
+					(MultiPathImpl) multipathB._getImpl(), envInter);
+			quadTreeB = qtB;
+		}
+
 		QuadTreeImpl.QuadTreeIteratorImpl qtIterB = quadTreeB.getIterator();
 
 		while (segIterA.nextPath()) {
@@ -3435,8 +3506,8 @@ class RelationalOperations {
 							boolean bSegmentACovered = true;
 
 							while (bSegmentACovered) {// keep going while the
-														// current segmentA is
-														// covered.
+								// current segmentA is
+								// covered.
 								if (segIterA.hasNextSegment()) {
 									segmentA = segIterA.nextSegment();
 									lengthA = segmentA.calculateLength2D();
@@ -3501,16 +3572,17 @@ class RelationalOperations {
 					}
 				}
 
-				if (bStringOfSegmentAsCovered)
+				if (bStringOfSegmentAsCovered) {
 					continue; // no need to check that segmentA is covered
-
+				}
 				if (ievent == relOps.m_overlap_events.size()) {
 					return false; // bWithin = false
 				}
 
-				if (eventIndices.size() - ievent > 1)
+				if (eventIndices.size() - ievent > 1) {
 					eventIndices.Sort(ievent, eventIndices.size(),
 							overlapComparer);
+				}
 
 				double lastScalar = 0.0;
 
@@ -3519,8 +3591,9 @@ class RelationalOperations {
 							.get(i));
 
 					if (overlapEvent.m_scalar_a_0 < lastScalar
-							&& overlapEvent.m_scalar_a_1 < lastScalar)
+							&& overlapEvent.m_scalar_a_1 < lastScalar) {
 						continue;
+					}
 
 					if (lengthA * (overlapEvent.m_scalar_a_0 - lastScalar) > tolerance) {
 						return false; // bWithin = false
@@ -3528,8 +3601,9 @@ class RelationalOperations {
 						lastScalar = overlapEvent.m_scalar_a_1;
 
 						if (lengthA * (1.0 - lastScalar) <= tolerance
-								|| lastScalar == 1.0)
+								|| lastScalar == 1.0) {
 							break;
+						}
 					}
 				}
 
@@ -3579,115 +3653,6 @@ class RelationalOperations {
 						tolerance);
 	}
 
-	// Returns true if the segments of multipathA touches the segments of
-	// multipathB.
-	private static boolean linearPathTouchesLinearPath_(MultiPath _multipathA,
-			MultiPath _multipathB, double tolerance) {
-		MultiPath multipathA;
-		MultiPath multipathB;
-
-		if (_multipathA.getSegmentCount() > _multipathB.getSegmentCount()) {
-			multipathA = _multipathB;
-			multipathB = _multipathA;
-		} else {
-			multipathA = _multipathA;
-			multipathB = _multipathB;
-		}
-
-		SegmentIteratorImpl segIterA = ((MultiPathImpl) multipathA._getImpl())
-				.querySegmentIterator();
-		SegmentIteratorImpl segIterB = ((MultiPathImpl) multipathB._getImpl())
-				.querySegmentIterator();
-		double[] scalarsA = new double[2];
-		double[] scalarsB = new double[2];
-
-		boolean bBoundaryIntersectionFound = false;
-
-		Envelope2D env_a = new Envelope2D();
-		Envelope2D env_b = new Envelope2D();
-		Envelope2D envInter = new Envelope2D();
-		multipathA.queryEnvelope2D(env_a);
-		multipathB.queryEnvelope2D(env_b);
-		env_a.inflate(tolerance, tolerance);
-		env_b.inflate(tolerance, tolerance);
-		envInter.setCoords(env_a);
-		envInter.intersect(env_b);
-
-		QuadTreeImpl quadTreeB = InternalUtils.buildQuadTree(
-				(MultiPathImpl) multipathB._getImpl(), envInter);
-		QuadTreeImpl.QuadTreeIteratorImpl qtIterB = quadTreeB.getIterator();
-
-		while (segIterA.nextPath()) {
-			boolean bHasEndPointsA = !isClosedPath_(multipathA,
-					segIterA.getPathIndex());
-
-			while (segIterA.hasNextSegment()) {
-				Segment segmentA = segIterA.nextSegment();
-				segmentA.queryEnvelope2D(env_a);
-
-				if (!env_a.isIntersecting(envInter))
-					continue;
-
-				double lengthA = segmentA.calculateLength2D();
-
-				qtIterB.resetIterator(segmentA, tolerance);
-
-				for (int elementHandleB = qtIterB.next(); elementHandleB != -1; elementHandleB = qtIterB
-						.next()) {
-					int vertex_b = quadTreeB.getElement(elementHandleB);
-					segIterB.resetToVertex(vertex_b);
-					boolean bHasEndPointsB = !isClosedPath_(multipathB,
-							segIterB.getPathIndex());
-
-					Segment segmentB = segIterB.nextSegment();
-					double lengthB = segmentB.calculateLength2D();
-
-					int result = segmentA.intersect(segmentB, null, scalarsA,
-							scalarsB, tolerance);
-
-					if (result > 0) {
-						if (result == 2
-								&& lengthA * (scalarsA[1] - scalarsA[0]) > tolerance)
-							return false;
-
-						double scalar_a_0 = scalarsA[0];
-						double scalar_b_0 = scalarsB[0];
-
-						boolean bTouchesStartA = false, bTouchesEndA = false, bTouchesStartB = false, bTouchesEndB = false;
-
-						if (lengthA * scalar_a_0 <= tolerance
-								&& segIterA.isFirstSegmentInPath())
-							bTouchesStartA = true;
-
-						if (lengthA * (1.0 - scalar_a_0) <= tolerance
-								&& segIterA.isLastSegmentInPath())
-							bTouchesEndA = true;
-
-						if (lengthB * scalar_b_0 <= tolerance
-								&& segIterB.isFirstSegmentInPath())
-							bTouchesStartB = true;
-
-						if (lengthB * (1.0 - scalar_b_0) <= tolerance
-								&& segIterB.isLastSegmentInPath())
-							bTouchesEndB = true;
-
-						if (((!bTouchesStartA && !bTouchesEndA) || !bHasEndPointsA)
-								&& ((!bTouchesStartB && !bTouchesEndB) || !bHasEndPointsB))
-							return false; // return false if Interior-Interior
-											// intersection is found
-
-						bBoundaryIntersectionFound = true;
-					}
-				}
-			}
-		}
-
-		return bBoundaryIntersectionFound; // If we haven't already returned
-											// false, then no Interior-Interior
-											// intersection has been found.
-											// Thus, they touch.
-	}
-
 	// Returns true the dimension of intersection of _multipathA and
 	// _multipathB.
 	static int linearPathIntersectsLinearPathMaxDim_(MultiPath _multipathA,
@@ -3732,11 +3697,29 @@ class RelationalOperations {
 
 		Point2D int_point = null;
 
-		if (intersections != null)
+		if (intersections != null) {
 			int_point = new Point2D();
+		}
 
-		QuadTreeImpl quadTreeB = InternalUtils.buildQuadTree(
-				(MultiPathImpl) multipathB._getImpl(), envInter);
+		QuadTreeImpl qtB;
+		QuadTreeImpl quadTreeB;
+
+		GeometryAccelerators accel = ((MultiPathImpl) multipathB._getImpl())
+				._getAccelerators();
+
+		if (accel != null) {
+			quadTreeB = accel.getQuadTree();
+			if (quadTreeB == null) {
+				qtB = InternalUtils.buildQuadTree(
+						(MultiPathImpl) multipathB._getImpl(), envInter);
+				quadTreeB = qtB;
+			}
+		} else {
+			qtB = InternalUtils.buildQuadTree(
+					(MultiPathImpl) multipathB._getImpl(), envInter);
+			quadTreeB = qtB;
+		}
+
 		QuadTreeImpl.QuadTreeIteratorImpl qtIterB = quadTreeB.getIterator();
 
 		while (segIterA.nextPath()) {
@@ -3746,8 +3729,9 @@ class RelationalOperations {
 				Segment segmentA = segIterA.nextSegment();
 				segmentA.queryEnvelope2D(env_a);
 
-				if (!env_a.isIntersecting(envInter))
+				if (!env_a.isIntersecting(envInter)) {
 					continue;
+				}
 
 				double lengthA = segmentA.calculateLength2D();
 
@@ -3908,8 +3892,9 @@ class RelationalOperations {
 								.get(i));
 
 						if (overlapEvent.m_scalar_a_0 < lastScalar
-								&& overlapEvent.m_scalar_a_1 < lastScalar)
+								&& overlapEvent.m_scalar_a_1 < lastScalar) {
 							continue;
+						}
 
 						if (lengthA * (overlapEvent.m_scalar_a_0 - lastScalar) > tolerance) {
 							overlapLength = lengthA
@@ -3921,10 +3906,10 @@ class RelationalOperations {
 								overlapLength = lengthA
 										* (overlapEvent.m_scalar_a_1 - overlapEvent.m_scalar_a_0); // reset
 								lastPath = overlapEvent.m_ipath_a;
-							} else
+							} else {
 								overlapLength += lengthA
 										* (overlapEvent.m_scalar_a_1 - overlapEvent.m_scalar_a_0); // accumulate
-
+							}
 							if (overlapLength > tolerance) {
 								dim = 1;
 								return dim;
@@ -3932,14 +3917,15 @@ class RelationalOperations {
 
 							lastScalar = overlapEvent.m_scalar_a_1;
 
-							if (lastScalar == 1.0)
+							if (lastScalar == 1.0) {
 								break;
+							}
 						}
 					}
 
-					if (lengthA * (1.0 - lastScalar) > tolerance)
+					if (lengthA * (1.0 - lastScalar) > tolerance) {
 						overlapLength = 0.0; // reset
-
+					}
 					ievent = 0;
 					eventIndices.resize(0);
 					relOps.m_overlap_events.clear();
@@ -3959,30 +3945,24 @@ class RelationalOperations {
 
 		SegmentIteratorImpl segIterA = multi_path_impl_a.querySegmentIterator();
 		SegmentIteratorImpl segIterB = multi_path_impl_b.querySegmentIterator();
-		AttributeStreamOfInt32 verticesA = new AttributeStreamOfInt32(0);
-		AttributeStreamOfInt32 verticesB = new AttributeStreamOfInt32(0);
 
-		Envelope2DIntersectorImpl intersector = InternalUtils
-				.getEnvelope2DIntersector(multi_path_impl_a, multi_path_impl_b,
-						tolerance, verticesA, verticesB);
+		Pair_wise_intersector intersector = new Pair_wise_intersector(
+				multi_path_impl_a, multi_path_impl_b, tolerance);
 
-		if (intersector != null) {
-			while (intersector.next()) {
-				int index_a = intersector.getHandleA();
-				int index_b = intersector.getHandleB();
-				int vertex_a = verticesA.get(index_a);
-				int vertex_b = verticesB.get(index_b);
+		while (intersector.next()) {
+			int vertex_a = intersector.get_red_element();
+			int vertex_b = intersector.get_blue_element();
 
-				segIterA.resetToVertex(vertex_a);
-				segIterB.resetToVertex(vertex_b);
-				Segment segmentA = segIterA.nextSegment();
-				Segment segmentB = segIterB.nextSegment();
+			segIterA.resetToVertex(vertex_a);
+			segIterB.resetToVertex(vertex_b);
+			Segment segmentA = segIterA.nextSegment();
+			Segment segmentB = segIterB.nextSegment();
 
-				int result = segmentB.intersect(segmentA, null, null, null,
-						tolerance);
+			int result = segmentB.intersect(segmentA, null, null, null,
+					tolerance);
 
-				if (result > 0)
-					return true;
+			if (result > 0) {
+				return true;
 			}
 		}
 
@@ -4008,15 +3988,33 @@ class RelationalOperations {
 		multipoint_b.queryEnvelope2D(env_b);
 		env_a.inflate(tolerance, tolerance);
 
-		if (!env_a.contains(env_b))
+		if (!env_a.contains(env_b)) {
 			bContained = false;
+		}
 
 		env_b.inflate(tolerance, tolerance);
 		envInter.setCoords(env_a);
 		envInter.intersect(env_b);
 
-		QuadTreeImpl quadTreeA = InternalUtils.buildQuadTree(
-				(MultiPathImpl) multipathA._getImpl(), envInter);
+		QuadTreeImpl qtA = null;
+		QuadTreeImpl quadTreeA = null;
+
+		GeometryAccelerators accel = ((MultiPathImpl) multipathA._getImpl())
+				._getAccelerators();
+
+		if (accel != null) {
+			quadTreeA = accel.getQuadTree();
+			if (quadTreeA == null) {
+				qtA = InternalUtils.buildQuadTree(
+						(MultiPathImpl) multipathA._getImpl(), envInter);
+				quadTreeA = qtA;
+			}
+		} else {
+			qtA = InternalUtils.buildQuadTree(
+					(MultiPathImpl) multipathA._getImpl(), envInter);
+			quadTreeA = qtA;
+		}
+
 		QuadTreeImpl.QuadTreeIteratorImpl qtIterA = quadTreeA.getIterator();
 		Point2D ptB = new Point2D(), closest = new Point2D();
 		boolean b_intersects = false;
@@ -4025,8 +4023,9 @@ class RelationalOperations {
 		for (int i = 0; i < multipoint_b.getPointCount(); i++) {
 			multipoint_b.getXY(i, ptB);
 
-			if (!envInter.contains(ptB))
+			if (!envInter.contains(ptB)) {
 				continue;
+			}
 
 			boolean bPtBContained = false;
 			env_b.setCoords(ptB.x, ptB.y, ptB.x, ptB.y);
@@ -4050,53 +4049,83 @@ class RelationalOperations {
 			}
 
 			if (b_intersects_all) {
-				if (!b_covered)
+				if (!b_covered) {
 					return false;
+				}
 			} else {
-				if (b_covered)
+				if (b_covered) {
 					return true;
+				}
 			}
 		}
 
-		if (b_intersects_all)
+		if (b_intersects_all) {
 			return true;
+		}
 
 		return false;
 	}
 
 	// Returns true if a segment of multipathA intersects point_b.
-	private static boolean linearPathIntersectsPoint_(MultiPath multipathA,
+	static boolean linearPathIntersectsPoint_(MultiPath multipathA,
 			Point2D ptB, double tolerance) {
-		SegmentIterator segIterA = multipathA.querySegmentIterator();
 		Point2D closest = new Point2D();
 		double toleranceSq = tolerance * tolerance;
+		SegmentIteratorImpl segIterA = ((MultiPathImpl) multipathA._getImpl())
+				.querySegmentIterator();
 
+		GeometryAccelerators accel = ((MultiPathImpl) multipathA._getImpl())
+				._getAccelerators();
+
+		if (accel != null) {
+			QuadTreeImpl quadTreeA = accel.getQuadTree();
+			if (quadTreeA != null) {
+				Envelope2D env_b = new Envelope2D();
+				env_b.setCoords(ptB);
+
+				QuadTreeImpl.QuadTreeIteratorImpl qt_iter = quadTreeA
+						.getIterator(env_b, tolerance);
+
+				for (int e = qt_iter.next(); e != -1; e = qt_iter.next()) {
+					segIterA.resetToVertex(quadTreeA.getElement(e));
+
+					if (segIterA.hasNextSegment()) {
+						Segment segmentA = segIterA.nextSegment();
+
+						double t = segmentA.getClosestCoordinate(ptB, false);
+						segmentA.getCoord2D(t, closest);
+
+						if (Point2D.sqrDistance(ptB, closest) <= toleranceSq) {
+							return true;
+						}
+					}
+				}
+
+				return false;
+			}
+		}
 		Envelope2D env_a = new Envelope2D();
-		boolean b_intersects = false;
 
 		while (segIterA.nextPath()) {
 			while (segIterA.hasNextSegment()) {
 				Segment segmentA = segIterA.nextSegment();
-				boolean bHasEndPointsA = !isClosedPath_(multipathA,
-						segIterA.getPathIndex());
-
 				segmentA.queryEnvelope2D(env_a);
 				env_a.inflate(tolerance, tolerance);
 
-				if (!env_a.contains(ptB))
+				if (!env_a.contains(ptB)) {
 					continue;
+				}
 
 				double t = segmentA.getClosestCoordinate(ptB, false);
 				segmentA.getCoord2D(t, closest);
 
 				if (Point2D.sqrDistance(ptB, closest) <= toleranceSq) {
-					b_intersects = true;
-					break;
+					return true;
 				}
 			}
 		}
 
-		return b_intersects;
+		return false;
 	}
 
 	private static boolean linearPathContainsPoint_(MultiPath multipathA,
@@ -4290,18 +4319,6 @@ class RelationalOperations {
 		return false;
 	}
 
-	// Returns true if the MultiPath is Closed, or if the end points are within
-	// a tolerance.
-	private static boolean isClosedPath_(MultiPath multipathA, int pathA) {
-		if (multipathA.isClosedPath(pathA))
-			return true;
-
-		return false;
-		// Point2D startA = multipathA.get_xy(multipathA.getPathStart(pathA));
-		// Point2D endA = multipathA.get_xy(multipathA.getPathEnd(pathA) - 1);
-		// return startA.equals(endA);
-	}
-
 	private static boolean polygonTouchesPolygonImpl_(Polygon polygon_a,
 			Polygon polygon_b, double tolerance, ProgressTracker progressTracker) {
 		MultiPathImpl polygon_impl_a = (MultiPathImpl) polygon_a._getImpl();
@@ -4313,61 +4330,55 @@ class RelationalOperations {
 
 		SegmentIteratorImpl segIterA = polygon_impl_a.querySegmentIterator();
 		SegmentIteratorImpl segIterB = polygon_impl_b.querySegmentIterator();
-		AttributeStreamOfInt32 verticesA = new AttributeStreamOfInt32(0);
-		AttributeStreamOfInt32 verticesB = new AttributeStreamOfInt32(0);
 		double[] scalarsA = new double[2];
 		double[] scalarsB = new double[2];
 
-		Envelope2DIntersectorImpl intersector = InternalUtils
-				.getEnvelope2DIntersector(polygon_impl_a, polygon_impl_b,
-						tolerance, verticesA, verticesB);
+		Pair_wise_intersector intersector = new Pair_wise_intersector(
+				polygon_impl_a, polygon_impl_b, tolerance);
 
 		boolean b_boundaries_intersect = false;
 
-		if (intersector != null) {
-			while (intersector.next()) {
-				int index_a = intersector.getHandleA();
-				int index_b = intersector.getHandleB();
-				int vertex_a = verticesA.get(index_a);
-				int vertex_b = verticesB.get(index_b);
+		while (intersector.next()) {
+			int vertex_a = intersector.get_red_element();
+			int vertex_b = intersector.get_blue_element();
 
-				segIterA.resetToVertex(vertex_a);
-				segIterB.resetToVertex(vertex_b);
-				Segment segmentA = segIterA.nextSegment();
-				Segment segmentB = segIterB.nextSegment();
+			segIterA.resetToVertex(vertex_a);
+			segIterB.resetToVertex(vertex_b);
+			Segment segmentA = segIterA.nextSegment();
+			Segment segmentB = segIterB.nextSegment();
 
-				int result = segmentB.intersect(segmentA, null, scalarsB,
-						scalarsA, tolerance);
+			int result = segmentB.intersect(segmentA, null, scalarsB, scalarsA,
+					tolerance);
 
-				if (result == 2) {
-					double scalar_a_0 = scalarsA[0];
-					double scalar_a_1 = scalarsA[1];
-					double length_a = segmentA.calculateLength2D();
+			if (result == 2) {
+				double scalar_a_0 = scalarsA[0];
+				double scalar_a_1 = scalarsA[1];
+				double length_a = segmentA.calculateLength2D();
 
-					if (b_geometries_simple
-							&& (scalar_a_1 - scalar_a_0) * length_a > tolerance) {
-						// If the line segments overlap along the same
-						// direction, then we have an Interior-Interior
-						// intersection
-						return false;
-					}
-
-					b_boundaries_intersect = true;
-				} else if (result != 0) {
-					double scalar_a_0 = scalarsA[0];
-					double scalar_b_0 = scalarsB[0];
-
-					if (scalar_a_0 > 0.0 && scalar_a_0 < 1.0
-							&& scalar_b_0 > 0.0 && scalar_b_0 < 1.0)
-						return false;
-
-					b_boundaries_intersect = true;
+				if (b_geometries_simple
+						&& (scalar_a_1 - scalar_a_0) * length_a > tolerance) {
+					// If the line segments overlap along the same direction,
+					// then we have an Interior-Interior intersection
+					return false;
 				}
+
+				b_boundaries_intersect = true;
+			} else if (result != 0) {
+				double scalar_a_0 = scalarsA[0];
+				double scalar_b_0 = scalarsB[0];
+
+				if (scalar_a_0 > 0.0 && scalar_a_0 < 1.0 && scalar_b_0 > 0.0
+						&& scalar_b_0 < 1.0) {
+					return false;
+				}
+
+				b_boundaries_intersect = true;
 			}
 		}
 
-		if (!b_boundaries_intersect)
+		if (!b_boundaries_intersect) {
 			return false;
+		}
 
 		Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D(), envInter = new Envelope2D();
 		polygon_a.queryEnvelope2D(env_a);
@@ -4383,8 +4394,9 @@ class RelationalOperations {
 		if (polygon_a.getPointCount() > 10) {
 			_polygonA = (Polygon) (Clipper.clip(polygon_a, envInter, tolerance,
 					0.0));
-			if (_polygonA.isEmpty())
+			if (_polygonA.isEmpty()) {
 				return false;
+			}
 		} else {
 			_polygonA = polygon_a;
 		}
@@ -4392,14 +4404,14 @@ class RelationalOperations {
 		if (polygon_b.getPointCount() > 10) {
 			_polygonB = (Polygon) (Clipper.clip(polygon_b, envInter, tolerance,
 					0.0));
-			if (_polygonB.isEmpty())
+			if (_polygonB.isEmpty()) {
 				return false;
+			}
 		} else {
 			_polygonB = polygon_b;
 		}
 
 		// We just need to determine whether interior_interior is false
-
 		String scl = "F********";
 		boolean bRelation = RelationalOperationsMatrix.polygonRelatePolygon_(
 				_polygonA, _polygonB, tolerance, scl, progressTracker);
@@ -4427,52 +4439,46 @@ class RelationalOperations {
 
 		SegmentIteratorImpl segIterA = polygon_impl_a.querySegmentIterator();
 		SegmentIteratorImpl segIterB = polygon_impl_b.querySegmentIterator();
-		AttributeStreamOfInt32 verticesA = new AttributeStreamOfInt32(0);
-		AttributeStreamOfInt32 verticesB = new AttributeStreamOfInt32(0);
 		double[] scalarsA = new double[2];
 		double[] scalarsB = new double[2];
 
-		Envelope2DIntersectorImpl intersector = InternalUtils
-				.getEnvelope2DIntersector(polygon_impl_a, polygon_impl_b,
-						tolerance, verticesA, verticesB);
+		Pair_wise_intersector intersector = new Pair_wise_intersector(
+				polygon_impl_a, polygon_impl_b, tolerance);
 
-		if (intersector != null) {
-			while (intersector.next()) {
-				int index_a = intersector.getHandleA();
-				int index_b = intersector.getHandleB();
-				int vertex_a = verticesA.get(index_a);
-				int vertex_b = verticesB.get(index_b);
+		while (intersector.next()) {
+			int vertex_a = intersector.get_red_element();
+			int vertex_b = intersector.get_blue_element();
 
-				segIterA.resetToVertex(vertex_a);
-				segIterB.resetToVertex(vertex_b);
-				Segment segmentA = segIterA.nextSegment();
-				Segment segmentB = segIterB.nextSegment();
+			segIterA.resetToVertex(vertex_a);
+			segIterB.resetToVertex(vertex_b);
+			Segment segmentA = segIterA.nextSegment();
+			Segment segmentB = segIterB.nextSegment();
 
-				int result = segmentB.intersect(segmentA, null, scalarsB,
-						scalarsA, tolerance);
+			int result = segmentB.intersect(segmentA, null, scalarsB, scalarsA,
+					tolerance);
 
-				if (result == 2) {
-					double scalar_a_0 = scalarsA[0];
-					double scalar_a_1 = scalarsA[1];
-					double length_a = segmentA.calculateLength2D();
+			if (result == 2) {
+				double scalar_a_0 = scalarsA[0];
+				double scalar_a_1 = scalarsA[1];
+				double length_a = segmentA.calculateLength2D();
 
-					if (b_geometries_simple
-							&& (scalar_a_1 - scalar_a_0) * length_a > tolerance) {
-						// When the line segments intersect along the same
-						// direction, then we have an interior-interior
-						// intersection
-						bInteriorIntersectionKnown = true;
+				if (b_geometries_simple
+						&& (scalar_a_1 - scalar_a_0) * length_a > tolerance) {
+					// When the line segments intersect along the same
+					// direction, then we have an interior-interior intersection
+					bInteriorIntersectionKnown = true;
 
-						if (bIntAExtB && bExtAIntB)
-							return true;
-					}
-				} else if (result != 0) {
-					double scalar_a_0 = scalarsA[0];
-					double scalar_b_0 = scalarsB[0];
-
-					if (scalar_a_0 > 0.0 && scalar_a_0 < 1.0
-							&& scalar_b_0 > 0.0 && scalar_b_0 < 1.0)
+					if (bIntAExtB && bExtAIntB) {
 						return true;
+					}
+				}
+			} else if (result != 0) {
+				double scalar_a_0 = scalarsA[0];
+				double scalar_b_0 = scalarsB[0];
+
+				if (scalar_a_0 > 0.0 && scalar_a_0 < 1.0 && scalar_b_0 > 0.0
+						&& scalar_b_0 < 1.0) {
+					return true;
 				}
 			}
 		}
@@ -4490,17 +4496,19 @@ class RelationalOperations {
 		Polygon _polygonB;
 		StringBuilder scl = new StringBuilder();
 
-		if (!bInteriorIntersectionKnown)
+		if (!bInteriorIntersectionKnown) {
 			scl.append("T*");
-		else
+		} else {
 			scl.append("**");
+		}
 
 		if (bIntAExtB) {
 			if (polygon_b.getPointCount() > 10) {
 				_polygonB = (Polygon) (Clipper.clip(polygon_b, envInter,
 						tolerance, 0.0));
-				if (_polygonB.isEmpty())
+				if (_polygonB.isEmpty()) {
 					return false;
+				}
 			} else {
 				_polygonB = polygon_b;
 			}
@@ -4515,8 +4523,9 @@ class RelationalOperations {
 			if (polygon_a.getPointCount() > 10) {
 				_polygonA = (Polygon) (Clipper.clip(polygon_a, envInter,
 						tolerance, 0.0));
-				if (_polygonA.isEmpty())
+				if (_polygonA.isEmpty()) {
 					return false;
+				}
 			} else {
 				_polygonA = polygon_a;
 			}
@@ -4540,43 +4549,36 @@ class RelationalOperations {
 
 		SegmentIteratorImpl segIterA = polygon_impl_a.querySegmentIterator();
 		SegmentIteratorImpl segIterB = polygon_impl_b.querySegmentIterator();
-		AttributeStreamOfInt32 verticesA = new AttributeStreamOfInt32(0);
-		AttributeStreamOfInt32 verticesB = new AttributeStreamOfInt32(0);
 		double[] scalarsA = new double[2];
 		double[] scalarsB = new double[2];
 
-		Envelope2DIntersectorImpl intersector = InternalUtils
-				.getEnvelope2DIntersector(polygon_impl_a, polygon_impl_b,
-						tolerance, verticesA, verticesB);
+		Pair_wise_intersector intersector = new Pair_wise_intersector(
+				polygon_impl_a, polygon_impl_b, tolerance);
 
-		if (intersector != null) {
-			while (intersector.next()) {
-				int index_a = intersector.getHandleA();
-				int index_b = intersector.getHandleB();
-				int vertex_a = verticesA.get(index_a);
-				int vertex_b = verticesB.get(index_b);
+		while (intersector.next()) {
+			int vertex_a = intersector.get_red_element();
+			int vertex_b = intersector.get_blue_element();
 
-				segIterA.resetToVertex(vertex_a);
-				segIterB.resetToVertex(vertex_b);
-				Segment segmentA = segIterA.nextSegment();
-				Segment segmentB = segIterB.nextSegment();
+			segIterA.resetToVertex(vertex_a);
+			segIterB.resetToVertex(vertex_b);
+			Segment segmentA = segIterA.nextSegment();
+			Segment segmentB = segIterB.nextSegment();
 
-				int result = segmentB.intersect(segmentA, null, scalarsB,
-						scalarsA, tolerance);
+			int result = segmentB.intersect(segmentA, null, scalarsB, scalarsA,
+					tolerance);
 
-				if (result == 1) {
-					double scalar_a_0 = scalarsA[0];
-					double scalar_b_0 = scalarsB[0];
+			if (result == 1) {
+				double scalar_a_0 = scalarsA[0];
+				double scalar_b_0 = scalarsB[0];
 
-					if (scalar_a_0 > 0.0 && scalar_a_0 < 1.0
-							&& scalar_b_0 > 0.0 && scalar_b_0 < 1.0)
-						return false;
+				if (scalar_a_0 > 0.0 && scalar_a_0 < 1.0 && scalar_b_0 > 0.0
+						&& scalar_b_0 < 1.0) {
+					return false;
 				}
 			}
 		}
 
 		// We can clip polygon_a to the extent of polyline_b
-
 		Envelope2D envBInflated = new Envelope2D();
 		polygon_b.queryEnvelope2D(envBInflated);
 		envBInflated.inflate(1000.0 * tolerance, 1000.0 * tolerance);
@@ -4586,14 +4588,15 @@ class RelationalOperations {
 		if (polygon_a.getPointCount() > 10) {
 			_polygonA = (Polygon) (Clipper.clip(polygon_a, envBInflated,
 					tolerance, 0.0));
-			if (_polygonA.isEmpty())
+			if (_polygonA.isEmpty()) {
 				return false;
+			}
 		} else {
 			_polygonA = polygon_a;
 		}
 
 		String scl = "T*****F**"; // If Exterior-Interior is false, then
-									// Exterior-Boundary is false
+		// Exterior-Boundary is false
 
 		boolean bRelation = RelationalOperationsMatrix.polygonRelatePolygon_(
 				_polygonA, polygon_b, tolerance, scl, progressTracker);
@@ -4608,49 +4611,44 @@ class RelationalOperations {
 
 		SegmentIteratorImpl segIterA = polygon_impl_a.querySegmentIterator();
 		SegmentIteratorImpl segIterB = polyline_impl_b.querySegmentIterator();
-		AttributeStreamOfInt32 verticesA = new AttributeStreamOfInt32(0);
-		AttributeStreamOfInt32 verticesB = new AttributeStreamOfInt32(0);
 		double[] scalarsA = new double[2];
 		double[] scalarsB = new double[2];
 
-		Envelope2DIntersectorImpl intersector = InternalUtils
-				.getEnvelope2DIntersector(polygon_impl_a, polyline_impl_b,
-						tolerance, verticesA, verticesB);
+		Pair_wise_intersector intersector = new Pair_wise_intersector(
+				polygon_impl_a, polyline_impl_b, tolerance);
 
 		boolean b_boundaries_intersect = false;
 
-		if (intersector != null) {
-			while (intersector.next()) {
-				int index_a = intersector.getHandleA();
-				int index_b = intersector.getHandleB();
-				int vertex_a = verticesA.get(index_a);
-				int vertex_b = verticesB.get(index_b);
+		while (intersector.next()) {
+			int vertex_a = intersector.get_red_element();
+			int vertex_b = intersector.get_blue_element();
 
-				segIterA.resetToVertex(vertex_a);
-				segIterB.resetToVertex(vertex_b);
-				Segment segmentA = segIterA.nextSegment();
-				Segment segmentB = segIterB.nextSegment();
+			segIterA.resetToVertex(vertex_a);
+			segIterB.resetToVertex(vertex_b);
+			Segment segmentA = segIterA.nextSegment();
+			Segment segmentB = segIterB.nextSegment();
 
-				int result = segmentB.intersect(segmentA, null, scalarsB,
-						scalarsA, tolerance);
+			int result = segmentB.intersect(segmentA, null, scalarsB, scalarsA,
+					tolerance);
 
-				if (result == 2) {
-					b_boundaries_intersect = true;
-				} else if (result != 0) {
-					double scalar_a_0 = scalarsA[0];
-					double scalar_b_0 = scalarsB[0];
+			if (result == 2) {
+				b_boundaries_intersect = true;
+			} else if (result != 0) {
+				double scalar_a_0 = scalarsA[0];
+				double scalar_b_0 = scalarsB[0];
 
-					if (scalar_a_0 > 0.0 && scalar_a_0 < 1.0
-							&& scalar_b_0 > 0.0 && scalar_b_0 < 1.0)
-						return false;
-
-					b_boundaries_intersect = true;
+				if (scalar_a_0 > 0.0 && scalar_a_0 < 1.0 && scalar_b_0 > 0.0
+						&& scalar_b_0 < 1.0) {
+					return false;
 				}
+
+				b_boundaries_intersect = true;
 			}
 		}
 
-		if (!b_boundaries_intersect)
+		if (!b_boundaries_intersect) {
 			return false;
+		}
 
 		Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D(), envInter = new Envelope2D();
 		polygon_a.queryEnvelope2D(env_a);
@@ -4666,8 +4664,9 @@ class RelationalOperations {
 		if (polygon_a.getPointCount() > 10) {
 			_polygonA = (Polygon) (Clipper.clip(polygon_a, envInter, tolerance,
 					0.0));
-			if (_polygonA.isEmpty())
+			if (_polygonA.isEmpty()) {
 				return false;
+			}
 		} else {
 			_polygonA = polygon_a;
 		}
@@ -4675,14 +4674,14 @@ class RelationalOperations {
 		if (polyline_b.getPointCount() > 10) {
 			_polylineB = (Polyline) Clipper.clip(polyline_b, envInter,
 					tolerance, 0.0);
-			if (_polylineB.isEmpty())
+			if (_polylineB.isEmpty()) {
 				return false;
+			}
 		} else {
 			_polylineB = polyline_b;
 		}
 
 		// We just need to determine that interior_interior is false
-
 		String scl = "F********";
 		boolean bRelation = RelationalOperationsMatrix.polygonRelatePolyline_(
 				_polygonA, _polylineB, tolerance, scl, progressTracker);
@@ -4698,50 +4697,44 @@ class RelationalOperations {
 
 		SegmentIteratorImpl segIterA = polygon_impl_a.querySegmentIterator();
 		SegmentIteratorImpl segIterB = polyline_impl_b.querySegmentIterator();
-		AttributeStreamOfInt32 verticesA = new AttributeStreamOfInt32(0);
-		AttributeStreamOfInt32 verticesB = new AttributeStreamOfInt32(0);
-
 		double[] scalarsA = new double[2];
 		double[] scalarsB = new double[2];
 
-		Envelope2DIntersectorImpl intersector = InternalUtils
-				.getEnvelope2DIntersector(polygon_impl_a, polyline_impl_b,
-						tolerance, verticesA, verticesB);
+		Pair_wise_intersector intersector = new Pair_wise_intersector(
+				polygon_impl_a, polyline_impl_b, tolerance);
 
 		boolean b_boundaries_intersect = false;
 
-		if (intersector != null) {
-			while (intersector.next()) {
-				int index_a = intersector.getHandleA();
-				int index_b = intersector.getHandleB();
-				int vertex_a = verticesA.get(index_a);
-				int vertex_b = verticesB.get(index_b);
+		while (intersector.next()) {
+			int vertex_a = intersector.get_red_element();
+			int vertex_b = intersector.get_blue_element();
 
-				segIterA.resetToVertex(vertex_a);
-				segIterB.resetToVertex(vertex_b);
-				Segment segmentA = segIterA.nextSegment();
-				Segment segmentB = segIterB.nextSegment();
+			segIterA.resetToVertex(vertex_a);
+			segIterB.resetToVertex(vertex_b);
+			Segment segmentA = segIterA.nextSegment();
+			Segment segmentB = segIterB.nextSegment();
 
-				int result = segmentB.intersect(segmentA, null, scalarsB,
-						scalarsA, tolerance);
+			int result = segmentB.intersect(segmentA, null, scalarsB, scalarsA,
+					tolerance);
 
-				if (result == 2) {
-					b_boundaries_intersect = true;
-				} else if (result != 0) {
-					double scalar_a_0 = scalarsA[0];
-					double scalar_b_0 = scalarsB[0];
+			if (result == 2) {
+				b_boundaries_intersect = true;
+			} else if (result != 0) {
+				double scalar_a_0 = scalarsA[0];
+				double scalar_b_0 = scalarsB[0];
 
-					if (scalar_a_0 > 0.0 && scalar_a_0 < 1.0
-							&& scalar_b_0 > 0.0 && scalar_b_0 < 1.0)
-						return true;
-
-					b_boundaries_intersect = true;
+				if (scalar_a_0 > 0.0 && scalar_a_0 < 1.0 && scalar_b_0 > 0.0
+						&& scalar_b_0 < 1.0) {
+					return true;
 				}
+
+				b_boundaries_intersect = true;
 			}
 		}
 
-		if (!b_boundaries_intersect)
+		if (!b_boundaries_intersect) {
 			return false;
+		}
 
 		Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D(), envAInflated = new Envelope2D(), envBInflated = new Envelope2D(), envInter = new Envelope2D();
 		polygon_a.queryEnvelope2D(env_a);
@@ -4761,8 +4754,9 @@ class RelationalOperations {
 			if (polygon_a.getPointCount() > 10) {
 				_polygonA = (Polygon) (Clipper.clip(polygon_a, envInter,
 						tolerance, 0.0));
-				if (_polygonA.isEmpty())
+				if (_polygonA.isEmpty()) {
 					return false;
+				}
 			} else {
 				_polygonA = polygon_a;
 			}
@@ -4770,8 +4764,9 @@ class RelationalOperations {
 			if (polyline_b.getPointCount() > 10) {
 				_polylineB = (Polyline) (Clipper.clip(polyline_b, envInter,
 						tolerance, 0.0));
-				if (_polylineB.isEmpty())
+				if (_polylineB.isEmpty()) {
 					return false;
+				}
 			} else {
 				_polylineB = polyline_b;
 			}
@@ -4798,48 +4793,42 @@ class RelationalOperations {
 
 		SegmentIteratorImpl segIterA = polygon_impl_a.querySegmentIterator();
 		SegmentIteratorImpl segIterB = polyline_impl_b.querySegmentIterator();
-		AttributeStreamOfInt32 verticesA = new AttributeStreamOfInt32(0);
-		AttributeStreamOfInt32 verticesB = new AttributeStreamOfInt32(0);
 		double[] scalarsA = new double[2];
 		double[] scalarsB = new double[2];
 
-		Envelope2DIntersectorImpl intersector = InternalUtils
-				.getEnvelope2DIntersector(polygon_impl_a, polyline_impl_b,
-						tolerance, verticesA, verticesB);
+		Pair_wise_intersector intersector = new Pair_wise_intersector(
+				polygon_impl_a, polyline_impl_b, tolerance);
 
 		boolean b_boundaries_intersect = false;
 
-		if (intersector != null) {
-			while (intersector.next()) {
-				int index_a = intersector.getHandleA();
-				int index_b = intersector.getHandleB();
-				int vertex_a = verticesA.get(index_a);
-				int vertex_b = verticesB.get(index_b);
+		while (intersector.next()) {
+			int vertex_a = intersector.get_red_element();
+			int vertex_b = intersector.get_blue_element();
 
-				segIterA.resetToVertex(vertex_a);
-				segIterB.resetToVertex(vertex_b);
-				Segment segmentA = segIterA.nextSegment();
-				Segment segmentB = segIterB.nextSegment();
+			segIterA.resetToVertex(vertex_a);
+			segIterB.resetToVertex(vertex_b);
+			Segment segmentA = segIterA.nextSegment();
+			Segment segmentB = segIterB.nextSegment();
 
-				int result = segmentB.intersect(segmentA, null, scalarsB,
-						scalarsA, tolerance);
+			int result = segmentB.intersect(segmentA, null, scalarsB, scalarsA,
+					tolerance);
 
-				if (result == 2) {
-					b_boundaries_intersect = true;
-					// Keep going to see if we find a proper intersection of two
-					// segments (means contains is false)
-				} else if (result != 0) {
-					double scalar_a_0 = scalarsA[0];
-					double scalar_b_0 = scalarsB[0];
+			if (result == 2) {
+				b_boundaries_intersect = true;
+				// Keep going to see if we find a proper intersection of two
+				// segments (means contains is false)
+			} else if (result != 0) {
+				double scalar_a_0 = scalarsA[0];
+				double scalar_b_0 = scalarsB[0];
 
-					if (scalar_a_0 > 0.0 && scalar_a_0 < 1.0
-							&& scalar_b_0 > 0.0 && scalar_b_0 < 1.0)
-						return false;
-
-					b_boundaries_intersect = true;
-					// Keep going to see if we find a proper intersection of two
-					// segments (means contains is false)
+				if (scalar_a_0 > 0.0 && scalar_a_0 < 1.0 && scalar_b_0 > 0.0
+						&& scalar_b_0 < 1.0) {
+					return false;
 				}
+
+				b_boundaries_intersect = true;
+				// Keep going to see if we find a proper intersection of two
+				// segments (means contains is false)
 			}
 		}
 
@@ -4853,7 +4842,6 @@ class RelationalOperations {
 		}
 
 		// We can clip polygon_a to the extent of polyline_b
-
 		Envelope2D envBInflated = new Envelope2D();
 		polyline_b.queryEnvelope2D(envBInflated);
 		envBInflated.inflate(1000.0 * tolerance, 1000.0 * tolerance);
@@ -4863,14 +4851,15 @@ class RelationalOperations {
 		if (polygon_a.getPointCount() > 10) {
 			_polygonA = (Polygon) (Clipper.clip(polygon_a, envBInflated,
 					tolerance, 0.0));
-			if (_polygonA.isEmpty())
+			if (_polygonA.isEmpty()) {
 				return false;
+			}
 		} else {
 			_polygonA = polygon_a;
 		}
 
 		String scl = "T*****F**"; // If Exterior-Interior is false, then
-									// Exterior-Boundary is false
+		// Exterior-Boundary is false
 		boolean bRelation = RelationalOperationsMatrix.polygonRelatePolyline_(
 				_polygonA, polyline_b, tolerance, scl, progress_tracker);
 
@@ -4899,9 +4888,8 @@ class RelationalOperations {
 		return false;
 	}
 
-	private static boolean multiPointDisjointPointImpl_(
-			MultiPoint multipoint_a, Point2D pt_b, double tolerance,
-			ProgressTracker progressTracker) {
+	static boolean multiPointDisjointPointImpl_(MultiPoint multipoint_a,
+			Point2D pt_b, double tolerance, ProgressTracker progressTracker) {
 		Point2D pt_a = new Point2D();
 		double tolerance_sq = tolerance * tolerance;
 
@@ -4989,5 +4977,206 @@ class RelationalOperations {
 		}
 
 		return 1;
+	}
+
+	static final class Pair_wise_intersector {
+
+		Pair_wise_intersector(MultiPathImpl multi_path_impl_a,
+				MultiPathImpl multi_path_impl_b, double tolerance) {
+			m_b_quad_tree = false;
+
+			GeometryAccelerators geometry_accelerators_a = multi_path_impl_a
+					._getAccelerators();
+
+			if (geometry_accelerators_a != null) {
+				QuadTreeImpl qtree_a = geometry_accelerators_a.getQuadTree();
+
+				if (qtree_a != null) {
+					m_b_done = false;
+					m_tolerance = tolerance;
+					m_quad_tree = qtree_a;
+					m_qt_iter = m_quad_tree.getIterator();
+					m_b_quad_tree = true;
+					m_b_swap_elements = true;
+					m_seg_iter = multi_path_impl_b.querySegmentIterator();
+					m_function = State.next_path;
+				}
+			}
+
+			if (!m_b_quad_tree) {
+				GeometryAccelerators geometry_accelerators_b = multi_path_impl_b
+						._getAccelerators();
+
+				if (geometry_accelerators_b != null) {
+					QuadTreeImpl qtree_b = geometry_accelerators_b
+							.getQuadTree();
+
+					if (qtree_b != null) {
+						m_b_done = false;
+						m_tolerance = tolerance;
+						m_quad_tree = qtree_b;
+						m_qt_iter = m_quad_tree.getIterator();
+						m_b_quad_tree = true;
+						m_b_swap_elements = false;
+						m_seg_iter = multi_path_impl_a.querySegmentIterator();
+						m_function = State.next_path;
+					}
+				}
+			}
+
+			if (!m_b_quad_tree) {
+				m_intersector = InternalUtils.getEnvelope2DIntersector(
+						multi_path_impl_a, multi_path_impl_b, tolerance);
+			}
+		}
+
+		boolean next() {
+			if (m_b_quad_tree) {
+				if (m_b_done) {
+					return false;
+				}
+
+				boolean b_searching = true;
+				while (b_searching) {
+					switch (m_function) {
+					case State.next_path:
+						b_searching = next_path_();
+						break;
+					case State.next_segment:
+						b_searching = next_segment_();
+						break;
+					case State.iterate:
+						b_searching = iterate_();
+						break;
+					}
+
+				}
+
+				if (m_b_done) {
+					return false;
+				}
+
+				return true;
+			}
+
+			if (m_intersector == null) {
+				return false;
+			}
+
+			return m_intersector.next();
+		}
+
+		int get_red_element() {
+			if (m_b_quad_tree) {
+				if (!m_b_swap_elements) {
+					return m_seg_iter.getStartPointIndex();
+				}
+
+				return m_quad_tree.getElement(m_element_handle);
+			}
+
+			return m_intersector.getRedElement(m_intersector.getHandleA());
+		}
+
+		int get_blue_element() {
+			if (m_b_quad_tree) {
+				if (m_b_swap_elements) {
+					return m_seg_iter.getStartPointIndex();
+				}
+
+				return m_quad_tree.getElement(m_element_handle);
+			}
+
+			return m_intersector.getBlueElement(m_intersector.getHandleB());
+		}
+
+		private boolean next_path_() {
+			if (!m_seg_iter.nextPath()) {
+				m_b_done = true;
+				return false;
+			}
+
+			m_function = State.next_segment;
+			return true;
+		}
+
+		private boolean next_segment_() {
+			if (!m_seg_iter.hasNextSegment()) {
+				m_function = State.next_path;
+				return true;
+			}
+
+			Segment segment = m_seg_iter.nextSegment();
+			m_qt_iter.resetIterator(segment, m_tolerance);
+			m_function = State.iterate;
+			return true;
+		}
+
+		boolean iterate_() {
+			m_element_handle = m_qt_iter.next();
+			if (m_element_handle == -1) {
+				m_function = State.next_segment;
+				return true;
+			}
+
+			return false;
+		}
+
+		private interface State {
+
+			static final int next_path = 0;
+			static final int next_segment = 1;
+			static final int iterate = 2;
+		}
+
+		// Quad_tree
+		private boolean m_b_quad_tree;
+		private boolean m_b_done;
+		private boolean m_b_swap_elements;
+		private double m_tolerance;
+		private int m_element_handle;
+		private QuadTreeImpl m_quad_tree;
+		private QuadTreeImpl.QuadTreeIteratorImpl m_qt_iter;
+		private SegmentIteratorImpl m_seg_iter;
+		private int m_function;
+
+		// Envelope_2D_intersector
+		private Envelope2DIntersectorImpl m_intersector;
+	}
+
+	static final class Accelerate_helper {
+		static boolean accelerate_geometry(Geometry geometry,
+				SpatialReference sr,
+				Geometry.GeometryAccelerationDegree accel_degree) {
+			if (!can_accelerate_geometry(geometry))
+				return false;
+
+			double tol = InternalUtils.calculateToleranceFromGeometry(sr,
+					geometry, false);
+			boolean bAccelerated = false;
+			if (GeometryAccelerators.canUseRasterizedGeometry(geometry))
+				bAccelerated |= ((MultiVertexGeometryImpl) geometry._getImpl())
+						._buildRasterizedGeometryAccelerator(tol, accel_degree);
+
+			Geometry.Type type = geometry.getType();
+			if ((type == Geometry.Type.Polygon || type == Geometry.Type.Polyline)
+					&& GeometryAccelerators.canUseQuadTree(geometry)
+					&& accel_degree != Geometry.GeometryAccelerationDegree.enumMild)
+				bAccelerated |= ((MultiVertexGeometryImpl) geometry._getImpl())
+						._buildQuadTreeAccelerator(accel_degree);
+
+			if (type == Geometry.Type.Polygon
+					&& GeometryAccelerators.canUsePathEnvelopes(geometry)
+					&& accel_degree != Geometry.GeometryAccelerationDegree.enumMild)
+				bAccelerated |= ((MultiPathImpl) geometry._getImpl())
+						._buildPathEnvelopesAccelerator(accel_degree);
+
+			return bAccelerated;
+		}
+
+		static boolean can_accelerate_geometry(Geometry geometry) {
+			return GeometryAccelerators.canUseRasterizedGeometry(geometry)
+					|| GeometryAccelerators.canUseQuadTree(geometry);
+		}
 	}
 }

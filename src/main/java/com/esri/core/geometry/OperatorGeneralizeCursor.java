@@ -65,7 +65,7 @@ final class OperatorGeneralizeCursor extends GeometryCursor {
 			return geom;
 		MultiPath mp = (MultiPath) geom;
 		if (mp == null)
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 		MultiPath dstmp = (MultiPath) geom.createInstance();
 		Line line = new Line();
 		for (int ipath = 0, npath = mp.getPathCount(); ipath < npath; ipath++) {

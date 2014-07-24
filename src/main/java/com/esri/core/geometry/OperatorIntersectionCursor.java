@@ -118,16 +118,16 @@ class OperatorIntersectionCursor extends GeometryCursor {
 		// m_geomIntersector, m_spatial_reference, m_progress_tracker);
 		// Preprocess geometries to be clipped to the extent of intersection to
 		// get rid of extra segments.
-		double tol = 0;
+		double t = InternalUtils.calculateToleranceFromGeometry(m_spatial_reference, commonExtent, true);
 		Envelope2D env = new Envelope2D();
 		m_geomIntersector.queryEnvelope2D(env);
 		Envelope2D env1 = new Envelope2D();
 		input_geom.queryEnvelope2D(env1);
+		env.inflate(2.0 * t, 2.0 * t);
 		env.intersect(env1);
 		assert (!env.isEmpty());
-		double t = InternalUtils.calculateToleranceFromGeometry(
-				m_spatial_reference, commonExtent, true) * 10;
-		env.inflate(10 * t, 10 * t);
+		env.inflate(100 * t, 100 * t);
+		double tol = 0;
 		Geometry clippedIntersector = Clipper.clip(m_geomIntersector, env, tol,
 				0.0);
 		Geometry clippedInputGeom = Clipper.clip(input_geom, env, tol, 0.0);
@@ -191,18 +191,21 @@ class OperatorIntersectionCursor extends GeometryCursor {
 
 		Envelope2D commonExtent = InternalUtils.getMergedExtent(
 				m_geomIntersector, input_geom);
+		double t = InternalUtils.calculateToleranceFromGeometry(
+				m_spatial_reference, commonExtent, true);
+
 		// Preprocess geometries to be clipped to the extent of intersection to
 		// get rid of extra segments.
-		double tol = 0;
+		
 		Envelope2D env = new Envelope2D();
 		m_geomIntersector.queryEnvelope2D(env);
+		env.inflate(2 * t, 2 * t);
 		Envelope2D env1 = new Envelope2D();
 		input_geom.queryEnvelope2D(env1);
 		env.intersect(env1);
 		assert (!env.isEmpty());
-		double t = InternalUtils.calculateToleranceFromGeometry(
-				m_spatial_reference, commonExtent, true) * 10;
-		env.inflate(10 * t, 10 * t);
+		env.inflate(100 * t, 100 * t);
+		double tol = 0;
 		Geometry clippedIntersector = Clipper.clip(m_geomIntersector, env, tol,
 				0.0);
 		Geometry clippedInputGeom = Clipper.clip(input_geom, env, tol, 0.0);
@@ -252,6 +255,7 @@ class OperatorIntersectionCursor extends GeometryCursor {
 			input_geom.queryEnvelope2D(env2D1);
 			Envelope2D env2D2 = new Envelope2D();
 			m_geomIntersector.queryEnvelope2D(env2D2);
+                        env2D2.inflate(2.0 * tolerance, 2.0 * tolerance);
 			bResultIsEmpty = !env2D1.isIntersecting(env2D2);
 		}
 
@@ -369,7 +373,7 @@ class OperatorIntersectionCursor extends GeometryCursor {
 			if (m_geomIntersectorType == Geometry.GeometryType.Point)
 				return TopologicalOperations.intersection(
 						(Point) m_geomIntersector, input_geom, tolerance1);
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 		}
 
 		// Try Polyline vs Polygon
@@ -402,6 +406,7 @@ class OperatorIntersectionCursor extends GeometryCursor {
 			polygonImpl.queryEnvelope2D(clipEnvelope);
 			Envelope2D env1 = new Envelope2D();
 			polylineImpl.queryEnvelope2D(env1);
+                        env1.inflate(2.0 * tolerance, 2.0 * tolerance);
 			clipEnvelope.intersect(env1);
 			assert (!clipEnvelope.isEmpty());
 		}
@@ -453,6 +458,7 @@ class OperatorIntersectionCursor extends GeometryCursor {
 
 			polygon = (Polygon) clippedPolygon;
 			polygonImpl = (MultiPathImpl) polygon._getImpl();
+            accel = polygonImpl._getAccelerators();//update accelerators
 		}
 
 		if (unresolvedSegments < 0) {

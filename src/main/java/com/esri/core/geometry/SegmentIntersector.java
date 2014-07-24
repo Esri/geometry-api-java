@@ -195,7 +195,7 @@ class SegmentIntersector {
 	// Performs the intersection
 	public boolean intersect(double tolerance, boolean b_intersecting) {
 		if (m_input_segments.size() != 2)
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 
 		m_tolerance = tolerance;
 		double small_tolerance_sqr = MathUtils.sqr(tolerance * 0.01);
@@ -213,7 +213,7 @@ class SegmentIntersector {
 							m_param_1, m_param_2, tolerance);
 					if (count == 0) {
 						assert (count > 0);
-						throw new GeometryException("internal error");
+						throw GeometryException.GeometryInternalError();
 					}
 					Point2D[] points = new Point2D[9];
 					for (int i = 0; i < count; i++) {
@@ -347,10 +347,10 @@ class SegmentIntersector {
 					return bigmove;
 				}
 
-				throw new GeometryException("internal error");
+				throw GeometryException.GeometryInternalError();
 			}
 
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 		}
 		
 		return false;
@@ -360,7 +360,7 @@ class SegmentIntersector {
 			int point_rank, double point_weight, boolean b_intersecting) {
 		pt_intersector_point.copyTo(m_point);
 		if (m_input_segments.size() != 1)
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 
 		m_tolerance = tolerance;
 
@@ -441,7 +441,7 @@ class SegmentIntersector {
 				return;
 			}
 
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 		}
 	}
 

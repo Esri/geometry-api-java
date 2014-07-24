@@ -72,7 +72,7 @@ class OperatorDensifyByLengthCursor extends GeometryCursor {
 			return densifyEnvelope((Envelope) geom);
 		else
 			// TODO fix geometry exception to match native implementation
-			throw new GeometryException("internal error");// GEOMTHROW(internal_error);
+			throw GeometryException.GeometryInternalError();// GEOMTHROW(internal_error);
 
 		// unreachable in java
 		// return null;

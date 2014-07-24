@@ -30,7 +30,7 @@ import java.util.ArrayList;
  * geometries in linked lists. It allows constant time manipulation of geometry
  * vertices.
  */
-class EditShape {
+final class EditShape {
 	interface PathFlags_ {
 		static final int closedPath = 1;
 		static final int exteriorPath = 2;
@@ -419,7 +419,7 @@ class EditShape {
 			SegmentIntersector intersector, int intersector_index) {
 		int last_vertex = getNextVertex(origin_vertex);
 		if (last_vertex == -1)
-			throw new IllegalArgumentException("internal error");
+			throw GeometryException.GeometryInternalError();
 		Point point = getHelperPoint_();
 		int path = getPathFromVertex(origin_vertex);
 		int vertex = origin_vertex;
@@ -466,7 +466,8 @@ class EditShape {
 			SegmentIntersector intersector, int intersector_index) {
 		int last_vertex = getNextVertex(origin_vertex);
 		if (last_vertex == -1)
-			throw new IllegalArgumentException("internal error");
+			throw GeometryException.GeometryInternalError();
+		
 		Point point = getHelperPoint_();
 		int path = getPathFromVertex(origin_vertex);
 		int vertex = origin_vertex;
@@ -561,7 +562,7 @@ class EditShape {
 		if (gt == Geometry.Type.MultiPoint)
 			return addMultiPoint_((MultiPoint) geometry);
 
-		throw new IllegalArgumentException("internal error");
+		throw GeometryException.GeometryInternalError();
 	}
 
 	// Append a Geometry to the given geometry of the Edit_shape
@@ -575,7 +576,7 @@ class EditShape {
 			return;
 		}
 
-		throw new IllegalArgumentException("internal error");
+		throw GeometryException.GeometryInternalError();
 	}
 
 	// Adds a path
@@ -1075,7 +1076,7 @@ class EditShape {
 		int actual_splits = 0;
 		int next_vertex = getNextVertex(origin_vertex);
 		if (next_vertex == -1)
-			throw new IllegalArgumentException("internal error");
+			throw GeometryException.GeometryInternalError();
 
 		int vindex = getVertexIndex(origin_vertex);
 		int vindex_next = getVertexIndex(next_vertex);
@@ -1445,7 +1446,7 @@ class EditShape {
 
 		if (before_path != -1) {
 			if (geometry != getGeometryFromPath(before_path))
-				throw new IllegalArgumentException("internal error");
+				throw GeometryException.GeometryInternalError();
 
 			prev = getPrevPath(before_path);
 		} else
@@ -1468,6 +1469,39 @@ class EditShape {
 		setGeometryPathCount_(geometry, getPathCount(geometry) + 1);
 		return newpath;
 	}
+	
+    int insertClosedPath_(int geometry, int before_path, int first_vertex, int checked_vertex, boolean[] contains_checked_vertex)
+    {
+      int path = insertPath(geometry, -1);
+      int path_size = 0;
+      int vertex = first_vertex;
+      contains_checked_vertex[0] = false;
+      while(true)
+      {
+        if (vertex == checked_vertex)
+          contains_checked_vertex[0] = true;
+        
+        setPathToVertex_(vertex, path);
+        path_size++;
+        int next = getNextVertex(vertex);
+        assert(getNextVertex(getPrevVertex(vertex)) == vertex);
+        if (next == first_vertex)
+          break;
+
+        vertex = next;
+      }
+
+      setClosedPath(path, true);
+      setPathSize_(path, path_size);
+      if (contains_checked_vertex[0])
+        first_vertex = checked_vertex;
+
+      setFirstVertex_(path, first_vertex);
+      setLastVertex_(path, getPrevVertex(first_vertex));
+      setRingAreaValid_(path, false);
+      return path;
+    }
+	
 
 	// Removes a path, gets rid of all its vertices, and returns the next one
 	int removePath(int path) {
@@ -1566,7 +1600,7 @@ class EditShape {
 		if (getGeometryType(geometry) == Geometry.GeometryType.Polygon)
 			return;
 		if (!Geometry.isLinear(getGeometryType(geometry)))
-			throw new IllegalArgumentException("internal error");
+			throw GeometryException.GeometryInternalError();
 
 		for (int path = getFirstPath(geometry); path != -1; path = getNextPath(path)) {
 			setClosedPath(path, true);
@@ -2231,4 +2265,14 @@ class EditShape {
 	// The estimated size can be very slightly less than the actual size.
 	// int estimate_memory_size() const;
 
+    boolean hasPointFeatures()
+    {
+      for (int geometry = getFirstGeometry(); geometry != -1; geometry = getNextGeometry(geometry))
+      {
+        if (!Geometry.isMultiPath(getGeometryType(geometry)))
+          return true;
+      }
+      return false;
+    }
+	
 }

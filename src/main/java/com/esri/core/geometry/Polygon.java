@@ -123,13 +123,13 @@ public final class Polygon extends MultiPath implements Serializable {
 
 	}
 
-	void interpolateAttributes(int path_index, int from_point_index,
+	public void interpolateAttributes(int path_index, int from_point_index,
 			int to_point_index) {
 		m_impl.interpolateAttributes(path_index, from_point_index,
 				to_point_index);
 	}
 
-	void interpolateAttributes(int semantics, int path_index,
+	public void interpolateAttributes(int semantics, int path_index,
 			int from_point_index, int to_point_index) {
 		m_impl.interpolateAttributesForSemantics(semantics, path_index,
 				from_point_index, to_point_index);

@@ -130,6 +130,10 @@ class InternalUtils {
 		return Math.max(stolerance, gtolerance);
 	}
 
+    static double adjust_tolerance_for_TE_clustering(double tol) { return 2.0 * Math.sqrt(2.0) * tol; }
+
+    static double adjust_tolerance_for_TE_cracking(double tol) { return Math.sqrt(2.0) * tol; }
+	
 	static double calculateToleranceFromGeometry(SpatialReference sr,
 			Geometry geometry, boolean bConservative) {
 		Envelope2D env2D = new Envelope2D();
@@ -249,7 +253,7 @@ class InternalUtils {
 
 				if (hint_index == -1) {
 					if (resized_extent)
-						throw new GeometryException("internal error");
+						throw GeometryException.GeometryInternalError();
 
 					// resize extent
 					multipathImpl.calculateEnvelope2D(extent, false);
@@ -286,7 +290,7 @@ class InternalUtils {
 
 					if (hint_index == -1) {
 						if (resized_extent)
-							throw new GeometryException("internal error");
+							throw GeometryException.GeometryInternalError();
 
 						// resize extent
 						multipathImpl.calculateEnvelope2D(extent, false);
@@ -317,7 +321,7 @@ class InternalUtils {
 
 			if (element_handle == -1) {
 				if (resized_extent)
-					throw new GeometryException("internal error");
+					throw GeometryException.GeometryInternalError();
 
 				// resize extent
 				multipointImpl.calculateEnvelope2D(extent, false);
@@ -348,7 +352,7 @@ class InternalUtils {
 
 			if (element_handle == -1) {
 				if (resized_extent)
-					throw new GeometryException("internal error");
+					throw GeometryException.GeometryInternalError();
 
 				// resize extent
 				resized_extent = true;
@@ -365,8 +369,7 @@ class InternalUtils {
 
 	static Envelope2DIntersectorImpl getEnvelope2DIntersector(
 			MultiPathImpl multipathImplA, MultiPathImpl multipathImplB,
-			double tolerance, AttributeStreamOfInt32 verticesA,
-			AttributeStreamOfInt32 verticesB) {
+			double tolerance) {
 		Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D();
 		multipathImplA.queryLooseEnvelope2D(env_a);
 		multipathImplB.queryLooseEnvelope2D(env_b);
@@ -396,8 +399,7 @@ class InternalUtils {
 				b_found_red = true;
 				Envelope2D env = new Envelope2D();
 				env.setCoords(env_a);
-				intersector.addRedEnvelope(env);
-				verticesA.add(segIterA.getStartPointIndex());
+				intersector.addRedEnvelope(segIterA.getStartPointIndex(), env);
 			}
 		}
 		intersector.endRedConstruction();
@@ -418,8 +420,7 @@ class InternalUtils {
 				b_found_blue = true;
 				Envelope2D env = new Envelope2D();
 				env.setCoords(env_b);
-				intersector.addBlueEnvelope(env);
-				verticesB.add(segIterB.getStartPointIndex());
+				intersector.addBlueEnvelope(segIterB.getStartPointIndex(), env);
 			}
 		}
 		intersector.endBlueConstruction();
@@ -430,10 +431,9 @@ class InternalUtils {
 		return intersector;
 	}
 
-	static Envelope2DIntersectorImpl getEnvelope2DIntersectorForOGCParts(
+	static Envelope2DIntersectorImpl getEnvelope2DIntersectorForParts(
 			MultiPathImpl multipathImplA, MultiPathImpl multipathImplB,
-			double tolerance, AttributeStreamOfInt32 parts_a,
-			AttributeStreamOfInt32 parts_b) {
+			double tolerance, boolean bExteriorOnlyA, boolean bExteriorOnlyB) {
 		int type_a = multipathImplA.getType().value();
 		int type_b = multipathImplB.getType().value();
 
@@ -447,54 +447,94 @@ class InternalUtils {
 		envInter.setCoords(env_a);
 		envInter.intersect(env_b);
 
+		GeometryAccelerators accel_a = multipathImplA._getAccelerators();
+		ArrayList<Envelope2D> path_envelopes_a = null;
+
+		if (accel_a != null) {
+			path_envelopes_a = accel_a.getPathEnvelopes();
+		}
+
 		Envelope2DIntersectorImpl intersector = new Envelope2DIntersectorImpl();
 		intersector.setTolerance(tolerance);
 
 		boolean b_found_red = false;
 		intersector.startRedConstruction();
 		for (int ipath_a = 0; ipath_a < multipathImplA.getPathCount(); ipath_a++) {
-			if (type_a == Geometry.GeometryType.Polygon
-					&& !multipathImplA.isExteriorRing(ipath_a))
+			if (bExteriorOnlyA && type_a == Geometry.GeometryType.Polygon
+					&& !multipathImplA.isExteriorRing(ipath_a)) {
 				continue;
+			}
 
-			multipathImplA.queryPathEnvelope2D(ipath_a, env_a);
+			if (path_envelopes_a != null) {
+				Envelope2D env = path_envelopes_a.get(ipath_a);
 
-			if (!env_a.isIntersecting(envInter))
-				continue;
+				if (!env.isIntersecting(envInter)) {
+					continue;
+				}
 
-			b_found_red = true;
-			Envelope2D env = new Envelope2D();
-			env.setCoords(env_a);
-			intersector.addRedEnvelope(env);
-			parts_a.add(ipath_a);
+				b_found_red = true;
+				intersector.addRedEnvelope(ipath_a, env);
+			} else {
+				multipathImplA.queryPathEnvelope2D(ipath_a, env_a);
+
+				if (!env_a.isIntersecting(envInter)) {
+					continue;
+				}
+
+				b_found_red = true;
+				Envelope2D env = new Envelope2D();
+				env.setCoords(env_a);
+				intersector.addRedEnvelope(ipath_a, env);
+			}
 		}
 		intersector.endRedConstruction();
 
-		if (!b_found_red)
+		if (!b_found_red) {
 			return null;
+		}
+
+		GeometryAccelerators accel_b = multipathImplB._getAccelerators();
+		ArrayList<Envelope2D> path_envelopes_b = null;
+
+		if (accel_b != null) {
+			path_envelopes_b = accel_b.getPathEnvelopes();
+		}
 
 		boolean b_found_blue = false;
 		intersector.startBlueConstruction();
 		for (int ipath_b = 0; ipath_b < multipathImplB.getPathCount(); ipath_b++) {
-			if (type_b == Geometry.GeometryType.Polygon
-					&& !multipathImplB.isExteriorRing(ipath_b))
+			if (bExteriorOnlyB && type_b == Geometry.GeometryType.Polygon
+					&& !multipathImplB.isExteriorRing(ipath_b)) {
 				continue;
+			}
 
-			multipathImplB.queryPathEnvelope2D(ipath_b, env_b);
+			if (path_envelopes_b != null) {
+				Envelope2D env = path_envelopes_b.get(ipath_b);
 
-			if (!env_b.isIntersecting(envInter))
-				continue;
+				if (!env.isIntersecting(envInter)) {
+					continue;
+				}
 
-			b_found_blue = true;
-			Envelope2D env = new Envelope2D();
-			env.setCoords(env_b);
-			intersector.addBlueEnvelope(env);
-			parts_b.add(ipath_b);
+				b_found_blue = true;
+				intersector.addBlueEnvelope(ipath_b, env);
+			} else {
+				multipathImplB.queryPathEnvelope2D(ipath_b, env_b);
+
+				if (!env_b.isIntersecting(envInter)) {
+					continue;
+				}
+
+				b_found_blue = true;
+				Envelope2D env = new Envelope2D();
+				env.setCoords(env_b);
+				intersector.addBlueEnvelope(ipath_b, env);
+			}
 		}
 		intersector.endBlueConstruction();
 
-		if (!b_found_blue)
+		if (!b_found_blue) {
 			return null;
+		}
 
 		return intersector;
 	}

@@ -23,8 +23,6 @@
  */
 package com.esri.core.geometry;
 
-import java.util.ArrayList;
-
 /**
  * A collection of strides of Index_type elements. To be used when one needs a
  * collection of homogeneous elements that contain only integer fields (i.e.
@@ -32,31 +30,37 @@ import java.util.ArrayList;
  * time creation and deletion of an element.
  */
 final class StridedIndexTypeCollection {
-
-	private int m_firstFree;
-	private int m_last;
+	private int[][] m_buffer = null;
+	private int m_firstFree = -1;
+	private int m_last = 0;
+	private int m_size = 0;
+	private int m_capacity = 0;
+	private int m_bufferSize = 0;
 	private int m_stride;
 	private int m_realStride;
-	private int m_realBlockSize;
 	private int m_blockSize;
-	private int m_blockMask;
-	private int m_blockPower;
-	private int m_size;
-	private int m_capacity;
-	private ArrayList<int[]> m_buffer;
+
+	/*
+	 private final static int m_realBlockSize = 2048;//if you change this, change m_blockSize, m_blockPower, m_blockMask, and st_sizes
+	 private final static int m_blockMask = 0x7FF;
+	 private final static int m_blockPower = 11;
+	 private final static int[] st_sizes = {16, 32, 64, 128, 256, 512, 1024, 2048};
+	 */
+
+	private final static int m_realBlockSize = 16384;// if you change this,
+														// change m_blockSize,
+														// m_blockPower,
+														// m_blockMask, and
+														// st_sizes
+	private final static int m_blockMask = 0x3FFF;
+	private final static int m_blockPower = 14;
+	private final static int[] st_sizes = { 16, 32, 64, 128, 256, 512, 1024,
+			2048, 4096, 8192, 16384 };
 
 	StridedIndexTypeCollection(int stride) {
-		m_firstFree = -1;
-		m_last = 0;
-		m_size = 0;
 		m_stride = stride;
 		m_realStride = stride;
-		m_realBlockSize = 2048;//if you change this, change m_blockSize, m_blockPower, m_blockMask, and st_sizes
-		m_blockPower = 11;
-		m_blockMask = 0x7FF;
-		m_blockSize = 2048 / m_realStride;
-		m_capacity = 0;
-		m_buffer = null;
+		m_blockSize = m_realBlockSize / m_realStride;
 	}
 
 	void deleteElement(int element) {
@@ -64,7 +68,7 @@ final class StridedIndexTypeCollection {
 		int totalStrides = (element >> m_blockPower) * m_blockSize
 				* m_realStride + (element & m_blockMask);
 		if (totalStrides < m_last * m_realStride) {
-			m_buffer.get(element >> m_blockPower)[element & m_blockMask] = m_firstFree;
+			m_buffer[element >> m_blockPower][element & m_blockMask] = m_firstFree;
 			m_firstFree = element;
 		} else {
 			assert (totalStrides == m_last * m_realStride);
@@ -75,13 +79,13 @@ final class StridedIndexTypeCollection {
 
 	// Returns the given field of the element.
 	int getField(int element, int field) {
-		return m_buffer.get(element >> m_blockPower)[(element & m_blockMask)
+		return m_buffer[element >> m_blockPower][(element & m_blockMask)
 				+ field];
 	}
 
 	// Sets the given field of the element.
 	void setField(int element, int field, int value) {
-		m_buffer.get(element >> m_blockPower)[(element & m_blockMask) + field] = value;
+		m_buffer[element >> m_blockPower][(element & m_blockMask) + field] = value;
 	}
 
 	// Returns the stride size
@@ -95,13 +99,15 @@ final class StridedIndexTypeCollection {
 		int element = m_firstFree;
 		if (element == -1) {
 			if (m_last == m_capacity) {
-				long newcap = m_capacity != 0 ? (((long)m_capacity + 1) * 3 / 2) : (long)1;
+				long newcap = m_capacity != 0 ? (((long) m_capacity + 1) * 3 / 2)
+						: (long) 1;
 				if (newcap > Integer.MAX_VALUE)
-					newcap = Integer.MAX_VALUE;//cannot grow past 2gb elements presently
-				
+					newcap = Integer.MAX_VALUE;// cannot grow past 2gb elements
+												// presently
+
 				if (newcap == m_capacity)
 					throw new IndexOutOfBoundsException();
-				
+
 				grow_(newcap);
 			}
 
@@ -109,12 +115,12 @@ final class StridedIndexTypeCollection {
 					+ (m_last % m_blockSize) * m_realStride;
 			m_last++;
 		} else {
-			m_firstFree = m_buffer.get(element >> m_blockPower)[element
+			m_firstFree = m_buffer[element >> m_blockPower][element
 					& m_blockMask];
 		}
 
 		m_size++;
-		int ar[] = m_buffer.get(element >> m_blockPower);
+		int ar[] = m_buffer[element >> m_blockPower];
 		int ind = element & m_blockMask;
 		for (int i = 0; i < m_stride; i++) {
 			ar[ind + i] = -1;
@@ -157,8 +163,8 @@ final class StridedIndexTypeCollection {
 
 	// Swaps content of two elements (each field of the stride)
 	void swap(int element1, int element2) {
-		int ar1[] = m_buffer.get(element1 >> m_blockPower);
-		int ar2[] = m_buffer.get(element2 >> m_blockPower);
+		int ar1[] = m_buffer[element1 >> m_blockPower];
+		int ar2[] = m_buffer[element2 >> m_blockPower];
 		int ind1 = element1 & m_blockMask;
 		int ind2 = element2 & m_blockMask;
 		for (int i = 0; i < m_stride; i++) {
@@ -170,8 +176,8 @@ final class StridedIndexTypeCollection {
 
 	// Swaps content of two fields
 	void swapField(int element1, int element2, int field) {
-		int ar1[] = m_buffer.get(element1 >> m_blockPower);
-		int ar2[] = m_buffer.get(element2 >> m_blockPower);
+		int ar1[] = m_buffer[element1 >> m_blockPower];
+		int ar2[] = m_buffer[element2 >> m_blockPower];
 		int ind1 = (element1 & m_blockMask) + field;
 		int ind2 = (element2 & m_blockMask) + field;
 		int tmp = ar1[ind1];
@@ -200,11 +206,21 @@ final class StridedIndexTypeCollection {
 		return true;
 	}
 
-	final static int[] st_sizes = {16, 32, 64, 128, 256, 512, 1024, 2048};
+	private void ensureBufferBlocksCapacity(int blocks) {
+		if (m_buffer.length < blocks) {
+			int[][] newBuffer = new int[blocks][];
+			for (int i = 0; i < m_buffer.length; i++) {
+				newBuffer[i] = m_buffer[i];
+			}
+
+			m_buffer = newBuffer;
+		}
+	}
 
 	private void grow_(long newsize) {
 		if (m_buffer == null) {
-			m_buffer = new ArrayList<int[]>();
+			m_bufferSize = 0;
+			m_buffer = new int[8][];
 		}
 
 		assert (newsize > m_capacity);
@@ -212,49 +228,47 @@ final class StridedIndexTypeCollection {
 		long nblocks = (newsize + m_blockSize - 1) / m_blockSize;
 		if (nblocks > Integer.MAX_VALUE)
 			throw new IndexOutOfBoundsException();
-		
-		m_buffer.ensureCapacity((int)nblocks);
+
+		ensureBufferBlocksCapacity((int) nblocks);
 		if (nblocks == 1) {
 			// When less than one block is needed we allocate smaller arrays
 			// than m_realBlockSize to avoid initialization cost.
 			int oldsz = m_capacity > 0 ? m_capacity : 0;
 			assert (oldsz < newsize);
 			int i = 0;
-			int realnewsize = (int)newsize * m_realStride;
+			int realnewsize = (int) newsize * m_realStride;
 			while (realnewsize > st_sizes[i])
 				// get the size to allocate. Using fixed sizes to reduce
 				// fragmentation.
 				i++;
 			int[] b = new int[st_sizes[i]];
-			if (m_buffer.size() == 1) {
-				System.arraycopy(m_buffer.get(0), 0, b, 0, m_size
-						* m_realStride);
-				m_buffer.set(0, b);
+			if (m_bufferSize == 1) {
+				System.arraycopy(m_buffer[0], 0, b, 0, m_buffer[0].length);
+				m_buffer[0] = b;
 			} else {
-				m_buffer.add(b);
+				m_buffer[m_bufferSize] = b;
+				m_bufferSize++;
 			}
 			m_capacity = b.length / m_realStride;
 		} else {
 			if (nblocks * m_blockSize > Integer.MAX_VALUE)
 				throw new IndexOutOfBoundsException();
-			
-			if (m_buffer.size() == 1) {
-				if (m_buffer.get(0).length < m_realBlockSize) {
+
+			if (m_bufferSize == 1) {
+				if (m_buffer[0].length < m_realBlockSize) {
 					// resize the first buffer to ensure it is equal the
 					// m_realBlockSize.
 					int[] b = new int[m_realBlockSize];
-					System.arraycopy(m_buffer.get(0), 0, b, 0, m_size
-							* m_realStride);
-					m_buffer.set(0, b);
+					System.arraycopy(m_buffer[0], 0, b, 0, m_buffer[0].length);
+					m_buffer[0] = b;
 					m_capacity = m_blockSize;
 				}
 			}
 
-			while (m_buffer.size() < nblocks) {
-				m_buffer.add(new int[m_realBlockSize]);
+			while (m_bufferSize < nblocks) {
+				m_buffer[m_bufferSize++] = new int[m_realBlockSize];
 				m_capacity += m_blockSize;
 			}
 		}
 	}
-
 }

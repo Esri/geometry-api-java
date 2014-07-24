@@ -24,7 +24,6 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.Operator.Type;
-import com.esri.core.geometry.CombineOperator;
 
 /**
  * Symmetric difference (XOR) operation between geometries. 

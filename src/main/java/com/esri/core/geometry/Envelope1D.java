@@ -64,6 +64,7 @@ public final class Envelope1D {
 
 	public void setEmpty() {
 		vmin = NumberUtils.NaN();
+		vmax = NumberUtils.NaN();
 	}
 
 	public boolean isEmpty() {
@@ -189,4 +190,29 @@ public final class Envelope1D {
 	{
 		return 0.5 * (vmin + vmax);
 	}
+	
+	@Override
+    public boolean equals(Object _other)
+    {
+		if (_other == this)
+			return true;
+
+		if (!(_other instanceof Envelope1D))
+			return false;
+
+		Envelope1D other = (Envelope1D) _other;
+		if (isEmpty() && other.isEmpty())
+			return true;
+
+		if (vmin != other.vmin || vmax != other.vmax)
+			return false;
+
+		return true;
+    }
+	
+	@Override
+	public int hashCode() {
+		return NumberUtils.hash(NumberUtils.hash(vmin), vmax);
+	}
+	
 }

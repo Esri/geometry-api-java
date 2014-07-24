@@ -41,8 +41,9 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
 		MapGeometry mapGeometry = new MapGeometry(geometry, spatialReference);
 		return mapGeometry;
 	}
-	
-	static JSONArray getJSONArray(JSONObject obj, String name) throws JSONException {
+
+	static JSONArray getJSONArray(JSONObject obj, String name)
+			throws JSONException {
 		if (obj.get(name) == JSONObject.NULL)
 			return new JSONArray();
 		else
@@ -156,7 +157,8 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
 			Geometry.Type type, JSONObject geometryJSONObject)
 			throws JSONException {
 		String typeString = geometryJSONObject.getString("type");
-		JSONArray coordinateArray = getJSONArray(geometryJSONObject, "coordinates");
+		JSONArray coordinateArray = getJSONArray(geometryJSONObject,
+				"coordinates");
 
 		if (typeString.equalsIgnoreCase("MultiPolygon")) {
 			if (type != Geometry.Type.Polygon && type != Geometry.Type.Unknown)
@@ -237,9 +239,23 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
 
 			multiPathImpl.notifyModified(MultiPathImpl.DirtyFlags.DirtyAll);
 
-			if (!InternalUtils.isClockwiseRing(multiPathImpl, 0)) {
-				multiPathImpl.reverseAllPaths();
+			AttributeStreamOfInt8 path_flags_clone = new AttributeStreamOfInt8(
+					path_flags);
+
+			for (int i = 0; i < path_flags_clone.size() - 1; i++) {
+				if (((int) path_flags_clone.read(i) & (int) PathFlags.enumOGCStartPolygon) != 0) {// Should
+																									// be
+																									// clockwise
+					if (!InternalUtils.isClockwiseRing(multiPathImpl, i))
+						multiPathImpl.reversePath(i); // make clockwise
+				} else {// Should be counter-clockwise
+					if (InternalUtils.isClockwiseRing(multiPathImpl, i))
+						multiPathImpl.reversePath(i); // make counter-clockwise
+				}
 			}
+
+			multiPathImpl.setPathFlagsStreamRef(path_flags_clone);
+
 		}
 
 		if ((importFlags & (int) GeoJsonImportFlags.geoJsonImportNonTrusted) == 0) {

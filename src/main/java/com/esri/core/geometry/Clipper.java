@@ -1180,7 +1180,7 @@ class Clipper {
 						.queryEnvelopeInGeometry(extent);
 				if (hit == RasterizedGeometry2D.HitType.Inside) {
 					if (geomtype != Geometry.Type.Polygon.value())
-						throw new GeometryException("internal error");
+						throw GeometryException.GeometryInternalError();
 
 					Polygon poly = new Polygon(geometry.getDescription());
 					poly.addEnvelope(extent, false);
@@ -1242,7 +1242,7 @@ class Clipper {
 					densify_dist);
 		default:
 			assert (false);
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 		}
 	}
 

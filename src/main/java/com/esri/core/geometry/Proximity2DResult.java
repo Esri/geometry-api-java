@@ -32,6 +32,21 @@ public class Proximity2DResult {
 	Point2D m_coordinate = new Point2D();
 	int m_vertexIndex;
 	double m_distance;
+	int m_info;
+
+	/**
+	 * Sets the right_side info to true or false.
+	 * 
+	 * @param bRight
+	 *            Whether the nearest coordinate is to the right or left of the
+	 *            geometry.
+	 */
+	public void setRightSide(boolean bRight) {
+		if (bRight)
+			m_info |= (int) OperatorProximity2D.ProxResultInfo.rightSide;
+		else
+			m_info &= ~(int) OperatorProximity2D.ProxResultInfo.rightSide;
+	}
 
 	/**
 	 * Returns TRUE if the Proximity2DResult is empty. This only happens if the
@@ -81,6 +96,13 @@ public class Proximity2DResult {
 		return m_distance;
 	}
 
+	/**
+	 *Returns true if the closest coordinate is to the right of the MultiPath.
+	 */
+	public boolean isRightSide() {
+		return (m_info & (int) OperatorProximity2D.ProxResultInfo.rightSide) != 0;
+	}
+
 	void _setParams(double x, double y, int vertexIndex, double distance) {
 		m_coordinate.x = x;
 		m_coordinate.y = y;
@@ -100,5 +122,12 @@ public class Proximity2DResult {
 
 	Proximity2DResult() {
 		m_vertexIndex = -1;
+	}
+
+	Proximity2DResult(Point2D coordinate, int vertexIndex, double distance) {
+		m_coordinate.setCoords(coordinate);
+		m_vertexIndex = vertexIndex;
+		m_distance = distance;
+		m_info = 0;
 	}
 }

@@ -195,20 +195,28 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 	}
 
 	/**
-	 * isSimpleRelaxed is not supported for the GeometryCollection instance.
+	 * makeSimpleRelaxed is not supported for the GeometryCollection instance.
 	 * 
 	 */
 	@Override
-	public boolean isSimpleRelaxed() {
+	public OGCGeometry makeSimple() {
 		throw new UnsupportedOperationException();
 	}
 
+	@Override
+	public boolean isSimpleRelaxed() {
+		for (int i = 0, n = numGeometries(); i < n; i++)
+			if (!geometryN(i).isSimpleRelaxed())
+				return false;
+		return true;
+	}
+
 	/**
-	 * MakeSimpleRelaxed is not supported for the GeometryCollection instance.
+	 * makeSimpleRelaxed is not supported for the GeometryCollection instance.
 	 * 
 	 */
 	@Override
-	public OGCGeometry MakeSimpleRelaxed(boolean forceProcessing) {
+	public OGCGeometry makeSimpleRelaxed(boolean forceProcessing) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -310,5 +318,9 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 	{
 		return this;
 	}
-	
+
+	@Override
+	public String asJson() {
+		throw new UnsupportedOperationException();
+	}
 }

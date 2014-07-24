@@ -60,21 +60,14 @@ final class PlaneSweepCrackerHelper {
 		m_b_cracked = false;
 		m_tolerance = tolerance;
 		m_tolerance_sqr = tolerance * tolerance;
-		// #ifdef _DEBUG_CRACKING_REPORT
-		// {
-		// DEBUGPRINTF(L"PlaneSweep along x\n");
-		// }
-		// #endif
 
 		boolean b_cracked = sweepImpl_();
-		// #ifdef _DEBUG_CRACKING_REPORT
-		// {
-		// DEBUGPRINTF(L"PlaneSweep along y\n");
-		// }
-		// #endif
 		shape.applyTransformation(transform);
-		fillEventQueuePass2();
-		b_cracked |= sweepImpl_();
+		if (!b_cracked) {
+			fillEventQueuePass2();
+			b_cracked |= sweepImpl_();
+		}
+		
 		m_shape.removeUserIndex(m_vertex_cluster_index);
 		m_shape = null;
 		return m_b_cracked;
@@ -372,7 +365,7 @@ final class PlaneSweepCrackerHelper {
 			assert (getEdgeCluster(edge, 0) != cluster);
 			setEdgeCluster_(edge, 1, cluster);
 		} else
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 
 		addEdgeToClusterImpl_(edge, cluster);// simply adds the edge to the list
 												// of cluster edges.
@@ -527,16 +520,9 @@ final class PlaneSweepCrackerHelper {
 			// Merged edges have different clusters (clusters have not yet been
 			// merged)
 			// merge clusters before merging the edges
-			Point2D pt11 = getClusterXY(cluster_1);
-			Point2D pt21 = getClusterXY(cluster21);
-			// #ifdef _DEBUG_TOPO
-			// Point_2D pt12, pt22;
-			// pt12 = get_cluster_xy(cluster2);
-			// pt22 = get_cluster_xy(cluster22);
-			// assert((pt11.is_equal(pt21) && pt12.is_equal(pt22)) ||
-			// (pt12.is_equal(pt21) && pt11.is_equal(pt22)));
-			// #endif
-			if (pt11.isEqual(pt21)) {
+			getClusterXY(cluster_1, pt_1);
+			getClusterXY(cluster21, pt_2);
+			if (pt_1.isEqual(pt_2)) {
 				if (cluster_1 != cluster21) {
 					mergeClusters_(cluster_1, cluster21);
 					assert (!m_modified_clusters.hasElement(cluster21));
@@ -776,13 +762,12 @@ final class PlaneSweepCrackerHelper {
 		// sweep structure.
 		int count = intersector.getResultSegmentCount(index);
 		Segment seg = intersector.getResultSegment(index, 0);
-		Point2D newStart = seg.getStartXY();
+		seg.getStartXY(pt_2);
 		int clusterStart = getEdgeCluster(edge, 0);
-		Point2D pt = getClusterXY(clusterStart);
-		if (!pt.isEqual(newStart)) {
-	        int res1 = pt.compare(m_sweep_point);
-	        int res2 = newStart.compare(m_sweep_point);
-	        //if (pt.compare(m_sweep_point) > 0 && newStart.compare(m_sweep_point) < 0)
+		getClusterXY(clusterStart, pt_1);
+		if (!pt_1.isEqual(pt_2)) {
+	        int res1 = pt_1.compare(m_sweep_point);
+	        int res2 = pt_2.compare(m_sweep_point);
 	        if (res1 * res2 < 0) {
 				m_complications = true;// point is not yet have been processed
 										// but moved before the sweep point,
@@ -797,13 +782,12 @@ final class PlaneSweepCrackerHelper {
 		}
 
 		seg = intersector.getResultSegment(index, count - 1);
-		Point2D newEnd = seg.getEndXY();
+		seg.getEndXY(pt_2);
 		int clusterEnd = getEdgeCluster(edge, 1);
-		pt = getClusterXY(clusterEnd);
-		if (!pt.isEqual(newEnd)) {
-	        int res1 = pt.compare(m_sweep_point);
-	        int res2 = newEnd.compare(m_sweep_point);
-	        //if (pt.compare(m_sweep_point) > 0 && newEnd.compare(m_sweep_point) < 0)
+		getClusterXY(clusterEnd, pt_1);
+		if (!pt_1.isEqual(pt_2)) {
+	        int res1 = pt_1.compare(m_sweep_point);
+	        int res2 = pt_2.compare(m_sweep_point);
 	        if (res1 * res2 < 0) {			
 				m_complications = true;// point is not yet have been processed
 										// but moved before the sweep point.
@@ -850,8 +834,6 @@ final class PlaneSweepCrackerHelper {
 	}
 
 	void fixIntersection_(int left, int right) {
-		// static int dbg = 0;
-		// dbg++;
 		m_b_cracked = true;
 		int edge1 = m_sweep_structure.getElement(left);
 		int edge2 = m_sweep_structure.getElement(right);
@@ -897,24 +879,6 @@ final class PlaneSweepCrackerHelper {
 			m_complications = true;
 				
 				
-		// #ifdef _DEBUG_CRACKING_REPORT
-		// {
-		// for (int resi = 0; resi < 2; resi++)
-		// {
-		// DEBUGPRINTF(L"intersection result %d:\n", resi);
-		// for (int i = 0; i <
-		// m_segment_intersector.get_result_segment_count(resi); i++)
-		// {
-		// Point_2D pt_1 = m_segment_intersector.get_result_segment(resi,
-		// i)->get_start_xy();
-		// Point_2D pt_2 = m_segment_intersector.get_result_segment(resi,
-		// i)->get_end_xy();
-		// DEBUGPRINTF(L"(%0.17f, %0.17f  --- %0.17f, %0.17f)\n", pt_1.x,
-		// pt_1.y, pt_2.x, pt_2.y);
-		// }
-		// }
-		// }
-		// #endif
 		splitEdge_(edge1, edge2, -1, m_segment_intersector);
 		m_segment_intersector.clear();
 	}
@@ -933,38 +897,13 @@ final class PlaneSweepCrackerHelper {
 			seg_1 = m_line_1;
 		}
 
-		// #ifdef _DEBUG_CRACKING_REPORT
-		// {
-		// Point_2D pt11, pt12, pt21;
-		// pt11 = seg_1->get_start_xy();
-		// pt12 = seg_1->get_end_xy();
-		// get_cluster_xy(cluster, pt21);
-		// DEBUGPRINTF(L"Intersecting edge %d (%0.4f, %0.4f - %0.4f, %0.4f) and cluster %d (%0.4f, %0.4f)\n",
-		// edge1, pt11.x, pt11.y, pt12.x, pt12.y, cluster, pt21.x, pt21.y);
-		// }
-		// #endif
-
 		int clusterVertex = getClusterFirstVertex(cluster);
 		m_segment_intersector.pushSegment(seg_1);
 
 		m_shape.queryPoint(clusterVertex, m_helper_point);
 		m_segment_intersector.intersect(m_tolerance, m_helper_point, 0, 1.0,
 				true);
-		// #ifdef _DEBUG_CRACKING_REPORT
-		// {
-		// DEBUGPRINTF(L"intersection result\n");
-		// for (int i = 0; i <
-		// m_segment_intersector.get_result_segment_count(0); i++)
-		// {
-		// Point_2D pt_1 = m_segment_intersector.get_result_segment(0,
-		// i)->get_start_xy();
-		// Point_2D pt_2 = m_segment_intersector.get_result_segment(0,
-		// i)->get_end_xy();
-		// DEBUGPRINTF(L"(%0.17f, %0.17f  --- %0.17f, %0.17f)\n", pt_1.x,
-		// pt_1.y, pt_2.x, pt_2.y);
-		// }
-		// }
-		// #endif
+
 		splitEdge_(edge1, -1, cluster, m_segment_intersector);
 
 		m_segment_intersector.clear();
@@ -973,8 +912,6 @@ final class PlaneSweepCrackerHelper {
 	void insertNewEdges_() {
 		if (m_edges_to_insert_in_sweep_structure.size() == 0)
 			return;
-
-		// dbg_check_new_edges_array_();
 
 		while (m_edges_to_insert_in_sweep_structure.size() != 0) {
 			if (m_edges_to_insert_in_sweep_structure.size() > Math.max(
@@ -987,10 +924,8 @@ final class PlaneSweepCrackerHelper {
 						// iterate on the data one more time.
 			}
 
-			int edge = m_edges_to_insert_in_sweep_structure
-					.get(m_edges_to_insert_in_sweep_structure.size() - 1);
-			m_edges_to_insert_in_sweep_structure
-					.resize(m_edges_to_insert_in_sweep_structure.size() - 1);
+			int edge = m_edges_to_insert_in_sweep_structure.getLast();
+			m_edges_to_insert_in_sweep_structure.removeLast();
 
 			assert (getEdgeSweepNode(edge) == StridedIndexTypeCollection
 					.impossibleIndex3());
@@ -1005,37 +940,18 @@ final class PlaneSweepCrackerHelper {
 
 	boolean insertNewEdgeToSweepStructure_(int edge, int terminatingCluster) {
 		assert (getEdgeSweepNode(edge) == -1);
-		// #ifdef _DEBUG_CRACKING_REPORT
-		// {
-		// Point_2D pt11, pt12;
-		// int c_1 = get_edge_cluster(edge, 0);
-		// int c_2 = get_edge_cluster(edge, 1);
-		// get_cluster_xy(c_1, pt11);
-		// get_cluster_xy(c_2, pt12);
-		// DEBUGPRINTF(L"Inserting edge %d (%0.4f, %0.4f - %0.4f, %0.4f) to sweep structure\n",
-		// edge, pt11.x, pt11.y, pt12.x, pt12.y);
-		// }
-		// #endif
 		int newEdgeNode;
 		if (m_b_continuing_segment_chain_optimization) {
-			// st_counter_insertions++;
-			// st_counter_insertions_optimized++;
 			newEdgeNode = m_sweep_structure.addElementAtPosition(
 					m_prev_neighbour, m_next_neighbour, edge, true, true, -1);
 			m_b_continuing_segment_chain_optimization = false;
 		} else {
-			// st_counter_insertions++;
-			// st_counter_insertions_unique++;
 			newEdgeNode = m_sweep_structure.addUniqueElement(edge, -1);
 		}
 
 		if (newEdgeNode == -1) {// a coinciding edge.
 			int existingNode = m_sweep_structure.getDuplicateElement(-1);
 			int existingEdge = m_sweep_structure.getElement(existingNode);
-			// #ifdef _DEBUG_CRACKING_REPORT
-			// DEBUGPRINTF(L"Edge %d is a duplicate of %d. Merged\n", edge,
-			// existingEdge);
-			// #endif
 			mergeEdges_(existingEdge, edge);
 			return false;
 		}
@@ -1044,10 +960,6 @@ final class PlaneSweepCrackerHelper {
 		setEdgeSweepNode_(edge, newEdgeNode);
 
 		if (m_sweep_comparator.intersectionDetected()) {
-			// #ifdef _DEBUG_CRACKING_REPORT
-			// DEBUGPRINTF(L"intersection detected\n");
-			// #endif
-
 			// The edge has been inserted into the sweep structure and an
 			// intersection has beebn found. The edge will be split and removed.
 			m_sweep_comparator.clearIntersectionDetectedFlag();
@@ -1062,11 +974,13 @@ final class PlaneSweepCrackerHelper {
 		return false;
 	}
 
+	Point2D pt_1 = new Point2D();
+	Point2D pt_2 = new Point2D();
 	int isEdgeOnSweepLine_(int edge) {
 		int cluster_1 = getEdgeCluster(edge, 0);
 		int cluster2 = getEdgeCluster(edge, 1);
-		Point2D pt_1 = getClusterXY(cluster_1);
-		Point2D pt_2 = getClusterXY(cluster2);
+		getClusterXY(cluster_1, pt_1);
+		getClusterXY(cluster2, pt_2);
 		if (Point2D.sqrDistance(pt_1, pt_2) <= m_tolerance_sqr) {// avoid
 																	// degenerate
 																	// segments
@@ -1095,18 +1009,14 @@ final class PlaneSweepCrackerHelper {
 														// clusters
 		EditShape.VertexIterator iter = m_shape.queryVertexIterator();
 		for (int vert = iter.next(); vert != -1; vert = iter.next()) {
-			event_q.add(vert);
+			if (m_shape.getUserIndex(vert, m_vertex_cluster_index) != -1)
+				event_q.add(vert);
 		}
-
-		assert (m_shape.getTotalPointCount() == event_q.size());
 
 		// Now we can merge coincident clusters and form the envent structure.
 
 		// sort vertices lexicographically.
 		m_shape.sortVerticesSimpleByY_(event_q, 0, event_q.size());
-		// int perPoint = m_shape->estimate_memory_size() /
-		// m_shape->get_total_point_count();
-		// perPoint = 0;
 
 		// The m_event_q is the event structure for the planesweep algorithm.
 		// We could use any data structure that allows log(n) insertion and
@@ -1127,9 +1037,10 @@ final class PlaneSweepCrackerHelper {
 		Point2D cluster_pt = new Point2D();
 		cluster_pt.setNaN();
 		int cluster = -1;
+		Point2D pt = new Point2D();
 		for (int index = 0, nvertex = event_q.size(); index < nvertex; index++) {
 			int vertex = event_q.get(index);
-			Point2D pt = m_shape.getXY(vertex);
+			m_shape.getXY(vertex, pt);
 			if (pt.isEqual(cluster_pt)) {
 				int vertexCluster = m_shape.getUserIndex(vertex,
 						m_vertex_cluster_index);
@@ -1139,7 +1050,7 @@ final class PlaneSweepCrackerHelper {
 
 			cluster = getClusterFromVertex(vertex);
 			// add a vertex to the event queue
-			cluster_pt = m_shape.getXY(vertex);
+			m_shape.getXY(vertex, cluster_pt);
 			int eventQnode = m_event_q.addBiggestElement(vertex, -1); // this
 																		// method
 																		// does
@@ -1222,18 +1133,6 @@ final class PlaneSweepCrackerHelper {
 	// m_edges_to_insert_in_sweep_structure.
 	void splitEdge_(int edge1, int edge2, int intersectionCluster,
 			SegmentIntersector intersector) {
-		// #ifdef _DEBUG_CRACKING_REPORT
-		// {
-		// if (edge2 != -1)
-		// DEBUGPRINTF(L"Splitting edge1 (%d) and edge2 (%d)\n", edge1, edge2);
-		// else
-		// DEBUGPRINTF(L"Splitting edge (%d)\n", edge1);
-		// }
-		// #endif
-		// dbg_check_edge_(edge1);
-		//
-		// if (edge2 != -1)
-		// dbg_check_edge_(edge2);
 
 		disconnectEdge_(edge1);// disconnects the edge from the clusters. The
 								// edge still remembers the clusters.
@@ -1250,9 +1149,9 @@ final class PlaneSweepCrackerHelper {
 			processSplitHelper1_(1, edge2, intersector);
 
 		if (intersectionCluster != -1) {
-			Point2D pt = intersector.getResultPoint().getXY();
-			Point2D ptCluster = getClusterXY(intersectionCluster);
-			if (!ptCluster.isEqual(pt))
+			intersector.getResultPoint().getXY(pt_1);
+			getClusterXY(intersectionCluster, pt_2);
+			if (!pt_2.isEqual(pt_1))
 				m_modified_clusters.add(intersectionCluster);
 		}
 
@@ -1302,17 +1201,6 @@ final class PlaneSweepCrackerHelper {
 				int vertex = getClusterFirstVertex(cluster);
 				assert (getClusterFromVertex(vertex) == cluster);
 
-				// #ifdef _DEBUG_CRACKING_REPORT
-				// {
-				// Point_2D pt;
-				// m_shape->get_xy(vertex, pt);
-				// DEBUGPRINTF(L"Inserting vertex %d, cluster %d (%0.3f, %0.3f)\n",
-				// vertex, cluster, pt.x, pt.y);
-				// }
-				// #endif
-				// st_counter_insertions++;
-				// st_counter_insertions_unique++;
-
 				eventQnode = m_event_q.addUniqueElement(vertex, -1);// O(logN)
 																	// operation
 				if (eventQnode == -1) {// the cluster is coinciding with another
@@ -1321,17 +1209,10 @@ final class PlaneSweepCrackerHelper {
 					int v = m_event_q.getElement(existingNode);
 					assert (m_shape.isEqualXY(vertex, v));
 					int existingCluster = getClusterFromVertex(v);
-					// #ifdef _DEBUG_CRACKING_REPORT
-					// {
-					// Point_2D pt;
-					// m_shape->get_xy(v, pt);
-					// DEBUGPRINTF(L"Already in the queue %d, cluster %d (%0.3f, %0.3f)\n",
-					// v, existingCluster, pt.x, pt.y);
-					// }
-					// #endif
 					mergeClusters_(existingCluster, cluster);
-				} else
+				} else {
 					setClusterEventQNode_(cluster, eventQnode);
+				}
 			} else {
 				// if already inserted (probably impossible) case
 			}
@@ -1341,11 +1222,9 @@ final class PlaneSweepCrackerHelper {
 	}
 
 	// Returns a cluster's xy.
-	Point2D getClusterXY(int cluster) {
-		Point2D p = new Point2D();
+	void getClusterXY(int cluster, Point2D ptOut) {
 		int vindex = getClusterVertexIndex(cluster);
-		m_shape.getXYWithIndex(vindex, p);
-		return p;
+		m_shape.getXYWithIndex(vindex, ptOut);
 	}
 
 	int getClusterFirstVertex(int cluster) {
@@ -1383,12 +1262,6 @@ final class PlaneSweepCrackerHelper {
 			int vertex = m_event_q.getElement(eventQnode);
 			m_sweep_point_cluster = getClusterFromVertex(vertex);
 			m_shape.getXY(vertex, m_sweep_point);
-			// #ifdef _DEBUG_CRACKING_REPORT
-			// {
-			// DEBUGPRINTF(L"next event node. Cluster %d, Vertex %d, (%0.3f, %0.3f)\n",
-			// m_sweep_point_cluster, vertex, m_sweep_point.x, m_sweep_point.y);
-			// }
-			// #endif
 
 			m_sweep_comparator.setSweepY(m_sweep_point.y, m_sweep_point.x);// move
 																			// the
@@ -1408,7 +1281,7 @@ final class PlaneSweepCrackerHelper {
 							setEdgeSweepNode_(edge, c_3);// mark that its in
 															// m_edges_to_insert_in_sweep_structure
 						} else if (sweepNode != c_3) {
-							// assert(StridedIndexTypeCollection.isValidElement(sweepNode));
+							assert(StridedIndexTypeCollection.isValidElement(sweepNode));
 							edgesToDelete.add(sweepNode);
 						}
 						edge = getNextEdge(edge, m_sweep_point_cluster);
@@ -1427,8 +1300,6 @@ final class PlaneSweepCrackerHelper {
 				m_b_continuing_segment_chain_optimization = (edgesToDelete
 						.size() == 1 && m_edges_to_insert_in_sweep_structure
 						.size() == 1);
-				// st_counter_insertions_all_potential +=
-				// m_edges_to_insert_in_sweep_structure.size() > 0;
 
 				// Mark nodes that need to be deleted by setting c_2 to the
 				// edge's sweep node member.
@@ -1486,11 +1357,9 @@ final class PlaneSweepCrackerHelper {
 
 				// Now check if the left and right we found intersect or not.
 				if (left != -1 && right != -1) {
-					boolean bIntersected = checkAndFixIntersection_(left, right);
-					if (bIntersected) {
-						// We'll insert the results of intersection below in
-						// insert_new_edges_
-						m_b_continuing_segment_chain_optimization = false;
+					if (!m_b_continuing_segment_chain_optimization) {
+						boolean bIntersected = checkAndFixIntersection_(left,
+								right);
 					}
 				} else {
 					if ((left == -1) && (right == -1))
@@ -1572,12 +1441,6 @@ final class PlaneSweepCrackerHelper {
 				int path_size = m_shape.getPathSize(path);
 				assert (path_size > 1);
 				int first_vertex = m_shape.getFirstVertex(path);
-				// #ifdef _DEBUG_TOPO
-				// LOCALREFCLASS(Line, line);
-				// m_shape.query_line_connector(first_vertex, line);
-				// assert(line.calculate_length_2D() > m_tolerance);//no
-				// degenerate lines at the input
-				// #endif
 
 				// first------------------
 				int firstCluster = newCluster_(first_vertex);
@@ -1586,24 +1449,31 @@ final class PlaneSweepCrackerHelper {
 				int prevEdge = first_edge;
 				int vertex = m_shape.getNextVertex(first_vertex);
 				for (int index = 0, n = path_size - 2; index < n; index++) {
+					int nextvertex = m_shape.getNextVertex(vertex);
 					// ------------x------------
 					int cluster = newCluster_(vertex);
 					addEdgeToCluster(prevEdge, cluster);
 					int newEdge = newEdge_(vertex);
 					addEdgeToCluster(newEdge, cluster);
 					prevEdge = newEdge;
-					vertex = m_shape.getNextVertex(vertex);
+					vertex = nextvertex;
 				}
 
 				// ------------------lastx
-				int cluster = newCluster_(vertex);
-				addEdgeToCluster(prevEdge, cluster);
-				if (m_shape.isClosedPath(path)) {// close the path
-													// lastx------------------firstx
+				if (m_shape.isClosedPath(path)) {
+					int cluster = newCluster_(vertex);
+					addEdgeToCluster(prevEdge, cluster);
+					// close the path
+					// lastx------------------firstx
 					int newEdge = newEdge_(vertex);
 					addEdgeToCluster(newEdge, cluster);
 					addEdgeToCluster(newEdge, firstCluster);
+				} else {
+					// ------------------lastx
+					int cluster = newCluster_(vertex);
+					addEdgeToCluster(prevEdge, cluster);
 				}
+				
 			}
 		}
 

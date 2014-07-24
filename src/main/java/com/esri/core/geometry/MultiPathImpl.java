@@ -25,6 +25,8 @@
 
 package com.esri.core.geometry;
 
+import java.util.ArrayList;
+
 final class MultiPathImpl extends MultiVertexGeometryImpl {
 
 	protected boolean m_bPolygon;
@@ -291,7 +293,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 	public void openPath(int pathIndex) {
 		_touch();
 		if (m_bPolygon)
-			throw new GeometryException("internal error");// do not call this
+			throw GeometryException.GeometryInternalError();// do not call this
 															// method on a
 															// polygon
 
@@ -300,29 +302,27 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 			throw new IllegalArgumentException();
 
 		if (m_pathFlags == null)
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 
 		m_pathFlags.clearBits(pathIndex, (byte) PathFlags.enumClosed);
 	}
 
-	// Reviewed vs. Native Jan 11, 2011
-	// Major Changes on 16th of January
 	public void openPathAndDuplicateStartVertex(int pathIndex) {
 		_touch();
 		if (m_bPolygon)
-			throw new GeometryException("internal error");// do not call this
+			throw GeometryException.GeometryInternalError();// do not call this
 															// method on a
 															// polygon
 
 		int pathCount = getPathCount();
 		if (pathIndex > pathCount)
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 
 		if (!isClosedPath(pathIndex))
 			return;// do not open if open
 
 		if (m_pathFlags == null)// if (!m_pathFlags)
-			throw new GeometryException("nternal_error");
+			throw GeometryException.GeometryInternalError();
 
 		int oldPointCount = m_pointCount;
 		int pathIndexStart = getPathStart(pathIndex);
@@ -355,12 +355,12 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 	public void openAllPathsAndDuplicateStartVertex() {
 		_touch();
 		if (m_bPolygon)
-			throw new GeometryException("internal error");// do not call this
+			throw GeometryException.GeometryInternalError();// do not call this
 															// method on a
 															// polygon
 
 		if (m_pathFlags == null)// if (!m_pathFlags)
-			throw new GeometryException("nternal_error");
+			throw GeometryException.GeometryInternalError();
 
 		_verifyAllStreams();
 
@@ -581,7 +581,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 			segment.queryEnd(point);
 			lineTo(point);
 		} else {
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 		}
 	}
 
@@ -764,7 +764,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 		if (hasNonLinearSegments()) {
 			// TODO: implement me. For example as a while loop over all curves.
 			// Replace, calling ReplaceSegment
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 			// m_segment_flags->write_range((get_path_start(path_index) +
 			// before_point_index + src_point_count), (oldPointCount -
 			// get_path_start(path_index) - before_point_index),
@@ -788,7 +788,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 		if (src.hasNonLinearSegments(src_path_index)) {
 			// TODO: implement me. For example as a while loop over all curves.
 			// Replace, calling ReplaceSegment
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 		}
 
 		notifyModified(DirtyFlags.DirtyCoordinates);
@@ -1058,8 +1058,8 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 		if (srcPathIndex < 0)
 			srcPathIndex = src.getPathCount() - 1;
 
-		if (pathIndex > getPathCount()
-				|| beforePointIndex > getPathSize(pathIndex)
+		if (pathIndex > getPathCount() || beforePointIndex >= 0
+				&& beforePointIndex > getPathSize(pathIndex)
 				|| srcPathIndex >= src.getPathCount()
 				|| srcPointCount > src.getPathSize(srcPathIndex))
 			throw new GeometryException("index out of bounds");
@@ -1148,7 +1148,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 		if (src.hasNonLinearSegments(srcPathIndex)) {
 			// TODO: implement me. For example as a while loop over all curves.
 			// Replace, calling ReplaceSegment
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 		}
 
 		for (int ipath = pathIndex + 1, npaths = getPathCount(); ipath <= npaths; ipath++) {
@@ -1461,7 +1461,8 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 		return sub_length;
 	}
 
-	Geometry getBoundary() {
+	@Override
+	public Geometry getBoundary() {
 		return Boundary.calculate(this, null);
 	}
 
@@ -1748,7 +1749,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 					}
 						break;
 					case SegmentFlags.enumArcSeg:
-						throw new GeometryException("internal error");
+						throw GeometryException.GeometryInternalError();
 
 					}
 				}
@@ -1806,12 +1807,12 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 					}
 						break;
 					case SegmentFlags.enumArcSeg:
-						throw new GeometryException("internal error");
+						throw GeometryException.GeometryInternalError();
 
 					}
 				}
 			}
-			
+
 			ptStart = transform.transform(ptStart);
 			points.write(ipoint * 2, ptStart.x);
 			points.write(ipoint * 2 + 1, ptStart.y);
@@ -2103,7 +2104,8 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 			int firstSign = 1;
 			for (int ipath = 0; ipath < pathCount; ipath++) {
 				double area = m_cachedRingAreas2D.read(ipath);
-				if (ipath == 0) firstSign = area > 0 ? 1 : -1;
+				if (ipath == 0)
+					firstSign = area > 0 ? 1 : -1;
 				if (area * firstSign > 0.0)
 					m_pathFlags.setBits(ipath,
 							(byte) PathFlags.enumOGCStartPolygon);
@@ -2393,6 +2395,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 
 		rgeom = RasterizedGeometry2D.create(this, toleranceXY, rasterSize);
 		m_accelerators._setRasterizedGeometry(rgeom);
+		//rgeom.dbgSaveToBitmap("c:/temp/ddd.bmp");
 		return true;
 	}
 
@@ -2438,11 +2441,11 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 			segBuffer.createLine();
 			break;
 		case SegmentFlags.enumBezierSeg:
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 		case SegmentFlags.enumArcSeg:
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 		default:
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 		}
 
 		Segment currentSegment = segBuffer.get();
@@ -2504,7 +2507,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 			envelope.setCoords(env);
 		}
 	}
-	
+
 	@Override
 	public boolean _buildQuadTreeAccelerator(GeometryAccelerationDegree d) {
 		if (m_accelerators == null)// (!m_accelerators)
@@ -2520,5 +2523,23 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 
 		return true;
 	}
-	
+
+	boolean _buildPathEnvelopesAccelerator(GeometryAccelerationDegree d) {
+		if (m_accelerators == null) {
+			m_accelerators = new GeometryAccelerators();
+		}
+
+		ArrayList<Envelope2D> path_envelopes = new ArrayList<Envelope2D>(0);
+
+		for (int ipath = 0; ipath < getPathCount(); ipath++) {
+			Envelope2D env = new Envelope2D();
+			queryPathEnvelope2D(ipath, env);
+			path_envelopes.add(env);
+		}
+
+		m_accelerators._setPathEnvelopes(path_envelopes);
+
+		return true;
+	}
+
 }

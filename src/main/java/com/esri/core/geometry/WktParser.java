@@ -264,9 +264,12 @@ final class WktParser {
 			m_current_token_type = WktToken.geometrycollection;
 			m_function_stack.add(State.geometryCollectionStart);
 		} else {
-            String snippet = (m_wkt_string.length() > 200 ?
-                m_wkt_string.substring(0,200)+"..." : m_wkt_string);
-			throw new IllegalArgumentException("Could not parse Well-Known Text: "+snippet);
+			//String snippet = (m_wkt_string.length() > 200 ? m_wkt_string
+			//		.substring(0, 200) + "..." : m_wkt_string);
+			//throw new IllegalArgumentException(
+			//		"Could not parse Well-Known Text: " + snippet);
+			throw new IllegalArgumentException(
+					"Could not parse Well-Known Text around position: " + m_end_token);
 		}
 
 		m_function_stack.add(State.attributes);

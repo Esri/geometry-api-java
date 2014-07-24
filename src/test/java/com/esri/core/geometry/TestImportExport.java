@@ -1014,7 +1014,7 @@ public class TestImportExport extends TestCase {
 		// Test Export to WKT MultiPolygon
 		wktString = exporterWKT.execute(0, polygon, null);
 		assertTrue(wktString
-				.equals("MULTIPOLYGON Z (((10 10 5, 20 10 5, 20 20 5, 10 20 5, 10 10 5), (12 12 3, 12 12 3, 12 12 3), (10 10 1, 12 12 1, 10 10 1)), ((90 90 88, 60 90 7, 60 60 7, 90 90 88), (70 70 7, 80 80 7, 70 80 7, 70 70 7)))"));
+				.equals("MULTIPOLYGON Z (((10 10 5, 20 10 5, 20 20 5, 10 20 5, 10 10 5), (12 12 3, 12 12 3, 12 12 3), (10 10 1, 12 12 1, 10 10 1)), ((90 90 88, 60 90 7, 60 60 7, 90 90 88), (70 70 7, 70 80 7, 80 80 7, 70 70 7)))"));
 		wktParser.resetParser(wktString);
 		while (wktParser.nextToken() != WktParser.WktToken.not_available) {
 		}
@@ -1032,7 +1032,7 @@ public class TestImportExport extends TestCase {
 		wktString = exporterWKT.execute(WktExportFlags.wktExportPolygon,
 				polygon, null);
 		assertTrue(wktString
-				.equals("POLYGON Z ((10 10 5, 20 10 5, 20 20 5, 10 20 5, 10 10 5), (12 12 3, 12 12 3, 12 12 3), (10 10 1, 12 12 1, 10 10 1), (60 60 7, 90 90 7, 60 90 7, 60 60 7), (70 70 7, 80 80 7, 70 80 7, 70 70 7))"));
+				.equals("POLYGON Z ((10 10 5, 20 10 5, 20 20 5, 10 20 5, 10 10 5), (12 12 3, 12 12 3, 12 12 3), (10 10 1, 12 12 1, 10 10 1), (60 60 7, 60 90 7, 90 90 7, 60 60 7), (70 70 7, 70 80 7, 80 80 7, 70 70 7))"));
 		wktParser.resetParser(wktString);
 		while (wktParser.nextToken() != WktParser.WktToken.not_available) {
 		}

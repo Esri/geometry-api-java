@@ -143,8 +143,6 @@ public class TestOffset extends TestCase {
 
 		Geometry outputGeom = offset.execute(polygon, null, distance, joins, 2,
 				0, null);
-		System.out.println(GeometryUtils.getJSonStringFromGeometry(outputGeom,
-				null));
 
 		assertNotNull(outputGeom);
 		if (distance > 2) {

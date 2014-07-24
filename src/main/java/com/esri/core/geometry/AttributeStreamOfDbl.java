@@ -571,8 +571,10 @@ final class AttributeStreamOfDbl extends AttributeStreamBase {
 		if (index + count > m_size)
 			throw new GeometryException("invalid_call");
 
-		System.arraycopy(m_buffer, index + count, m_buffer, index, validSize
-				- (index + count));
+		if (validSize - (index + count) > 0) {
+			System.arraycopy(m_buffer, index + count, m_buffer, index, validSize
+							- (index + count));
+		}
 		m_size -= count;
 	}
 

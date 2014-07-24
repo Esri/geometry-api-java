@@ -95,7 +95,7 @@ final class RasterizedGeometry2DImpl extends RasterizedGeometry2D {
 			while (segIter.hasNextSegment()) {
 				Segment seg = segIter.nextSegment();
 				if (seg.getType() != Geometry.Type.Line)
-					throw new GeometryException("internal error"); // TODO:
+					throw GeometryException.GeometryInternalError(); // TODO:
 				// densify
 				// the
 				// segment
@@ -110,7 +110,7 @@ final class RasterizedGeometry2DImpl extends RasterizedGeometry2D {
 	}
 	
 	void fillPoints(SimpleRasterizer rasterizer, MultiPointImpl geom, double stroke_half_width) {
-		throw new GeometryException("internal error");
+		throw GeometryException.GeometryInternalError();
 	}
 
 	void fillConvexPolygon(SimpleRasterizer rasterizer, Point2D[] fan, int len) {

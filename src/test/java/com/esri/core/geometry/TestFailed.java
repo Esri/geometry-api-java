@@ -36,7 +36,6 @@ public class TestFailed extends TestCase {
 		} catch (IllegalArgumentException ex) {
 			noException = 0;
 		} catch (GeometryException ex) {
-			System.out.println(ex.internalCode);
 			noException = 0;
 		}
 		assertEquals(noException, 1);

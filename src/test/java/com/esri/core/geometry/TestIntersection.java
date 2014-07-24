@@ -1002,4 +1002,40 @@ public class TestIntersection extends TestCase {
 		assertTrue(((Polyline)res).getPathCount() == 1);
 		assertTrue(((Polyline)res).getPointCount() == 4);
 	}	
+        
+        @Test
+        public void testSharedEdgeIntersection_13()
+        {
+            String s1 = "{\"rings\":[[[0.099604024000029767,0.2107958250000479],[0.14626826900007472,0.2107958250000479],[0.14626826900007472,0.18285316400005058],[0.099604024000029767,0.18285316400005058],[0.099604024000029767,0.2107958250000479]]]}";
+            String s2 = "{\"paths\":[[[0.095692051000071388,0.15910190100004229],[0.10324853600002371,0.18285316400004228],[0.12359292700006108,0.18285316400004228],[0.12782611200003657,0.1705583920000322],[0.13537063000007138,0.18285316400004228]]]}";
+            
+            Polygon polygon = (Polygon)TestCommonMethods.fromJson(s1).getGeometry();
+            Polyline polyline = (Polyline)TestCommonMethods.fromJson(s2).getGeometry();
+            SpatialReference sr = SpatialReference.create(4326);
+            
+            Geometry g = OperatorIntersection.local().execute(polygon, polyline, sr, null);
+            assertTrue(!g.isEmpty());
+        }
+        
+        @Test
+        public void testIntersectionIssue2() {
+            String s1 = "{\"rings\":[[[-97.174860352323378,48.717174479818425],[-97.020624513410553,58.210155436624177],[-94.087641114245969,58.210155436624177],[-94.087641114245969,48.639781902013226],[-97.174860352323378,48.717174479818425]]]}";
+            String s2 = "{\"rings\":[[[-94.08764111399995,52.68342763000004],[-94.08764111399995,56.835188018000053],[-90.285921520999977,62.345706350000057],[-94.08764111399995,52.68342763000004]]]}";
+            
+            Polygon polygon1 = (Polygon)TestCommonMethods.fromJson(s1).getGeometry();
+            Polygon polygon2 = (Polygon)TestCommonMethods.fromJson(s2).getGeometry();
+            SpatialReference sr = SpatialReference.create(4326);
+            
+            GeometryCursor res = OperatorIntersection.local().execute(new SimpleGeometryCursor(polygon1), new SimpleGeometryCursor(polygon2), sr, null, 2);
+            Geometry g = res.next();
+            assertTrue(g != null);
+            assertTrue(!g.isEmpty());
+            Geometry g2 = res.next();
+            assertTrue(g2 == null);
+            
+            String ss = "{\"paths\":[[[-94.08764111412296,52.68342763000004],[-94.08764111410767,56.83518801800005]]]}";
+            Polyline polyline = (Polyline)TestCommonMethods.fromJson(ss).getGeometry();
+            boolean eq = OperatorEquals.local().execute(g, polyline, sr, null);
+            assertTrue(eq);
+        }
 }

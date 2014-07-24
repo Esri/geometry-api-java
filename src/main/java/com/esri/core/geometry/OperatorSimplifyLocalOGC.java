@@ -25,7 +25,6 @@ package com.esri.core.geometry;
 
 class OperatorSimplifyLocalOGC extends OperatorSimplifyOGC {
 
-	// Reviewed vs. Feb 8 2011
 	@Override
 	public GeometryCursor execute(GeometryCursor geoms,
 			SpatialReference spatialRef, boolean bForceSimplify,
@@ -43,7 +42,6 @@ class OperatorSimplifyLocalOGC extends OperatorSimplifyOGC {
 		return res > 0;
 	}
 
-	// Reviewed vs. Feb 8 2011
 	@Override
 	public Geometry execute(Geometry geom, SpatialReference spatialRef,
 			boolean bForceSimplify, ProgressTracker progressTracker) {

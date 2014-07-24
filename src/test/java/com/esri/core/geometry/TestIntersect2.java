@@ -358,7 +358,6 @@ public class TestIntersect2 extends TestCase {
 					SpatialReference.create(4326));
 		} catch (Exception ex) {
 			noException = 0;
-			System.out.println("err: " + ex.getMessage());
 		}
 		assertEquals(noException, 1);
 		assertTrue(intersectGeom.isEmpty());

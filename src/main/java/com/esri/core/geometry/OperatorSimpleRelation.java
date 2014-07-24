@@ -41,22 +41,15 @@ public abstract class OperatorSimpleRelation extends Operator {
 
 	@Override
 	public boolean canAccelerateGeometry(Geometry geometry) {
-		return RasterizedGeometry2D.canUseAccelerator(geometry);
+		return RelationalOperations.Accelerate_helper
+				.can_accelerate_geometry(geometry);
 	}
-	
+
 	@Override
 	public boolean accelerateGeometry(Geometry geometry,
 			SpatialReference spatialReference,
 			GeometryAccelerationDegree accelDegree) {
-		if (!canAccelerateGeometry(geometry))
-			return false;
-
-		double tol = spatialReference != null ? spatialReference
-				.getTolerance(VertexDescription.Semantics.POSITION) : 0;
-		boolean accelerated = ((MultiVertexGeometryImpl) geometry._getImpl())
-				._buildQuadTreeAccelerator(accelDegree);
-		accelerated |= ((MultiVertexGeometryImpl) geometry._getImpl())
-				._buildRasterizedGeometryAccelerator(tol, accelDegree);
-		return accelerated;
+		return RelationalOperations.Accelerate_helper.accelerate_geometry(
+				geometry, spatialReference, accelDegree);
 	}
 }

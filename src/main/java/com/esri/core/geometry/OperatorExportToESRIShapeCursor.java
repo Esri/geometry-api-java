@@ -93,7 +93,7 @@ class OperatorExportToESRIShapeCursor extends ByteBufferCursor {
 			return exportEnvelopeToESRIShape(exportFlags, (Envelope) geometry,
 					shapeBuffer);
 		default: {
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 			// return -1;
 		}
 		}

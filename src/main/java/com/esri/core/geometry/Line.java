@@ -26,6 +26,7 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.VertexDescription.Semantics;
+
 import java.io.Serializable;
 
 /**
@@ -78,13 +79,6 @@ public final class Line extends Segment implements Serializable {
 	@Override
 	boolean _isDegenerate(double tolerance) {
 		return calculateLength2D() <= tolerance;
-	}
-
-	@Override
-	double _calculateSubLength(double t) {
-		Point2D pt = getCoord2D(t);
-		pt.sub(getStartXY());
-		return pt.length();
 	}
 
 	// HEADER DEF
@@ -183,6 +177,16 @@ public final class Line extends Segment implements Serializable {
 	double _calculateArea2DHelper(double xorg, double yorg) {
 		return ((m_xEnd - xorg) - (m_xStart - xorg))
 				* ((m_yEnd - yorg) + (m_yStart - yorg)) * 0.5;
+	}
+
+	@Override
+	double tToLength(double t) {
+		return t * calculateLength2D();
+	}
+
+	@Override
+	double lengthToT(double len) {
+		return len / calculateLength2D();
 	}
 
 	double getCoordX_(double t) {
@@ -292,7 +296,7 @@ public final class Line extends Segment implements Serializable {
 		}
 		}
 
-		throw new GeometryException("internal error");
+		throw GeometryException.GeometryInternalError();
 	}
 
 	@Override
@@ -556,11 +560,25 @@ public final class Line extends Segment implements Serializable {
 		return NumberUtils.TheNaN;
 	}
 
+	@Override
+	public boolean equals(Object other) {
+		if (other == null)
+			return false;
+
+		if (other == this)
+			return true;
+
+		if (other.getClass() != getClass())
+			return false;
+
+		return _equalsImpl((Segment)other);
+	}
+	
 	boolean equals(Line other) {
 		if (other == this)
 			return true;
 
-		if (other instanceof Line)
+		if (!(other instanceof Line))
 			return false;
 
 		return _equalsImpl((Segment) other);

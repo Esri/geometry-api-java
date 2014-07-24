@@ -30,7 +30,7 @@ package com.esri.core.geometry;
  * Basic 3D point class.
  * 
  */
-final class Point3D {
+public final class Point3D {
 	public double x;
 	public double y;
 	public double z;
@@ -68,7 +68,7 @@ final class Point3D {
 		z /= len;
 	}
 
-	double length() {
+	public double length() {
 		return Math.sqrt(x * x + y * y + z * z);
 	}
 
@@ -78,11 +78,11 @@ final class Point3D {
 		this.z = z;
 	}
 
-	Point3D sub(Point3D other) {
+	public Point3D sub(Point3D other) {
 		return new Point3D(x - other.x, y - other.y, z - other.z);
 	}
 
-	Point3D mul(double factor) {
+	public Point3D mul(double factor) {
 		return new Point3D(x * factor, y * factor, z * factor);
 	}
 
