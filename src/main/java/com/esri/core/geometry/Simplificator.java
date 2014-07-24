@@ -1002,8 +1002,9 @@ class Simplificator {
 		m_shape.getXY(v2, pt2);
 		int res = pt1.compare(pt2);
 		if (res == 0) {// sort equal vertices by the path ID
-			res = Integer.compare(m_shape.getPathFromVertex(v1),
-					m_shape.getPathFromVertex(v2));
+			int i1 = m_shape.getPathFromVertex(v1);
+			int i2 = m_shape.getPathFromVertex(v2); 
+			res = i1 < i2 ? -1 : (i1 == i2 ? 0 : 1); 
 		}
 
 		return res;
