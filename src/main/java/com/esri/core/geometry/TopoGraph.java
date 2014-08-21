@@ -1502,58 +1502,78 @@ final class TopoGraph {
 		//there is nothing to do
 	}
 
+	private int getFirstUnvisitedHalfEdgeOnCluster_(int cluster, int hintEdge,
+			int vistiedEdgesIndex) {
+		// finds first half edge which is unvisited (index is not set to 1.
+		// when hintEdge != -1, it is used to start going around the edges.
+
+		int edge = hintEdge != -1 ? hintEdge : getClusterHalfEdge(cluster);
+		if (edge == -1)
+			return -1;
+
+		int f = edge;
+
+		while (true) {
+			int v = getHalfEdgeUserIndex(edge, vistiedEdgesIndex);
+			if (v != 1) {
+				return edge;
+			}
+
+			int next = getHalfEdgeNext(getHalfEdgeTwin(edge));
+			if (next == f)
+				return -1;
+
+			edge = next;
+		}
+	}
+
 	boolean removeSpikes_() {
 		boolean removed = false;
 		int visitedIndex = createUserIndexForHalfEdges();
 		for (int cluster = getFirstCluster(); cluster != -1; cluster = getNextCluster(cluster)) {
-			int firstHalfEdge = getClusterHalfEdge(cluster);
-			if (firstHalfEdge == -1)
-				continue;
+			int nextClusterEdge = -1; //a hint
+			while (true) {
+				int firstHalfEdge = getFirstUnvisitedHalfEdgeOnCluster_(cluster, nextClusterEdge, visitedIndex);
+				if (firstHalfEdge == -1)
+					break;
+	
+				nextClusterEdge = getHalfEdgeNext(getHalfEdgeTwin(firstHalfEdge));
+				int faceHalfEdge = firstHalfEdge;
 
-			int half_edge = firstHalfEdge;
-
-			do {
-				int visited = getHalfEdgeUserIndex(half_edge, visitedIndex);
-				int halfEdgeNext = getHalfEdgeNext(getHalfEdgeTwin(half_edge));
-				if (visited != 1) {
-					int faceHalfEdge = half_edge;
-					do {
-						int faceHalfEdgeNext = getHalfEdgeNext(faceHalfEdge);
-						int faceHalfEdgePrev = getHalfEdgePrev(faceHalfEdge);
-						int faceHalfEdgeTwin = getHalfEdgeTwin(faceHalfEdge);
-						// We first check whether faceHalfEdge corresponds to
-						// the starting segment with
-						// "faceHalfEdge != half_edge && faceHalfEdgePrev != half_edge"
-						// Otherwise if we deleted the first half edge, then
-						// there could be an infinite loop since the terminal
-						// condition wouldn't occur.
-						// if (faceHalfEdge != half_edge && faceHalfEdgeNext !=
-						// half_edge && faceHalfEdgePrev == faceHalfEdgeTwin)
-						if (faceHalfEdge != half_edge
-								&& faceHalfEdgePrev != half_edge
-								&& faceHalfEdgePrev == faceHalfEdgeTwin) {
-							deleteEdgeInternal_(faceHalfEdge);
-							removed = true;
-							assert (faceHalfEdgeNext != faceHalfEdge);
-							assert (faceHalfEdgeNext != faceHalfEdgeTwin);
-							assert (faceHalfEdgeNext != faceHalfEdgePrev);
-						} else {
-							setHalfEdgeUserIndex(faceHalfEdge, visitedIndex, 1);
-						}
-
-						faceHalfEdge = faceHalfEdgeNext;
-					} while (faceHalfEdge != half_edge);
-
+				while (true) {
+					int faceHalfEdgeNext = getHalfEdgeNext(faceHalfEdge);
 					int faceHalfEdgePrev = getHalfEdgePrev(faceHalfEdge);
 					int faceHalfEdgeTwin = getHalfEdgeTwin(faceHalfEdge);
+					
 					if (faceHalfEdgePrev == faceHalfEdgeTwin) {
-						deleteEdgeInternal_(faceHalfEdge);
+						deleteEdgeInternal_(faceHalfEdge); //deletes the edge and its twin
 						removed = true;
+					
+						if (nextClusterEdge == faceHalfEdge || nextClusterEdge == faceHalfEdgeTwin)
+							nextClusterEdge = -1; //deleted the hint edge
+
+						if (faceHalfEdge == firstHalfEdge || faceHalfEdgePrev == firstHalfEdge) {
+							firstHalfEdge = faceHalfEdgeNext;
+							if (faceHalfEdge == firstHalfEdge || faceHalfEdgePrev == firstHalfEdge) {
+								//deleted all edges in a face
+								break;
+							}
+							
+							faceHalfEdge = faceHalfEdgeNext;
+							continue;
+						}
+
 					}
+					else {
+						setHalfEdgeUserIndex(faceHalfEdge, visitedIndex, 1);
+					}
+
+					faceHalfEdge = faceHalfEdgeNext;
+					if (faceHalfEdge == firstHalfEdge)
+						break;
 				}
 
-				half_edge = halfEdgeNext;
-			} while (half_edge != firstHalfEdge);
+			}
 		}
 
 		return removed;
@@ -2104,7 +2124,9 @@ final class TopoGraph {
 			setChainHalfEdge_(chain, n);
 		}
 
-		if (!NumberUtils.isNaN(getChainArea(chain))) {
+		int chainIndex = getChainIndex_(chain);
+		double v = m_chainAreas.read(chainIndex);
+		if (!NumberUtils.isNaN(v)) {
 			setChainArea_(chain, NumberUtils.TheNaN);
 			setChainPerimeter_(chain, NumberUtils.TheNaN);
 		}

@@ -606,8 +606,7 @@ class OperatorIntersectionCursor extends GeometryCursor {
 										resSeg.getStartXY(), tolerance) != 1) {
 									if (analyseClipSegment_(polygon, resSeg,
 											tolerance) != 1) {
-										assert (false);// something went wrong.
-										return null;
+										return null;  //someting went wrong we'll falback to slower but robust planesweep code.
 									}
 								}
 
@@ -667,9 +666,7 @@ class OperatorIntersectionCursor extends GeometryCursor {
 																		// be
 																		// inside.
 						if (clipStatus < 0) {
-							assert (clipStatus >= 0);// E-mail the repro case to
-														// the Geometry team to
-														// investigate.
+							assert (clipStatus >= 0);
 							return null;// something goes wrong, resort to
 										// planesweep
 						}

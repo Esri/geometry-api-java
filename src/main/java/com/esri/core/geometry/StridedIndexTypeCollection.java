@@ -63,8 +63,13 @@ final class StridedIndexTypeCollection {
 		m_blockSize = m_realBlockSize / m_realStride;
 	}
 
+	private boolean dbgdelete_(int element) {
+		m_buffer[element >> m_blockPower][(element & m_blockMask) + 1] = -0x7eadbeed;
+		return true;
+	}
+	
 	void deleteElement(int element) {
-		assert dbgdelete_(element);
+		assert(dbgdelete_(element));
 		int totalStrides = (element >> m_blockPower) * m_blockSize
 				* m_realStride + (element & m_blockMask);
 		if (totalStrides < m_last * m_realStride) {
@@ -79,12 +84,14 @@ final class StridedIndexTypeCollection {
 
 	// Returns the given field of the element.
 	int getField(int element, int field) {
+		assert(m_buffer[element >> m_blockPower][(element & m_blockMask) + 1] != -0x7eadbeed);
 		return m_buffer[element >> m_blockPower][(element & m_blockMask)
 				+ field];
 	}
 
 	// Sets the given field of the element.
 	void setField(int element, int field, int value) {
+		assert(m_buffer[element >> m_blockPower][(element & m_blockMask) + 1] != -0x7eadbeed);
 		m_buffer[element >> m_blockPower][(element & m_blockMask) + field] = value;
 	}
 
@@ -199,11 +206,6 @@ final class StridedIndexTypeCollection {
 
 	static boolean isValidElement(int element) {
 		return element >= 0;
-	}
-
-	private boolean dbgdelete_(int element) {
-		setField(element, 1, 0x7eadbeed);
-		return true;
 	}
 
 	private void ensureBufferBlocksCapacity(int blocks) {

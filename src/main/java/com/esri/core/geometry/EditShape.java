@@ -1475,11 +1475,12 @@ final class EditShape {
       int path = insertPath(geometry, -1);
       int path_size = 0;
       int vertex = first_vertex;
-      contains_checked_vertex[0] = false;
+      boolean contains = false;
+      
       while(true)
       {
         if (vertex == checked_vertex)
-          contains_checked_vertex[0] = true;
+          contains = true;
         
         setPathToVertex_(vertex, path);
         path_size++;
@@ -1493,12 +1494,17 @@ final class EditShape {
 
       setClosedPath(path, true);
       setPathSize_(path, path_size);
-      if (contains_checked_vertex[0])
+      if (contains)
         first_vertex = checked_vertex;
 
       setFirstVertex_(path, first_vertex);
       setLastVertex_(path, getPrevVertex(first_vertex));
       setRingAreaValid_(path, false);
+      
+      if (contains_checked_vertex != null) {
+    	  contains_checked_vertex[0] = contains;
+      }
+      
       return path;
     }
 	

@@ -894,7 +894,15 @@ class RelationalOperations {
 				progress_tracker))
 			return true;
 
-		return linearPathEqualsLinearPath_(polygon_a, polygon_b, tolerance);
+		double length_a = polygon_a.calculateLength2D();
+		double length_b = polygon_b.calculateLength2D();
+		int max_vertices = Math.max(polygon_a.getPointCount(),
+				polygon_b.getPointCount());
+
+		if (Math.abs(length_a - length_b) > max_vertices * 4.0 * tolerance)
+			return false;
+
+		return linearPathEqualsLinearPath_(polygon_a, polygon_b, tolerance, true);
 	}
 
 	// Returns true if polygon_a is disjoint from polygon_b.
@@ -1264,7 +1272,7 @@ class RelationalOperations {
 		Polygon polygon_b = new Polygon();
 		polygon_b.addEnvelope(envelope_b, false);
 
-		return linearPathEqualsLinearPath_(polygon_a, polygon_b, tolerance);
+		return linearPathEqualsLinearPath_(polygon_a, polygon_b, tolerance, true);
 	}
 
 	// Returns true if polygon_a is disjoint from envelope_b.
@@ -1520,7 +1528,7 @@ class RelationalOperations {
 				progress_tracker))
 			return true;
 
-		return linearPathEqualsLinearPath_(polyline_a, polyline_b, tolerance);
+		return linearPathEqualsLinearPath_(polyline_a, polyline_b, tolerance, false);
 	}
 
 	// Returns true if polyline_a is disjoint from polyline_b.
@@ -1633,7 +1641,7 @@ class RelationalOperations {
 				false) == Relation.disjoint)
 			return false;
 
-		return linearPathWithinLinearPath_(polyline_b, polyline_a, tolerance);
+		return linearPathWithinLinearPath_(polyline_b, polyline_a, tolerance, false);
 	}
 
 	// Returns true if polyline_a is disjoint from point_b.
@@ -2127,7 +2135,7 @@ class RelationalOperations {
 		polyline_b.startPath(p);
 		envelope_b.queryCornerByVal(2, p);
 		polyline_b.lineTo(p);
-		return linearPathWithinLinearPath_(polyline_b, polyline_a, tolerance);
+		return linearPathWithinLinearPath_(polyline_b, polyline_a, tolerance, false);
 	}
 
 	// Returns true if polyline_a crosses envelope_b.
@@ -3405,16 +3413,16 @@ class RelationalOperations {
 
 	// Returns true if multipathA equals multipathB.
 	private static boolean linearPathEqualsLinearPath_(MultiPath multipathA,
-			MultiPath multipathB, double tolerance) {
-		return linearPathWithinLinearPath_(multipathA, multipathB, tolerance)
+			MultiPath multipathB, double tolerance, boolean bEnforceOrientation) {
+		return linearPathWithinLinearPath_(multipathA, multipathB, tolerance, bEnforceOrientation)
 				&& linearPathWithinLinearPath_(multipathB, multipathA,
-						tolerance);
+						tolerance, bEnforceOrientation);
 	}
 
 	// Returns true if the segments of multipathA are within the segments of
 	// multipathB.
 	private static boolean linearPathWithinLinearPath_(MultiPath multipathA,
-			MultiPath multipathB, double tolerance) {
+			MultiPath multipathB, double tolerance, boolean bEnforceOrientation) {
 		boolean bWithin = true;
 		double[] scalarsA = new double[2];
 		double[] scalarsB = new double[2];
@@ -3485,7 +3493,7 @@ class RelationalOperations {
 					int result = segmentA.intersect(segmentB, null, scalarsA,
 							scalarsB, tolerance);
 
-					if (result == 2) {
+					if (result == 2 && (!bEnforceOrientation || scalarsB[0] <= scalarsB[1])) {
 						double scalar_a_0 = scalarsA[0];
 						double scalar_a_1 = scalarsA[1];
 						double scalar_b_0 = scalarsB[0];
@@ -3515,7 +3523,7 @@ class RelationalOperations {
 									result = segmentA.intersect(segmentB, null,
 											scalarsA, scalarsB, tolerance);
 
-									if (result == 2) {
+									if (result == 2 && (!bEnforceOrientation || scalarsB[0] <= scalarsB[1])) {
 										scalar_a_0 = scalarsA[0];
 										scalar_a_1 = scalarsA[1];
 
@@ -3533,7 +3541,7 @@ class RelationalOperations {
 												null, scalarsA, scalarsB,
 												tolerance);
 
-										if (result == 2) {
+										if (result == 2 && (!bEnforceOrientation || scalarsB[0] <= scalarsB[1])) {
 											scalar_a_0 = scalarsA[0];
 											scalar_a_1 = scalarsA[1];
 
@@ -3642,15 +3650,15 @@ class RelationalOperations {
 
 		if (bIntAExtB && !bIntBExtA)
 			return !linearPathWithinLinearPath_(multipathB, multipathA,
-					tolerance);
+					tolerance, false);
 
 		if (bIntBExtA && !bIntAExtB)
 			return !linearPathWithinLinearPath_(multipathA, multipathB,
-					tolerance);
+					tolerance, false);
 
-		return !linearPathWithinLinearPath_(multipathA, multipathB, tolerance)
+		return !linearPathWithinLinearPath_(multipathA, multipathB, tolerance, false)
 				&& !linearPathWithinLinearPath_(multipathB, multipathA,
-						tolerance);
+						tolerance, false);
 	}
 
 	// Returns true the dimension of intersection of _multipathA and

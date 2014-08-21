@@ -57,7 +57,7 @@
 		<mkdir dir="${dir.result.today}/xml" />
 
 		<junit fork="yes" printsummary="withOutAndErr" haltonfailure="no" haltonerror="no">
-			<jvmarg value="-Xss2m" />
+			<jvmarg value="-ea" />
 			<classpath refid="project.classpath" />
 			<sysproperty key="dir.report.test" value="${dir.result.today}" />
 			<sysproperty key="arcgis.version.target" value="10.2" />

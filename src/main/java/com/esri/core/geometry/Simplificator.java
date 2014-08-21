@@ -46,7 +46,7 @@ class Simplificator {
 	private void _beforeRemoveVertex(int vertex, boolean bChangePathFirst) {
 		int vertexlistIndex = m_shape.getUserIndex(vertex,
 				m_userIndexSortedIndexToVertex);
-		// _ASSERT(m_sortedVertices.getData(vertexlistIndex) != 0xdeadbeef);
+
 		if (m_nextVertexToProcess == vertexlistIndex) {
 			m_nextVertexToProcess = m_sortedVertices
 					.getNext(m_nextVertexToProcess);
@@ -65,12 +65,26 @@ class Simplificator {
 				int first = m_shape.getFirstVertex(path);
 				if (first == vertex) {
 					int next = m_shape.getNextVertex(vertex);
-					if (next != vertex)
-						m_shape.setFirstVertex_(path, next);
-					else {
-						m_shape.setFirstVertex_(path, -1);
-						m_shape.setLastVertex_(path, -1);
+					if (next != vertex) {
+						int p = m_shape.getPathFromVertex(next);
+						if (p == path) {
+							m_shape.setFirstVertex_(path, next);
+							return;
+						}
+						else {
+							int prev = m_shape.getPrevVertex(vertex);
+							if (prev != vertex) {
+								p = m_shape.getPathFromVertex(prev);
+								if (p == path) {
+									m_shape.setFirstVertex_(path, prev);
+									return;
+								}
+							}
+						}
 					}
+
+					m_shape.setFirstVertex_(path, -1);
+					m_shape.setLastVertex_(path, -1);
 				}
 			}
 		}
@@ -709,19 +723,17 @@ class Simplificator {
 				m_shape.removeVertexInternal_(vertexA2, true);
 				_removeAngleSortInfo(vertexA1);
 				_transferVertexData(vertexB2, vertexB1);
-				_beforeRemoveVertex(vertexB2, false);
+				_beforeRemoveVertex(vertexB2, true);
 				m_shape.removeVertexInternal_(vertexB2, false);
 				_removeAngleSortInfo(vertexB1);
 			} else {
-				// _ASSERT(m_shape.getNextVertex(vertexB1) == vertexA1);
-				// _ASSERT(m_shape.getNextVertex(vertexA2) == vertexB2);
 				m_shape.setNextVertex_(vertexA2, vertexA1); // B1 B2<
 				m_shape.setPrevVertex_(vertexA1, vertexA2); // | |
 				m_shape.setNextVertex_(vertexB1, vertexB2); // | |
 				m_shape.setPrevVertex_(vertexB2, vertexB1); // A1< A2
 
 				_transferVertexData(vertexA2, vertexA1);
-				_beforeRemoveVertex(vertexA2, false);
+				_beforeRemoveVertex(vertexA2, true);
 				m_shape.removeVertexInternal_(vertexA2, false);
 				_removeAngleSortInfo(vertexA1);
 				_transferVertexData(vertexB2, vertexB1);
@@ -750,17 +762,17 @@ class Simplificator {
 				// m_shape.dbgVerifyIntegrity(a2);//debug
 
 				boolean bVisitedA1 = false;
-				m_shape.setNextVertex_(a1, a2); // ^ | <--- ^ \ --.
-				m_shape.setNextVertex_(a2, a1); // | | | ^ | |
-				m_shape.setPrevVertex_(b1, b2); // | | | | | |
-				m_shape.setPrevVertex_(b2, b1); // | | | | | |
-				int v = b2; // | | | | =>| |
-				while (v != a2) // | | . | | -. |
-				{ // | <-- | | | ./ | |
-					int prev = m_shape.getPrevVertex(v); // | | | | | | | |
-					int next = m_shape.getNextVertex(v); // <-+---<--- |
-															// <-+---<--- |
-					m_shape.setPrevVertex_(v, next); // --------. <--------
+				m_shape.setNextVertex_(a1, a2);
+				m_shape.setNextVertex_(a2, a1);
+				m_shape.setPrevVertex_(b1, b2);
+				m_shape.setPrevVertex_(b2, b1);
+				int v = b2;
+				while (v != a2)
+				{
+					int prev = m_shape.getPrevVertex(v);
+					int next = m_shape.getNextVertex(v);
+
+					m_shape.setPrevVertex_(v, next);
 					m_shape.setNextVertex_(v, prev);
 					bVisitedA1 |= v == a1;
 					v = next;
@@ -791,12 +803,6 @@ class Simplificator {
 				// m_shape.dbgVerifyIntegrity(b1);//debug
 				// m_shape.dbgVerifyIntegrity(a1);//debug
 			}
-			// else
-			// {
-			// m_shape._ReverseRingInternal(vertexA2);
-			// _ResolveOverlapOddEven(bDirection1, !bDirection2, vertexA1,
-			// vertexB1, vertexA2, vertexB2);
-			// }
 		}
 	}
 
@@ -902,12 +908,10 @@ class Simplificator {
 			int pathSize = 1;
 			for (int vertex = m_shape.getNextVertex(first); vertex != first; vertex = m_shape
 					.getNextVertex(vertex)) {
-				// _ASSERT(m_shape.getPathFromVertex(vertex) == -1);
 				m_shape.setPathToVertex_(vertex, path);
-				// _ASSERT(m_shape.getNextVertex(m_shape.getPrevVertex(vertex))
-				// == vertex);
 				pathSize++;
 			}
+			m_shape.setRingAreaValid_(path,false);
 			m_shape.setPathSize_(path, pathSize);
 			m_shape.setLastVertex_(path, m_shape.getPrevVertex(first));
 			geometrySize += pathSize;
@@ -915,40 +919,29 @@ class Simplificator {
 			path = m_shape.getNextPath(path);
 		}
 
-		// produce new paths for the orphan vertices.
+		// Some vertices do not belong to any path. We have to create new path
+		// objects for those.
+		// Produce new paths for the orphan vertices.
 		for (int node = m_sortedVertices.getFirst(m_sortedVertices
 				.getFirstList()); node != -1; node = m_sortedVertices
 				.getNext(node)) {
 			int vertex = m_sortedVertices.getData(node);
 			if (m_shape.getPathFromVertex(vertex) != -1)
 				continue;
-			int path = m_shape.insertPath(m_geometry, -1);
-			int pathSize = 0;
-			int first = vertex;
-			while (true) {
-				m_shape.setPathToVertex_(vertex, path);
-				pathSize++;
-				int next = m_shape.getNextVertex(vertex);
-				// _ASSERT(m_shape.getNextVertex(m_shape.getPrevVertex(vertex))
-				// == vertex);
-				if (next == first)
-					break;
-				vertex = next;
-			}
-
-			m_shape.setClosedPath(path, true);
-
-			m_shape.setPathSize_(path, pathSize);
-			m_shape.setFirstVertex_(path, first);
-			m_shape.setLastVertex_(path, m_shape.getPrevVertex(first));
-			geometrySize += pathSize;
+			
+			int path = m_shape.insertClosedPath_(m_geometry, -1, vertex, vertex, null);
+			geometrySize += m_shape.getPathSize(path);
 			pathCount++;
 		}
+		
 		m_shape.setGeometryPathCount_(m_geometry, pathCount);
-		int totalPointCount = m_shape.getTotalPointCount()
-				- m_shape.getPointCount(m_geometry);
 		m_shape.setGeometryVertexCount_(m_geometry, geometrySize);
-		m_shape.setTotalPointCount_(totalPointCount + geometrySize);
+		int totalPointCount = 0;
+		for (int geometry = m_shape.getFirstGeometry(); geometry != -1; geometry = m_shape.getNextGeometry(geometry)) {
+			totalPointCount += m_shape.getPointCount(geometry);
+		}
+		
+		m_shape.setTotalPointCount_(totalPointCount);
 	}
 
 	private int _getNextEdgeIndex(int indexIn) {
@@ -1003,8 +996,8 @@ class Simplificator {
 		int res = pt1.compare(pt2);
 		if (res == 0) {// sort equal vertices by the path ID
 			int i1 = m_shape.getPathFromVertex(v1);
-			int i2 = m_shape.getPathFromVertex(v2); 
-			res = i1 < i2 ? -1 : (i1 == i2 ? 0 : 1); 
+			int i2 = m_shape.getPathFromVertex(v2);
+			res = i1 < i2 ? -1 : (i1 == i2 ? 0 : 1);
 		}
 
 		return res;

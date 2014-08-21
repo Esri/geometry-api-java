@@ -2,13 +2,12 @@ package com.esri.core.geometry;
 
 import junit.framework.TestCase;
 
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonParser;
 import org.junit.Test;
 
 import com.esri.core.geometry.Geometry.GeometryAccelerationDegree;
 
 public class TestRelation extends TestCase {
+
 	@Override
 	protected void setUp() throws Exception {
 		super.setUp();
@@ -629,7 +628,7 @@ public class TestRelation extends TestCase {
 
 		// Polygon1 and Polygon2 are topologically equal, but have differing
 		// number of vertices
-		String str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[0,5],[0,7],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
+		String str1 = "{\"rings\":[[[0,0],[0,5],[0,7],[0,10],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		String str2 = "{\"rings\":[[[0,10],[10,10],[10,0],[0,0],[0,10]],[[9,1],[9,6],[9,9],[1,9],[1,1],[1,1],[9,1]]]}";
 
 		Polygon polygon1 = (Polygon) TestCommonMethods.fromJson(str1)
@@ -681,9 +680,20 @@ public class TestRelation extends TestCase {
 		polygon2 = (Polygon) TestCommonMethods.fromJson(str2).getGeometry();
 
 		res = equals.execute(polygon1, polygon2, sr, null);
-		assertTrue(res);
+		assertTrue(!res);
 		res = equals.execute(polygon2, polygon1, sr, null);
-		assertTrue(res);
+		assertTrue(!res);
+
+		// The rings are equal but first polygon has two rings stacked
+		str1 = "{\"rings\":[[[0,0],[0,10],[10,10],[10,0],[0,0]],[[0,10],[10,10],[10,0],[0,0],[0,10]]]}";
+		str2 = "{\"rings\":[[[0,10],[10,10],[10,0],[0,0],[0,10]]]}";
+		polygon1 = (Polygon) TestCommonMethods.fromJson(str1).getGeometry();
+		polygon2 = (Polygon) TestCommonMethods.fromJson(str2).getGeometry();
+
+		res = equals.execute(polygon1, polygon2, sr, null);
+		assertTrue(!res);
+		res = equals.execute(polygon2, polygon1, sr, null);
+		assertTrue(!res);
 	}
 
 	@Test
@@ -2435,10 +2445,10 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(equals.execute(envelope, densified, sr, null)); // they
-																		// cover
-																		// the
-																		// same
-																		// space
+			// cover
+			// the
+			// same
+			// space
 			assertTrue(contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -2457,14 +2467,14 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // the
-																		// polygon
-																		// contains
-																		// the
-																		// envelope,
-																		// but
-																		// they
-																		// aren't
-																		// equal
+			// polygon
+			// contains
+			// the
+			// envelope,
+			// but
+			// they
+			// aren't
+			// equal
 			assertTrue(contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -2483,15 +2493,15 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // the
-																		// envelope
-																		// sticks
-																		// outside
-																		// of
-																		// the
-																		// polygon
-																		// but
-																		// they
-																		// intersect
+			// envelope
+			// sticks
+			// outside
+			// of
+			// the
+			// polygon
+			// but
+			// they
+			// intersect
 			assertTrue(!contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -2510,17 +2520,17 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // the
-																		// envelope
-																		// sticks
-																		// outside
-																		// of
-																		// the
-																		// polygon
-																		// but
-																		// they
-																		// intersect
-																		// and
-																		// overlap
+			// envelope
+			// sticks
+			// outside
+			// of
+			// the
+			// polygon
+			// but
+			// they
+			// intersect
+			// and
+			// overlap
 			assertTrue(!contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -2539,15 +2549,15 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // the
-																		// envelope
-																		// rides
-																		// the
-																		// side
-																		// of
-																		// the
-																		// polygon
-																		// (they
-																		// touch)
+			// envelope
+			// rides
+			// the
+			// side
+			// of
+			// the
+			// polygon
+			// (they
+			// touch)
 			assertTrue(!contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(touches.execute(envelope, densified, sr, null));
@@ -2566,12 +2576,12 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(contains.execute(densified, envelope, sr, null)); // polygon
-																			// and
-																			// envelope
-																			// cover
-																			// the
-																			// same
-																			// space
+			// and
+			// envelope
+			// cover
+			// the
+			// same
+			// space
 			assertTrue(!disjoint.execute(densified, envelope, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2590,15 +2600,15 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null));
 			assertTrue(!contains.execute(densified, envelope, sr, null)); // envelope
-																			// sticks
-																			// outside
-																			// of
-																			// polygon,
-																			// but
-																			// the
-																			// envelopes
-																			// are
-																			// equal
+			// sticks
+			// outside
+			// of
+			// polygon,
+			// but
+			// the
+			// envelopes
+			// are
+			// equal
 			assertTrue(!disjoint.execute(densified, envelope, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2617,15 +2627,15 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null));
 			assertTrue(!contains.execute(densified, envelope, sr, null)); // the
-																			// polygon
-																			// envelope
-																			// doesn't
-																			// contain
-																			// the
-																			// envelope,
-																			// but
-																			// they
-																			// intersect
+			// polygon
+			// envelope
+			// doesn't
+			// contain
+			// the
+			// envelope,
+			// but
+			// they
+			// intersect
 			assertTrue(!disjoint.execute(densified, envelope, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2644,16 +2654,16 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null));
 			assertTrue(!contains.execute(densified, envelope, sr, null)); // envelope
-																			// degenerate
-																			// to
-																			// a
-																			// point
-																			// and
-																			// is
-																			// on
-																			// border
-																			// (i.e.
-																			// touches)
+			// degenerate
+			// to
+			// a
+			// point
+			// and
+			// is
+			// on
+			// border
+			// (i.e.
+			// touches)
 			assertTrue(!disjoint.execute(densified, envelope, sr, null));
 			assertTrue(touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2672,14 +2682,14 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null));
 			assertTrue(contains.execute(densified, envelope, sr, null)); // envelope
-																			// degenerate
-																			// to
-																			// a
-																			// point
-																			// and
-																			// is
-																			// properly
-																			// inside
+			// degenerate
+			// to
+			// a
+			// point
+			// and
+			// is
+			// properly
+			// inside
 			assertTrue(!disjoint.execute(densified, envelope, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2698,14 +2708,14 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null));
 			assertTrue(!contains.execute(densified, envelope, sr, null)); // envelope
-																			// degenerate
-																			// to
-																			// a
-																			// point
-																			// and
-																			// is
-																			// properly
-																			// outside
+			// degenerate
+			// to
+			// a
+			// point
+			// and
+			// is
+			// properly
+			// outside
 			assertTrue(disjoint.execute(densified, envelope, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2724,20 +2734,20 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null));
 			assertTrue(!contains.execute(densified, envelope, sr, null)); // envelope
-																			// degenerate
-																			// to
-																			// a
-																			// line
-																			// and
-																			// rides
-																			// the
-																			// bottom
-																			// of
-																			// the
-																			// polygon
-																			// (no
-																			// interior
-																			// intersection)
+			// degenerate
+			// to
+			// a
+			// line
+			// and
+			// rides
+			// the
+			// bottom
+			// of
+			// the
+			// polygon
+			// (no
+			// interior
+			// intersection)
 			assertTrue(!disjoint.execute(densified, envelope, sr, null));
 			assertTrue(touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2756,20 +2766,20 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null));
 			assertTrue(contains.execute(densified, envelope, sr, null)); // envelope
-																			// degenerate
-																			// to
-																			// a
-																			// line,
-																			// touches
-																			// the
-																			// border
-																			// on
-																			// the
-																			// inside
-																			// yet
-																			// has
-																			// interior
-																			// intersection
+			// degenerate
+			// to
+			// a
+			// line,
+			// touches
+			// the
+			// border
+			// on
+			// the
+			// inside
+			// yet
+			// has
+			// interior
+			// intersection
 			assertTrue(!disjoint.execute(densified, envelope, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2788,16 +2798,16 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null));
 			assertTrue(!contains.execute(densified, envelope, sr, null)); // envelope
-																			// degenerate
-																			// to
-																			// a
-																			// line,
-																			// touches
-																			// the
-																			// boundary,
-																			// and
-																			// is
-																			// outside
+			// degenerate
+			// to
+			// a
+			// line,
+			// touches
+			// the
+			// boundary,
+			// and
+			// is
+			// outside
 			assertTrue(!disjoint.execute(densified, envelope, sr, null));
 			assertTrue(touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2816,13 +2826,13 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null));
 			assertTrue(!contains.execute(densified, envelope, sr, null)); // envelope
-																			// degenerate
-																			// to
-																			// a
-																			// line,
-																			// and
-																			// is
-																			// outside
+			// degenerate
+			// to
+			// a
+			// line,
+			// and
+			// is
+			// outside
 			assertTrue(disjoint.execute(densified, envelope, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2841,13 +2851,13 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null));
 			assertTrue(!contains.execute(densified, envelope, sr, null)); // envelope
-																			// degenerate
-																			// to
-																			// a
-																			// line,
-																			// and
-																			// crosses
-																			// polygon
+			// degenerate
+			// to
+			// a
+			// line,
+			// and
+			// crosses
+			// polygon
 			assertTrue(!disjoint.execute(densified, envelope, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2889,11 +2899,11 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // polyline
-																		// straddles
-																		// the
-																		// envelope
-																		// like
-																		// a hat
+			// straddles
+			// the
+			// envelope
+			// like
+			// a hat
 			assertTrue(!contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(touches.execute(envelope, densified, sr, null));
@@ -2950,8 +2960,8 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // polyline
-																		// properly
-																		// inside
+			// properly
+			// inside
 			assertTrue(contains.execute(envelope, densified, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -3007,14 +3017,14 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // polyline
-																		// slices
-																		// through
-																		// the
-																		// envelope
-																		// (interior
-																		// and
-																		// exterior
-																		// intersection)
+			// slices
+			// through
+			// the
+			// envelope
+			// (interior
+			// and
+			// exterior
+			// intersection)
 			assertTrue(!contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -3033,9 +3043,9 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // polyline
-																		// outside
-																		// of
-																		// envelope
+			// outside
+			// of
+			// envelope
 			assertTrue(!contains.execute(densified, envelope, sr, null));
 			assertTrue(disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -3055,12 +3065,12 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // polyline
-																		// straddles
-																		// the
-																		// degenerate
-																		// envelope
-																		// like
-																		// a hat
+			// straddles
+			// the
+			// degenerate
+			// envelope
+			// like
+			// a hat
 			assertTrue(contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -3099,13 +3109,13 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(densified, 0.00000001, 511);
 			wiggleGeometry(envelope, 0.00000001, 1982);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // degenerate
-																		// envelope
-																		// is at
-																		// the
-																		// end
-																		// point
-																		// of
-																		// polyline
+			// envelope
+			// is at
+			// the
+			// end
+			// point
+			// of
+			// polyline
 			assertTrue(!contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(touches.execute(envelope, densified, sr, null));
@@ -3125,12 +3135,12 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // degenerate
-																		// envelope
-																		// is at
-																		// the
-																		// interior
-																		// of
-																		// polyline
+			// envelope
+			// is at
+			// the
+			// interior
+			// of
+			// polyline
 			assertTrue(contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -3149,9 +3159,9 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // degenerate
-																		// envelope
-																		// crosses
-																		// polyline
+			// envelope
+			// crosses
+			// polyline
 			assertTrue(!contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -3170,9 +3180,9 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // degenerate
-																		// envelope
-																		// crosses
-																		// polyline
+			// envelope
+			// crosses
+			// polyline
 			assertTrue(!contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(touches.execute(envelope, densified, sr, null));
@@ -3191,9 +3201,9 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // degenerate
-																		// envelope
-																		// contains
-																		// polyline
+			// envelope
+			// contains
+			// polyline
 			assertTrue(!contains.execute(densified, envelope, sr, null));
 			assertTrue(contains.execute(envelope, densified, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
@@ -3213,8 +3223,8 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // polyline
-																		// properly
-																		// inside
+			// properly
+			// inside
 			assertTrue(!contains.execute(envelope, densified, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(touches.execute(envelope, densified, sr, null));
@@ -3233,8 +3243,8 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(equals.execute(envelope, densified, sr, null)); // polyline
-																		// properly
-																		// inside
+			// properly
+			// inside
 			assertTrue(contains.execute(envelope, densified, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -3276,9 +3286,9 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // all
-																			// points
-																			// on
-																			// boundary
+			// points
+			// on
+			// boundary
 			assertTrue(!contains.execute(envelope, multi_point, sr, null));
 			assertTrue(!disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(touches.execute(envelope, multi_point, sr, null));
@@ -3296,13 +3306,13 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // points
-																			// on
-																			// boundary
-																			// and
-																			// one
-																			// point
-																			// in
-																			// interior
+			// on
+			// boundary
+			// and
+			// one
+			// point
+			// in
+			// interior
 			assertTrue(contains.execute(envelope, multi_point, sr, null));
 			assertTrue(!disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(!touches.execute(envelope, multi_point, sr, null));
@@ -3320,12 +3330,12 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // points
-																			// on
-																			// boundary,
-																			// one
-																			// interior,
-																			// one
-																			// exterior
+			// on
+			// boundary,
+			// one
+			// interior,
+			// one
+			// exterior
 			assertTrue(!contains.execute(envelope, multi_point, sr, null));
 			assertTrue(!disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(!touches.execute(envelope, multi_point, sr, null));
@@ -3343,10 +3353,10 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // points
-																			// on
-																			// boundary,
-																			// one
-																			// exterior
+			// on
+			// boundary,
+			// one
+			// exterior
 			assertTrue(!contains.execute(envelope, multi_point, sr, null));
 			assertTrue(!disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(touches.execute(envelope, multi_point, sr, null));
@@ -3364,8 +3374,8 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // all
-																			// points
-																			// exterior
+			// points
+			// exterior
 			assertTrue(!contains.execute(envelope, multi_point, sr, null));
 			assertTrue(disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(!touches.execute(envelope, multi_point, sr, null));
@@ -3383,18 +3393,18 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // degenerate
-																			// envelope
-																			// slices
-																			// through
-																			// some
-																			// points,
-																			// but
-																			// some
-																			// points
-																			// are
-																			// off
-																			// the
-																			// line
+			// envelope
+			// slices
+			// through
+			// some
+			// points,
+			// but
+			// some
+			// points
+			// are
+			// off
+			// the
+			// line
 			assertTrue(!contains.execute(envelope, multi_point, sr, null));
 			assertTrue(!disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(touches.execute(envelope, multi_point, sr, null));
@@ -3412,18 +3422,18 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // degenerate
-																			// envelope
-																			// slices
-																			// through
-																			// some
-																			// points,
-																			// but
-																			// some
-																			// points
-																			// are
-																			// off
-																			// the
-																			// line
+			// envelope
+			// slices
+			// through
+			// some
+			// points,
+			// but
+			// some
+			// points
+			// are
+			// off
+			// the
+			// line
 			assertTrue(!contains.execute(envelope, multi_point, sr, null));
 			assertTrue(!disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(!touches.execute(envelope, multi_point, sr, null));
@@ -3440,22 +3450,22 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // degenerate
-																			// envelopes
-																			// slices
-																			// through
-																			// all
-																			// the
-																			// points,
-																			// and
-																			// they
-																			// are
-																			// at
-																			// the
-																			// end
-																			// points
-																			// of
-																			// the
-																			// line
+			// envelopes
+			// slices
+			// through
+			// all
+			// the
+			// points,
+			// and
+			// they
+			// are
+			// at
+			// the
+			// end
+			// points
+			// of
+			// the
+			// line
 			assertTrue(!contains.execute(envelope, multi_point, sr, null));
 			assertTrue(!disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(touches.execute(envelope, multi_point, sr, null));
@@ -3472,21 +3482,21 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // degenerate
-																			// envelopes
-																			// slices
-																			// through
-																			// all
-																			// the
-																			// points,
-																			// and
-																			// they
-																			// are
-																			// in
-																			// the
-																			// interior
-																			// of
-																			// the
-																			// line
+			// envelopes
+			// slices
+			// through
+			// all
+			// the
+			// points,
+			// and
+			// they
+			// are
+			// in
+			// the
+			// interior
+			// of
+			// the
+			// line
 			assertTrue(contains.execute(envelope, multi_point, sr, null));
 			assertTrue(!disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(!touches.execute(envelope, multi_point, sr, null));
@@ -3504,8 +3514,8 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // all
-																			// points
-																			// exterior
+			// points
+			// exterior
 			assertTrue(!contains.execute(envelope, multi_point, sr, null));
 			assertTrue(disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(!touches.execute(envelope, multi_point, sr, null));
@@ -3523,8 +3533,8 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // all
-																			// points
-																			// exterior
+			// points
+			// exterior
 			assertTrue(!contains.execute(envelope, multi_point, sr, null));
 			assertTrue(disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(!touches.execute(envelope, multi_point, sr, null));
@@ -3542,8 +3552,8 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // all
-																			// points
-																			// exterior
+			// points
+			// exterior
 			assertTrue(!contains.execute(multi_point, envelope, sr, null));
 			assertTrue(!contains.execute(envelope, multi_point, sr, null));
 			assertTrue(!disjoint.execute(envelope, multi_point, sr, null));
@@ -3561,8 +3571,8 @@ public class TestRelation extends TestCase {
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(equals.execute(envelope, multi_point, sr, null)); // all
-																			// points
-																			// exterior
+			// points
+			// exterior
 			assertTrue(contains.execute(multi_point, envelope, sr, null));
 			assertTrue(contains.execute(envelope, multi_point, sr, null));
 			assertTrue(!disjoint.execute(envelope, multi_point, sr, null));
@@ -4938,32 +4948,21 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolylinePointRelate() {
-		OperatorRelate op = (OperatorRelate) (OperatorFactoryLocal
-				.getInstance().getOperator(Operator.Type.Relate));
-		SpatialReference sr = SpatialReference.create(4326);
-		boolean res;
-		String scl;
-
-		Polyline polyline = new Polyline();
-		Point point = new Point();
-
-		polyline.startPath(0, 2);
-		polyline.lineTo(0, 4);
-
-		point.setXY(0, 3);
-
-	}
-
-	@Test
 	public static void testCrosses_github_issue_40() {
-		// Issue 40: Acceleration without a spatial reference changes the result of relation operators 
-		Geometry geom1 = OperatorImportFromWkt.local().execute(0, Geometry.Type.Unknown, "LINESTRING (2 0, 2 3)", null);
-		Geometry geom2 = OperatorImportFromWkt.local().execute(0, Geometry.Type.Unknown, "POLYGON ((1 1, 4 1, 4 4, 1 4, 1 1))", null);
-		boolean answer1 = OperatorCrosses.local().execute(geom1,  geom2,  null, null);
+		// Issue 40: Acceleration without a spatial reference changes the result
+		// of relation operators
+		Geometry geom1 = OperatorImportFromWkt.local().execute(0,
+				Geometry.Type.Unknown, "LINESTRING (2 0, 2 3)", null);
+		Geometry geom2 = OperatorImportFromWkt.local().execute(0,
+				Geometry.Type.Unknown, "POLYGON ((1 1, 4 1, 4 4, 1 4, 1 1))",
+				null);
+		boolean answer1 = OperatorCrosses.local().execute(geom1, geom2, null,
+				null);
 		assertTrue(answer1);
-		OperatorCrosses.local().accelerateGeometry(geom1, null, GeometryAccelerationDegree.enumHot);
-		boolean answer2 = OperatorCrosses.local().execute(geom1,  geom2,  null, null);
+		OperatorCrosses.local().accelerateGeometry(geom1, null,
+				GeometryAccelerationDegree.enumHot);
+		boolean answer2 = OperatorCrosses.local().execute(geom1, geom2, null,
+				null);
 		assertTrue(answer2);
 	}
 }

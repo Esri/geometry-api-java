@@ -23,7 +23,6 @@
  */
 package com.esri.core.geometry;
 
-import java.util.Arrays;
 
 /**
  * Implementation for the segment cracking.
@@ -33,11 +32,9 @@ import java.util.Arrays;
  */
 class Cracker {
 	private EditShape m_shape;
-	private Envelope2D m_extent;
 	private ProgressTracker m_progress_tracker;
 	private NonSimpleResult m_non_simple_result;
 	private double m_tolerance;
-	private double m_tolerance_cluster;
 	private Treap m_sweep_structure;
 	private SweepComparator m_sweep_comparator;
 	private boolean m_bAllowCoincident;
@@ -51,7 +48,6 @@ class Cracker {
 		seg_1_env.setEmpty();
 		Envelope2D seg_2_env = new Envelope2D();
 		seg_2_env.setEmpty();
-		boolean b_needs_filter = false;
 		boolean assume_intersecting = false;
 		Point helper_point = new Point();
 		SegmentIntersector segment_intersector = new SegmentIntersector();
@@ -80,7 +76,6 @@ class Cracker {
 				if (seg_1.isDegenerate(m_tolerance))// do not crack with
 													// degenerate segments
 				{
-					b_needs_filter = true;
 					continue;
 				}
 			}
@@ -108,7 +103,6 @@ class Cracker {
 					if (seg_2.isDegenerate(m_tolerance))// do not crack with
 														// degenerate segments
 					{
-						b_needs_filter = true;
 						continue;
 					}
 				}
@@ -192,7 +186,6 @@ class Cracker {
 															// degenerate
 															// segments
 						{
-							b_needs_filter = true;
 							break;
 						}
 					}
@@ -442,8 +435,6 @@ class Cracker {
 		Cracker cracker = new Cracker(progress_tracker);
 		cracker.m_shape = shape;
 		cracker.m_tolerance = tolerance;
-		cracker.m_tolerance_cluster = -1;
-		cracker.m_extent = extent;
 		// Use brute force for smaller shapes, and a planesweep for bigger
 		// shapes.
 		boolean b_cracked = false;
@@ -469,11 +460,9 @@ class Cracker {
 		if (!canBeCracked(shape))
 			return false;
 
-		Envelope2D shape_env = shape.getEnvelope2D();
 		Cracker cracker = new Cracker(progress_tracker);
 		cracker.m_shape = shape;
 		cracker.m_tolerance = tolerance;
-		cracker.m_extent = shape_env;
 		cracker.m_bAllowCoincident = allowCoincident;
 		if (cracker.needsCrackingImpl_()) {
 			if (result != null)
@@ -485,12 +474,10 @@ class Cracker {
 		Transformation2D transform = new Transformation2D();
 		transform.setSwapCoordinates();
 		shape.applyTransformation(transform);
-		transform.transform(shape_env);
 
 		cracker = new Cracker(progress_tracker);
 		cracker.m_shape = shape;
 		cracker.m_tolerance = tolerance;
-		cracker.m_extent = shape_env;
 		cracker.m_bAllowCoincident = allowCoincident;
 		boolean b_res = cracker.needsCrackingImpl_();
 
