@@ -24,6 +24,7 @@
 
 package com.esri.core.geometry;
 
+import com.esri.core.geometry.Geometry.GeometryAccelerationDegree;
 import com.esri.core.geometry.Operator.Type;
 
 /**
@@ -51,5 +52,19 @@ public abstract class OperatorRelate extends Operator {
 		return (OperatorRelate) OperatorFactoryLocal.getInstance().getOperator(
 				Type.Relate);
 	}
+	
+	@Override
+	public boolean canAccelerateGeometry(Geometry geometry) {
+		return RelationalOperations.Accelerate_helper
+				.can_accelerate_geometry(geometry);
+	}
+
+	@Override
+	public boolean accelerateGeometry(Geometry geometry,
+			SpatialReference spatialReference,
+			GeometryAccelerationDegree accelDegree) {
+		return RelationalOperations.Accelerate_helper.accelerate_geometry(
+				geometry, spatialReference, accelDegree);
+	}	
 
 }

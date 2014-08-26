@@ -196,8 +196,23 @@ class OperatorImportFromWktLocal extends OperatorImportFromWkt {
 
 			multi_path_impl.notifyModified(MultiPathImpl.DirtyFlags.DirtyAll);
 
-			if (!InternalUtils.isClockwiseRing(multi_path_impl, 0))
-				multi_path_impl.reverseAllPaths();
+			AttributeStreamOfInt8 path_flags_clone = new AttributeStreamOfInt8(
+					path_flags);
+
+			for (int i = 0; i < path_flags_clone.size() - 1; i++) {
+				if (((int) path_flags_clone.read(i) & (int) PathFlags.enumOGCStartPolygon) != 0) {// Should
+																									// be
+																									// clockwise
+					if (!InternalUtils.isClockwiseRing(multi_path_impl, i))
+						multi_path_impl.reversePath(i); // make clockwise
+				} else {// Should be counter-clockwise
+					if (InternalUtils.isClockwiseRing(multi_path_impl, i))
+						multi_path_impl.reversePath(i); // make
+														// counter-clockwise
+				}
+			}
+
+			multi_path_impl.setPathFlagsStreamRef(path_flags_clone);
 		}
 
 		if ((import_flags & (int) WktImportFlags.wktImportNonTrusted) == 0)

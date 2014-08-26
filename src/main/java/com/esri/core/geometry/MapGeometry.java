@@ -87,4 +87,61 @@ public final class MapGeometry implements Serializable {
 	public SpatialReference getSpatialReference() {
 		return sr;
 	}
+
+	/**
+	 * The output of this method can be only used for debugging. It is subject to change without notice. 
+	 */
+	@Override
+	public String toString() {
+		String snippet = OperatorExportToJson.local().execute(getSpatialReference(), getGeometry());
+		if (snippet.length() > 200) { 
+			return snippet.substring(0, 197) + "... ("+snippet.length()+" characters)"; 
+		}
+		else {
+			return snippet;
+		}
+	}
+	
+	@Override
+	public boolean equals(Object other) {
+		if (other == null)
+			return false;
+
+		if (other == this)
+			return true;
+
+		if (other.getClass() != getClass())
+			return false;
+
+		MapGeometry omg = (MapGeometry)other;
+		SpatialReference sr = getSpatialReference();
+		Geometry g = getGeometry();
+		SpatialReference osr = omg.getSpatialReference();
+		Geometry og = omg.getGeometry();
+		
+		if (sr != osr) {
+			if (sr == null || !sr.equals(osr))
+				return false;
+		}
+
+		if (g != og) {
+			if (g == null || !g.equals(og))
+				return false;
+		}
+		
+		return true;
+	}
+
+	@Override
+	public int hashCode() {
+		SpatialReference sr = getSpatialReference();
+		Geometry g = getGeometry();
+		int hc = 0x2937912;
+		if (sr != null)
+			hc ^= sr.hashCode();
+		if (g != null)
+			hc ^= g.hashCode();
+		
+		return hc;
+	}
 }

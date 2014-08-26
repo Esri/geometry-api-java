@@ -95,13 +95,13 @@ public final class Polyline extends MultiPath implements Serializable {
 		m_impl.addSegment(segment, bStartNewPath);
 	}
 
-	void interpolateAttributes(int from_path_index, int from_point_index,
-			int to_path_index, int to_point_index) {
+	public void interpolateAttributes(int from_path_index,
+			int from_point_index, int to_path_index, int to_point_index) {
 		m_impl.interpolateAttributes(from_path_index, from_point_index,
 				to_path_index, to_point_index);
 	}
 
-	void interpolateAttributes(int semantics, int from_path_index,
+	public void interpolateAttributes(int semantics, int from_path_index,
 			int from_point_index, int to_path_index, int to_point_index) {
 		m_impl.interpolateAttributesForSemantics(semantics, from_path_index,
 				from_point_index, to_path_index, to_point_index);

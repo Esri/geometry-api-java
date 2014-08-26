@@ -1,11 +1,13 @@
 package com.esri.core.geometry;
 
 import junit.framework.TestCase;
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonParser;
+
 import org.junit.Test;
 
+import com.esri.core.geometry.Geometry.GeometryAccelerationDegree;
+
 public class TestRelation extends TestCase {
+
 	@Override
 	protected void setUp() throws Exception {
 		super.setUp();
@@ -273,7 +275,7 @@ public class TestRelation extends TestCase {
 			OperatorContains op = (OperatorContains) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Contains));
 			String str = "{\"rings\":[[[406944.399999999,287461.450000001],[406947.750000011,287462.299999997],[406946.44999999,287467.450000001],[406943.050000005,287466.550000005],[406927.799999992,287456.849999994],[406926.949999996,287456.599999995],[406924.800000005,287455.999999998],[406924.300000007,287455.849999999],[406924.200000008,287456.099999997],[406923.450000011,287458.449999987],[406922.999999987,287459.800000008],[406922.29999999,287462.099999998],[406921.949999991,287463.449999992],[406921.449999993,287465.050000011],[406920.749999996,287466.700000004],[406919.800000001,287468.599999996],[406919.050000004,287469.99999999],[406917.800000009,287471.800000008],[406916.04999999,287473.550000001],[406915.449999993,287473.999999999],[406913.700000001,287475.449999993],[406913.300000002,287475.899999991],[406912.050000008,287477.250000011],[406913.450000002,287478.150000007],[406915.199999994,287478.650000005],[406915.999999991,287478.800000005],[406918.300000007,287479.200000003],[406920.649999997,287479.450000002],[406923.100000013,287479.550000001],[406925.750000001,287479.450000002],[406928.39999999,287479.150000003],[406929.80000001,287478.950000004],[406932.449999998,287478.350000006],[406935.099999987,287477.60000001],[406938.699999998,287476.349999989],[406939.649999994,287473.949999999],[406939.799999993,287473.949999999],[406941.249999987,287473.75],[406942.700000007,287473.250000002],[406943.100000005,287473.100000003],[406943.950000001,287472.750000004],[406944.799999998,287472.300000006],[406944.999999997,287472.200000007],[406946.099999992,287471.200000011],[406946.299999991,287470.950000012],[406948.00000001,287468.599999996],[406948.10000001,287468.399999997],[406950.100000001,287465.050000011],[406951.949999993,287461.450000001],[406952.049999993,287461.300000001],[406952.69999999,287459.900000007],[406953.249999987,287458.549999987],[406953.349999987,287458.299999988],[406953.650000012,287457.299999992],[406953.900000011,287456.349999996],[406954.00000001,287455.300000001],[406954.00000001,287454.750000003],[406953.850000011,287453.750000008],[406953.550000012,287452.900000011],[406953.299999987,287452.299999988],[406954.500000008,287450.299999996],[406954.00000001,287449.000000002],[406953.399999987,287447.950000006],[406953.199999988,287447.550000008],[406952.69999999,287446.850000011],[406952.149999992,287446.099999988],[406951.499999995,287445.499999991],[406951.149999996,287445.249999992],[406950.449999999,287444.849999994],[406949.600000003,287444.599999995],[406949.350000004,287444.549999995],[406948.250000009,287444.499999995],[406947.149999987,287444.699999994],[406946.849999989,287444.749999994],[406945.899999993,287444.949999993],[406944.999999997,287445.349999991],[406944.499999999,287445.64999999],[406943.650000003,287446.349999987],[406942.900000006,287447.10000001],[406942.500000008,287447.800000007],[406942.00000001,287448.700000003],[406941.600000011,287449.599999999],[406941.350000013,287450.849999994],[406941.350000013,287451.84999999],[406941.450000012,287452.850000012],[406941.750000011,287453.850000007],[406941.800000011,287454.000000007],[406942.150000009,287454.850000003],[406942.650000007,287455.6],[406943.150000005,287456.299999997],[406944.499999999,287457.299999992],[406944.899999997,287457.599999991],[406945.299999995,287457.949999989],[406944.399999999,287461.450000001],[406941.750000011,287461.999999998],[406944.399999999,287461.450000001]],[[406944.399999999,287461.450000001],[406947.750000011,287462.299999997],[406946.44999999,287467.450000001],[406943.050000005,287466.550000005],[406927.799999992,287456.849999994],[406944.399999999,287461.450000001]]]}";
-			MapGeometry mg = importFromJson(str);
+			MapGeometry mg = TestCommonMethods.fromJson(str);
 			boolean res = op.execute((mg.getGeometry()), (mg.getGeometry()),
 					null, null);
 			assertTrue(res);
@@ -286,9 +288,9 @@ public class TestRelation extends TestCase {
 			OperatorWithin op = (OperatorWithin) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Within));
 			String str1 = "{\"rings\":[[[0,0],[0,200],[200,200],[200,0],[0,0],[0,0],[0,0]]]}";
-			MapGeometry mg1 = importFromJson(str1);
+			MapGeometry mg1 = TestCommonMethods.fromJson(str1);
 			String str2 = "{\"x\":100,\"y\":100}";
-			MapGeometry mg2 = importFromJson(str2);
+			MapGeometry mg2 = TestCommonMethods.fromJson(str2);
 
 			boolean res = op.execute((mg2.getGeometry()), (mg1.getGeometry()),
 					null, null);
@@ -303,9 +305,9 @@ public class TestRelation extends TestCase {
 			OperatorWithin op = (OperatorWithin) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Within));
 			String str1 = "{\"rings\":[[[0,0],[0,200],[200,200],[200,0],[100,0]]]}";
-			MapGeometry mg1 = importFromJson(str1);
+			MapGeometry mg1 = TestCommonMethods.fromJson(str1);
 			String str2 = "{\"rings\":[[[10,10],[10,100],[100,100],[100,10]]]}";
-			MapGeometry mg2 = importFromJson(str2);
+			MapGeometry mg2 = TestCommonMethods.fromJson(str2);
 
 			boolean res = op.execute((mg2.getGeometry()), (mg1.getGeometry()),
 					null, null);
@@ -319,9 +321,9 @@ public class TestRelation extends TestCase {
 			OperatorWithin op = (OperatorWithin) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Within));
 			String str1 = "{\"points\":[[0,0],[0,200],[200,200]]}";
-			MapGeometry mg1 = importFromJson(str1);
+			MapGeometry mg1 = TestCommonMethods.fromJson(str1);
 			String str2 = "{\"points\":[[0,0],[0,200]]}";
-			MapGeometry mg2 = importFromJson(str2);
+			MapGeometry mg2 = TestCommonMethods.fromJson(str2);
 			boolean res = op.execute((mg2.getGeometry()), (mg1.getGeometry()),
 					null, null);
 			assertTrue(res);
@@ -334,9 +336,9 @@ public class TestRelation extends TestCase {
 			OperatorWithin op = (OperatorWithin) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Within));
 			String str1 = "{\"points\":[[0,0],[0,200]]}";
-			MapGeometry mg1 = importFromJson(str1);
+			MapGeometry mg1 = TestCommonMethods.fromJson(str1);
 			String str2 = "{\"points\":[[0,0],[0,200]]}";
-			MapGeometry mg2 = importFromJson(str2);
+			MapGeometry mg2 = TestCommonMethods.fromJson(str2);
 			boolean res = op.execute((mg2.getGeometry()), (mg1.getGeometry()),
 					null, null);
 			assertTrue(res);
@@ -349,9 +351,9 @@ public class TestRelation extends TestCase {
 			OperatorWithin op = (OperatorWithin) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Within));
 			String str1 = "{\"points\":[[0,0],[0,200],[200,200]]}";
-			MapGeometry mg1 = importFromJson(str1);
+			MapGeometry mg1 = TestCommonMethods.fromJson(str1);
 			String str2 = "{\"points\":[[0,0],[0,200], [1, 1]]}";
-			MapGeometry mg2 = importFromJson(str2);
+			MapGeometry mg2 = TestCommonMethods.fromJson(str2);
 			boolean res = op.execute((mg2.getGeometry()), (mg1.getGeometry()),
 					null, null);
 			assertTrue(!res);
@@ -367,9 +369,9 @@ public class TestRelation extends TestCase {
 			OperatorContains op = (OperatorContains) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Contains));
 			String str1 = "{\"rings\":[[[0,0],[0,200],[200,200],[200,0],[0,0],[0,0],[0,0]]]}";
-			MapGeometry mg1 = importFromJson(str1);
+			MapGeometry mg1 = TestCommonMethods.fromJson(str1);
 			String str2 = "{\"x\":100,\"y\":100}";
-			MapGeometry mg2 = importFromJson(str2);
+			MapGeometry mg2 = TestCommonMethods.fromJson(str2);
 
 			boolean res = op.execute((mg2.getGeometry()), (mg1.getGeometry()),
 					null, null);
@@ -383,9 +385,9 @@ public class TestRelation extends TestCase {
 			OperatorContains op = (OperatorContains) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Contains));
 			String str1 = "{\"rings\":[[[0,0],[0,200],[200,200],[200,0],[0,0]]]}";
-			MapGeometry mg1 = importFromJson(str1);
+			MapGeometry mg1 = TestCommonMethods.fromJson(str1);
 			String str2 = "{\"rings\":[[[10,10],[10,100],[100,100],[10,10]]]}";
-			MapGeometry mg2 = importFromJson(str2);
+			MapGeometry mg2 = TestCommonMethods.fromJson(str2);
 
 			boolean res = op.execute((mg2.getGeometry()), (mg1.getGeometry()),
 					null, null);
@@ -399,9 +401,9 @@ public class TestRelation extends TestCase {
 			OperatorContains op = (OperatorContains) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Contains));
 			String str1 = "{\"points\":[[0,0],[0,200],[200,200]]}";
-			MapGeometry mg1 = importFromJson(str1);
+			MapGeometry mg1 = TestCommonMethods.fromJson(str1);
 			String str2 = "{\"points\":[[0,0],[0,200]]}";
-			MapGeometry mg2 = importFromJson(str2);
+			MapGeometry mg2 = TestCommonMethods.fromJson(str2);
 			boolean res = op.execute((mg2.getGeometry()), (mg1.getGeometry()),
 					null, null);
 			assertTrue(!res);
@@ -414,9 +416,9 @@ public class TestRelation extends TestCase {
 			OperatorContains op = (OperatorContains) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Contains));
 			String str1 = "{\"points\":[[0,0],[0,200]]}";
-			MapGeometry mg1 = importFromJson(str1);
+			MapGeometry mg1 = TestCommonMethods.fromJson(str1);
 			String str2 = "{\"points\":[[0,0],[0,200]]}";
-			MapGeometry mg2 = importFromJson(str2);
+			MapGeometry mg2 = TestCommonMethods.fromJson(str2);
 			boolean res = op.execute((mg2.getGeometry()), (mg1.getGeometry()),
 					null, null);
 			assertTrue(res);
@@ -429,9 +431,9 @@ public class TestRelation extends TestCase {
 			OperatorContains op = (OperatorContains) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Contains));
 			String str1 = "{\"points\":[[0,0],[0,200],[200,200]]}";
-			MapGeometry mg1 = importFromJson(str1);
+			MapGeometry mg1 = TestCommonMethods.fromJson(str1);
 			String str2 = "{\"points\":[[0,0],[0,200], [1, 1]]}";
-			MapGeometry mg2 = importFromJson(str2);
+			MapGeometry mg2 = TestCommonMethods.fromJson(str2);
 			boolean res = op.execute((mg2.getGeometry()), (mg1.getGeometry()),
 					null, null);
 			assertTrue(!res);
@@ -458,9 +460,9 @@ public class TestRelation extends TestCase {
 			OperatorOverlaps op = (OperatorOverlaps) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Overlaps));
 			String str1 = "{\"rings\":[[[0,0],[0,200],[200,200],[200,0],[0,0],[0,0],[0,0]]]}";
-			MapGeometry mg1 = importFromJson(str1);
+			MapGeometry mg1 = TestCommonMethods.fromJson(str1);
 			String str2 = "{\"x\":100,\"y\":100}";
-			MapGeometry mg2 = importFromJson(str2);
+			MapGeometry mg2 = TestCommonMethods.fromJson(str2);
 
 			boolean res = op.execute((mg2.getGeometry()), (mg1.getGeometry()),
 					null, null);
@@ -473,8 +475,8 @@ public class TestRelation extends TestCase {
 			OperatorOverlaps op = (OperatorOverlaps) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Overlaps));
 			String str1 = "{\"rings\":[[[0,0],[0,200],[200,200],[200,0],[0,0]]]}";
-			MapGeometry mg1 = importFromJson(str1);
-			MapGeometry mg2 = importFromJson(str1);
+			MapGeometry mg1 = TestCommonMethods.fromJson(str1);
+			MapGeometry mg2 = TestCommonMethods.fromJson(str1);
 			Transformation2D trans = new Transformation2D();
 			trans.setShift(300, 0);
 			mg2.getGeometry().applyTransformation(trans);
@@ -489,8 +491,8 @@ public class TestRelation extends TestCase {
 			OperatorOverlaps op = (OperatorOverlaps) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Overlaps));
 			String str1 = "{\"rings\":[[[0,0],[0,200],[200,200],[200,0],[0,0]]]}";
-			MapGeometry mg1 = importFromJson(str1);
-			MapGeometry mg2 = importFromJson(str1);
+			MapGeometry mg1 = TestCommonMethods.fromJson(str1);
+			MapGeometry mg2 = TestCommonMethods.fromJson(str1);
 			Transformation2D trans = new Transformation2D();
 			trans.setShift(30, 0);
 			mg2.getGeometry().applyTransformation(trans);
@@ -505,8 +507,8 @@ public class TestRelation extends TestCase {
 			OperatorOverlaps op = (OperatorOverlaps) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Overlaps));
 			String str1 = "{\"rings\":[[[0,0],[0,200],[200,200],[200,0],[0,0]]]}";
-			MapGeometry mg1 = importFromJson(str1);
-			MapGeometry mg2 = importFromJson(str1);
+			MapGeometry mg1 = TestCommonMethods.fromJson(str1);
+			MapGeometry mg2 = TestCommonMethods.fromJson(str1);
 			Transformation2D trans = new Transformation2D();
 			trans.setShift(0, 0);
 			mg2.getGeometry().applyTransformation(trans);
@@ -522,8 +524,8 @@ public class TestRelation extends TestCase {
 			OperatorOverlaps op = (OperatorOverlaps) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Overlaps));
 			String str1 = "{\"paths\":[[[0,0],[100,0],[200,0]]]}";
-			MapGeometry mg1 = importFromJson(str1);
-			MapGeometry mg2 = importFromJson(str1);
+			MapGeometry mg1 = TestCommonMethods.fromJson(str1);
+			MapGeometry mg2 = TestCommonMethods.fromJson(str1);
 			Transformation2D trans = new Transformation2D();
 			trans.setShift(0, 0);
 			mg2.getGeometry().applyTransformation(trans);
@@ -539,8 +541,8 @@ public class TestRelation extends TestCase {
 			OperatorOverlaps op = (OperatorOverlaps) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Overlaps));
 			String str1 = "{\"paths\":[[[0,0],[100,0],[200,0]]]}";
-			MapGeometry mg1 = importFromJson(str1);
-			MapGeometry mg2 = importFromJson(str1);
+			MapGeometry mg1 = TestCommonMethods.fromJson(str1);
+			MapGeometry mg2 = TestCommonMethods.fromJson(str1);
 			Transformation2D trans = new Transformation2D();
 			trans.setShift(10, 0);
 			mg2.getGeometry().applyTransformation(trans);
@@ -556,8 +558,8 @@ public class TestRelation extends TestCase {
 			OperatorOverlaps op = (OperatorOverlaps) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Overlaps));
 			String str1 = "{\"paths\":[[[0,0],[100,0],[200,0]]]}";
-			MapGeometry mg1 = importFromJson(str1);
-			MapGeometry mg2 = importFromJson(str1);
+			MapGeometry mg1 = TestCommonMethods.fromJson(str1);
+			MapGeometry mg2 = TestCommonMethods.fromJson(str1);
 			Transformation2D trans = new Transformation2D();
 			trans.setShift(200, 0);
 			mg2.getGeometry().applyTransformation(trans);
@@ -573,8 +575,8 @@ public class TestRelation extends TestCase {
 			OperatorOverlaps op = (OperatorOverlaps) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Overlaps));
 			String str1 = "{\"points\":[[0,0],[0,200],[200,200],[200,0]]}";
-			MapGeometry mg1 = importFromJson(str1);
-			MapGeometry mg2 = importFromJson(str1);
+			MapGeometry mg1 = TestCommonMethods.fromJson(str1);
+			MapGeometry mg2 = TestCommonMethods.fromJson(str1);
 			Transformation2D trans = new Transformation2D();
 			trans.setShift(0, 0);
 			mg2.getGeometry().applyTransformation(trans);
@@ -589,9 +591,9 @@ public class TestRelation extends TestCase {
 			OperatorOverlaps op = (OperatorOverlaps) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Overlaps));
 			String str1 = "{\"points\":[[0,0],[0,200],[200,200]]}";
-			MapGeometry mg1 = importFromJson(str1);
+			MapGeometry mg1 = TestCommonMethods.fromJson(str1);
 			String str2 = "{\"points\":[[0,0],[0,200]]}";
-			MapGeometry mg2 = importFromJson(str2);
+			MapGeometry mg2 = TestCommonMethods.fromJson(str2);
 			boolean res = op.execute((mg2.getGeometry()), (mg1.getGeometry()),
 					null, null);
 			assertTrue(!res);
@@ -603,9 +605,9 @@ public class TestRelation extends TestCase {
 			OperatorOverlaps op = (OperatorOverlaps) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Overlaps));
 			String str1 = "{\"points\":[[0,0],[0,200],[200,200]]}";
-			MapGeometry mg1 = importFromJson(str1);
+			MapGeometry mg1 = TestCommonMethods.fromJson(str1);
 			String str2 = "{\"points\":[[0,0],[0,200], [0,2]]}";
-			MapGeometry mg2 = importFromJson(str2);
+			MapGeometry mg2 = TestCommonMethods.fromJson(str2);
 			boolean res = op.execute((mg2.getGeometry()), (mg1.getGeometry()),
 					null, null);
 			assertTrue(res);
@@ -626,13 +628,20 @@ public class TestRelation extends TestCase {
 
 		// Polygon1 and Polygon2 are topologically equal, but have differing
 		// number of vertices
-		String str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[0,5],[0,7],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
+		String str1 = "{\"rings\":[[[0,0],[0,5],[0,7],[0,10],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		String str2 = "{\"rings\":[[[0,10],[10,10],[10,0],[0,0],[0,10]],[[9,1],[9,6],[9,9],[1,9],[1,1],[1,1],[9,1]]]}";
 
-		Polygon polygon1 = (Polygon) importFromJson(str1).getGeometry();
-		Polygon polygon2 = (Polygon) importFromJson(str2).getGeometry();
+		Polygon polygon1 = (Polygon) TestCommonMethods.fromJson(str1)
+				.getGeometry();
+		Polygon polygon2 = (Polygon) TestCommonMethods.fromJson(str2)
+				.getGeometry();
 		// wiggleGeometry(polygon1, tolerance, 1982);
 		// wiggleGeometry(polygon2, tolerance, 511);
+
+		equals.accelerateGeometry(polygon1, sr,
+				Geometry.GeometryAccelerationDegree.enumHot);
+		equals.accelerateGeometry(polygon2, sr,
+				Geometry.GeometryAccelerationDegree.enumHot);
 
 		boolean res = equals.execute(polygon1, polygon2, sr, null);
 		assertTrue(res);
@@ -643,8 +652,8 @@ public class TestRelation extends TestCase {
 		// a hole.
 		str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"rings\":[[[0,10],[10,10],[5,10],[10,10],[10,0],[0,0],[0,10]]]}";
-		polygon1 = (Polygon) importFromJson(str1).getGeometry();
-		polygon2 = (Polygon) importFromJson(str2).getGeometry();
+		polygon1 = (Polygon) TestCommonMethods.fromJson(str1).getGeometry();
+		polygon2 = (Polygon) TestCommonMethods.fromJson(str2).getGeometry();
 
 		res = equals.execute(polygon1, polygon2, sr, null);
 		assertTrue(!res);
@@ -655,8 +664,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"rings\":[[[0,0],[0,10],[10,10],[10,0],[0,0]]]}";
 		str2 = "{\"rings\":[[[0,10],[10,10],[10,0],[0,0],[0,10]]]}";
 
-		polygon1 = (Polygon) importFromJson(str1).getGeometry();
-		polygon2 = (Polygon) importFromJson(str2).getGeometry();
+		polygon1 = (Polygon) TestCommonMethods.fromJson(str1).getGeometry();
+		polygon2 = (Polygon) TestCommonMethods.fromJson(str2).getGeometry();
 
 		res = equals.execute(polygon1, polygon2, sr, null);
 		assertTrue(res);
@@ -667,13 +676,24 @@ public class TestRelation extends TestCase {
 		str1 = "{\"rings\":[[[0,0],[0,10],[10,10],[10,0],[0,0]]]}";
 		str2 = "{\"rings\":[[[0,0],[10,0],[10,10],[0,10],[0,0]]]}";
 
-		polygon1 = (Polygon) importFromJson(str1).getGeometry();
-		polygon2 = (Polygon) importFromJson(str2).getGeometry();
+		polygon1 = (Polygon) TestCommonMethods.fromJson(str1).getGeometry();
+		polygon2 = (Polygon) TestCommonMethods.fromJson(str2).getGeometry();
 
 		res = equals.execute(polygon1, polygon2, sr, null);
-		assertTrue(res);
+		assertTrue(!res);
 		res = equals.execute(polygon2, polygon1, sr, null);
-		assertTrue(res);
+		assertTrue(!res);
+
+		// The rings are equal but first polygon has two rings stacked
+		str1 = "{\"rings\":[[[0,0],[0,10],[10,10],[10,0],[0,0]],[[0,10],[10,10],[10,0],[0,0],[0,10]]]}";
+		str2 = "{\"rings\":[[[0,10],[10,10],[10,0],[0,0],[0,10]]]}";
+		polygon1 = (Polygon) TestCommonMethods.fromJson(str1).getGeometry();
+		polygon2 = (Polygon) TestCommonMethods.fromJson(str2).getGeometry();
+
+		res = equals.execute(polygon1, polygon2, sr, null);
+		assertTrue(!res);
+		res = equals.execute(polygon2, polygon1, sr, null);
+		assertTrue(!res);
 	}
 
 	@Test
@@ -835,8 +855,10 @@ public class TestRelation extends TestCase {
 		String str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		String str2 = "{\"rings\":[[[0,10],[10,10],[10,0],[0,0],[0,10]],[[9,1],[9,6],[9,9],[1,9],[1,1],[1,1],[9,1]]]}";
 
-		Polygon polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		Polygon polygon2 = (Polygon) (importFromJson(str2).getGeometry());
+		Polygon polygon1 = (Polygon) (TestCommonMethods.fromJson(str1)
+				.getGeometry());
+		Polygon polygon2 = (Polygon) (TestCommonMethods.fromJson(str2)
+				.getGeometry());
 
 		boolean res = disjoint.execute(polygon1, polygon2, sr, null);
 		assertTrue(!res);
@@ -847,8 +869,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"rings\":[[[10,10],[10,15],[15,15],[15,10],[10,10]]]}";
 
-		polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		polygon2 = (Polygon) (importFromJson(str2).getGeometry());
+		polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+		polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
 		wiggleGeometry(polygon1, tolerance, 1982);
 		wiggleGeometry(polygon2, tolerance, 511);
 
@@ -861,8 +883,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"rings\":[[[10,0],[10,10],[15,10],[15,0],[10,0]]]}";
 
-		polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		polygon2 = (Polygon) (importFromJson(str2).getGeometry());
+		polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+		polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
 		wiggleGeometry(polygon1, tolerance, 1982);
 		wiggleGeometry(polygon2, tolerance, 511);
 
@@ -875,8 +897,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"rings\":[[[2,2],[2,8],[8,8],[8,2],[2,2]]]}";
 
-		polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		polygon2 = (Polygon) (importFromJson(str2).getGeometry());
+		polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+		polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
 
 		res = disjoint.execute(polygon1, polygon2, sr, null);
 		assertTrue(res);
@@ -887,8 +909,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"rings\":[[[0,0],[0,5],[5,5],[5,0]],[[10,0],[10,10],[20,10],[20,0]]]}";
 		str2 = "{\"rings\":[[[0,-10],[0,-5],[5,-5],[5,-10]],[[11,1],[11,9],[19,9],[19,1]]]}";
 
-		polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		polygon2 = (Polygon) (importFromJson(str2).getGeometry());
+		polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+		polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
 
 		res = disjoint.execute(polygon1, polygon2, sr, null);
 		assertTrue(!res);
@@ -908,8 +930,10 @@ public class TestRelation extends TestCase {
 		String str1 = "{\"paths\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		String str2 = "{\"paths\":[[[10,10],[10,15],[15,15],[15,10],[10,10]]]}";
 
-		Polyline polyline1 = (Polyline) (importFromJson(str1).getGeometry());
-		Polyline polyline2 = (Polyline) (importFromJson(str2).getGeometry());
+		Polyline polyline1 = (Polyline) (TestCommonMethods.fromJson(str1)
+				.getGeometry());
+		Polyline polyline2 = (Polyline) (TestCommonMethods.fromJson(str2)
+				.getGeometry());
 		wiggleGeometry(polyline1, tolerance, 1982);
 		wiggleGeometry(polyline2, tolerance, 511);
 
@@ -922,8 +946,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"paths\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"paths\":[[[10,0],[10,10],[15,10],[15,0],[10,0]]]}";
 
-		polyline1 = (Polyline) (importFromJson(str1).getGeometry());
-		polyline2 = (Polyline) (importFromJson(str2).getGeometry());
+		polyline1 = (Polyline) (TestCommonMethods.fromJson(str1).getGeometry());
+		polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
 		wiggleGeometry(polyline1, tolerance, 1982);
 		wiggleGeometry(polyline2, tolerance, 511);
 
@@ -936,8 +960,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"paths\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"paths\":[[[2,2],[2,8],[8,8],[8,2],[2,2]]]}";
 
-		polyline1 = (Polyline) (importFromJson(str1).getGeometry());
-		polyline2 = (Polyline) (importFromJson(str2).getGeometry());
+		polyline1 = (Polyline) (TestCommonMethods.fromJson(str1).getGeometry());
+		polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
 
 		res = disjoint.execute(polyline1, polyline2, sr, null);
 		assertTrue(res);
@@ -1044,6 +1068,8 @@ public class TestRelation extends TestCase {
 		polyline1.lineTo(1, 0);
 		polyline1.lineTo(1, 1);
 
+		disjoint.accelerateGeometry(polyline1, sr,
+				Geometry.GeometryAccelerationDegree.enumHot);
 		res = disjoint.execute(polyline1, multipoint2, sr, null);
 		assertTrue(!res);
 		res = disjoint.execute(multipoint2, polyline1, sr, null);
@@ -1081,6 +1107,11 @@ public class TestRelation extends TestCase {
 		assertTrue(!res);
 
 		point2.setXY(4, 2);
+
+		polyline1 = (Polyline) OperatorDensifyByLength.local().execute(
+				polyline1, 0.1, null);
+		disjoint.accelerateGeometry(polyline1, sr,
+				Geometry.GeometryAccelerationDegree.enumHot);
 
 		res = disjoint.execute(polyline1, point2, sr, null);
 		assertTrue(!res);
@@ -1328,8 +1359,10 @@ public class TestRelation extends TestCase {
 		String str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		String str2 = "{\"rings\":[[[10,10],[10,15],[15,15],[15,10],[10,10]]]}";
 
-		Polygon polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		Polygon polygon2 = (Polygon) (importFromJson(str2).getGeometry());
+		Polygon polygon1 = (Polygon) (TestCommonMethods.fromJson(str1)
+				.getGeometry());
+		Polygon polygon2 = (Polygon) (TestCommonMethods.fromJson(str2)
+				.getGeometry());
 		wiggleGeometry(polygon1, tolerance, 1982);
 		wiggleGeometry(polygon2, tolerance, 511);
 
@@ -1342,8 +1375,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"rings\":[[[10,0],[10,10],[15,10],[15,0],[10,0]]]}";
 
-		polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		polygon2 = (Polygon) (importFromJson(str2).getGeometry());
+		polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+		polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
 		wiggleGeometry(polygon1, tolerance, 1982);
 		wiggleGeometry(polygon2, tolerance, 511);
 
@@ -1357,8 +1390,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"rings\":[[[15,5],[5,15],[15,15],[15,5]]]}";
 
-		polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		polygon2 = (Polygon) (importFromJson(str2).getGeometry());
+		polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+		polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
 		wiggleGeometry(polygon1, tolerance, 1982);
 		wiggleGeometry(polygon2, tolerance, 511);
 
@@ -1371,8 +1404,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"rings\":[[[5,5],[5,15],[15,15],[15,5],[5,5]]]}";
 
-		polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		polygon2 = (Polygon) (importFromJson(str2).getGeometry());
+		polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+		polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
 
 		res = touches.execute(polygon1, polygon2, sr, null);
 		assertTrue(!res);
@@ -1408,8 +1441,10 @@ public class TestRelation extends TestCase {
 		String str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		String str2 = "{\"paths\":[[[10,10],[10,15],[15,15],[15,10]]]}";
 
-		Polygon polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		Polyline polyline2 = (Polyline) (importFromJson(str2).getGeometry());
+		Polygon polygon1 = (Polygon) (TestCommonMethods.fromJson(str1)
+				.getGeometry());
+		Polyline polyline2 = (Polyline) (TestCommonMethods.fromJson(str2)
+				.getGeometry());
 		wiggleGeometry(polygon1, tolerance, 1982);
 		wiggleGeometry(polyline2, tolerance, 511);
 
@@ -1422,8 +1457,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"paths\":[[[10,0],[10,10],[15,10],[15,0]]]}";
 
-		polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		polyline2 = (Polyline) (importFromJson(str2).getGeometry());
+		polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+		polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
 		wiggleGeometry(polygon1, tolerance, 1982);
 		wiggleGeometry(polyline2, tolerance, 511);
 
@@ -1435,8 +1470,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"paths\":[[[15,5],[5,15],[15,15],[15,5]]]}";
 
-		polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		polyline2 = (Polyline) (importFromJson(str2).getGeometry());
+		polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+		polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
 		wiggleGeometry(polygon1, tolerance, 1982);
 		wiggleGeometry(polyline2, tolerance, 511);
 
@@ -1448,8 +1483,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"rings\":[[[10,10],[10,0],[0,0],[0,10],[10,10]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"paths\":[[[15,5],[5,15],[15,15]]]}";
 
-		polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		polyline2 = (Polyline) (importFromJson(str2).getGeometry());
+		polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+		polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
 		wiggleGeometry(polygon1, tolerance, 1982);
 		wiggleGeometry(polyline2, tolerance, 511);
 
@@ -1471,8 +1506,10 @@ public class TestRelation extends TestCase {
 		String str1 = "{\"paths\":[[[0,0],[0,5],[0,10],[10,10],[10,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		String str2 = "{\"paths\":[[[10,10],[10,15],[15,15],[15,10]]]}";
 
-		Polyline polyline1 = (Polyline) (importFromJson(str1).getGeometry());
-		Polyline polyline2 = (Polyline) (importFromJson(str2).getGeometry());
+		Polyline polyline1 = (Polyline) (TestCommonMethods.fromJson(str1)
+				.getGeometry());
+		Polyline polyline2 = (Polyline) (TestCommonMethods.fromJson(str2)
+				.getGeometry());
 
 		boolean res = touches.execute(polyline1, polyline2, sr, null);
 		assertTrue(res);
@@ -1483,8 +1520,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"paths\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"paths\":[[[10,0],[10,10],[15,10],[15,0],[10,0]]]}";
 
-		polyline1 = (Polyline) (importFromJson(str1).getGeometry());
-		polyline2 = (Polyline) (importFromJson(str2).getGeometry());
+		polyline1 = (Polyline) (TestCommonMethods.fromJson(str1).getGeometry());
+		polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
 
 		res = touches.execute(polyline1, polyline2, sr, null);
 		assertTrue(!res);
@@ -1495,8 +1532,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"paths\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"paths\":[[[15,5],[5,15],[15,15],[15,5]]]}";
 
-		polyline1 = (Polyline) (importFromJson(str1).getGeometry());
-		polyline2 = (Polyline) (importFromJson(str2).getGeometry());
+		polyline1 = (Polyline) (TestCommonMethods.fromJson(str1).getGeometry());
+		polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
 
 		res = touches.execute(polyline1, polyline2, sr, null);
 		assertTrue(!res);
@@ -1508,8 +1545,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"paths\":[[[10,10],[10,0],[0,0],[0,10],[10,10]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"paths\":[[[15,5],[5,15],[15,15]]]}";
 
-		polyline1 = (Polyline) (importFromJson(str1).getGeometry());
-		polyline2 = (Polyline) (importFromJson(str2).getGeometry());
+		polyline1 = (Polyline) (TestCommonMethods.fromJson(str1).getGeometry());
+		polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
 
 		res = touches.execute(polyline1, polyline2, sr, null);
 		assertTrue(!res);
@@ -1522,8 +1559,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"paths\":[[[10,10],[10,0],[0,0],[0,10]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"paths\":[[[15,5],[5,15],[15,15]]]}";
 
-		polyline1 = (Polyline) (importFromJson(str1).getGeometry());
-		polyline2 = (Polyline) (importFromJson(str2).getGeometry());
+		polyline1 = (Polyline) (TestCommonMethods.fromJson(str1).getGeometry());
+		polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
 
 		res = touches.execute(polyline1, polyline2, sr, null);
 		assertTrue(res);
@@ -1533,8 +1570,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"paths\":[[[10,10],[10,0],[0,0],[0,10]],[[1,1],[9,1],[9,9],[1,9],[6, 9]]]}";
 		str2 = "{\"paths\":[[[15,5],[5,15],[15,15],[15,5]]]}";
 
-		polyline1 = (Polyline) (importFromJson(str1).getGeometry());
-		polyline2 = (Polyline) (importFromJson(str2).getGeometry());
+		polyline1 = (Polyline) (TestCommonMethods.fromJson(str1).getGeometry());
+		polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
 
 		res = touches.execute(polyline1, polyline2, sr, null);
 		assertTrue(res);
@@ -1634,6 +1671,8 @@ public class TestRelation extends TestCase {
 		polyline1.lineTo(1, 0);
 		polyline1.lineTo(1, 1);
 
+		touches.accelerateGeometry(polyline1, sr,
+				Geometry.GeometryAccelerationDegree.enumHot);
 		res = touches.execute(polyline1, multipoint2, sr, null);
 		assertTrue(res);
 		res = touches.execute(multipoint2, polyline1, sr, null);
@@ -1696,6 +1735,9 @@ public class TestRelation extends TestCase {
 		res = crosses.execute(multipoint2, polyline1, sr, null);
 		assertTrue(!res);
 
+		crosses.accelerateGeometry(polyline1, sr,
+				Geometry.GeometryAccelerationDegree.enumHot);
+
 		multipoint2.add(1, 0);
 		res = crosses.execute(polyline1, multipoint2, sr, null);
 		assertTrue(res);
@@ -1747,8 +1789,10 @@ public class TestRelation extends TestCase {
 		String str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		String str2 = "{\"rings\":[[[10,10],[10,15],[15,15],[15,10],[10,10]]]}";
 
-		Polygon polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		Polygon polygon2 = (Polygon) (importFromJson(str2).getGeometry());
+		Polygon polygon1 = (Polygon) (TestCommonMethods.fromJson(str1)
+				.getGeometry());
+		Polygon polygon2 = (Polygon) (TestCommonMethods.fromJson(str2)
+				.getGeometry());
 		wiggleGeometry(polygon1, tolerance, 1982);
 		wiggleGeometry(polygon2, tolerance, 511);
 
@@ -1761,8 +1805,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"rings\":[[[10,0],[10,10],[15,10],[15,0],[10,0]]]}";
 
-		polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		polygon2 = (Polygon) (importFromJson(str2).getGeometry());
+		polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+		polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
 		wiggleGeometry(polygon1, tolerance, 1982);
 		wiggleGeometry(polygon2, tolerance, 511);
 
@@ -1776,8 +1820,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"rings\":[[[15,5],[5,15],[15,15],[15,5]]]}";
 
-		polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		polygon2 = (Polygon) (importFromJson(str2).getGeometry());
+		polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+		polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
 		wiggleGeometry(polygon1, tolerance, 1982);
 		wiggleGeometry(polygon2, tolerance, 511);
 
@@ -1790,8 +1834,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"rings\":[[[5,5],[5,15],[15,15],[15,5],[5,5]]]}";
 
-		polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		polygon2 = (Polygon) (importFromJson(str2).getGeometry());
+		polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+		polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
 
 		res = overlaps.execute(polygon1, polygon2, sr, null);
 		assertTrue(res);
@@ -1801,8 +1845,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[4,4],[6,4],[6,6],[4,6],[4,4],[4,4]]]}";
 		str2 = "{\"rings\":[[[1,1],[1,9],[9,9],[9,1],[1,1]]]}";
 
-		polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		polygon2 = (Polygon) (importFromJson(str2).getGeometry());
+		polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+		polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
 
 		res = overlaps.execute(polygon1, polygon2, sr, null);
 		assertTrue(res);
@@ -2032,8 +2076,10 @@ public class TestRelation extends TestCase {
 		String str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		String str2 = "{\"rings\":[[[-1,-1],[-1,11],[11,11],[11,-1],[-1,-1]]]}";
 
-		Polygon polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		Polygon polygon2 = (Polygon) (importFromJson(str2).getGeometry());
+		Polygon polygon1 = (Polygon) (TestCommonMethods.fromJson(str1)
+				.getGeometry());
+		Polygon polygon2 = (Polygon) (TestCommonMethods.fromJson(str2)
+				.getGeometry());
 
 		boolean res = within.execute(polygon1, polygon2, sr, null);
 		assertTrue(res);
@@ -2044,8 +2090,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[4,4],[6,4],[6,6],[4,6],[4,4],[4,4]]]}";
 		str2 = "{\"rings\":[[[1,1],[1,9],[9,9],[9,1],[1,1]]]}";
 
-		polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		polygon2 = (Polygon) (importFromJson(str2).getGeometry());
+		polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+		polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
 		wiggleGeometry(polygon1, tolerance, 1982);
 		wiggleGeometry(polygon2, tolerance, 511);
 
@@ -2056,8 +2102,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"rings\":[[[-1,0],[-1,11],[11,11],[11,0],[-1,0]]]}";
 
-		polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		polygon2 = (Polygon) (importFromJson(str2).getGeometry());
+		polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+		polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
 		wiggleGeometry(polygon1, tolerance, 1982);
 		wiggleGeometry(polygon2, tolerance, 511);
 
@@ -2068,8 +2114,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"rings\":[[[2,2],[2,8],[8,8],[8,2],[2,2]]]}";
 
-		polygon1 = (Polygon) (importFromJson(str1).getGeometry());
-		polygon2 = (Polygon) (importFromJson(str2).getGeometry());
+		polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+		polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
 
 		res = within.execute(polygon2, polygon1, sr, null);
 		assertTrue(!res);
@@ -2289,8 +2335,10 @@ public class TestRelation extends TestCase {
 		String str1 = "{\"paths\":[[[0,0],[0,5],[0,10],[10,10],[10,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		String str2 = "{\"paths\":[[[10,10],[10,15],[15,15],[15,10]]]}";
 
-		Polyline polyline1 = (Polyline) (importFromJson(str1).getGeometry());
-		Polyline polyline2 = (Polyline) (importFromJson(str2).getGeometry());
+		Polyline polyline1 = (Polyline) (TestCommonMethods.fromJson(str1)
+				.getGeometry());
+		Polyline polyline2 = (Polyline) (TestCommonMethods.fromJson(str2)
+				.getGeometry());
 
 		boolean res = crosses.execute(polyline1, polyline2, sr, null);
 		assertTrue(!res);
@@ -2301,8 +2349,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"paths\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"paths\":[[[15,5],[5,15],[15,15],[15,5]]]}";
 
-		polyline1 = (Polyline) (importFromJson(str1).getGeometry());
-		polyline2 = (Polyline) (importFromJson(str2).getGeometry());
+		polyline1 = (Polyline) (TestCommonMethods.fromJson(str1).getGeometry());
+		polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
 
 		res = crosses.execute(polyline1, polyline2, sr, null);
 		assertTrue(res);
@@ -2314,8 +2362,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"paths\":[[[10,10],[10,0],[0,0],[0,10],[10,10]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"paths\":[[[15,5],[5,15],[15,15]]]}";
 
-		polyline1 = (Polyline) (importFromJson(str1).getGeometry());
-		polyline2 = (Polyline) (importFromJson(str2).getGeometry());
+		polyline1 = (Polyline) (TestCommonMethods.fromJson(str1).getGeometry());
+		polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
 		;
 
 		res = crosses.execute(polyline1, polyline2, sr, null);
@@ -2329,8 +2377,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"paths\":[[[10,10],[10,0],[0,0],[0,10]],[[1,1],[9,1],[9,9],[1,9],[1,1],[1,1]]]}";
 		str2 = "{\"paths\":[[[15,5],[5,15],[15,15]]]}";
 
-		polyline1 = (Polyline) (importFromJson(str1).getGeometry());
-		polyline2 = (Polyline) (importFromJson(str2).getGeometry());
+		polyline1 = (Polyline) (TestCommonMethods.fromJson(str1).getGeometry());
+		polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
 
 		res = crosses.execute(polyline1, polyline2, sr, null);
 		assertTrue(!res);
@@ -2340,8 +2388,8 @@ public class TestRelation extends TestCase {
 		str1 = "{\"paths\":[[[10,11],[10,0],[0,0],[0,10]],[[1,1],[9,1],[9,9],[1,9],[6, 9]]]}";
 		str2 = "{\"paths\":[[[15,5],[5,15],[15,15],[15,5]]]}";
 
-		polyline1 = (Polyline) (importFromJson(str1).getGeometry());
-		polyline2 = (Polyline) (importFromJson(str2).getGeometry());
+		polyline1 = (Polyline) (TestCommonMethods.fromJson(str1).getGeometry());
+		polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
 
 		res = crosses.execute(polyline1, polyline2, sr, null);
 		assertTrue(res);
@@ -2387,18 +2435,20 @@ public class TestRelation extends TestCase {
 		SpatialReference sr = SpatialReference.create(4326);
 
 		{
-			Polygon polygon = (Polygon) (importFromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
+			Polygon polygon = (Polygon) (TestCommonMethods
+					.fromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
 					.getGeometry());
 			Polygon densified = (Polygon) (densify.execute(polygon, 1.0, null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(equals.execute(envelope, densified, sr, null)); // they
-																		// cover
-																		// the
-																		// same
-																		// space
+			// cover
+			// the
+			// same
+			// space
 			assertTrue(contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -2407,22 +2457,24 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polygon polygon = (Polygon) (importFromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
+			Polygon polygon = (Polygon) (TestCommonMethods
+					.fromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
 					.getGeometry());
 			Polygon densified = (Polygon) (densify.execute(polygon, 1.0, null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":5,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":5,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // the
-																		// polygon
-																		// contains
-																		// the
-																		// envelope,
-																		// but
-																		// they
-																		// aren't
-																		// equal
+			// polygon
+			// contains
+			// the
+			// envelope,
+			// but
+			// they
+			// aren't
+			// equal
 			assertTrue(contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -2431,23 +2483,25 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polygon polygon = (Polygon) (importFromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
+			Polygon polygon = (Polygon) (TestCommonMethods
+					.fromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
 					.getGeometry());
 			Polygon densified = (Polygon) (densify.execute(polygon, 1.0, null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":15,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":15,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // the
-																		// envelope
-																		// sticks
-																		// outside
-																		// of
-																		// the
-																		// polygon
-																		// but
-																		// they
-																		// intersect
+			// envelope
+			// sticks
+			// outside
+			// of
+			// the
+			// polygon
+			// but
+			// they
+			// intersect
 			assertTrue(!contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -2456,25 +2510,27 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polygon polygon = (Polygon) (importFromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
+			Polygon polygon = (Polygon) (TestCommonMethods
+					.fromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
 					.getGeometry());
 			Polygon densified = (Polygon) (densify.execute(polygon, 1.0, null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":5,\"ymin\":0,\"xmax\":15,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":5,\"ymin\":0,\"xmax\":15,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // the
-																		// envelope
-																		// sticks
-																		// outside
-																		// of
-																		// the
-																		// polygon
-																		// but
-																		// they
-																		// intersect
-																		// and
-																		// overlap
+			// envelope
+			// sticks
+			// outside
+			// of
+			// the
+			// polygon
+			// but
+			// they
+			// intersect
+			// and
+			// overlap
 			assertTrue(!contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -2483,23 +2539,25 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polygon polygon = (Polygon) (importFromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
+			Polygon polygon = (Polygon) (TestCommonMethods
+					.fromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
 					.getGeometry());
 			Polygon densified = (Polygon) (densify.execute(polygon, 1.0, null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":10,\"ymin\":0,\"xmax\":15,\"ymax\":5}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":10,\"ymin\":0,\"xmax\":15,\"ymax\":5}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // the
-																		// envelope
-																		// rides
-																		// the
-																		// side
-																		// of
-																		// the
-																		// polygon
-																		// (they
-																		// touch)
+			// envelope
+			// rides
+			// the
+			// side
+			// of
+			// the
+			// polygon
+			// (they
+			// touch)
 			assertTrue(!contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(touches.execute(envelope, densified, sr, null));
@@ -2508,20 +2566,22 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polygon polygon = (Polygon) (importFromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
+			Polygon polygon = (Polygon) (TestCommonMethods
+					.fromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
 					.getGeometry());
 			Polygon densified = (Polygon) (densify.execute(polygon, 1.0, null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(contains.execute(densified, envelope, sr, null)); // polygon
-																			// and
-																			// envelope
-																			// cover
-																			// the
-																			// same
-																			// space
+			// and
+			// envelope
+			// cover
+			// the
+			// same
+			// space
 			assertTrue(!disjoint.execute(densified, envelope, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2529,24 +2589,26 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polygon polygon = (Polygon) (importFromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,0],[0,0]]]}")
+			Polygon polygon = (Polygon) (TestCommonMethods
+					.fromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,0],[0,0]]]}")
 					.getGeometry());
 			Polygon densified = (Polygon) (densify.execute(polygon, 1.0, null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null));
 			assertTrue(!contains.execute(densified, envelope, sr, null)); // envelope
-																			// sticks
-																			// outside
-																			// of
-																			// polygon,
-																			// but
-																			// the
-																			// envelopes
-																			// are
-																			// equal
+			// sticks
+			// outside
+			// of
+			// polygon,
+			// but
+			// the
+			// envelopes
+			// are
+			// equal
 			assertTrue(!disjoint.execute(densified, envelope, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2554,24 +2616,26 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polygon polygon = (Polygon) (importFromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,0],[0,0]]]}")
+			Polygon polygon = (Polygon) (TestCommonMethods
+					.fromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,0],[0,0]]]}")
 					.getGeometry());
 			Polygon densified = (Polygon) (densify.execute(polygon, 1.0, null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":15,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":15,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null));
 			assertTrue(!contains.execute(densified, envelope, sr, null)); // the
-																			// polygon
-																			// envelope
-																			// doesn't
-																			// contain
-																			// the
-																			// envelope,
-																			// but
-																			// they
-																			// intersect
+			// polygon
+			// envelope
+			// doesn't
+			// contain
+			// the
+			// envelope,
+			// but
+			// they
+			// intersect
 			assertTrue(!disjoint.execute(densified, envelope, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2579,25 +2643,27 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polygon polygon = (Polygon) (importFromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
+			Polygon polygon = (Polygon) (TestCommonMethods
+					.fromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
 					.getGeometry());
 			Polygon densified = (Polygon) (densify.execute(polygon, 1.0, null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":0,\"ymax\":0}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":0,\"ymax\":0}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null));
 			assertTrue(!contains.execute(densified, envelope, sr, null)); // envelope
-																			// degenerate
-																			// to
-																			// a
-																			// point
-																			// and
-																			// is
-																			// on
-																			// border
-																			// (i.e.
-																			// touches)
+			// degenerate
+			// to
+			// a
+			// point
+			// and
+			// is
+			// on
+			// border
+			// (i.e.
+			// touches)
 			assertTrue(!disjoint.execute(densified, envelope, sr, null));
 			assertTrue(touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2605,23 +2671,25 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polygon polygon = (Polygon) (importFromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
+			Polygon polygon = (Polygon) (TestCommonMethods
+					.fromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
 					.getGeometry());
 			Polygon densified = (Polygon) (densify.execute(polygon, 1.0, null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":1,\"ymin\":1,\"xmax\":1,\"ymax\":1}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":1,\"ymin\":1,\"xmax\":1,\"ymax\":1}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null));
 			assertTrue(contains.execute(densified, envelope, sr, null)); // envelope
-																			// degenerate
-																			// to
-																			// a
-																			// point
-																			// and
-																			// is
-																			// properly
-																			// inside
+			// degenerate
+			// to
+			// a
+			// point
+			// and
+			// is
+			// properly
+			// inside
 			assertTrue(!disjoint.execute(densified, envelope, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2629,23 +2697,25 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polygon polygon = (Polygon) (importFromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
+			Polygon polygon = (Polygon) (TestCommonMethods
+					.fromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
 					.getGeometry());
 			Polygon densified = (Polygon) (densify.execute(polygon, 1.0, null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":-1,\"ymin\":-1,\"xmax\":-1,\"ymax\":-1}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":-1,\"ymin\":-1,\"xmax\":-1,\"ymax\":-1}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null));
 			assertTrue(!contains.execute(densified, envelope, sr, null)); // envelope
-																			// degenerate
-																			// to
-																			// a
-																			// point
-																			// and
-																			// is
-																			// properly
-																			// outside
+			// degenerate
+			// to
+			// a
+			// point
+			// and
+			// is
+			// properly
+			// outside
 			assertTrue(disjoint.execute(densified, envelope, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2653,29 +2723,31 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polygon polygon = (Polygon) (importFromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
+			Polygon polygon = (Polygon) (TestCommonMethods
+					.fromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
 					.getGeometry());
 			Polygon densified = (Polygon) (densify.execute(polygon, 1.0, null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":1,\"ymax\":0}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":1,\"ymax\":0}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null));
 			assertTrue(!contains.execute(densified, envelope, sr, null)); // envelope
-																			// degenerate
-																			// to
-																			// a
-																			// line
-																			// and
-																			// rides
-																			// the
-																			// bottom
-																			// of
-																			// the
-																			// polygon
-																			// (no
-																			// interior
-																			// intersection)
+			// degenerate
+			// to
+			// a
+			// line
+			// and
+			// rides
+			// the
+			// bottom
+			// of
+			// the
+			// polygon
+			// (no
+			// interior
+			// intersection)
 			assertTrue(!disjoint.execute(densified, envelope, sr, null));
 			assertTrue(touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2683,29 +2755,31 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polygon polygon = (Polygon) (importFromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
+			Polygon polygon = (Polygon) (TestCommonMethods
+					.fromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,10],[10,0],[0,0]]]}")
 					.getGeometry());
 			Polygon densified = (Polygon) (densify.execute(polygon, 1.0, null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":1,\"xmax\":1,\"ymax\":1}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":1,\"xmax\":1,\"ymax\":1}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null));
 			assertTrue(contains.execute(densified, envelope, sr, null)); // envelope
-																			// degenerate
-																			// to
-																			// a
-																			// line,
-																			// touches
-																			// the
-																			// border
-																			// on
-																			// the
-																			// inside
-																			// yet
-																			// has
-																			// interior
-																			// intersection
+			// degenerate
+			// to
+			// a
+			// line,
+			// touches
+			// the
+			// border
+			// on
+			// the
+			// inside
+			// yet
+			// has
+			// interior
+			// intersection
 			assertTrue(!disjoint.execute(densified, envelope, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2713,25 +2787,27 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polygon polygon = (Polygon) (importFromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,0],[0,0]]]}")
+			Polygon polygon = (Polygon) (TestCommonMethods
+					.fromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,0],[0,0]]]}")
 					.getGeometry());
 			Polygon densified = (Polygon) (densify.execute(polygon, 1.0, null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":5,\"ymin\":5,\"xmax\":6,\"ymax\":5}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":5,\"ymin\":5,\"xmax\":6,\"ymax\":5}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null));
 			assertTrue(!contains.execute(densified, envelope, sr, null)); // envelope
-																			// degenerate
-																			// to
-																			// a
-																			// line,
-																			// touches
-																			// the
-																			// boundary,
-																			// and
-																			// is
-																			// outside
+			// degenerate
+			// to
+			// a
+			// line,
+			// touches
+			// the
+			// boundary,
+			// and
+			// is
+			// outside
 			assertTrue(!disjoint.execute(densified, envelope, sr, null));
 			assertTrue(touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2739,22 +2815,24 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polygon polygon = (Polygon) (importFromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,0],[0,0]]]}")
+			Polygon polygon = (Polygon) (TestCommonMethods
+					.fromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,0],[0,0]]]}")
 					.getGeometry());
 			Polygon densified = (Polygon) (densify.execute(polygon, 1.0, null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":6,\"ymin\":5,\"xmax\":7,\"ymax\":5}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":6,\"ymin\":5,\"xmax\":7,\"ymax\":5}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null));
 			assertTrue(!contains.execute(densified, envelope, sr, null)); // envelope
-																			// degenerate
-																			// to
-																			// a
-																			// line,
-																			// and
-																			// is
-																			// outside
+			// degenerate
+			// to
+			// a
+			// line,
+			// and
+			// is
+			// outside
 			assertTrue(disjoint.execute(densified, envelope, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2762,22 +2840,24 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polygon polygon = (Polygon) (importFromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,0],[0,0]]]}")
+			Polygon polygon = (Polygon) (TestCommonMethods
+					.fromJson("{\"rings\":[[[0,0],[0,5],[0,10],[10,0],[0,0]]]}")
 					.getGeometry());
 			Polygon densified = (Polygon) (densify.execute(polygon, 1.0, null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":4,\"ymin\":5,\"xmax\":7,\"ymax\":5}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":4,\"ymin\":5,\"xmax\":7,\"ymax\":5}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null));
 			assertTrue(!contains.execute(densified, envelope, sr, null)); // envelope
-																			// degenerate
-																			// to
-																			// a
-																			// line,
-																			// and
-																			// crosses
-																			// polygon
+			// degenerate
+			// to
+			// a
+			// line,
+			// and
+			// crosses
+			// polygon
 			assertTrue(!disjoint.execute(densified, envelope, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
 			assertTrue(!overlaps.execute(envelope, densified, sr, null));
@@ -2808,20 +2888,22 @@ public class TestRelation extends TestCase {
 		SpatialReference sr = SpatialReference.create(4326);
 
 		{
-			Polyline polyline = (Polyline) (importFromJson("{\"paths\":[[[0,0],[0,5],[0,10],[10,10],[10,0]]]}")
+			Polyline polyline = (Polyline) (TestCommonMethods
+					.fromJson("{\"paths\":[[[0,0],[0,5],[0,10],[10,10],[10,0]]]}")
 					.getGeometry());
 			Polyline densified = (Polyline) (densify.execute(polyline, 1.0,
 					null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // polyline
-																		// straddles
-																		// the
-																		// envelope
-																		// like
-																		// a hat
+			// straddles
+			// the
+			// envelope
+			// like
+			// a hat
 			assertTrue(!contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(touches.execute(envelope, densified, sr, null));
@@ -2830,11 +2912,12 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polyline polyline = (Polyline) (importFromJson("{\"paths\":[[[-10,0],[0,10]]]}")
-					.getGeometry());
+			Polyline polyline = (Polyline) (TestCommonMethods
+					.fromJson("{\"paths\":[[[-10,0],[0,10]]]}").getGeometry());
 			Polyline densified = (Polyline) (densify.execute(polyline, 1.0,
 					null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
@@ -2848,11 +2931,12 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polyline polyline = (Polyline) (importFromJson("{\"paths\":[[[-11,0],[1,12]]]}")
-					.getGeometry());
+			Polyline polyline = (Polyline) (TestCommonMethods
+					.fromJson("{\"paths\":[[[-11,0],[1,12]]]}").getGeometry());
 			Polyline densified = (Polyline) (densify.execute(polyline, 1.0,
 					null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
@@ -2866,17 +2950,18 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polyline polyline = (Polyline) (importFromJson("{\"paths\":[[[5,5],[6,6]]]}")
-					.getGeometry());
+			Polyline polyline = (Polyline) (TestCommonMethods
+					.fromJson("{\"paths\":[[[5,5],[6,6]]]}").getGeometry());
 			Polyline densified = (Polyline) (densify.execute(polyline, 1.0,
 					null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // polyline
-																		// properly
-																		// inside
+			// properly
+			// inside
 			assertTrue(contains.execute(envelope, densified, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -2885,11 +2970,12 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polyline polyline = (Polyline) (importFromJson("{\"paths\":[[[5,5],[10,10]]]}")
-					.getGeometry());
+			Polyline polyline = (Polyline) (TestCommonMethods
+					.fromJson("{\"paths\":[[[5,5],[10,10]]]}").getGeometry());
 			Polyline densified = (Polyline) (densify.execute(polyline, 1.0,
 					null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
@@ -2902,11 +2988,12 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polyline polyline = (Polyline) (importFromJson("{\"paths\":[[[-5,5],[15,5]]]}")
-					.getGeometry());
+			Polyline polyline = (Polyline) (TestCommonMethods
+					.fromJson("{\"paths\":[[[-5,5],[15,5]]]}").getGeometry());
 			Polyline densified = (Polyline) (densify.execute(polyline, 1.0,
 					null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
@@ -2920,23 +3007,24 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polyline polyline = (Polyline) (importFromJson("{\"paths\":[[[5,5],[5,15]]]}")
-					.getGeometry());
+			Polyline polyline = (Polyline) (TestCommonMethods
+					.fromJson("{\"paths\":[[[5,5],[5,15]]]}").getGeometry());
 			Polyline densified = (Polyline) (densify.execute(polyline, 1.0,
 					null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // polyline
-																		// slices
-																		// through
-																		// the
-																		// envelope
-																		// (interior
-																		// and
-																		// exterior
-																		// intersection)
+			// slices
+			// through
+			// the
+			// envelope
+			// (interior
+			// and
+			// exterior
+			// intersection)
 			assertTrue(!contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -2945,18 +3033,19 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polyline polyline = (Polyline) (importFromJson("{\"paths\":[[[5,11],[5,15]]]}")
-					.getGeometry());
+			Polyline polyline = (Polyline) (TestCommonMethods
+					.fromJson("{\"paths\":[[[5,11],[5,15]]]}").getGeometry());
 			Polyline densified = (Polyline) (densify.execute(polyline, 1.0,
 					null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // polyline
-																		// outside
-																		// of
-																		// envelope
+			// outside
+			// of
+			// envelope
 			assertTrue(!contains.execute(densified, envelope, sr, null));
 			assertTrue(disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -2965,21 +3054,23 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polyline polyline = (Polyline) (importFromJson("{\"paths\":[[[0,0],[0,5],[0,10],[10,10],[10,0]]]}")
+			Polyline polyline = (Polyline) (TestCommonMethods
+					.fromJson("{\"paths\":[[[0,0],[0,5],[0,10],[10,10],[10,0]]]}")
 					.getGeometry());
 			Polyline densified = (Polyline) (densify.execute(polyline, 1.0,
 					null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":10,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":10,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // polyline
-																		// straddles
-																		// the
-																		// degenerate
-																		// envelope
-																		// like
-																		// a hat
+			// straddles
+			// the
+			// degenerate
+			// envelope
+			// like
+			// a hat
 			assertTrue(contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -2988,11 +3079,13 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polyline polyline = (Polyline) (importFromJson("{\"paths\":[[[0,0],[0,5],[0,10],[10,10],[10,0]]]}")
+			Polyline polyline = (Polyline) (TestCommonMethods
+					.fromJson("{\"paths\":[[[0,0],[0,5],[0,10],[10,10],[10,0]]]}")
 					.getGeometry());
 			Polyline densified = (Polyline) (densify.execute(polyline, 1.0,
 					null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":-5,\"xmax\":0,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":-5,\"xmax\":0,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
@@ -3005,22 +3098,24 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polyline polyline = (Polyline) (importFromJson("{\"paths\":[[[0,0],[0,5],[0,10],[10,10],[10,0]]]}")
+			Polyline polyline = (Polyline) (TestCommonMethods
+					.fromJson("{\"paths\":[[[0,0],[0,5],[0,10],[10,10],[10,0]]]}")
 					.getGeometry());
 			Polyline densified = (Polyline) (densify.execute(polyline, 1.0,
 					null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":0,\"ymax\":0}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":0,\"ymax\":0}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 511);
 			wiggleGeometry(envelope, 0.00000001, 1982);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // degenerate
-																		// envelope
-																		// is at
-																		// the
-																		// end
-																		// point
-																		// of
-																		// polyline
+			// envelope
+			// is at
+			// the
+			// end
+			// point
+			// of
+			// polyline
 			assertTrue(!contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(touches.execute(envelope, densified, sr, null));
@@ -3029,21 +3124,23 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polyline polyline = (Polyline) (importFromJson("{\"paths\":[[[0,0],[0,5],[0,10],[10,10],[10,0]]]}")
+			Polyline polyline = (Polyline) (TestCommonMethods
+					.fromJson("{\"paths\":[[[0,0],[0,5],[0,10],[10,10],[10,0]]]}")
 					.getGeometry());
 			Polyline densified = (Polyline) (densify.execute(polyline, 1.0,
 					null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":5,\"xmax\":0,\"ymax\":5}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":5,\"xmax\":0,\"ymax\":5}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // degenerate
-																		// envelope
-																		// is at
-																		// the
-																		// interior
-																		// of
-																		// polyline
+			// envelope
+			// is at
+			// the
+			// interior
+			// of
+			// polyline
 			assertTrue(contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -3052,18 +3149,19 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polyline polyline = (Polyline) (importFromJson("{\"paths\":[[[2,-2],[2,2]]]}")
-					.getGeometry());
+			Polyline polyline = (Polyline) (TestCommonMethods
+					.fromJson("{\"paths\":[[[2,-2],[2,2]]]}").getGeometry());
 			Polyline densified = (Polyline) (densify.execute(polyline, 1.0,
 					null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":5,\"ymax\":0}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":5,\"ymax\":0}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // degenerate
-																		// envelope
-																		// crosses
-																		// polyline
+			// envelope
+			// crosses
+			// polyline
 			assertTrue(!contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -3072,18 +3170,19 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polyline polyline = (Polyline) (importFromJson("{\"paths\":[[[2,0],[2,2]]]}")
-					.getGeometry());
+			Polyline polyline = (Polyline) (TestCommonMethods
+					.fromJson("{\"paths\":[[[2,0],[2,2]]]}").getGeometry());
 			Polyline densified = (Polyline) (densify.execute(polyline, 1.0,
 					null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":5,\"ymax\":0}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":5,\"ymax\":0}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // degenerate
-																		// envelope
-																		// crosses
-																		// polyline
+			// envelope
+			// crosses
+			// polyline
 			assertTrue(!contains.execute(densified, envelope, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(touches.execute(envelope, densified, sr, null));
@@ -3092,18 +3191,19 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polyline polyline = (Polyline) (importFromJson("{\"paths\":[[[2,0],[2,2]]]}")
-					.getGeometry());
+			Polyline polyline = (Polyline) (TestCommonMethods
+					.fromJson("{\"paths\":[[[2,0],[2,2]]]}").getGeometry());
 			Polyline densified = (Polyline) (densify.execute(polyline, 1.0,
 					null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":2,\"ymin\":0,\"xmax\":2,\"ymax\":3}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":2,\"ymin\":0,\"xmax\":2,\"ymax\":3}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // degenerate
-																		// envelope
-																		// contains
-																		// polyline
+			// envelope
+			// contains
+			// polyline
 			assertTrue(!contains.execute(densified, envelope, sr, null));
 			assertTrue(contains.execute(envelope, densified, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
@@ -3113,17 +3213,18 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polyline polyline = (Polyline) (importFromJson("{\"paths\":[[[5,5],[6,6]]]}")
-					.getGeometry());
+			Polyline polyline = (Polyline) (TestCommonMethods
+					.fromJson("{\"paths\":[[[5,5],[6,6]]]}").getGeometry());
 			Polyline densified = (Polyline) (densify.execute(polyline, 1.0,
 					null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":5,\"ymax\":5}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":5,\"ymax\":5}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, densified, sr, null)); // polyline
-																		// properly
-																		// inside
+			// properly
+			// inside
 			assertTrue(!contains.execute(envelope, densified, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(touches.execute(envelope, densified, sr, null));
@@ -3132,17 +3233,18 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Polyline polyline = (Polyline) (importFromJson("{\"paths\":[[[5,5],[5,10]]]}")
-					.getGeometry());
+			Polyline polyline = (Polyline) (TestCommonMethods
+					.fromJson("{\"paths\":[[[5,5],[5,10]]]}").getGeometry());
 			Polyline densified = (Polyline) (densify.execute(polyline, 1.0,
 					null));
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":5,\"ymin\":5,\"xmax\":5,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":5,\"ymin\":5,\"xmax\":5,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(densified, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(equals.execute(envelope, densified, sr, null)); // polyline
-																		// properly
-																		// inside
+			// properly
+			// inside
 			assertTrue(contains.execute(envelope, densified, sr, null));
 			assertTrue(!disjoint.execute(envelope, densified, sr, null));
 			assertTrue(!touches.execute(envelope, densified, sr, null));
@@ -3175,16 +3277,18 @@ public class TestRelation extends TestCase {
 		SpatialReference sr = SpatialReference.create(4326);
 
 		{
-			MultiPoint multi_point = (MultiPoint) (importFromJson("{\"points\":[[0,0],[0,10],[10,10],[10,0]]}")
+			MultiPoint multi_point = (MultiPoint) (TestCommonMethods
+					.fromJson("{\"points\":[[0,0],[0,10],[10,10],[10,0]]}")
 					.getGeometry());
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // all
-																			// points
-																			// on
-																			// boundary
+			// points
+			// on
+			// boundary
 			assertTrue(!contains.execute(envelope, multi_point, sr, null));
 			assertTrue(!disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(touches.execute(envelope, multi_point, sr, null));
@@ -3193,20 +3297,22 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			MultiPoint multi_point = (MultiPoint) (importFromJson("{\"points\":[[0,0],[0,10],[10,10],[5,5]]}")
+			MultiPoint multi_point = (MultiPoint) (TestCommonMethods
+					.fromJson("{\"points\":[[0,0],[0,10],[10,10],[5,5]]}")
 					.getGeometry());
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // points
-																			// on
-																			// boundary
-																			// and
-																			// one
-																			// point
-																			// in
-																			// interior
+			// on
+			// boundary
+			// and
+			// one
+			// point
+			// in
+			// interior
 			assertTrue(contains.execute(envelope, multi_point, sr, null));
 			assertTrue(!disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(!touches.execute(envelope, multi_point, sr, null));
@@ -3215,19 +3321,21 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			MultiPoint multi_point = (MultiPoint) (importFromJson("{\"points\":[[0,0],[0,10],[10,10],[5,5],[15,15]]}")
+			MultiPoint multi_point = (MultiPoint) (TestCommonMethods
+					.fromJson("{\"points\":[[0,0],[0,10],[10,10],[5,5],[15,15]]}")
 					.getGeometry());
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // points
-																			// on
-																			// boundary,
-																			// one
-																			// interior,
-																			// one
-																			// exterior
+			// on
+			// boundary,
+			// one
+			// interior,
+			// one
+			// exterior
 			assertTrue(!contains.execute(envelope, multi_point, sr, null));
 			assertTrue(!disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(!touches.execute(envelope, multi_point, sr, null));
@@ -3236,17 +3344,19 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			MultiPoint multi_point = (MultiPoint) (importFromJson("{\"points\":[[0,0],[0,10],[10,10],[15,15]]}")
+			MultiPoint multi_point = (MultiPoint) (TestCommonMethods
+					.fromJson("{\"points\":[[0,0],[0,10],[10,10],[15,15]]}")
 					.getGeometry());
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // points
-																			// on
-																			// boundary,
-																			// one
-																			// exterior
+			// on
+			// boundary,
+			// one
+			// exterior
 			assertTrue(!contains.execute(envelope, multi_point, sr, null));
 			assertTrue(!disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(touches.execute(envelope, multi_point, sr, null));
@@ -3255,15 +3365,17 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			MultiPoint multi_point = (MultiPoint) (importFromJson("{\"points\":[[0,-1],[0,11],[11,11],[15,15]]}")
+			MultiPoint multi_point = (MultiPoint) (TestCommonMethods
+					.fromJson("{\"points\":[[0,-1],[0,11],[11,11],[15,15]]}")
 					.getGeometry());
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // all
-																			// points
-																			// exterior
+			// points
+			// exterior
 			assertTrue(!contains.execute(envelope, multi_point, sr, null));
 			assertTrue(disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(!touches.execute(envelope, multi_point, sr, null));
@@ -3272,25 +3384,27 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			MultiPoint multi_point = (MultiPoint) (importFromJson("{\"points\":[[0,0],[0,10],[10,10],[10,0]]}")
+			MultiPoint multi_point = (MultiPoint) (TestCommonMethods
+					.fromJson("{\"points\":[[0,0],[0,10],[10,10],[10,0]]}")
 					.getGeometry());
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":10,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":10,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // degenerate
-																			// envelope
-																			// slices
-																			// through
-																			// some
-																			// points,
-																			// but
-																			// some
-																			// points
-																			// are
-																			// off
-																			// the
-																			// line
+			// envelope
+			// slices
+			// through
+			// some
+			// points,
+			// but
+			// some
+			// points
+			// are
+			// off
+			// the
+			// line
 			assertTrue(!contains.execute(envelope, multi_point, sr, null));
 			assertTrue(!disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(touches.execute(envelope, multi_point, sr, null));
@@ -3299,25 +3413,27 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			MultiPoint multi_point = (MultiPoint) (importFromJson("{\"points\":[[0,0],[1,10],[10,10],[10,0]]}")
+			MultiPoint multi_point = (MultiPoint) (TestCommonMethods
+					.fromJson("{\"points\":[[0,0],[1,10],[10,10],[10,0]]}")
 					.getGeometry());
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":10,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":10,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // degenerate
-																			// envelope
-																			// slices
-																			// through
-																			// some
-																			// points,
-																			// but
-																			// some
-																			// points
-																			// are
-																			// off
-																			// the
-																			// line
+			// envelope
+			// slices
+			// through
+			// some
+			// points,
+			// but
+			// some
+			// points
+			// are
+			// off
+			// the
+			// line
 			assertTrue(!contains.execute(envelope, multi_point, sr, null));
 			assertTrue(!disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(!touches.execute(envelope, multi_point, sr, null));
@@ -3326,29 +3442,30 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			MultiPoint multi_point = (MultiPoint) (importFromJson("{\"points\":[[0,10],[10,10]]}")
-					.getGeometry());
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":10,\"xmax\":10,\"ymax\":10}")
+			MultiPoint multi_point = (MultiPoint) (TestCommonMethods
+					.fromJson("{\"points\":[[0,10],[10,10]]}").getGeometry());
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":10,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // degenerate
-																			// envelopes
-																			// slices
-																			// through
-																			// all
-																			// the
-																			// points,
-																			// and
-																			// they
-																			// are
-																			// at
-																			// the
-																			// end
-																			// points
-																			// of
-																			// the
-																			// line
+			// envelopes
+			// slices
+			// through
+			// all
+			// the
+			// points,
+			// and
+			// they
+			// are
+			// at
+			// the
+			// end
+			// points
+			// of
+			// the
+			// line
 			assertTrue(!contains.execute(envelope, multi_point, sr, null));
 			assertTrue(!disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(touches.execute(envelope, multi_point, sr, null));
@@ -3357,28 +3474,29 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			MultiPoint multi_point = (MultiPoint) (importFromJson("{\"points\":[[1,10],[9,10]]}")
-					.getGeometry());
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":10,\"xmax\":10,\"ymax\":10}")
+			MultiPoint multi_point = (MultiPoint) (TestCommonMethods
+					.fromJson("{\"points\":[[1,10],[9,10]]}").getGeometry());
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":10,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // degenerate
-																			// envelopes
-																			// slices
-																			// through
-																			// all
-																			// the
-																			// points,
-																			// and
-																			// they
-																			// are
-																			// in
-																			// the
-																			// interior
-																			// of
-																			// the
-																			// line
+			// envelopes
+			// slices
+			// through
+			// all
+			// the
+			// points,
+			// and
+			// they
+			// are
+			// in
+			// the
+			// interior
+			// of
+			// the
+			// line
 			assertTrue(contains.execute(envelope, multi_point, sr, null));
 			assertTrue(!disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(!touches.execute(envelope, multi_point, sr, null));
@@ -3387,15 +3505,17 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			MultiPoint multi_point = (MultiPoint) (importFromJson("{\"points\":[[0,-1],[0,11],[11,11],[15,15]]}")
+			MultiPoint multi_point = (MultiPoint) (TestCommonMethods
+					.fromJson("{\"points\":[[0,-1],[0,11],[11,11],[15,15]]}")
 					.getGeometry());
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":10,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":10,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // all
-																			// points
-																			// exterior
+			// points
+			// exterior
 			assertTrue(!contains.execute(envelope, multi_point, sr, null));
 			assertTrue(disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(!touches.execute(envelope, multi_point, sr, null));
@@ -3404,15 +3524,17 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			MultiPoint multi_point = (MultiPoint) (importFromJson("{\"points\":[[0,-1],[0,11],[11,11],[15,15]]}")
+			MultiPoint multi_point = (MultiPoint) (TestCommonMethods
+					.fromJson("{\"points\":[[0,-1],[0,11],[11,11],[15,15]]}")
 					.getGeometry());
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":10,\"ymin\":10,\"xmax\":10,\"ymax\":10}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":10,\"ymin\":10,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // all
-																			// points
-																			// exterior
+			// points
+			// exterior
 			assertTrue(!contains.execute(envelope, multi_point, sr, null));
 			assertTrue(disjoint.execute(envelope, multi_point, sr, null));
 			assertTrue(!touches.execute(envelope, multi_point, sr, null));
@@ -3421,15 +3543,17 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			MultiPoint multi_point = (MultiPoint) (importFromJson("{\"points\":[[0,-1],[0,11],[11,11],[15,15]]}")
+			MultiPoint multi_point = (MultiPoint) (TestCommonMethods
+					.fromJson("{\"points\":[[0,-1],[0,11],[11,11],[15,15]]}")
 					.getGeometry());
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":11,\"ymax\":11}")
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":11,\"ymax\":11}")
 					.getGeometry());
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(!equals.execute(envelope, multi_point, sr, null)); // all
-																			// points
-																			// exterior
+			// points
+			// exterior
 			assertTrue(!contains.execute(multi_point, envelope, sr, null));
 			assertTrue(!contains.execute(envelope, multi_point, sr, null));
 			assertTrue(!disjoint.execute(envelope, multi_point, sr, null));
@@ -3439,15 +3563,16 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			MultiPoint multi_point = (MultiPoint) (importFromJson("{\"points\":[[0,-1],[0,-1]]}")
-					.getGeometry());
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":-1,\"xmax\":0,\"ymax\":-1}")
+			MultiPoint multi_point = (MultiPoint) (TestCommonMethods
+					.fromJson("{\"points\":[[0,-1],[0,-1]]}").getGeometry());
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":-1,\"xmax\":0,\"ymax\":-1}")
 					.getGeometry());
 			wiggleGeometry(multi_point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
 			assertTrue(equals.execute(envelope, multi_point, sr, null)); // all
-																			// points
-																			// exterior
+			// points
+			// exterior
 			assertTrue(contains.execute(multi_point, envelope, sr, null));
 			assertTrue(contains.execute(envelope, multi_point, sr, null));
 			assertTrue(!disjoint.execute(envelope, multi_point, sr, null));
@@ -3477,73 +3602,10 @@ public class TestRelation extends TestCase {
 		SpatialReference sr = SpatialReference.create(4326);
 
 		{
-			Point point = (Point) (importFromJson("{\"x\":5,\"y\":6}")
-					.getGeometry());
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
-					.getGeometry());
-			wiggleGeometry(point, 0.00000001, 1982);
-			wiggleGeometry(envelope, 0.00000001, 511);
-			assertTrue(!equals.execute(envelope, point, sr, null));
-			assertTrue(contains.execute(envelope, point, sr, null));
-			assertTrue(!contains.execute(point, envelope, sr, null));
-			assertTrue(!disjoint.execute(envelope, point, sr, null));
-			assertTrue(!touches.execute(envelope, point, sr, null));
-			assertTrue(!overlaps.execute(envelope, point, sr, null));
-			assertTrue(!crosses.execute(envelope, point, sr, null));
-		}
-
-		{
-			Point point = (Point) (importFromJson("{\"x\":0,\"y\":10}")
-					.getGeometry());
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
-					.getGeometry());
-			wiggleGeometry(point, 0.00000001, 1982);
-			wiggleGeometry(envelope, 0.00000001, 511);
-			assertTrue(!equals.execute(envelope, point, sr, null));
-			assertTrue(!contains.execute(envelope, point, sr, null));
-			assertTrue(!contains.execute(point, envelope, sr, null));
-			assertTrue(!disjoint.execute(envelope, point, sr, null));
-			assertTrue(touches.execute(envelope, point, sr, null));
-			assertTrue(!overlaps.execute(envelope, point, sr, null));
-			assertTrue(!crosses.execute(envelope, point, sr, null));
-		}
-
-		{
-			Point point = (Point) (importFromJson("{\"x\":0,\"y\":11}")
-					.getGeometry());
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
-					.getGeometry());
-			wiggleGeometry(point, 0.00000001, 1982);
-			wiggleGeometry(envelope, 0.00000001, 511);
-			assertTrue(!equals.execute(envelope, point, sr, null));
-			assertTrue(!contains.execute(envelope, point, sr, null));
-			assertTrue(!contains.execute(point, envelope, sr, null));
-			assertTrue(disjoint.execute(envelope, point, sr, null));
-			assertTrue(!touches.execute(envelope, point, sr, null));
-			assertTrue(!overlaps.execute(envelope, point, sr, null));
-			assertTrue(!crosses.execute(envelope, point, sr, null));
-		}
-
-		{
-			Point point = (Point) (importFromJson("{\"x\":0,\"y\":0}")
-					.getGeometry());
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
-					.getGeometry());
-			wiggleGeometry(point, 0.00000001, 1982);
-			wiggleGeometry(envelope, 0.00000001, 511);
-			assertTrue(!equals.execute(envelope, point, sr, null));
-			assertTrue(!contains.execute(envelope, point, sr, null));
-			assertTrue(!contains.execute(point, envelope, sr, null));
-			assertTrue(!disjoint.execute(envelope, point, sr, null));
-			assertTrue(touches.execute(envelope, point, sr, null));
-			assertTrue(!overlaps.execute(envelope, point, sr, null));
-			assertTrue(!crosses.execute(envelope, point, sr, null));
-		}
-
-		{
-			Point point = (Point) (importFromJson("{\"x\":5,\"y\":0}")
-					.getGeometry());
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
+			Point point = (Point) (TestCommonMethods
+					.fromJson("{\"x\":5,\"y\":6}").getGeometry());
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
@@ -3557,9 +3619,27 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Point point = (Point) (importFromJson("{\"x\":11,\"y\":0}")
+			Point point = (Point) (TestCommonMethods
+					.fromJson("{\"x\":0,\"y\":10}").getGeometry());
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
+			wiggleGeometry(point, 0.00000001, 1982);
+			wiggleGeometry(envelope, 0.00000001, 511);
+			assertTrue(!equals.execute(envelope, point, sr, null));
+			assertTrue(!contains.execute(envelope, point, sr, null));
+			assertTrue(!contains.execute(point, envelope, sr, null));
+			assertTrue(!disjoint.execute(envelope, point, sr, null));
+			assertTrue(touches.execute(envelope, point, sr, null));
+			assertTrue(!overlaps.execute(envelope, point, sr, null));
+			assertTrue(!crosses.execute(envelope, point, sr, null));
+		}
+
+		{
+			Point point = (Point) (TestCommonMethods
+					.fromJson("{\"x\":0,\"y\":11}").getGeometry());
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
@@ -3573,9 +3653,61 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Point point = (Point) (importFromJson("{\"x\":0,\"y\":0}")
+			Point point = (Point) (TestCommonMethods
+					.fromJson("{\"x\":0,\"y\":0}").getGeometry());
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
 					.getGeometry());
-			Envelope envelope = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":0,\"ymax\":0}")
+			wiggleGeometry(point, 0.00000001, 1982);
+			wiggleGeometry(envelope, 0.00000001, 511);
+			assertTrue(!equals.execute(envelope, point, sr, null));
+			assertTrue(!contains.execute(envelope, point, sr, null));
+			assertTrue(!contains.execute(point, envelope, sr, null));
+			assertTrue(!disjoint.execute(envelope, point, sr, null));
+			assertTrue(touches.execute(envelope, point, sr, null));
+			assertTrue(!overlaps.execute(envelope, point, sr, null));
+			assertTrue(!crosses.execute(envelope, point, sr, null));
+		}
+
+		{
+			Point point = (Point) (TestCommonMethods
+					.fromJson("{\"x\":5,\"y\":0}").getGeometry());
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
+					.getGeometry());
+			wiggleGeometry(point, 0.00000001, 1982);
+			wiggleGeometry(envelope, 0.00000001, 511);
+			assertTrue(!equals.execute(envelope, point, sr, null));
+			assertTrue(contains.execute(envelope, point, sr, null));
+			assertTrue(!contains.execute(point, envelope, sr, null));
+			assertTrue(!disjoint.execute(envelope, point, sr, null));
+			assertTrue(!touches.execute(envelope, point, sr, null));
+			assertTrue(!overlaps.execute(envelope, point, sr, null));
+			assertTrue(!crosses.execute(envelope, point, sr, null));
+		}
+
+		{
+			Point point = (Point) (TestCommonMethods
+					.fromJson("{\"x\":11,\"y\":0}").getGeometry());
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
+					.getGeometry());
+			wiggleGeometry(point, 0.00000001, 1982);
+			wiggleGeometry(envelope, 0.00000001, 511);
+			assertTrue(!equals.execute(envelope, point, sr, null));
+			assertTrue(!contains.execute(envelope, point, sr, null));
+			assertTrue(!contains.execute(point, envelope, sr, null));
+			assertTrue(disjoint.execute(envelope, point, sr, null));
+			assertTrue(!touches.execute(envelope, point, sr, null));
+			assertTrue(!overlaps.execute(envelope, point, sr, null));
+			assertTrue(!crosses.execute(envelope, point, sr, null));
+		}
+
+		{
+			Point point = (Point) (TestCommonMethods
+					.fromJson("{\"x\":0,\"y\":0}").getGeometry());
+			Envelope envelope = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":0,\"ymax\":0}")
 					.getGeometry());
 			wiggleGeometry(point, 0.00000001, 1982);
 			wiggleGeometry(envelope, 0.00000001, 511);
@@ -3609,9 +3741,11 @@ public class TestRelation extends TestCase {
 		SpatialReference sr = SpatialReference.create(4326);
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -3628,9 +3762,11 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":5,\"ymin\":5,\"xmax\":10,\"ymax\":10}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":5,\"ymin\":5,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -3646,9 +3782,11 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":5,\"ymin\":5,\"xmax\":15,\"ymax\":15}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":5,\"ymin\":5,\"xmax\":15,\"ymax\":15}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -3664,27 +3802,11 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":10,\"ymin\":0,\"xmax\":20,\"ymax\":10}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":10,\"ymin\":0,\"xmax\":20,\"ymax\":10}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
-					.getGeometry());
-			wiggleGeometry(env1, 0.00000001, 1982);
-			wiggleGeometry(env2, 0.00000001, 511);
-			assertTrue(!equals.execute(env1, env2, sr, null));
-			assertTrue(!contains.execute(env1, env2, sr, null));
-			assertTrue(!contains.execute(env2, env1, sr, null));
-			assertTrue(!disjoint.execute(env1, env2, sr, null));
-			assertTrue(touches.execute(env1, env2, sr, null));
-			assertTrue(!overlaps.execute(env1, env2, sr, null));
-			assertTrue(!overlaps.execute(env2, env1, sr, null));
-			assertTrue(!crosses.execute(env1, env2, sr, null));
-			assertTrue(!crosses.execute(env2, env1, sr, null));
-		}
-
-		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":10,\"ymin\":0,\"xmax\":20,\"ymax\":10}")
-					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -3700,27 +3822,11 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":10,\"ymin\":0,\"xmax\":20,\"ymax\":10}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":10,\"ymin\":0,\"xmax\":20,\"ymax\":10}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":10,\"xmax\":10,\"ymax\":20}")
-					.getGeometry());
-			wiggleGeometry(env1, 0.00000001, 1982);
-			wiggleGeometry(env2, 0.00000001, 511);
-			assertTrue(!equals.execute(env1, env2, sr, null));
-			assertTrue(!contains.execute(env1, env2, sr, null));
-			assertTrue(!contains.execute(env2, env1, sr, null));
-			assertTrue(!disjoint.execute(env1, env2, sr, null));
-			assertTrue(touches.execute(env1, env2, sr, null));
-			assertTrue(!overlaps.execute(env1, env2, sr, null));
-			assertTrue(!overlaps.execute(env2, env1, sr, null));
-			assertTrue(!crosses.execute(env1, env2, sr, null));
-			assertTrue(!crosses.execute(env2, env1, sr, null));
-		}
-
-		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
-					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -3736,27 +3842,11 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":10,\"ymin\":0,\"xmax\":20,\"ymax\":10}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":15,\"ymax\":0}")
-					.getGeometry());
-			wiggleGeometry(env1, 0.00000001, 1982);
-			wiggleGeometry(env2, 0.00000001, 511);
-			assertTrue(!equals.execute(env1, env2, sr, null));
-			assertTrue(!contains.execute(env1, env2, sr, null));
-			assertTrue(!contains.execute(env2, env1, sr, null));
-			assertTrue(!disjoint.execute(env1, env2, sr, null));
-			assertTrue(touches.execute(env1, env2, sr, null));
-			assertTrue(!overlaps.execute(env1, env2, sr, null));
-			assertTrue(!overlaps.execute(env2, env1, sr, null));
-			assertTrue(!crosses.execute(env1, env2, sr, null));
-			assertTrue(!crosses.execute(env2, env1, sr, null));
-		}
-
-		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
-					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":-5,\"ymin\":5,\"xmax\":0,\"ymax\":5}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":10,\"xmax\":10,\"ymax\":20}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -3772,9 +3862,71 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":-5,\"ymin\":5,\"xmax\":5,\"ymax\":5}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
+					.getGeometry());
+			wiggleGeometry(env1, 0.00000001, 1982);
+			wiggleGeometry(env2, 0.00000001, 511);
+			assertTrue(!equals.execute(env1, env2, sr, null));
+			assertTrue(!contains.execute(env1, env2, sr, null));
+			assertTrue(!contains.execute(env2, env1, sr, null));
+			assertTrue(!disjoint.execute(env1, env2, sr, null));
+			assertTrue(touches.execute(env1, env2, sr, null));
+			assertTrue(!overlaps.execute(env1, env2, sr, null));
+			assertTrue(!overlaps.execute(env2, env1, sr, null));
+			assertTrue(!crosses.execute(env1, env2, sr, null));
+			assertTrue(!crosses.execute(env2, env1, sr, null));
+		}
+
+		{
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+					.getGeometry());
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":15,\"ymax\":0}")
+					.getGeometry());
+			wiggleGeometry(env1, 0.00000001, 1982);
+			wiggleGeometry(env2, 0.00000001, 511);
+			assertTrue(!equals.execute(env1, env2, sr, null));
+			assertTrue(!contains.execute(env1, env2, sr, null));
+			assertTrue(!contains.execute(env2, env1, sr, null));
+			assertTrue(!disjoint.execute(env1, env2, sr, null));
+			assertTrue(touches.execute(env1, env2, sr, null));
+			assertTrue(!overlaps.execute(env1, env2, sr, null));
+			assertTrue(!overlaps.execute(env2, env1, sr, null));
+			assertTrue(!crosses.execute(env1, env2, sr, null));
+			assertTrue(!crosses.execute(env2, env1, sr, null));
+		}
+
+		{
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+					.getGeometry());
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":-5,\"ymin\":5,\"xmax\":0,\"ymax\":5}")
+					.getGeometry());
+			wiggleGeometry(env1, 0.00000001, 1982);
+			wiggleGeometry(env2, 0.00000001, 511);
+			assertTrue(!equals.execute(env1, env2, sr, null));
+			assertTrue(!contains.execute(env1, env2, sr, null));
+			assertTrue(!contains.execute(env2, env1, sr, null));
+			assertTrue(!disjoint.execute(env1, env2, sr, null));
+			assertTrue(touches.execute(env1, env2, sr, null));
+			assertTrue(!overlaps.execute(env1, env2, sr, null));
+			assertTrue(!overlaps.execute(env2, env1, sr, null));
+			assertTrue(!crosses.execute(env1, env2, sr, null));
+			assertTrue(!crosses.execute(env2, env1, sr, null));
+		}
+
+		{
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+					.getGeometry());
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":-5,\"ymin\":5,\"xmax\":5,\"ymax\":5}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -3790,27 +3942,11 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":3,\"ymin\":5,\"xmax\":5,\"ymax\":5}")
-					.getGeometry());
-			wiggleGeometry(env1, 0.00000001, 1982);
-			wiggleGeometry(env2, 0.00000001, 511);
-			assertTrue(!equals.execute(env1, env2, sr, null));
-			assertTrue(contains.execute(env1, env2, sr, null));
-			assertTrue(!contains.execute(env2, env1, sr, null));
-			assertTrue(!disjoint.execute(env1, env2, sr, null));
-			assertTrue(!touches.execute(env1, env2, sr, null));
-			assertTrue(!overlaps.execute(env1, env2, sr, null));
-			assertTrue(!overlaps.execute(env2, env1, sr, null));
-			assertTrue(!crosses.execute(env1, env2, sr, null));
-			assertTrue(!crosses.execute(env2, env1, sr, null));
-		}
-
-		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
-					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":3,\"ymin\":5,\"xmax\":10,\"ymax\":5}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":3,\"ymin\":5,\"xmax\":5,\"ymax\":5}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -3826,9 +3962,31 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":-5,\"ymin\":0,\"xmax\":0,\"ymax\":0}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":3,\"ymin\":5,\"xmax\":10,\"ymax\":5}")
+					.getGeometry());
+			wiggleGeometry(env1, 0.00000001, 1982);
+			wiggleGeometry(env2, 0.00000001, 511);
+			assertTrue(!equals.execute(env1, env2, sr, null));
+			assertTrue(contains.execute(env1, env2, sr, null));
+			assertTrue(!contains.execute(env2, env1, sr, null));
+			assertTrue(!disjoint.execute(env1, env2, sr, null));
+			assertTrue(!touches.execute(env1, env2, sr, null));
+			assertTrue(!overlaps.execute(env1, env2, sr, null));
+			assertTrue(!overlaps.execute(env2, env1, sr, null));
+			assertTrue(!crosses.execute(env1, env2, sr, null));
+			assertTrue(!crosses.execute(env2, env1, sr, null));
+		}
+
+		{
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+					.getGeometry());
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":-5,\"ymin\":0,\"xmax\":0,\"ymax\":0}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -3844,9 +4002,11 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -3862,9 +4022,11 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":15,\"ymax\":0}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":15,\"ymax\":0}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -3880,9 +4042,11 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":15,\"ymax\":0}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":15,\"ymax\":0}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":-5,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":-5,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -3898,9 +4062,11 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":5,\"ymax\":0}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":5,\"ymax\":0}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":-5,\"ymin\":0,\"xmax\":0,\"ymax\":0}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":-5,\"ymin\":0,\"xmax\":0,\"ymax\":0}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -3916,9 +4082,11 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":5,\"ymin\":-5,\"xmax\":5,\"ymax\":5}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":5,\"ymin\":-5,\"xmax\":5,\"ymax\":5}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -3934,9 +4102,11 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":10,\"ymin\":0,\"xmax\":20,\"ymax\":0}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":10,\"ymin\":0,\"xmax\":20,\"ymax\":0}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -3952,28 +4122,11 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":5,\"ymin\":0,\"xmax\":5,\"ymax\":5}")
-					.getGeometry());
-			wiggleGeometry(env1, 0.00000001, 1982);
-			wiggleGeometry(env2, 0.00000001, 511);
-			assertTrue(!equals.execute(env1, env2, sr, null));
-			assertTrue(!contains.execute(env1, env2, sr, null));
-			assertTrue(!contains.execute(env2, env1, sr, null));
-			assertTrue(!disjoint.execute(env1, env2, sr, null));
-			assertTrue(touches.execute(env1, env2, sr, null));
-			assertTrue(touches.execute(env2, env1, sr, null));
-			assertTrue(!overlaps.execute(env1, env2, sr, null));
-			assertTrue(!overlaps.execute(env2, env1, sr, null));
-			assertTrue(!crosses.execute(env1, env2, sr, null));
-			assertTrue(!crosses.execute(env2, env1, sr, null));
-		}
-
-		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":0,\"ymax\":0}")
-					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":5,\"ymin\":0,\"xmax\":5,\"ymax\":5}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -3990,9 +4143,11 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":5,\"ymin\":0,\"xmax\":5,\"ymax\":0}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":0,\"ymax\":0}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -4009,9 +4164,32 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":5,\"ymin\":5,\"xmax\":5,\"ymax\":5}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":5,\"ymin\":0,\"xmax\":5,\"ymax\":0}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
+					.getGeometry());
+			wiggleGeometry(env1, 0.00000001, 1982);
+			wiggleGeometry(env2, 0.00000001, 511);
+			assertTrue(!equals.execute(env1, env2, sr, null));
+			assertTrue(!contains.execute(env1, env2, sr, null));
+			assertTrue(!contains.execute(env2, env1, sr, null));
+			assertTrue(!disjoint.execute(env1, env2, sr, null));
+			assertTrue(touches.execute(env1, env2, sr, null));
+			assertTrue(touches.execute(env2, env1, sr, null));
+			assertTrue(!overlaps.execute(env1, env2, sr, null));
+			assertTrue(!overlaps.execute(env2, env1, sr, null));
+			assertTrue(!crosses.execute(env1, env2, sr, null));
+			assertTrue(!crosses.execute(env2, env1, sr, null));
+		}
+
+		{
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":5,\"ymin\":5,\"xmax\":5,\"ymax\":5}")
+					.getGeometry());
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":10}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -4028,9 +4206,11 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":0,\"ymax\":0}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":0,\"ymax\":0}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -4047,9 +4227,11 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":5,\"ymin\":0,\"xmax\":5,\"ymax\":0}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":5,\"ymin\":0,\"xmax\":5,\"ymax\":0}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":0,\"ymin\":0,\"xmax\":10,\"ymax\":0}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -4066,9 +4248,11 @@ public class TestRelation extends TestCase {
 		}
 
 		{
-			Envelope env1 = (Envelope) (importFromJson("{\"xmin\":5,\"ymin\":0,\"xmax\":5,\"ymax\":0}")
+			Envelope env1 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":5,\"ymin\":0,\"xmax\":5,\"ymax\":0}")
 					.getGeometry());
-			Envelope env2 = (Envelope) (importFromJson("{\"xmin\":5,\"ymin\":0,\"xmax\":5,\"ymax\":0}")
+			Envelope env2 = (Envelope) (TestCommonMethods
+					.fromJson("{\"xmin\":5,\"ymin\":0,\"xmax\":5,\"ymax\":0}")
 					.getGeometry());
 			wiggleGeometry(env1, 0.00000001, 1982);
 			wiggleGeometry(env2, 0.00000001, 511);
@@ -4349,6 +4533,43 @@ public class TestRelation extends TestCase {
 		scl = "***T*****";
 		res = op.execute(polyline1, polyline2, sr, scl, null);
 		assertTrue(res);
+
+		polyline1.setEmpty();
+		polyline2.setEmpty();
+
+		polyline1.startPath(0, 0);
+		polyline1.lineTo(0, 20);
+		polyline1.lineTo(20, 20);
+		polyline1.lineTo(20, 0);
+		polyline1.lineTo(0, 0); // has no boundary
+
+		polyline2.startPath(3, 3);
+		polyline2.lineTo(5, 5);
+
+		op.accelerateGeometry(polyline1, sr,
+				Geometry.GeometryAccelerationDegree.enumHot);
+
+		scl = "FF1FFF102";
+		res = op.execute(polyline1, polyline2, sr, scl, null);
+		assertTrue(res);
+
+		polyline1.setEmpty();
+		polyline2.setEmpty();
+
+		polyline1.startPath(4, 0);
+		polyline1.lineTo(0, 4);
+		polyline1.lineTo(4, 8);
+		polyline1.lineTo(8, 4);
+
+		polyline2.startPath(8, 1);
+		polyline2.lineTo(8, 2);
+
+		op.accelerateGeometry(polyline1, sr,
+				Geometry.GeometryAccelerationDegree.enumHot);
+
+		scl = "FF1FF0102";
+		res = op.execute(polyline1, polyline2, sr, scl, null);
+		assertTrue(res);
 	}
 
 	@Test
@@ -4427,6 +4648,30 @@ public class TestRelation extends TestCase {
 		polyline2.lineTo(15, 5);
 
 		scl = "1T*0F*T0T";
+		res = op.execute(polygon1, polyline2, sr, scl, null);
+		assertTrue(res);
+
+		polygon1.setEmpty();
+		polyline2.setEmpty();
+
+		polygon1.startPath(2, 0);
+		polygon1.lineTo(0, 2);
+		polygon1.lineTo(2, 4);
+		polygon1.lineTo(4, 2);
+
+		polyline2.startPath(1, 2);
+		polyline2.lineTo(3, 2);
+
+		op.accelerateGeometry(polygon1, sr,
+				Geometry.GeometryAccelerationDegree.enumHot);
+		scl = "TTTFF****";
+		res = op.execute(polygon1, polyline2, sr, scl, null);
+		assertTrue(res);
+
+		polyline2.setEmpty();
+		polyline2.startPath(5, 2);
+		polyline2.lineTo(7, 2);
+		scl = "FF2FFT***";
 		res = op.execute(polygon1, polyline2, sr, scl, null);
 		assertTrue(res);
 	}
@@ -4525,6 +4770,11 @@ public class TestRelation extends TestCase {
 		scl = "T********";
 		res = op.execute(p1, p2, sr, scl, null);
 		assertTrue(res);
+
+		p1.setXY(0, 0);
+		p2.setXY(1, 0);
+		res = op.execute(p1, p2, null, scl, null);
+		assertTrue(!res);
 	}
 
 	@Test
@@ -4569,6 +4819,42 @@ public class TestRelation extends TestCase {
 		scl = "TFF0F10FT";
 		res = op.execute(polygon1, multipoint2, sr, scl, null);
 		assertTrue(!res);
+
+		polygon1.setEmpty();
+		multipoint2.setEmpty();
+
+		polygon1.startPath(0, 0);
+		polygon1.lineTo(0, 20);
+		polygon1.lineTo(20, 20);
+		polygon1.lineTo(20, 0);
+
+		multipoint2.add(3, 3);
+		multipoint2.add(5, 5);
+
+		op.accelerateGeometry(polygon1, sr,
+				Geometry.GeometryAccelerationDegree.enumHot);
+
+		scl = "TF2FF****";
+		res = op.execute(polygon1, multipoint2, sr, scl, null);
+		assertTrue(res);
+
+		polygon1.setEmpty();
+		multipoint2.setEmpty();
+
+		polygon1.startPath(4, 0);
+		polygon1.lineTo(0, 4);
+		polygon1.lineTo(4, 8);
+		polygon1.lineTo(8, 4);
+
+		multipoint2.add(8, 1);
+		multipoint2.add(8, 2);
+
+		op.accelerateGeometry(polygon1, sr,
+				Geometry.GeometryAccelerationDegree.enumHot);
+
+		scl = "FF2FF10F2";
+		res = op.execute(polygon1, multipoint2, sr, scl, null);
+		assertTrue(res);
 	}
 
 	@Test
@@ -4662,39 +4948,21 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolylinePointRelate() {
-		OperatorRelate op = (OperatorRelate) (OperatorFactoryLocal
-				.getInstance().getOperator(Operator.Type.Relate));
-		SpatialReference sr = SpatialReference.create(4326);
-		boolean res;
-		String scl;
-
-		Polyline polyline = new Polyline();
-		Point point = new Point();
-
-		polyline.startPath(0, 2);
-		polyline.lineTo(0, 4);
-
-		point.setXY(0, 3);
-
-		scl = "0F1FF0FF2'";
-		res = op.execute(polyline, point, sr, scl, null);
-		assertTrue(res);
-	}
-
-	static MapGeometry importFromJson(String jsonString) {
-		JsonFactory factory = new JsonFactory();
-		try {
-			JsonParser jsonParser = factory.createJsonParser(jsonString);
-			jsonParser.nextToken();
-			OperatorImportFromJson importer = (OperatorImportFromJson) OperatorFactoryLocal
-					.getInstance().getOperator(
-							Operator.Type.ImportFromJson);
-
-			return importer.execute(Geometry.Type.Unknown, jsonParser);
-		} catch (Exception ex) {
-		}
-
-		return null;
+	public static void testCrosses_github_issue_40() {
+		// Issue 40: Acceleration without a spatial reference changes the result
+		// of relation operators
+		Geometry geom1 = OperatorImportFromWkt.local().execute(0,
+				Geometry.Type.Unknown, "LINESTRING (2 0, 2 3)", null);
+		Geometry geom2 = OperatorImportFromWkt.local().execute(0,
+				Geometry.Type.Unknown, "POLYGON ((1 1, 4 1, 4 4, 1 4, 1 1))",
+				null);
+		boolean answer1 = OperatorCrosses.local().execute(geom1, geom2, null,
+				null);
+		assertTrue(answer1);
+		OperatorCrosses.local().accelerateGeometry(geom1, null,
+				GeometryAccelerationDegree.enumHot);
+		boolean answer2 = OperatorCrosses.local().execute(geom1, geom2, null,
+				null);
+		assertTrue(answer2);
 	}
 }

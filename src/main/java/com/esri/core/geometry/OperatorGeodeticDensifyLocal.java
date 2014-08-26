@@ -22,37 +22,22 @@
  email: contracts@esri.com
  */
 
-
 package com.esri.core.geometry;
 
-/**
- * A runtime exception raised when a geometry related exception occurs.
- */
-public class GeometryException extends RuntimeException {
+//This is a stub
+public class OperatorGeodeticDensifyLocal extends
+		OperatorGeodeticDensifyByLength {
 
-	private static final long serialVersionUID = 1L;
-	/**
-	 * The internal code for geometry exception.
-	 */
-	public int internalCode;
-
-	/**
-	 * Constructs a Geometry Exception with the given error string/message.
-	 * 
-	 * @param str
-	 *            - The error string.
-	 */
-	GeometryException(String str) {
-		super(str);
-		internalCode = 0;
+	@Override
+	public GeometryCursor execute(GeometryCursor geoms,
+			double maxSegmentLengthMeters, SpatialReference sr, int curveType,
+			ProgressTracker progressTracker) {
+		throw new GeometryException("not implemented");
 	}
 
-	GeometryException(String str, int sgCode) {
-		super(str);
-		internalCode = sgCode;
-	}
-
-	static GeometryException GeometryInternalError() {
-		return new GeometryException("internal error");
+	@Override
+	public Geometry execute(Geometry geom, double maxSegmentLengthMeters,
+			SpatialReference sr, int curveType, ProgressTracker progressTracker) {
+		throw new GeometryException("not implemented");
 	}
 }

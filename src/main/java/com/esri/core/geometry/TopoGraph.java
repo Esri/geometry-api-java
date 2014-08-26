@@ -34,7 +34,7 @@ final class TopoGraph {
 		final static int enumInputModeBuildGraph = 0;
 		final static int enumInputModeSimplifyAlternate = 4 + 0;
 		final static int enumInputModeSimplifyWinding = 4 + 1;
-		final static int enumInputModeSimplifyForBuffer = 4 + 2;
+		final static int enumInputModeIsSimplePolygon = 4 + 3;
 	}
 
 	EditShape m_shape;
@@ -64,6 +64,13 @@ final class TopoGraph {
 	int m_halfEdgeIndex; // vertex index of half-edges in the m_shape
 	int m_tmpHalfEdgeParentageIndex;
 	int m_tmpHalfEdgeWindingNumberIndex;
+	int m_tmpHalfEdgeOddEvenNumberIndex = -1;
+	
+	int m_universe_geomID = -1;
+	
+	boolean m_buildChains = true;
+	
+	NonSimpleResult m_non_simple_result = new NonSimpleResult();
 
 	int m_pointCount;// point count processed in this Topo_graph. Used to
 						// reserve data.
@@ -554,15 +561,6 @@ final class TopoGraph {
 						int attachedTreeNode = getHalfEdgeUserIndex(
 								clusterHalfEdge, treeNodeIndex);
 						if (attachedTreeNode == -1) {
-							// #ifdef DEBUG
-							// //Debug-checking that the "from" is below the
-							// "to"
-							// Point_2D pt_1;
-							// getHalfEdgeFromXY(clusterHalfEdge, pt_1);
-							// Point_2D pt_2;
-							// getHalfEdgeToXY(clusterHalfEdge, pt_2);
-							// assert(pt_1.compare(pt_2) < 0);
-							// #endif
 							int newTreeNode = aet.addElement(clusterHalfEdge,
 									-1);
 							new_edges.add(newTreeNode);
@@ -701,160 +699,214 @@ final class TopoGraph {
 
 		assert (parentChain != -1);
 
-		// Now do specific sweep calculations
 		if (inputMode == EnumInputMode.enumInputModeBuildGraph) {
-			int chainParentage = getChainParentage(edgeChain);
+			propagate_parentage_build_graph_(aet, treeNode, edge, leftEdge, edgeChain, edgeChainParent, twinHalfEdgeChain);
+		}
+		else if (inputMode == EnumInputMode.enumInputModeSimplifyWinding) {
+			propagate_parentage_winding_(aet, treeNode, edge, leftEdge, twinEdge, edgeChain, edgeChainParent, twinHalfEdgeChain);
+		}		
+		else if (inputMode == EnumInputMode.enumInputModeSimplifyAlternate) {
+			propagate_parentage_alternate_(aet, treeNode, edge, leftEdge, twinEdge, edgeChain, edgeChainParent, twinHalfEdgeChain);
+		}		
+		
+	}
+	
+    void propagate_parentage_build_graph_(Treap aet, int treeNode, int edge, int leftEdge,
+    	      int edgeChain, int edgeChainParent, int twinHalfEdgeChain) {
+		// Now do specific sweep calculations
+		int chainParentage = getChainParentage(edgeChain);
 
-			if (leftEdge != -1) {
-				// borrow the parentage from the left edge also
-				int leftEdgeChain = getHalfEdgeChain(leftEdge);
-				// dbg_print_edge_(edge);
-				// dbg_print_edge_(leftEdge);
+		if (leftEdge != -1) {
+			// borrow the parentage from the left edge also
+			int leftEdgeChain = getHalfEdgeChain(leftEdge);
+	
+			// We take parentage from the left edge (that edge has been
+			// already processed), and move its face parentage accross this
+			// edge/twin pair.
+			// While the parentage is moved, accross, any bits of the
+			// parentage that is present in the twin are removed, because
+			// the twin is the right edge of the current face.
+			// The remaining bits are added to the face parentage of this
+			// edge, indicating that the face this edge borders, belongs to
+			// all the parents that are still active to the left.
+			int twinChainParentage = getChainParentage(twinHalfEdgeChain);
+			int leftChainParentage = getChainParentage(leftEdgeChain);
 
-				// We take parentage from the left edge (that edge has been
-				// already processed), and move its face parentage accross this
-				// edge/twin pair.
-				// While the parentage is moved, accross, any bits of the
-				// parentage that is present in the twin are removed, because
-				// the twin is the right edge of the current face.
-				// The remaining bits are added to the face parentage of this
-				// edge, indicating that the face this edge borders, belongs to
-				// all the parents that are still active to the left.
-				int twinChainParentage = getChainParentage(twinHalfEdgeChain);
-				int leftChainParentage = getChainParentage(leftEdgeChain);
-
-				int edgeParentage = getHalfEdgeParentage(edge);
-				int spikeParentage = chainParentage & twinChainParentage
-						& leftChainParentage; // parentage that needs to stay
-				leftChainParentage = leftChainParentage
+			int edgeParentage = getHalfEdgeParentage(edge);
+			int spikeParentage = chainParentage & twinChainParentage
+					& leftChainParentage; // parentage that needs to stay
+			leftChainParentage = leftChainParentage
 						^ (leftChainParentage & edgeParentage);
-				leftChainParentage |= spikeParentage;
-				// leftChainParentage = leftChainParentage ^ (leftChainParentage
-				// & twinChainParentage);//only parentage that is abscent in the
-				// twin is propagated to the right
-				// leftChainParentage = leftChainParentage ^ (leftChainParentage
-				// & edgeParentage);//only parentage that is abscent in the twin
-				// is propagated to the right
-				// & (and) leaves the parentage that is common for left edge and
-				// the twin, while ^ (xor) leaves the parentage that is present
-				// in the
-				// left edge only.
+			leftChainParentage |= spikeParentage;
 
-				if (leftChainParentage != 0) {
-					// propagate left parentage to the current edge and its
-					// twin.
-					setChainParentage_(twinHalfEdgeChain, twinChainParentage
+			if (leftChainParentage != 0) {
+				// propagate left parentage to the current edge and its
+				// twin.
+				setChainParentage_(twinHalfEdgeChain, twinChainParentage
 							| leftChainParentage);
-					setChainParentage_(edgeChain, leftChainParentage
+				setChainParentage_(edgeChain, leftChainParentage
 							| chainParentage);
-					chainParentage |= leftChainParentage;
-				}
-
-				// dbg_print_edge_(edge);
+				chainParentage |= leftChainParentage;
 			}
 
-			for (int rightNode = aet.getNext(treeNode); rightNode != -1; rightNode = aet
+				// dbg_print_edge_(edge);
+		}
+
+		for (int rightNode = aet.getNext(treeNode); rightNode != -1; rightNode = aet
 					.getNext(rightNode)) {
-				int rightEdge = aet.getElement(rightNode);
-				int rightTwin = getHalfEdgeTwin(rightEdge);
-				// dbg_print_edge_(rightEdge);
-				int rightTwinChain = getHalfEdgeChain(rightTwin);
-				int rightTwinChainParentage = getChainParentage(rightTwinChain);
-				int rightEdgeParentage = getHalfEdgeParentage(rightEdge);
-				int rightEdgeChain = getHalfEdgeChain(rightEdge);
-				int rightChainParentage = getChainParentage(rightEdgeChain);
+			int rightEdge = aet.getElement(rightNode);
+			int rightTwin = getHalfEdgeTwin(rightEdge);
 
-				int spikeParentage = rightTwinChainParentage
-						& rightChainParentage & chainParentage; // parentage
-																// that needs to
-																// stay
-				chainParentage = chainParentage
-						^ (chainParentage & rightEdgeParentage);// only
-																// parentage
-																// that is
-																// abscent in
-																// the twin is
-																// propagated to
-																// the right
-				chainParentage |= spikeParentage;
+			int rightTwinChain = getHalfEdgeChain(rightTwin);
+			int rightTwinChainParentage = getChainParentage(rightTwinChain);
+			int rightEdgeParentage = getHalfEdgeParentage(rightEdge);
+			int rightEdgeChain = getHalfEdgeChain(rightEdge);
+			int rightChainParentage = getChainParentage(rightEdgeChain);
 
-				if (chainParentage == 0)
-					break;
+			int spikeParentage = rightTwinChainParentage
+					& rightChainParentage & chainParentage; // parentage
+															// that needs to
+															// stay
+			chainParentage = chainParentage
+					^ (chainParentage & rightEdgeParentage);// only
+															// parentage
+															// that is
+															// abscent in
+															// the twin is
+															// propagated to
+															// the right
+			chainParentage |= spikeParentage;
 
-				setChainParentage_(rightTwinChain, rightTwinChainParentage
+			if (chainParentage == 0)
+				break;
+
+			setChainParentage_(rightTwinChain, rightTwinChainParentage
 						| chainParentage);
-				setChainParentage_(rightEdgeChain, rightChainParentage
+			setChainParentage_(rightEdgeChain, rightChainParentage
 						| chainParentage);
-				// dbg_print_edge_(rightEdge);
+		}
+	}
+
+    void propagate_parentage_winding_(Treap aet, int treeNode, int edge, int leftEdge, int twinEdge,
+  	      int edgeChain, int edgeChainParent, int twinHalfEdgeChain) {
+    
+    	if (edgeChain == twinHalfEdgeChain)
+			return;
+		// starting from the left most edge, calculate winding.
+		int edgeWinding = getHalfEdgeUserIndex(edge,
+				m_tmpHalfEdgeWindingNumberIndex);
+		edgeWinding += getHalfEdgeUserIndex(twinEdge,
+				m_tmpHalfEdgeWindingNumberIndex);
+		int winding = 0;
+		AttributeStreamOfInt32 chainStack = new AttributeStreamOfInt32(0);
+		AttributeStreamOfInt32 windingStack = new AttributeStreamOfInt32(0);
+		windingStack.add(0);
+		for (int leftNode = aet.getFirst(-1); leftNode != treeNode; leftNode = aet
+					.getNext(leftNode)) {
+			int leftEdge1 = aet.getElement(leftNode);
+			int leftTwin = getHalfEdgeTwin(leftEdge1);
+			int l_chain = getHalfEdgeChain(leftEdge1);
+			int lt_chain = getHalfEdgeChain(leftTwin);
+
+			if (l_chain != lt_chain) {
+				int leftWinding = getHalfEdgeUserIndex(leftEdge1,
+						m_tmpHalfEdgeWindingNumberIndex);
+				leftWinding += getHalfEdgeUserIndex(leftTwin,
+						m_tmpHalfEdgeWindingNumberIndex);
+				winding += leftWinding;
+
+				boolean popped = false;
+				if (chainStack.size() != 0
+						&& chainStack.getLast() == lt_chain) {
+					windingStack.removeLast();
+					chainStack.removeLast();
+					popped = true;
+				}
+
+				if (getChainParent(lt_chain) == -1)
+					throw GeometryException.GeometryInternalError();
+
+				if (!popped || getChainParent(lt_chain) != l_chain) {
+					windingStack.add(winding);
+					chainStack.add(l_chain);
+				}
 			}
 		}
 
-		if (inputMode == EnumInputMode.enumInputModeSimplifyWinding) {
-			if (edgeChain == twinHalfEdgeChain)
-				return;
-			// starting from the left most edge, calculate winding.
-			int edgeWinding = getHalfEdgeUserIndex(edge,
-					m_tmpHalfEdgeWindingNumberIndex);
-			edgeWinding += getHalfEdgeUserIndex(twinEdge,
-					m_tmpHalfEdgeWindingNumberIndex);
-			int winding = 0;
-			AttributeStreamOfInt32 chainStack = new AttributeStreamOfInt32(0);
-			AttributeStreamOfInt32 windingStack = new AttributeStreamOfInt32(0);
-			windingStack.add(0);
-			for (int leftNode = aet.getFirst(-1); leftNode != treeNode; leftNode = aet
-					.getNext(leftNode)) {
-				int leftEdge1 = aet.getElement(leftNode);
-				int leftTwin = getHalfEdgeTwin(leftEdge1);
-				int l_chain = getHalfEdgeChain(leftEdge1);
-				int lt_chain = getHalfEdgeChain(leftTwin);
+		winding += edgeWinding;
 
-				if (l_chain != lt_chain) {
-					int leftWinding = getHalfEdgeUserIndex(leftEdge1,
-							m_tmpHalfEdgeWindingNumberIndex);
-					leftWinding += getHalfEdgeUserIndex(leftTwin,
-							m_tmpHalfEdgeWindingNumberIndex);
-					winding += leftWinding;
-
-					boolean popped = false;
-					if (chainStack.size() != 0
-							&& chainStack.getLast() == lt_chain) {
-						windingStack
-								.resizePreserveCapacity(windingStack.size() - 1);
-						chainStack
-								.resizePreserveCapacity(chainStack.size() - 1);
-						popped = true;
-					}
-
-					// geometry_release_assert(getChainParent(lt_chain) != -1);
-
-					if (!popped || getChainParent(lt_chain) != l_chain) {
-						windingStack.add(winding);
-						chainStack.add(l_chain);
-					}
-				}
-			}
-
-			winding += edgeWinding;
-
-			if (chainStack.size() != 0
+		if (chainStack.size() != 0
 					&& chainStack.getLast() == twinHalfEdgeChain) {
-				windingStack.resizePreserveCapacity(windingStack.size() - 1);
-				chainStack.resizePreserveCapacity(chainStack.size() - 1);
+			windingStack.removeLast();
+			chainStack.removeLast();
+		}
+
+		if (winding != 0) {
+			if (windingStack.getLast() == 0) {
+				int geometry = m_shape.getFirstGeometry();
+				int geometryID = getGeometryID(geometry);
+				setChainParentage_(edgeChain, geometryID);
+			}
+		} else {
+			if (windingStack.getLast() != 0) {
+				int geometry = m_shape.getFirstGeometry();
+				int geometryID = getGeometryID(geometry);
+				setChainParentage_(edgeChain, geometryID);
+			}
+		}
+	}
+
+	void propagate_parentage_alternate_(Treap aet, int treeNode, int edge,
+			int leftEdge, int twinEdge, int edgeChain, int edgeChainParent,
+			int twinHalfEdgeChain) {
+		// Now do specific sweep calculations
+		// This one is done when we are doing a topological operation.
+		int geometry = m_shape.getFirstGeometry();
+		int geometryID = getGeometryID(geometry);
+
+		if (leftEdge == -1) {
+			// no left edge neighbour means the twin chain is surrounded by the
+			// universe
+			assert (getChainParent(twinHalfEdgeChain) == m_universeChain);
+			assert (getChainParentage(twinHalfEdgeChain) == 0 || getChainParentage(twinHalfEdgeChain) == m_universe_geomID);
+			assert (getChainParentage(edgeChain) == 0);
+			setChainParentage_(twinHalfEdgeChain, m_universe_geomID);
+			int parity = getHalfEdgeUserIndex(edge,
+					m_tmpHalfEdgeOddEvenNumberIndex);
+			if ((parity & 1) != 0)
+				setChainParentage_(edgeChain, geometryID);// set the parenentage
+															// from the parity
+			else
+				setChainParentage_(edgeChain, m_universe_geomID);// this chain
+																	// does not
+																	// belong to
+																	// geometry
+		} else {
+			int twin_parentage = getChainParentage(twinHalfEdgeChain);
+			if (twin_parentage == 0) {
+				int leftEdgeChain = getHalfEdgeChain(leftEdge);
+				int left_parentage = getChainParentage(leftEdgeChain);
+				setChainParentage_(twinHalfEdgeChain, left_parentage);
+				int parity = getHalfEdgeUserIndex(edge,
+						m_tmpHalfEdgeOddEvenNumberIndex);
+				if ((parity & 1) != 0)
+					setChainParentage_(edgeChain,
+							(left_parentage == geometryID) ? m_universe_geomID
+									: geometryID);
+				else
+					setChainParentage_(edgeChain, left_parentage);
+
+			} else {
+				int parity = getHalfEdgeUserIndex(edge,
+						m_tmpHalfEdgeOddEvenNumberIndex);
+				if ((parity & 1) != 0)
+					setChainParentage_(edgeChain,
+							(twin_parentage == geometryID) ? m_universe_geomID
+									: geometryID);
+				else
+					setChainParentage_(edgeChain, twin_parentage);
 			}
 
-			if (winding != 0) {
-				if (windingStack.read(windingStack.size() - 1) == 0) {
-					int geometry = m_shape.getFirstGeometry();
-					int geometryID = getGeometryID(geometry);
-					setChainParentage_(edgeChain, geometryID);
-				}
-			} else {
-				if (windingStack.read(windingStack.size() - 1) != 0) {
-					int geometry = m_shape.getFirstGeometry();
-					int geometryID = getGeometryID(geometry);
-					setChainParentage_(edgeChain, geometryID);
-				}
-			}
 		}
 	}
 
@@ -901,13 +953,10 @@ final class TopoGraph {
 		double twinArea = getChainArea(twinChain);
 		assert (twinArea != 0);
 		if (area > 0 && twinArea < 0) {
-			// assert(twinArea + area <= area * Number_utils::double_eps() *
-			// 100);
 			setChainParent_(chainToSet, twinChain);
 			return true;
 		}
 		if (area < 0 && twinArea > 0) {
-			// assert(-area <= twinArea);
 			setChainParent_(chainToSet, twinChain);
 			return true;
 		} else {
@@ -1056,7 +1105,24 @@ final class TopoGraph {
 							m_tmpHalfEdgeWindingNumberIndex, windingNumber);
 					setHalfEdgeUserIndex(twinEdge,
 							m_tmpHalfEdgeWindingNumberIndex, windingNumberTwin);
+				} else if (inputMode == EnumInputMode.enumInputModeIsSimplePolygon) {
+					setHalfEdgeUserIndex(twinEdge, m_tmpHalfEdgeParentageIndex,
+							m_universe_geomID);
+					setHalfEdgeUserIndex(half_edge,
+							m_tmpHalfEdgeParentageIndex,
+							gt == Geometry.GeometryType.Polygon ? geometryID
+									: 0);
+				} else if (inputMode == EnumInputMode.enumInputModeSimplifyAlternate) {
+					setHalfEdgeUserIndex(twinEdge, m_tmpHalfEdgeParentageIndex,
+							0);
+					setHalfEdgeUserIndex(half_edge,
+							m_tmpHalfEdgeParentageIndex, 0);
+					setHalfEdgeUserIndex(half_edge,
+							m_tmpHalfEdgeOddEvenNumberIndex, 1);
+					setHalfEdgeUserIndex(twinEdge,
+							m_tmpHalfEdgeOddEvenNumberIndex, 1);
 				}
+
 				int edgeBit = gt == Geometry.GeometryType.Polygon ? c_edgeBitMask
 						: 0;
 				setHalfEdgeParentage_(half_edge, geometryID | edgeBit);
@@ -1095,12 +1161,13 @@ final class TopoGraph {
 	void sortHalfEdgesByAngle_(int inputMode) {
 		AttributeStreamOfInt32 angleSorter = new AttributeStreamOfInt32(0);
 		angleSorter.reserve(10);
+		TopoGraphAngleComparer tgac = new TopoGraphAngleComparer(this);
 		// Now go through the clusters, sort edges in each cluster by angle, and
 		// reconnect the halfedges of sorted edges in the sorted order.
 		// Also share the parentage information between coinciding edges and
 		// remove duplicates.
 		for (int cluster = getFirstCluster(); cluster != -1; cluster = getNextCluster(cluster)) {
-			angleSorter.resizePreserveCapacity(0);
+			angleSorter.clear(false);
 			int first = getClusterHalfEdge(cluster);
 			if (first != -1) {
 				// 1. sort edges originating at the cluster by angle (counter -
@@ -1117,7 +1184,7 @@ final class TopoGraph {
 				if (angleSorter.size() > 1) {
 					if (angleSorter.size() > 2) {
 						angleSorter.Sort(0, angleSorter.size(),
-								new TopoGraphAngleComparer(this)); // std::sort(angleSorter.get_ptr(),
+								tgac); // std::sort(angleSorter.get_ptr(),
 																	// angleSorter.get_ptr()
 																	// +
 																	// angleSorter.size(),
@@ -1224,12 +1291,31 @@ final class TopoGraph {
 								// even number of edges coinciding there and
 								// half of them has opposite direction to
 								// another half.
+							} else if (inputMode == EnumInputMode.enumInputModeIsSimplePolygon) {
+								m_non_simple_result = new NonSimpleResult(NonSimpleResult.Reason.CrossOver, cluster, -1);
+								return;
+							}
+							else if (m_tmpHalfEdgeOddEvenNumberIndex != -1) {
+								int newHalfEdgeWinding = getHalfEdgeUserIndex(
+										ePrev, m_tmpHalfEdgeOddEvenNumberIndex)
+										+ getHalfEdgeUserIndex(e,
+												m_tmpHalfEdgeOddEvenNumberIndex);
+								int newTwinEdgeWinding = getHalfEdgeUserIndex(
+										ePrevTwin,
+										m_tmpHalfEdgeOddEvenNumberIndex)
+										+ getHalfEdgeUserIndex(eTwin,
+												m_tmpHalfEdgeOddEvenNumberIndex);
+								setHalfEdgeUserIndex(ePrev,
+										m_tmpHalfEdgeOddEvenNumberIndex,
+										newHalfEdgeWinding);
+								setHalfEdgeUserIndex(ePrevTwin,
+										m_tmpHalfEdgeOddEvenNumberIndex,
+										newTwinEdgeWinding);
 							}
 
 							mergeVertexListsOfEdges_(ePrev, e);
 							deleteEdgeImpl_(e);
-							assert (n < 3 || e0 == angleSorter.read(angleSorter
-									.size() - 1));
+							assert (n < 3 || e0 == angleSorter.getLast());
 							prevMerged = ePrev;
 							angleSorter.set(i, -1);
 							if (e == e0) {
@@ -1284,6 +1370,18 @@ final class TopoGraph {
 						ePrev = e;
 						ePrevTo = eTo;
 						ePrevTwin = eTwin;
+			            if (inputMode == EnumInputMode.enumInputModeIsSimplePolygon)
+			              {
+			                int par1 = getHalfEdgeUserIndex(e, m_tmpHalfEdgeParentageIndex) |
+			                		getHalfEdgeUserIndex(getHalfEdgePrev(e), m_tmpHalfEdgeParentageIndex);
+			                if (par1 == (m_universe_geomID | 1))
+			                {
+			                  //violation of face parentage
+			                  m_non_simple_result = new NonSimpleResult(NonSimpleResult.Reason.CrossOver, cluster, -1);
+			                  return;
+			                }
+			              }
+						
 					}
 
 					setClusterHalfEdge_(cluster, e0);// smallest angle goes
@@ -1293,7 +1391,7 @@ final class TopoGraph {
 		}
 	}
 
-	void buildChains_() {
+	void buildChains_(int inputMode) {
 		// Creates chains and puts them in the list of chains.
 		// Does not set the chain parentage
 		// Does not connect chains
@@ -1347,15 +1445,10 @@ final class TopoGraph {
 																				// visited.
 							e = getHalfEdgeNext(e);
 						} while (e != edge);
+						
+						assert(inputMode != EnumInputMode.enumInputModeIsSimplePolygon || parentage != (1 | m_universe_geomID));
+						
 						setChainParentage_(chain, parentage);
-
-						// Polygon::SPtr poly =
-						// dbg_dump_chain_to_polygon_(chain);
-						// char buf[1024];
-						// sprintf(buf, "c:\\temp\\chain%d.txt",
-						// m_chain_data->size());
-						// Operator_factory_local::SaveGeometryToInternalTextFile(buf,
-						// poly);
 					}
 
 					edge = getHalfEdgeNext(getHalfEdgeTwin(edge));// next
@@ -1394,7 +1487,6 @@ final class TopoGraph {
 	}
 
 	void simplify_(int inputMode) {
-		assert (inputMode != EnumInputMode.enumInputModeBuildGraph);
 		if (inputMode == EnumInputMode.enumInputModeSimplifyAlternate) {
 			simplifyAlternate_();
 		} else if (inputMode == EnumInputMode.enumInputModeSimplifyWinding) {
@@ -1403,80 +1495,97 @@ final class TopoGraph {
 	}
 
 	void simplifyAlternate_() {
-		int geometry = m_shape.getFirstGeometry();
-		int geometryID = getGeometryID(geometry);
-
-		int universe_chain = getFirstChain(); // winding = 0;
-		simplifyAlternateRecursion_(universe_chain, geometryID, false);
-	}
-
-	void simplifyAlternateRecursion_(int parent_chain, int geometryID,
-			boolean bEven) {
-		boolean bEven_ = !bEven;
-		for (int chain = getChainFirstIsland(parent_chain); chain != -1; chain = getChainNextInParent(chain)) {
-			if (bEven_)
-				setChainParentage_(chain, geometryID);
-			else
-				setChainParentage_(chain, 0);
-
-			simplifyAlternateRecursion_(chain, geometryID, bEven_);
-		}
+		//there is nothing to do
 	}
 
 	void simplifyWinding_() {
-		// there is nothing to do.
+		//there is nothing to do
+	}
+
+	private int getFirstUnvisitedHalfEdgeOnCluster_(int cluster, int hintEdge,
+			int vistiedEdgesIndex) {
+		// finds first half edge which is unvisited (index is not set to 1.
+		// when hintEdge != -1, it is used to start going around the edges.
+
+		int edge = hintEdge != -1 ? hintEdge : getClusterHalfEdge(cluster);
+		if (edge == -1)
+			return -1;
+
+		int f = edge;
+
+		while (true) {
+			int v = getHalfEdgeUserIndex(edge, vistiedEdgesIndex);
+			if (v != 1) {
+				return edge;
+			}
+
+			int next = getHalfEdgeNext(getHalfEdgeTwin(edge));
+			if (next == f)
+				return -1;
+
+			edge = next;
+		}
 	}
 
 	boolean removeSpikes_() {
-		boolean bRemoved = false;
-		for (int chain = getFirstChain(); chain != -1;) {
-			int firstHalfEdge = getChainHalfEdge(chain);
-			assert (firstHalfEdge != -1);
-
-			boolean bRemovedEdge = false;
-
-			int prev = getHalfEdgePrev(firstHalfEdge);
-			int half_edge = firstHalfEdge;
+		boolean removed = false;
+		int visitedIndex = createUserIndexForHalfEdges();
+		for (int cluster = getFirstCluster(); cluster != -1; cluster = getNextCluster(cluster)) {
+			int nextClusterEdge = -1; //a hint
 			while (true) {
-				int twin = getHalfEdgeTwin(half_edge);
-				if (prev == twin) {
-					int next2 = deleteEdgeInternal_(half_edge);
-					bRemovedEdge = true;
-					if (next2 == -1) {
-						// The chain has been deleted.
-						break;
+				int firstHalfEdge = getFirstUnvisitedHalfEdgeOnCluster_(cluster, nextClusterEdge, visitedIndex);
+				if (firstHalfEdge == -1)
+					break;
+	
+				nextClusterEdge = getHalfEdgeNext(getHalfEdgeTwin(firstHalfEdge));
+				int faceHalfEdge = firstHalfEdge;
+
+				while (true) {
+					int faceHalfEdgeNext = getHalfEdgeNext(faceHalfEdge);
+					int faceHalfEdgePrev = getHalfEdgePrev(faceHalfEdge);
+					int faceHalfEdgeTwin = getHalfEdgeTwin(faceHalfEdge);
+					
+					if (faceHalfEdgePrev == faceHalfEdgeTwin) {
+						deleteEdgeInternal_(faceHalfEdge); //deletes the edge and its twin
+						removed = true;
+					
+						if (nextClusterEdge == faceHalfEdge || nextClusterEdge == faceHalfEdgeTwin)
+							nextClusterEdge = -1; //deleted the hint edge
+
+						if (faceHalfEdge == firstHalfEdge || faceHalfEdgePrev == firstHalfEdge) {
+							firstHalfEdge = faceHalfEdgeNext;
+							if (faceHalfEdge == firstHalfEdge || faceHalfEdgePrev == firstHalfEdge) {
+								//deleted all edges in a face
+								break;
+							}
+							
+							faceHalfEdge = faceHalfEdgeNext;
+							continue;
+						}
+
+					}
+					else {
+						setHalfEdgeUserIndex(faceHalfEdge, visitedIndex, 1);
 					}
 
-					if (half_edge == firstHalfEdge) {
-						firstHalfEdge = next2;
-					}
-
-					half_edge = next2;
-					prev = getHalfEdgePrev(half_edge);
-				} else {
-					prev = half_edge;
-					half_edge = getHalfEdgeNext(half_edge);
-					if (half_edge == firstHalfEdge)
+					faceHalfEdge = faceHalfEdgeNext;
+					if (faceHalfEdge == firstHalfEdge)
 						break;
 				}
-			}
 
-			bRemoved |= bRemovedEdge;
-			if (bRemovedEdge) {
-				chain = deleteChain_(chain);
-			} else
-				chain = getChainNext(chain);
+			}
 		}
 
-		return bRemoved;
+		return removed;
 	}
-
+	
 	void setEditShapeImpl_(EditShape shape, int inputMode,
 			AttributeStreamOfInt32 editShapeGeometries,
-			ProgressTracker progress_tracker) {
+			ProgressTracker progress_tracker, boolean bBuildChains) {
 		assert (editShapeGeometries == null || editShapeGeometries.size() > 0);
 
 		removeShape();
+		m_buildChains = bBuildChains;
 		assert (m_shape == null);
 		m_shape = shape;
 		m_geometryIDIndex = m_shape.createGeometryUserIndex();
@@ -1516,6 +1625,8 @@ final class TopoGraph {
 					geometry = m_shape.getNextGeometry(geometry);
 			}
 		}
+		
+		m_universe_geomID = geomID;
 
 		m_pointCount = verticesSorter.size();
 
@@ -1531,8 +1642,7 @@ final class TopoGraph {
 
 		m_clusterVertices.setCapacity(m_pointCount);
 
-		if ((progress_tracker != null) && !(progress_tracker.progress(-1, -1)))
-			throw new UserCancelException();
+		ProgressTracker.checkAndThrow(progress_tracker);
 
 		m_clusterData.setCapacity(m_pointCount + 10);// 10 for some self
 														// intersections
@@ -1591,35 +1701,40 @@ final class TopoGraph {
 				ptFirst.setCoords(pt);
 			}
 		}
-
-		if ((progress_tracker != null) && !(progress_tracker.progress(-1, -1)))
-			throw new UserCancelException();
+		
+		ProgressTracker.checkAndThrow(progress_tracker);
 
 		m_tmpHalfEdgeParentageIndex = createUserIndexForHalfEdges();
 		if (inputMode == EnumInputMode.enumInputModeSimplifyWinding) {
 			m_tmpHalfEdgeWindingNumberIndex = createUserIndexForHalfEdges();
 		}
 
+		if (inputMode == EnumInputMode.enumInputModeSimplifyAlternate) {
+			m_tmpHalfEdgeOddEvenNumberIndex = createUserIndexForHalfEdges();
+		}
+		
 		createHalfEdges_(inputMode, verticesSorter);// For each geometry produce
 													// clusters and half edges
 
-		// dbg_navigate_();
-
+		if (m_non_simple_result.m_reason != NonSimpleResult.Reason.NotDetermined)
+			return;
+		
 		sortHalfEdgesByAngle_(inputMode);
+		if (m_non_simple_result.m_reason != NonSimpleResult.Reason.NotDetermined)
+			return;
 
-		buildChains_();
+		buildChains_(inputMode);
+		if (m_non_simple_result.m_reason != NonSimpleResult.Reason.NotDetermined)
+			return;
 
 		deleteUserIndexForHalfEdges(m_tmpHalfEdgeParentageIndex);
 		m_tmpHalfEdgeParentageIndex = -1;
 
-		planeSweepParentage_(inputMode, progress_tracker);
-		// dbg_chk_chain_parents_();
+		if (m_buildChains)
+			planeSweepParentage_(inputMode, progress_tracker);
+		
 
-		if (inputMode != EnumInputMode.enumInputModeBuildGraph)
-			simplify_(inputMode);
-
-		// dbg_navigate_();
-		// dbg_dump_chains_();
+		simplify_(inputMode);
 	}
 
 	void deleteEdgeImpl_(int half_edge) {
@@ -1704,32 +1819,26 @@ final class TopoGraph {
 	// calling this!
 	void setEditShape(EditShape shape, ProgressTracker progress_tracker) {
 		setEditShapeImpl_(shape, EnumInputMode.enumInputModeBuildGraph, null,
-				progress_tracker);
+				progress_tracker, true);
 	}
 
-	// Sets an edit shape and simplifies a geometry in it using "odd-even" rule.
-	// This is the default simplify method for polygons.
-	// The result edit shape contains a simple polygon.
-	// The input shape could be a non-simple polygon or a polyline (polyline
-	// need to form some rings to produce non-empty result).
-	// The geometry has to be cracked and clustered before calling this!
-	void setAndSimplifyEditShapeAlternate(EditShape shape, int geometry) {
+	void setEditShape(EditShape shape, ProgressTracker progress_tracker, boolean bBuildChains) {
+		setEditShapeImpl_(shape, EnumInputMode.enumInputModeBuildGraph, null,
+				progress_tracker, bBuildChains);
+	}
+	
+	void setAndSimplifyEditShapeAlternate(EditShape shape, int geometry, ProgressTracker progressTracker) {
 		AttributeStreamOfInt32 geoms = new AttributeStreamOfInt32(0);
 		geoms.add(geometry);
 		setEditShapeImpl_(shape, EnumInputMode.enumInputModeSimplifyAlternate,
-				geoms, null);
+				geoms, progressTracker, shape.getGeometryType(geometry) == Geometry.Type.Polygon.value());
 	}
 
-	// Sets an edit shape and simplifies a geometry in it using "winding" rule.
-	// The result edit shape contains a simple polygon.
-	// The input shape could be a non-simple polygon or a polyline (polyline
-	// need to form some rings to produce non-empty result).
-	// The geometry has to be cracked and clustered before calling this!
-	void setAndSimplifyEditShapeWinding(EditShape shape, int geometry) {
+	void setAndSimplifyEditShapeWinding(EditShape shape, int geometry, ProgressTracker progressTracker) {
 		AttributeStreamOfInt32 geoms = new AttributeStreamOfInt32(0);
 		geoms.add(geometry);
 		setEditShapeImpl_(shape, EnumInputMode.enumInputModeSimplifyWinding,
-				geoms, null);
+				geoms, progressTracker, true);
 	}
 
 	// Removes shape from the topograph and removes any user index created on
@@ -1762,6 +1871,11 @@ final class TopoGraph {
 			m_tmpHalfEdgeWindingNumberIndex = -1;
 		}
 
+		if (m_tmpHalfEdgeOddEvenNumberIndex != -1) {
+			deleteUserIndexForHalfEdges(m_tmpHalfEdgeOddEvenNumberIndex);
+			m_tmpHalfEdgeOddEvenNumberIndex = -1;
+		}
+		
 		m_shape = null;
 		m_clusterData.deleteAll(true);
 		m_clusterVertices.deleteAll(true);
@@ -2010,7 +2124,9 @@ final class TopoGraph {
 			setChainHalfEdge_(chain, n);
 		}
 
-		if (!NumberUtils.isNaN(getChainArea(chain))) {
+		int chainIndex = getChainIndex_(chain);
+		double v = m_chainAreas.read(chainIndex);
+		if (!NumberUtils.isNaN(v)) {
 			setChainArea_(chain, NumberUtils.TheNaN);
 			setChainPerimeter_(chain, NumberUtils.TheNaN);
 		}

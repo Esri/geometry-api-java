@@ -343,4 +343,9 @@ final class MultiPointImpl extends MultiVertexGeometryImpl {
 	// // TODO Auto-generated method stub
 	//
 	// }
+
+    @Override
+    public Geometry getBoundary() {
+        return null;
+    }
 }

@@ -36,7 +36,27 @@ public abstract class OperatorProximity2D extends Operator {
 	}
 
 	/**
-	 * Returns the nearest coordinate on the Geometry to the given input point.
+	 *Returns the nearest coordinate on the Geometry to the given input point.
+	 *@param geom The input Geometry.
+	 *@param inputPoint The query point.
+	 *@param bTestPolygonInterior When true and geom is a polygon, the function will test if the input_point is inside of the polygon. Points that are
+	 *inside of the polygon have zero distance to the polygon. When false, the function will not check if the point is inside of the polygon,
+	 *but only determine proximity to the boundary.
+	 *@param bCalculateLeftRightSide The function will calculate left/right side of polylines or polygons when the parameter is True.
+	 *\return Returns the result of proximity calculation. See Proximity_2D_result.
+	 */
+	public abstract Proximity2DResult getNearestCoordinate(Geometry geom,
+			Point inputPoint, boolean bTestPolygonInterior,
+			boolean bCalculateLeftRightSide);
+
+	/**
+	 *Returns the nearest coordinate on the Geometry to the given input point.
+	 *@param geom The input Geometry.
+	 *@param inputPoint The query point.
+	 *@param bTestPolygonInterior When true and geom is a polygon, the function will test if the input_point is inside of the polygon. Points that are
+	 *inside of the polygon have zero distance to the polygon. When false, the function will not check if the point is inside of the polygon,
+	 *but only determine proximity to the boundary.
+	 *\return Returns the result of proximity calculation. See Proximity_2D_result.
 	 */
 	public abstract Proximity2DResult getNearestCoordinate(Geometry geom,
 			Point inputPoint, boolean bTestPolygonInterior);
@@ -72,6 +92,10 @@ public abstract class OperatorProximity2D extends Operator {
 	public static OperatorProximity2D local() {
 		return (OperatorProximity2D) OperatorFactoryLocal.getInstance()
 				.getOperator(Type.Proximity2D);
+	}
+
+	interface ProxResultInfo {
+		static final int rightSide = 0x1;
 	}
 
 }

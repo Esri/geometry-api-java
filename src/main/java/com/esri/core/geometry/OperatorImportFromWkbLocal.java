@@ -692,8 +692,22 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 
 			polygon.notifyModified(MultiPathImpl.DirtyFlags.DirtyAll);
 
-			if (!InternalUtils.isClockwiseRing(polygon, 0))
-				polygon.reverseAllPaths();
+			AttributeStreamOfInt8 path_flags_clone = new AttributeStreamOfInt8(
+					pathFlags);
+
+			for (int i = 0; i < path_flags_clone.size() - 1; i++) {
+				if (((int) path_flags_clone.read(i) & (int) PathFlags.enumOGCStartPolygon) != 0) {// Should
+																									// be
+																									// clockwise
+					if (!InternalUtils.isClockwiseRing(polygon, i))
+						polygon.reversePath(i); // make clockwise
+				} else {// Should be counter-clockwise
+					if (InternalUtils.isClockwiseRing(polygon, i))
+						polygon.reversePath(i); // make counter-clockwise
+				}
+			}
+
+			polygon.setPathFlagsStreamRef(path_flags_clone);
 		}
 
 		if ((importFlags & (int) WkbImportFlags.wkbImportNonTrusted) == 0)

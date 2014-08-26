@@ -33,6 +33,7 @@ final class TopologicalOperations {
 	Point2D m_dummy_pt_2 = new Point2D();
 	int m_from_edge_for_polylines;
 	boolean m_mask_lookup[] = null;
+	boolean m_bOGCOutput = false;
 
 	boolean isGoodParentage(int parentage) {
 		return parentage < m_mask_lookup.length ? m_mask_lookup[parentage]
@@ -51,7 +52,7 @@ final class TopologicalOperations {
 			return;
 		}
 
-		throw new GeometryException("internal error");
+		throw GeometryException.GeometryInternalError();
 	}
 
 	static final class CompareCuts extends IntComparator {
@@ -79,10 +80,10 @@ final class TopologicalOperations {
 		m_from_edge_for_polylines = -1;
 	}
 
-	void setEditShape(EditShape shape) {
+	void setEditShape(EditShape shape, ProgressTracker progressTracker) {
 		if (m_topo_graph == null)
 			m_topo_graph = new TopoGraph();
-		m_topo_graph.setEditShape(shape, null);
+		m_topo_graph.setEditShape(shape, progressTracker);
 	}
 
 	void setEditShapeCrackAndCluster(EditShape shape, double tolerance,
@@ -92,9 +93,9 @@ final class TopologicalOperations {
 				.getNextGeometry(geometry)) {
 			if (shape.getGeometryType(geometry) == Geometry.Type.Polygon
 					.value())
-				Simplificator.execute(shape, geometry, -1);
+				Simplificator.execute(shape, geometry, -1, m_bOGCOutput);
 		}
-		setEditShape(shape);
+		setEditShape(shape, progressTracker);
 	}
 
 	private void collectPolygonPathsPreservingFrom_(int geometryFrom,
@@ -293,7 +294,7 @@ final class TopologicalOperations {
 
 		m_topo_graph.deleteUserIndexForHalfEdges(visitedEdges);
 		Simplificator.execute(shape, newGeometry,
-				MultiVertexGeometryImpl.GeometryXSimple.Weak);
+				MultiVertexGeometryImpl.GeometryXSimple.Weak, m_bOGCOutput);
 		return newGeometry;
 	}
 
@@ -512,7 +513,7 @@ final class TopologicalOperations {
 		m_topo_graph.deleteUserIndexForClusters(visitedClusters);
 		m_topo_graph.deleteUserIndexForHalfEdges(visitedEdges);
 		Simplificator.execute(shape, newGeometryPolygon,
-				MultiVertexGeometryImpl.GeometryXSimple.Weak);
+				MultiVertexGeometryImpl.GeometryXSimple.Weak, m_bOGCOutput);
 		int[] result = new int[3];// always returns size 3 result.
 
 		result[0] = newGeometryMultipoint;
@@ -616,6 +617,7 @@ final class TopologicalOperations {
 			if (isGoodParentage(parentage)) {
 				if (goodEdge != -1)
 					return -1;
+				
 				goodEdge = e;
 			}
 
@@ -671,19 +673,25 @@ final class TopologicalOperations {
 		m_from_edge_for_polylines = -1;
 		int fromEdge = half_edge;
 		int toEdge = -1;
+		boolean b_found_impassable_crossroad = false;
+		int edgeCount = 1;
 		while (true) {
 			int halfEdgePrev = m_topo_graph.getHalfEdgePrev(half_edge);
 			if (halfEdgePrev == halfEdgeTwin)
 				break;// the end of a polyline
+			
 			int halfEdgeTwinNext = m_topo_graph.getHalfEdgeNext(halfEdgeTwin);
 			if (m_topo_graph.getHalfEdgeTwin(halfEdgePrev) != halfEdgeTwinNext) {
 				// Crossroads is here. We can move through the crossroad only if
 				// there is only a single way to pass through.
+				//When doing planar_simplify we'll never go through the crossroad.
 				half_edge = tryMoveThroughCrossroadBackwards_(half_edge);
 				if (half_edge == -1)
 					break;
-				else
+				else {
+					b_found_impassable_crossroad = true;
 					halfEdgeTwin = m_topo_graph.getHalfEdgeTwin(half_edge);
+				}
 			} else {
 				half_edge = halfEdgePrev;
 				halfEdgeTwin = halfEdgeTwinNext;
@@ -704,6 +712,7 @@ final class TopologicalOperations {
 			m_topo_graph.setHalfEdgeUserIndex(halfEdgeTwin, visitedEdges, 1);
 			fromEdge = half_edge;
 			prevailingLength += prevailingDirection_(shape, half_edge);
+			edgeCount++;
 		}
 
 		if (toEdge == -1) {
@@ -714,14 +723,17 @@ final class TopologicalOperations {
 				int halfEdgeNext = m_topo_graph.getHalfEdgeNext(half_edge);
 				if (halfEdgeNext == halfEdgeTwin)
 					break;
+				
 				int halfEdgeTwinPrev = m_topo_graph
 						.getHalfEdgePrev(halfEdgeTwin);
 				if (m_topo_graph.getHalfEdgeTwin(halfEdgeNext) != halfEdgeTwinPrev) {
 					// Crossroads is here. We can move through the crossroad
 					// only if there is only a single way to pass through.
 					half_edge = tryMoveThroughCrossroadForward_(half_edge);
-					if (half_edge == -1)
+					if (half_edge == -1) {
+						b_found_impassable_crossroad = true;
 						break;
+					}
 					else
 						halfEdgeTwin = m_topo_graph.getHalfEdgeTwin(half_edge);
 				} else {
@@ -738,14 +750,13 @@ final class TopologicalOperations {
 						.setHalfEdgeUserIndex(halfEdgeTwin, visitedEdges, 1);
 				toEdge = half_edge;
 				prevailingLength += prevailingDirection_(shape, half_edge);
+				edgeCount++;
 			}
 		} else {
 			// toEdge has been found in the first while loop. This happens when
 			// we go around a face.
 			// Closed loops need special processing as we do not know where the
 			// polyline started or ended.
-			// TODO: correctly process closed polylines (is_closed_path ==
-			// true).
 
 			if (m_from_edge_for_polylines != -1) {
 				fromEdge = m_from_edge_for_polylines;
@@ -761,7 +772,7 @@ final class TopologicalOperations {
 					// Crossroads is here. Pass through the crossroad.
 					toEdge = tryMoveThroughCrossroadBackwards_(fromEdge);
 					if (toEdge == -1)
-						throw new GeometryException("internal error");// what?
+						throw GeometryException.GeometryInternalError();// what?
 				}
 
 				assert (isGoodParentage(getCombinedHalfEdgeParentage_(m_from_edge_for_polylines)));
@@ -782,12 +793,22 @@ final class TopologicalOperations {
 			fromEdge = m_topo_graph.getHalfEdgeTwin(fromEdge);
 			assert (isGoodParentage(getCombinedHalfEdgeParentage_(fromEdge)));
 		}
+		
 		int newPath = shape.insertPath(newGeometry, -1);// add new path at the
 														// end
 		half_edge = fromEdge;
 		int cluster = m_topo_graph.getHalfEdgeOrigin(fromEdge);
+		int clusterLast = m_topo_graph.getHalfEdgeTo(toEdge);
+		boolean b_closed = clusterLast == cluster;
+		// The linestrings can touch at boundary points only, while closed path
+		// has no boundary, therefore no other path can touch it.
+		// Therefore, if a closed path touches another path, we need to split
+		// the closed path in two to make the result OGC simple.
+		boolean b_closed_linestring_touches_other_linestring = b_closed
+				&& b_found_impassable_crossroad;
+		
 		int vert = selectVertex_(cluster, shape);
-		assert (vert != -1);
+		assert(vert != -1);
 		int vertex_dominant = getVertexByID_(vert, geometry_dominant);
 		shape.addVertex(newPath, vertex_dominant);
 
@@ -795,25 +816,36 @@ final class TopologicalOperations {
 			m_topo_graph.setClusterUserIndex(cluster, visitedClusters, 1);
 		}
 
+		int counter = 0;
+		int splitAt = b_closed_linestring_touches_other_linestring ? (edgeCount + 1) / 2 : -1;
 		while (true) {
 			int clusterTo = m_topo_graph.getHalfEdgeTo(half_edge);
 			int vert_1 = selectVertex_(clusterTo, shape);
 			vertex_dominant = getVertexByID_(vert_1, geometry_dominant);
 			shape.addVertex(newPath, vertex_dominant);
+			counter++;
 			if (visitedClusters != -1) {
 				m_topo_graph.setClusterUserIndex(clusterTo, visitedClusters, 1);
 			}
 
+			if (b_closed_linestring_touches_other_linestring
+					&& counter == splitAt) {
+				newPath = shape.insertPath(newGeometry, -1);// add new path at
+															// the end
+				shape.addVertex(newPath, vertex_dominant);
+			}
+			
 			assert (isGoodParentage(getCombinedHalfEdgeParentage_(half_edge)));
 			if (half_edge == toEdge)
 				break;
+			
 			int halfEdgeNext = m_topo_graph.getHalfEdgeNext(half_edge);
 			if (m_topo_graph.getHalfEdgePrev(m_topo_graph
 					.getHalfEdgeTwin(half_edge)) != m_topo_graph
 					.getHalfEdgeTwin(halfEdgeNext)) {// crossroads.
 				half_edge = tryMoveThroughCrossroadForward_(half_edge);
 				if (half_edge == -1)
-					throw new GeometryException("internal error");// a bug. This
+					throw GeometryException.GeometryInternalError();// a bug. This
 																	// shoulf
 																	// never
 																	// happen
@@ -966,7 +998,7 @@ final class TopologicalOperations {
 		boolean bFirstOut = true;
 		boolean bArea = (intersector.getDimension() == 2);
 		if (intersector.getDimension() != 1 && intersector.getDimension() != 2)
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 
 		for (int ipoints = 0; ipoints < npoints;) {
 			int num = multi_point.queryCoordinates(input_points, 1000, ipoints,
@@ -1034,7 +1066,7 @@ final class TopologicalOperations {
 		PolygonUtils.PiPResult[] test_results = new PolygonUtils.PiPResult[1];
 		boolean bArea = intersector.getDimension() == 2;
 		if (intersector.getDimension() != 1 && intersector.getDimension() != 2)
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 		input_points[0] = point.getXY();
 		if (bArea)
 			PolygonUtils.testPointsInArea2D(intersector, input_points, 1,
@@ -1064,8 +1096,11 @@ final class TopologicalOperations {
 	static Point intersection(Point point, Point point2, double tolerance) {
 		if (point.isEmpty() || point2.isEmpty())
 			return (Point) point.createInstance();
-		if (Point2D.distance(point.getXY(), point2.getXY()) < tolerance) {
-			return point;
+
+		if (CrackAndCluster.non_empty_points_need_to_cluster(tolerance, point,
+				point2)) {
+			return CrackAndCluster.cluster_non_empty_points(point, point2, 1,
+					1, 1, 1);
 		}
 
 		return (Point) point.createInstance();
@@ -1076,7 +1111,9 @@ final class TopologicalOperations {
 			return (Point) point.createInstance();
 		if (point2.isEmpty())
 			return point;
-		if (Point2D.distance(point.getXY(), point2.getXY()) < tolerance) {
+
+		if (CrackAndCluster.non_empty_points_need_to_cluster(tolerance, point,
+				point2)) {
 			return (Point) point.createInstance();
 		}
 
@@ -1101,77 +1138,83 @@ final class TopologicalOperations {
 		// This method will produce a polygon from a polyline when
 		// b_use_winding_rule_for_polygons is true. This is used by buffer.
 		m_topo_graph = new TopoGraph();
-		if (dirty_result
-				&& shape.getGeometryType(geom) != Geometry.Type.MultiPoint
-						.value()) {
-			PlaneSweepCrackerHelper plane_sweeper = new PlaneSweepCrackerHelper();
-			plane_sweeper.sweepVertical(shape, tolerance);
-			if (plane_sweeper.hadCompications())// shame. The one pass
-												// planesweep had some
-												// complications. Need to do
-												// full crack and cluster.
-			{
+		try
+		{
+			if (dirty_result
+					&& shape.getGeometryType(geom) != Geometry.Type.MultiPoint
+							.value()) {
+				PlaneSweepCrackerHelper plane_sweeper = new PlaneSweepCrackerHelper();
+				plane_sweeper.sweepVertical(shape, tolerance);
+				if (plane_sweeper.hadCompications())// shame. The one pass
+													// planesweep had some
+													// complications. Need to do
+													// full crack and cluster.
+				{
+					CrackAndCluster.execute(shape, tolerance, progress_tracker);
+				}
+			} else {
 				CrackAndCluster.execute(shape, tolerance, progress_tracker);
 			}
-		} else {
-			CrackAndCluster.execute(shape, tolerance, progress_tracker);
+			if (!b_use_winding_rule_for_polygons
+					|| shape.getGeometryType(geom) == Geometry.Type.MultiPoint
+							.value())
+				m_topo_graph.setAndSimplifyEditShapeAlternate(shape, geom, progress_tracker);
+			else
+				m_topo_graph.setAndSimplifyEditShapeWinding(shape, geom, progress_tracker);
+	
+			int ID_a = m_topo_graph.getGeometryID(geom);
+			initMaskLookupArray_((ID_a) + 1);
+			m_mask_lookup[ID_a] = true; // Works only when there is a single
+										// geometry in the edit shape.
+			// To make it work when many geometries are present, this need to be
+			// modified.
+	
+			if (shape.getGeometryType(geom) == Geometry.Type.Polygon.value()
+					|| (b_use_winding_rule_for_polygons && shape
+							.getGeometryType(geom) != Geometry.Type.MultiPoint
+							.value())) {
+				// geom can be a polygon or a polyline.
+				// It can be a polyline only when the winding rule is true.
+				int resGeom = topoOperationPolygonPolygon_(geom, -1, -1);
+	
+				Polygon polygon = (Polygon) shape.getGeometry(resGeom);
+				if (!dirty_result) {
+					((MultiVertexGeometryImpl) polygon._getImpl()).setIsSimple(
+							GeometryXSimple.Strong, tolerance, false);
+					((MultiPathImpl) polygon._getImpl())._updateOGCFlags();
+				} else
+					((MultiVertexGeometryImpl) polygon._getImpl()).setIsSimple(
+							GeometryXSimple.Weak, 0.0, false);// dirty result means
+																// simple but with 0
+																// tolerance.
+	
+				return polygon;
+			} else if (shape.getGeometryType(geom) == Geometry.Type.Polyline
+					.value()) {
+				int resGeom = topoOperationPolylinePolylineOrPolygon_(-1);
+	
+				Polyline polyline = (Polyline) shape.getGeometry(resGeom);
+				if (!dirty_result)
+					((MultiVertexGeometryImpl) polyline._getImpl()).setIsSimple(
+							GeometryXSimple.Strong, tolerance, false);
+	
+				return polyline;
+			} else if (shape.getGeometryType(geom) == Geometry.Type.MultiPoint
+					.value()) {
+				int resGeom = topoOperationMultiPoint_();
+	
+				MultiPoint mp = (MultiPoint) shape.getGeometry(resGeom);
+				if (!dirty_result)
+					((MultiVertexGeometryImpl) mp._getImpl()).setIsSimple(
+							GeometryXSimple.Strong, tolerance, false);
+	
+				return mp;
+			} else {
+				throw GeometryException.GeometryInternalError();
+			}
 		}
-		if (!b_use_winding_rule_for_polygons
-				|| shape.getGeometryType(geom) == Geometry.Type.MultiPoint
-						.value())
-			m_topo_graph.setAndSimplifyEditShapeAlternate(shape, geom);
-		else
-			m_topo_graph.setAndSimplifyEditShapeWinding(shape, geom);
-
-		int ID_a = m_topo_graph.getGeometryID(geom);
-		initMaskLookupArray_((ID_a) + 1);
-		m_mask_lookup[ID_a] = true; // Works only when there is a single
-									// geometry in the edit shape.
-		// To make it work when many geometries are present, this need to be
-		// modified.
-
-		if (shape.getGeometryType(geom) == Geometry.Type.Polygon.value()
-				|| (b_use_winding_rule_for_polygons && shape
-						.getGeometryType(geom) != Geometry.Type.MultiPoint
-						.value())) {
-			// geom can be a polygon or a polyline.
-			// It can be a polyline only when the winding rule is true.
-			int resGeom = topoOperationPolygonPolygon_(geom, -1, -1);
-
-			Polygon polygon = (Polygon) shape.getGeometry(resGeom);
-			if (!dirty_result) {
-				((MultiVertexGeometryImpl) polygon._getImpl()).setIsSimple(
-						GeometryXSimple.Strong, tolerance, false);
-				((MultiPathImpl) polygon._getImpl())._updateOGCFlags();
-			} else
-				((MultiVertexGeometryImpl) polygon._getImpl()).setIsSimple(
-						GeometryXSimple.Weak, 0.0, false);// dirty result means
-															// simple but with 0
-															// tolerance.
-
-			return polygon;
-		} else if (shape.getGeometryType(geom) == Geometry.Type.Polyline
-				.value()) {
-			int resGeom = topoOperationPolylinePolylineOrPolygon_(-1);
-
-			Polyline polyline = (Polyline) shape.getGeometry(resGeom);
-			if (!dirty_result)
-				((MultiVertexGeometryImpl) polyline._getImpl()).setIsSimple(
-						GeometryXSimple.Strong, tolerance, false);
-
-			return polyline;
-		} else if (shape.getGeometryType(geom) == Geometry.Type.MultiPoint
-				.value()) {
-			int resGeom = topoOperationMultiPoint_();
-
-			MultiPoint mp = (MultiPoint) shape.getGeometry(resGeom);
-			if (!dirty_result)
-				((MultiVertexGeometryImpl) mp._getImpl()).setIsSimple(
-						GeometryXSimple.Strong, tolerance, false);
-
-			return mp;
-		} else {
-			throw new GeometryException("internal error");
+		finally {
+			m_topo_graph.removeShape();
 		}
 	}
 
@@ -1184,6 +1227,13 @@ final class TopologicalOperations {
 				use_winding_rule_for_polygons, dirty_result, progress_tracker);
 	}
 
+    static MultiVertexGeometry simplifyOGC(MultiVertexGeometry input_geom, double tolerance, boolean dirty_result, ProgressTracker progress_tracker)
+    {
+      TopologicalOperations topoOps = new TopologicalOperations();
+      topoOps.m_bOGCOutput = true;
+      return topoOps.planarSimplifyImpl_(input_geom, tolerance, false, dirty_result, progress_tracker);
+    }
+	
 	public int difference(int geometry_a, int geometry_b) {
 		int gtA = m_topo_graph.getShape().getGeometryType(geometry_a);
 		int gtB = m_topo_graph.getShape().getGeometryType(geometry_b);
@@ -1207,7 +1257,7 @@ final class TopologicalOperations {
 		if (dim_a == 0)
 			return topoOperationMultiPoint_();
 
-		throw new GeometryException("internal error");
+		throw GeometryException.GeometryInternalError();
 	}
 
 	int dissolve(int geometry_a, int geometry_b) {
@@ -1239,7 +1289,7 @@ final class TopologicalOperations {
 		if (dim_a == 0 && dim_b == 0)
 			return topoOperationMultiPoint_();
 
-		throw new GeometryException("internal error");
+		throw GeometryException.GeometryInternalError();
 	}
 
 	public int intersection(int geometry_a, int geometry_b) {
@@ -1275,7 +1325,7 @@ final class TopologicalOperations {
 										// else
 			return topoOperationMultiPoint_();
 
-		throw new GeometryException("internal error");
+		throw GeometryException.GeometryInternalError();
 	}
 
 	int[] intersectionEx(int geometry_a, int geometry_b) {
@@ -1315,7 +1365,7 @@ final class TopologicalOperations {
 			return res;
 		}
 
-		throw new GeometryException("internal error");
+		throw GeometryException.GeometryInternalError();
 	}
 
 	public int symmetricDifference(int geometry_a, int geometry_b) {
@@ -1338,7 +1388,7 @@ final class TopologicalOperations {
 		if (dim_a == 0 && dim_b == 0)
 			return topoOperationMultiPoint_();
 
-		throw new GeometryException("internal error");
+		throw GeometryException.GeometryInternalError();
 	}
 
 	int extractShape(int geometry_in) {
@@ -1368,7 +1418,7 @@ final class TopologicalOperations {
 		if (dim_a == 0)
 			return topoOperationMultiPoint_();
 
-		throw new GeometryException("internal error");
+		throw GeometryException.GeometryInternalError();
 	}
 
 	static Geometry normalizeInputGeometry_(Geometry geom) {
@@ -1550,7 +1600,7 @@ final class TopologicalOperations {
 			}
 				// break;
 			default:
-				throw new GeometryException("internal error");
+				throw GeometryException.GeometryInternalError();
 			}
 		}
 
@@ -1635,12 +1685,26 @@ final class TopologicalOperations {
 	public static Geometry intersection(Geometry geometry_a,
 			Geometry geometry_b, SpatialReference sr,
 			ProgressTracker progress_tracker) {
+
 		Envelope2D env2D_1 = new Envelope2D();
 		geometry_a.queryEnvelope2D(env2D_1);
 		Envelope2D env2D_2 = new Envelope2D();
 		geometry_b.queryEnvelope2D(env2D_2);
-		if (!env2D_1.isIntersecting(env2D_2))// also includes the empty geometry
-												// cases
+
+		Envelope2D envMerged = new Envelope2D();
+		envMerged.setCoords(env2D_1);
+		envMerged.merge(env2D_2);
+		double tolerance = InternalUtils.calculateToleranceFromGeometry(sr,
+				envMerged, true);// conservative to have same effect as simplify
+
+		Envelope2D e = new Envelope2D();
+		e.setCoords(env2D_2);
+		double tol_cluster = InternalUtils
+				.adjust_tolerance_for_TE_clustering(tolerance);
+		e.inflate(tol_cluster, tol_cluster);
+
+		if (!env2D_1.isIntersecting(e))// also includes the empty geometry
+										// cases
 		{
 			if (geometry_a.getDimension() <= geometry_b.getDimension())
 				return normalizeResult_(
@@ -1652,11 +1716,6 @@ final class TopologicalOperations {
 						normalizeInputGeometry_(geometry_b.createInstance()),
 						geometry_a, geometry_b, '&');
 		}
-		Envelope2D envMerged = new Envelope2D();
-		envMerged.setCoords(env2D_1);
-		envMerged.merge(env2D_2);
-		double tolerance = InternalUtils.calculateToleranceFromGeometry(sr,
-				envMerged, true);// conservative to have same effect as simplify
 
 		TopologicalOperations topoOps = new TopologicalOperations();
 		EditShape edit_shape = new EditShape();
@@ -1684,12 +1743,26 @@ final class TopologicalOperations {
 	static Geometry[] intersectionEx(Geometry geometry_a, Geometry geometry_b,
 			SpatialReference sr, ProgressTracker progress_tracker) {
 		Geometry[] res_vec = new Geometry[3];
+
 		Envelope2D env2D_1 = new Envelope2D();
 		geometry_a.queryEnvelope2D(env2D_1);
 		Envelope2D env2D_2 = new Envelope2D();
 		geometry_b.queryEnvelope2D(env2D_2);
-		if (!env2D_1.isIntersecting(env2D_2))// also includes the empty geometry
-												// cases
+
+		Envelope2D envMerged = new Envelope2D();
+		envMerged.setCoords(env2D_1);
+		envMerged.merge(env2D_2);
+		double tolerance = InternalUtils.calculateToleranceFromGeometry(sr,
+				envMerged, true);// conservative to have same effect as simplify
+
+		Envelope2D e = new Envelope2D();
+		e.setCoords(env2D_2);
+		double tol_cluster = InternalUtils
+				.adjust_tolerance_for_TE_clustering(tolerance);
+		e.inflate(tol_cluster, tol_cluster);
+
+		if (!env2D_1.isIntersecting(e))// also includes the empty geometry
+										// cases
 		{
 			if (geometry_a.getDimension() <= geometry_b.getDimension()) {
 				Geometry geom = normalizeResult_(
@@ -1708,11 +1781,6 @@ final class TopologicalOperations {
 			}
 
 		}
-		Envelope2D envMerged = new Envelope2D();
-		envMerged.setCoords(env2D_1);
-		envMerged.merge(env2D_2);
-		double tolerance = InternalUtils.calculateToleranceFromGeometry(sr,
-				envMerged, true);// conservative to have same effect as simplify
 
 		TopologicalOperations topoOps = new TopologicalOperations();
 		EditShape edit_shape = new EditShape();
@@ -1827,53 +1895,6 @@ final class TopologicalOperations {
 			shape.addVertex(path, vertex);
 		}
 		shape.setClosedPath(path, true);// need to close polygon rings
-	}
-
-	private void removeSpikes_(int cuttee, int cutter) {
-		int idCuttee = m_topo_graph.getGeometryID(cuttee);
-		int idCutter = m_topo_graph.getGeometryID(cutter);
-		int visitedIndex = m_topo_graph.createUserIndexForHalfEdges();
-		for (int cluster = m_topo_graph.getFirstCluster(); cluster != -1; cluster = m_topo_graph
-				.getNextCluster(cluster)) {
-			int firstHalfEdge = m_topo_graph.getClusterHalfEdge(cluster);
-			if (firstHalfEdge == -1)
-				continue;
-
-			int half_edge = firstHalfEdge;
-
-			do {
-				int visited = m_topo_graph.getHalfEdgeUserIndex(half_edge,
-						visitedIndex);
-				if (visited != 1) {
-					int halfEdgeParentage = m_topo_graph
-							.getHalfEdgeParentage(half_edge);
-					int halfEdgeFaceParentage = m_topo_graph
-							.getHalfEdgeFaceParentage(half_edge);
-					if (halfEdgeParentage != (idCuttee | idCutter)
-							&& halfEdgeFaceParentage != 0) {
-						int faceHalfEdge = half_edge;
-						do {
-							int faceHalfEdgeNext = m_topo_graph
-									.getHalfEdgeNext(faceHalfEdge);
-							if (m_topo_graph.getHalfEdgePrev(faceHalfEdge) == m_topo_graph
-									.getHalfEdgeTwin(faceHalfEdge))
-								m_topo_graph.deleteEdgeInternal_(faceHalfEdge);
-							else
-								m_topo_graph.setHalfEdgeUserIndex(faceHalfEdge,
-										visitedIndex, 1);
-
-							faceHalfEdge = faceHalfEdgeNext;
-						} while (faceHalfEdge != half_edge);
-					} else {
-						m_topo_graph.setHalfEdgeUserIndex(half_edge,
-								visitedIndex, 1);
-					}
-				}
-
-				half_edge = m_topo_graph.getHalfEdgeNext(m_topo_graph
-						.getHalfEdgeTwin(half_edge));
-			} while (half_edge != firstHalfEdge);
-		}
 	}
 
 	private void setHalfEdgeOrientations_(int orientationIndex, int cutter) {
@@ -2031,7 +2052,7 @@ final class TopologicalOperations {
 
 	private void cutPolygonPolyline_(int sideIndex, int cuttee, int cutter,
 			AttributeStreamOfInt32 cutHandles) {
-		removeSpikes_(cuttee, cutter);
+		m_topo_graph.removeSpikes_();
 
 		int orientationIndex = -1;
 		if (sideIndex != -1) {
@@ -2055,6 +2076,15 @@ final class TopologicalOperations {
 		// sort
 		CompareCuts compareCuts = new CompareCuts(shape);
 		cutHandles.Sort(0, cutCount, compareCuts);
+	}
+	
+	//call this if EditShape instance has to survive the TopologicalOperations life.
+	void removeShape() {
+		if (m_topo_graph != null) {
+			m_topo_graph.removeShape();
+			m_topo_graph = null;
+		}
+			
 	}
 
 }

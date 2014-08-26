@@ -48,7 +48,7 @@ public abstract class Operator {
 		Buffer, Distance, Intersection, Clip, Cut, DensifyByLength, // <!DensfiyByLength
 		DensifyByAngle, LabelPoint,
 
-		GeodeticDensifyByLength, GeodeticLength, GeodeticArea,
+		GeodesicBuffer, GeodeticDensifyByLength, ShapePreservingDensify, GeodeticLength, GeodeticArea,
 
 		Simplify, SimplifyOGC, Offset, Generalize,
 

@@ -152,8 +152,8 @@ class OperatorSimplifyLocalHelper {
 		double y1 = m_xy.read(2 * xyindex1 + 1);
 		double x2 = m_xy.read(2 * xyindex2);
 		double y2 = m_xy.read(2 * xyindex2 + 1);
-		boolean b = !Clusterer.isClusterCandidate(x1, y1, x2, y2,
-				m_toleranceIsSimple);
+		boolean b = !Clusterer.isClusterCandidate_(x1, y1, x2, y2,
+				m_toleranceIsSimple * m_toleranceIsSimple);
 		if (!b) {
 			if (m_geometry.getDimension() == 0)
 				return false;
@@ -332,7 +332,7 @@ class OperatorSimplifyLocalHelper {
 		EditShape editShape = new EditShape();
 		editShape.addGeometry(m_geometry);
 		NonSimpleResult result = new NonSimpleResult();
-		boolean bNonSimple = Cracker.needsCracking(editShape,
+		boolean bNonSimple = Cracker.needsCracking(false, editShape,
 				m_toleranceIsSimple, result, m_progressTracker);
 		if (bNonSimple) {
 			result.m_vertexIndex1 = editShape
@@ -1258,7 +1258,7 @@ class OperatorSimplifyLocalHelper {
 		if (gt == Geometry.Type.Line) {
 			edge = createEdgeLine_(seg);
 		} else {
-			throw new GeometryException("internal error"); // implement
+			throw GeometryException.GeometryInternalError(); // implement
 															// recycling for
 															// curves
 		}
@@ -1646,17 +1646,19 @@ class OperatorSimplifyLocalHelper {
 		m_editShape = new EditShape();
 		m_editShape.addGeometry(m_geometry);
 
-		assert (m_knownSimpleResult != GeometryXSimple.Strong);
-		if (m_knownSimpleResult != GeometryXSimple.Weak) {
-			CrackAndCluster.execute(m_editShape, m_toleranceSimplify,
-					m_progressTracker);
+		if (m_editShape.getTotalPointCount() != 0) {
+			assert (m_knownSimpleResult != GeometryXSimple.Strong);
+			if (m_knownSimpleResult != GeometryXSimple.Weak) {
+				CrackAndCluster.execute(m_editShape, m_toleranceSimplify,
+						m_progressTracker);
+			}
+	
+			if (m_geometry.getType().equals(Geometry.Type.Polygon)) {
+				Simplificator.execute(m_editShape, m_editShape.getFirstGeometry(),
+						m_knownSimpleResult, false);
+			}
 		}
-
-		if (m_geometry.getType().equals(Geometry.Type.Polygon)) {
-			Simplificator.execute(m_editShape, m_editShape.getFirstGeometry(),
-					m_knownSimpleResult);
-		}
-
+		
 		m_geometry = m_editShape.getGeometry(m_editShape.getFirstGeometry()); // extract
 																				// the
 																				// result
@@ -1726,10 +1728,10 @@ class OperatorSimplifyLocalHelper {
 							false));
 			return bReturnValue ? 1 : 0;
 		} else if (Geometry.isSegment(gt.value())) {
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 			// return seg.IsSimple(m_tolerance);
 		} else if (!Geometry.isMultiVertex(gt.value())) {
-			throw new GeometryException("internal error");// What else?
+			throw GeometryException.GeometryInternalError();// What else?
 		}
 
 		double tolerance = InternalUtils.calculateToleranceFromGeometry(
@@ -1824,7 +1826,7 @@ class OperatorSimplifyLocalHelper {
 		} else if (gt == Geometry.Type.Polygon) {
 			knownSimpleResult = helper.polygonIsSimpleAsFeature_();
 		} else {
-			throw new GeometryException("internal error");// what else?
+			throw GeometryException.GeometryInternalError();// what else?
 		}
 
 		((MultiVertexGeometryImpl) (geometry._getImpl())).setIsSimple(
@@ -1881,7 +1883,7 @@ class OperatorSimplifyLocalHelper {
 				|| gt == Geometry.Type.Polygon) {
 			knownSimpleResult = helper.isSimplePlanarImpl_();
 		} else {
-			throw new GeometryException("internal error");// what else?
+			throw GeometryException.GeometryInternalError();// what else?
 		}
 
 		if (result != null)
@@ -1954,7 +1956,7 @@ class OperatorSimplifyLocalHelper {
 		} else if (gt == Geometry.Type.Polygon) {
 			result = (Geometry) (helper.polygonSimplifyAsFeature_());
 		} else {
-			throw new GeometryException("internal error"); // what else?
+			throw GeometryException.GeometryInternalError(); // what else?
 		}
 
 		return result;
@@ -1999,12 +2001,11 @@ class OperatorSimplifyLocalHelper {
 		}
 
 		if (!Geometry.isMultiVertex(gt.value())) {
-			throw new GeometryException("internal error"); // what else?
+			throw new GeometryException("OGC simplify is not implemented for this geometry type" + gt);
 		}
 
-		MultiVertexGeometry result = TopologicalOperations.planarSimplify(
-				(MultiVertexGeometry) geometry, tolerance, false, false,
-				progressTracker);
+		MultiVertexGeometry result = TopologicalOperations.simplifyOGC(
+				(MultiVertexGeometry) geometry, tolerance, false, progressTracker);
 
 		return result;
 	}
@@ -2134,9 +2135,6 @@ class OperatorSimplifyLocalHelper {
 
 		@Override
 		public int compare(Edge e1, Edge e2) {
-			// C++ style with bool operator() would be
-			// return parent->edgeAngleCompare_(*e1,*e2) < 0;
-
 			return parent.edgeAngleCompare_(e1, e2);
 		}
 	}

@@ -748,9 +748,9 @@ public abstract class Segment extends Geometry implements Serializable {
 				return Line._isIntersectingLineLine((Line) this, (Line) other,
 						tolerance, bExcludeExactEndpoints);
 			else
-				throw new GeometryException("internal error");
+				throw GeometryException.GeometryInternalError();
 		default:
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 		}
 	}
 
@@ -764,9 +764,9 @@ public abstract class Segment extends Geometry implements Serializable {
 				return Line._intersectLineLine((Line) this, (Line) other,
 						intersectionPoints, paramThis, paramOther, tolerance);
 			else
-				throw new GeometryException("internal error");
+				throw GeometryException.GeometryInternalError();
 		default:
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 		}
 	}
 
@@ -877,7 +877,9 @@ public abstract class Segment extends Geometry implements Serializable {
 
 	abstract boolean _isDegenerate(double tolerance);
 
-	abstract double _calculateSubLength(double t);
+	double _calculateSubLength(double t) { return tToLength(t); }
+	
+	double _calculateSubLength(double t1, double t2) { return tToLength(t2) - tToLength(t1); }
 
 	abstract void _copyToImpl(Segment dst);
 
@@ -917,6 +919,13 @@ public abstract class Segment extends Geometry implements Serializable {
 	 * @return X coordinate of the intersection, or NaN, if no intersection.
 	 */
 	abstract double intersectionOfYMonotonicWithAxisX(double y, double xParallel);
+  
+	/**
+	 * Converts curves parameter t to the curve length. Can be expensive for curves.
+	 */
+	abstract double tToLength(double t);
+
+	abstract double lengthToT(double len);
 
 	double distance(/* const */Segment otherSegment,
 			boolean bSegmentsKnownDisjoint) /* const */
@@ -963,5 +972,11 @@ public abstract class Segment extends Geometry implements Serializable {
 			minDistance = distance;
 
 		return minDistance;
-	}
+	}    
+
+    public Geometry getBoundary() {
+        return Boundary.calculate(this, null);
+    }
+
+
 }

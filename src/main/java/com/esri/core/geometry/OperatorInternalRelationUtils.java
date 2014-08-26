@@ -88,7 +88,7 @@ class OperatorInternalRelationUtils {
 				return reverseResult(quickTest2DPolygonPoint((Polygon) geomB,
 						(Point) geomA, tolerance));
 			}
-			throw new GeometryException("internal error");// GEOMTHROW(internal_error);//what
+			throw GeometryException.GeometryInternalError();// GEOMTHROW(internal_error);//what
 															// else?
 		}
 		case Geometry.GeometryType.Envelope: {
@@ -110,7 +110,7 @@ class OperatorInternalRelationUtils {
 				return reverseResult(quickTest2DPolygonEnvelope(
 						(Polygon) geomB, (Envelope) geomA, tolerance));
 			}
-			throw new GeometryException("internal error");// GEOMTHROW(internal_error);//what
+			throw GeometryException.GeometryInternalError();// GEOMTHROW(internal_error);//what
 															// else?
 		}
 		case Geometry.GeometryType.MultiPoint: {
@@ -131,7 +131,7 @@ class OperatorInternalRelationUtils {
 				return reverseResult(quickTest2DPolygonMultiPoint(
 						(Polygon) geomB, (MultiPoint) geomA, tolerance));
 			}
-			throw new GeometryException("internal error");// GEOMTHROW(internal_error);//what
+			throw GeometryException.GeometryInternalError();// GEOMTHROW(internal_error);//what
 															// else?
 		}
 		case Geometry.GeometryType.Polyline: {
@@ -152,7 +152,7 @@ class OperatorInternalRelationUtils {
 				return reverseResult(quickTest2DPolygonPolyline(
 						(Polygon) geomB, (Polyline) geomA, tolerance));
 			}
-			throw new GeometryException("internal error");// GEOMTHROW(internal_error);//what
+			throw GeometryException.GeometryInternalError();// GEOMTHROW(internal_error);//what
 															// else?
 		}
 		case Geometry.GeometryType.Polygon: {
@@ -173,12 +173,12 @@ class OperatorInternalRelationUtils {
 				return quickTest2DPolygonPolygon((Polygon) geomA,
 						(Polygon) geomB, tolerance);
 			}
-			throw new GeometryException("internal error");// GEOMTHROW(internal_error);//what
+			throw GeometryException.GeometryInternalError();// GEOMTHROW(internal_error);//what
 															// else?
 		}
 
 		default:
-			throw new GeometryException("internal error");// GEOMTHROW(internal_error);//what
+			throw GeometryException.GeometryInternalError();// GEOMTHROW(internal_error);//what
 															// else?
 			// return 0;
 		}
@@ -581,7 +581,7 @@ class OperatorInternalRelationUtils {
 		if (pipres == PolygonUtils.PiPResult.PiPBoundary)
 			return (int) Relation.Touches;// clementini's touches
 
-		throw new GeometryException("internal error");// GEOMTHROW(internal_error);
+		throw GeometryException.GeometryInternalError();// GEOMTHROW(internal_error);
 														// //what else
 		// return 0;
 	}

@@ -41,34 +41,6 @@ public class GeometryUtils {
 		}
 	}
 
-	public static void testMultiplePath(MultiPath mp1, MultiPath mp2) {
-		return;
-		/*int count1 = mp1.getPointCount();
-		int count2 = mp2.getPointCount();
-
-		System.out.println("From Rest vertices count: " + count1);
-		System.out.println("From Borg count: " + count2);
-		// Assert.assertTrue(count1==count2);
-
-		int len = mp1.getPointCount();
-
-		for (int i = 0; i < len; i++) {
-			Point p = mp1.getPoint(i);
-			Point p2 = mp2.getPoint(i);
-			System.out.println("for rest: [" + p.getX() + "," + p.getY() + "]");
-			System.out.println("for proj: [" + p2.getX() + "," + p2.getY()
-					+ "]");
-			@SuppressWarnings("unused")
-			double deltaX = p2.getX() - p.getX();
-			@SuppressWarnings("unused")
-			double deltaY = p2.getY() - p.getY();
-
-			// Assert.assertTrue(deltaX<1e-7);
-			// Assert.assertTrue(deltaY<1e-7);
-		}
-		*/
-	}
-
 	public enum SpatialRelationType {
 		esriGeometryRelationCross, esriGeometryRelationDisjoint, esriGeometryRelationIn, esriGeometryRelationInteriorIntersection, esriGeometryRelationIntersection, esriGeometryRelationLineCoincidence, esriGeometryRelationLineTouch, esriGeometryRelationOverlap, esriGeometryRelationPointTouch, esriGeometryRelationTouch, esriGeometryRelationWithin, esriGeometryRelationRelation
 	}

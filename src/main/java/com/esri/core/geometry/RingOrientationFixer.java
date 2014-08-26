@@ -35,6 +35,7 @@ class RingOrientationFixer {
 	int m_node_2_user_index;
 	int m_path_orientation_index;
 	int m_path_parentage_index;
+	boolean m_fixSelfTangency;
 
 	static final class Edges {
 		EditShape m_shape;
@@ -221,6 +222,11 @@ class RingOrientationFixer {
 	}
 
 	boolean fixRingOrientation_() {
+		boolean bFound = false;
+
+		if (m_fixSelfTangency)
+			bFound = fixRingSelfTangency_();
+		
 		if (m_shape.getPathCount(m_geometry) == 1) {
 			int path = m_shape.getFirstPath(m_geometry);
 			double area = m_shape.getRingArea(path);
@@ -257,7 +263,6 @@ class RingOrientationFixer {
 		}
 
 		AttributeStreamOfInt32 bunch = new AttributeStreamOfInt32(0);
-		boolean bFound = false;
 		m_y_scanline = NumberUtils.TheNaN;
 		Point2D pt = new Point2D();
 		m_unknown_ring_orientation_count = m_shape.getPathCount(m_geometry);
@@ -518,12 +523,163 @@ class RingOrientationFixer {
 	}
 
 	static boolean execute(EditShape shape, int geometry,
-			IndexMultiDCList sorted_vertices) {
+			IndexMultiDCList sorted_vertices, boolean fixSelfTangency) {
 		RingOrientationFixer fixer = new RingOrientationFixer();
 		fixer.m_shape = shape;
 		fixer.m_geometry = geometry;
 		fixer.m_sorted_vertices = sorted_vertices;
+		fixer.m_fixSelfTangency = fixSelfTangency;
 		return fixer.fixRingOrientation_();
 	}
 
+	boolean fixRingSelfTangency_() {
+		AttributeStreamOfInt32 self_tangent_paths = new AttributeStreamOfInt32(
+				0);
+		AttributeStreamOfInt32 self_tangency_clusters = new AttributeStreamOfInt32(
+				0);
+		int tangent_path_first_vertex_index = -1;
+		int tangent_vertex_cluster_index = -1;
+		Point2D pt_prev = new Point2D();
+		pt_prev.setNaN();
+		int prev_vertex = -1;
+		int old_path = -1;
+		int current_cluster = -1;
+		Point2D pt = new Point2D();
+		for (int ivertex = m_sorted_vertices.getFirst(m_sorted_vertices
+				.getFirstList()); ivertex != -1; ivertex = m_sorted_vertices
+				.getNext(ivertex)) {
+			int vertex = m_sorted_vertices.getData(ivertex);
+			m_shape.getXY(vertex, pt);
+			int path = m_shape.getPathFromVertex(vertex);
+			if (pt_prev.isEqual(pt) && old_path == path) {
+				if (tangent_vertex_cluster_index == -1) {
+					tangent_path_first_vertex_index = m_shape
+							.createPathUserIndex();
+					tangent_vertex_cluster_index = m_shape.createUserIndex();
+				}
+
+				if (current_cluster == -1) {
+					current_cluster = self_tangency_clusters.size();
+					m_shape.setUserIndex(prev_vertex,
+							tangent_vertex_cluster_index, current_cluster);
+					self_tangency_clusters.add(1);
+					int p = m_shape.getPathUserIndex(path,
+							tangent_path_first_vertex_index);
+					if (p == -1) {
+						m_shape.setPathUserIndex(path,
+								tangent_path_first_vertex_index, prev_vertex);
+						self_tangent_paths.add(path);
+					}
+				}
+
+				m_shape.setUserIndex(vertex, tangent_vertex_cluster_index,
+						current_cluster);
+				self_tangency_clusters
+						.setLast(self_tangency_clusters.getLast() + 1);
+			} else {
+				current_cluster = -1;
+				pt_prev.setCoords(pt);
+			}
+
+			prev_vertex = vertex;
+			old_path = path;
+		}
+
+		if (self_tangent_paths.size() == 0)
+			return false;
+
+		// Now self_tangent_paths contains list of clusters of tangency for each
+		// path.
+		// The clusters contains list of clusters and for each cluster it
+		// contains a list of vertices.
+		AttributeStreamOfInt32 vertex_stack = new AttributeStreamOfInt32(0);
+		AttributeStreamOfInt32 cluster_stack = new AttributeStreamOfInt32(0);
+
+		for (int ipath = 0, npath = self_tangent_paths.size(); ipath < npath; ipath++) {
+			int path = self_tangent_paths.get(ipath);
+			int first_vertex = m_shape.getPathUserIndex(path,
+					tangent_path_first_vertex_index);
+			int cluster = m_shape.getUserIndex(first_vertex,
+					tangent_vertex_cluster_index);
+			vertex_stack.clear(false);
+			cluster_stack.clear(false);
+			vertex_stack.add(first_vertex);
+			cluster_stack.add(cluster);
+
+			for (int vertex = m_shape.getNextVertex(first_vertex); vertex != first_vertex; vertex = m_shape
+					.getNextVertex(vertex)) {
+				int vertex_to = vertex;
+				int cluster_to = m_shape.getUserIndex(vertex_to,
+						tangent_vertex_cluster_index);
+				if (cluster_to != -1) {
+					if (cluster_stack.size() == 0) {
+						cluster_stack.add(cluster_to);
+						vertex_stack.add(vertex_to);
+						continue;
+					}
+
+					if (cluster_stack.getLast() == cluster_to) {
+						int vertex_from = vertex_stack.getLast();
+
+						// peel the loop from path
+						int from_next = m_shape.getNextVertex(vertex_from);
+						int from_prev = m_shape.getPrevVertex(vertex_from);
+						int to_next = m_shape.getNextVertex(vertex_to);
+						int to_prev = m_shape.getPrevVertex(vertex_to);
+
+						m_shape.setNextVertex_(vertex_from, to_next);
+						m_shape.setPrevVertex_(to_next, vertex_from);
+
+						m_shape.setNextVertex_(vertex_to, from_next);
+						m_shape.setPrevVertex_(from_next, vertex_to);
+
+						// vertex_from is left in the path we are processing,
+						// while the vertex_to is in the loop being teared off.
+						boolean[] first_vertex_correction_requied = new boolean[] { false };
+						int new_path = m_shape.insertClosedPath_(m_geometry,
+								-1, from_next, m_shape.getFirstVertex(path),
+								first_vertex_correction_requied);
+
+						m_shape.setUserIndex(vertex,
+								tangent_vertex_cluster_index, -1);
+
+						// Fix the path after peeling if the peeled loop had the
+						// first path vertex in it
+
+						if (first_vertex_correction_requied[0]) {
+							m_shape.setFirstVertex_(path, to_next);
+						}
+
+						int path_size = m_shape.getPathSize(path);
+						int new_path_size = m_shape.getPathSize(new_path);
+						path_size -= new_path_size;
+						assert (path_size >= 3);
+						m_shape.setPathSize_(path, path_size);
+
+						self_tangency_clusters.set(cluster_to,
+								self_tangency_clusters.get(cluster_to) - 1);
+						if (self_tangency_clusters.get(cluster_to) == 1) {
+							self_tangency_clusters.set(cluster_to, 0);
+							cluster_stack.removeLast();
+							vertex_stack.removeLast();
+						} else {
+							// this cluster has more than two vertices in it.
+						}
+
+						first_vertex = vertex_from;// reset the counter to
+													// ensure we find all loops.
+						vertex = vertex_from;
+					} else {
+						vertex_stack.add(vertex);
+						cluster_stack.add(cluster_to);
+					}
+				}
+			}
+		}
+
+		m_shape.removePathUserIndex(tangent_path_first_vertex_index);
+		m_shape.removeUserIndex(tangent_vertex_cluster_index);
+		return true;
+	}
+	
 }

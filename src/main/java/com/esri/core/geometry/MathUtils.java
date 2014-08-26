@@ -129,6 +129,13 @@ class MathUtils {
 	}
 
 	/**
+	 * Calculates sign of the given value. Returns 0 if the value is equal to 0.
+	 */
+	static int sign(double value) {
+		return value < 0 ? -1 : (value > 0) ? 1 : 0;
+	}
+
+	/**
 	 * C fmod function.
 	 */
 	static double FMod(double x, double y) {

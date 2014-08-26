@@ -39,23 +39,6 @@ abstract class OperatorGeodeticLength extends Operator {
 	}
 
 	/**
-	 * Calculates the geodetic length of each geometry in the geometry cursor.
-	 * 
-	 * @param geoms
-	 *            The geometry cursor to be iterated over to perform the
-	 *            Geodetic Length calculation.
-	 * @param sr
-	 *            The SpatialReference of the geometries.
-	 * @param geodeticCurveType
-	 *            Use the {@link GeodeticCurveType} interface to choose the
-	 *            interpretation of a line connecting two points.
-	 * @param progressTracker
-	 * @return Returns an array of the geoetic lengths of the geometries.
-	 */
-	public abstract double[] execute(GeometryCursor geoms, SpatialReference sr,
-			int geodeticCurveType, ProgressTracker progressTracker);
-
-	/**
 	 * Calculates the geodetic length of the input Geometry.
 	 * 
 	 * @param geom

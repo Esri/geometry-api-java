@@ -49,7 +49,7 @@ public class OGCPolygon extends OGCSurface {
 	 * Returns the exterior ring of this Polygon.
 	 * @return OGCLinearRing instance.
 	 */
-	public OGCLineString exterorRing() {
+	public OGCLineString exteriorRing() {
 		if (polygon.isEmpty())
 			return new OGCLinearRing((Polygon) polygon.createInstance(), 0,
 					esriSR, true);

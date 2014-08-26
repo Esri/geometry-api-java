@@ -26,8 +26,7 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.VertexDescription.Semantics;
-import com.esri.core.geometry.GeometryEngine;
-import com.esri.core.geometry.WktExportFlags;
+
 import java.io.ObjectStreamException;
 import java.io.Serializable;
 
@@ -127,7 +126,7 @@ public abstract class Geometry implements Serializable {
 	 * @return Returns the geometry type.
 	 */
 	public abstract Geometry.Type getType();
-
+	
 	/**
 	 * Returns the topological dimension of the geometry object based on the
 	 * geometry's type.
@@ -503,17 +502,20 @@ public abstract class Geometry implements Serializable {
 		return geom;
 	}
 
+    /**
+     * Returns boundary of this geometry.
+     *
+     * Polygon and Envelope boundary is a Polyline. For Polyline and Line, the
+     * boundary is a Multi_point consisting of path endpoints. For Multi_point
+     * and Point NULL is returned.
+     */
+    public abstract Geometry getBoundary();    
+
 	static Geometry _clone(Geometry src) {
 		Geometry geom = src.createInstance();
 		src.copyTo(geom);
 		return geom;
 	}
-
-    public String toString() {
-        String snippet = GeometryEngine.geometryToWkt(this, WktExportFlags.wktExportDefaults);
-        if (snippet.length() > 200) { snippet = snippet.substring(0, 197)+"..."; }
-        return String.format("%s: %s", this.getClass().getSimpleName(), snippet);
-    }
 
 	/**
 	 * The stateFlag value changes with changes applied to this geometry. This
@@ -551,4 +553,19 @@ public abstract class Geometry implements Serializable {
 		geomSerializer.setGeometryByValue(this);
 		return geomSerializer;
 	}
+
+	/**
+	 * The output of this method can be only used for debugging. It is subject to change without notice. 
+	 */
+	@Override
+	public String toString() {
+		String snippet = OperatorExportToJson.local().execute(null, this);
+		if (snippet.length() > 200) { 
+			return snippet.substring(0, 197) + "... ("+snippet.length()+" characters)"; 
+		}
+		else {
+			return snippet;
+		}
+	}
+
 }

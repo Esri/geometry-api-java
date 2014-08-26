@@ -246,8 +246,9 @@ class PolygonUtils {
 	// We assume here that the Polygon is Weak Simple. That is if one point of
 	// Ring1 is found to be inside of Ring2, then
 	// we assume that all of Ring1 is inside Ring2.
-	static boolean _isRingInRing2D(MultiPathImpl polygonImpl, int iRing1,
+	static boolean _isRingInRing2D(MultiPath polygon, int iRing1,
 			int iRing2, double tolerance) {
+	  MultiPathImpl polygonImpl = (MultiPathImpl)polygon._getImpl();	
 		SegmentIteratorImpl segIter = polygonImpl.querySegmentIterator();
 		segIter.resetToPath(iRing1);
 		if (!segIter.nextPath() || !segIter.hasNextSegment())
@@ -264,7 +265,7 @@ class PolygonUtils {
 		}
 
 		if (res == 2 /* (int)PiPResult.PiPBoundary */)
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 		if (res == 1 /* (int)PiPResult.PiPInside */)
 			return true;
 
@@ -397,28 +398,4 @@ class PolygonUtils {
 			throw new GeometryException("Invalid call.");
 	}
 
-	/*
-	 * // Tests if Ring1 is inside Ring2. // We assume here that the Polygon is
-	 * Weak Simple. That is if one point of Ring1 is found to be inside of
-	 * Ring2, then // we assume that all of Ring1 is inside Ring2. public static
-	 * booleanean _isRingInRing2D(MultiPathImpl polygonImpl, int iRing1, int
-	 * iRing2, double tolerance) { SegmentIteratorImpl segIter =
-	 * polygonImpl.querySegmentIterator(); segIter.resetToPath(iRing1); if
-	 * (!segIter.nextPath() || !segIter.hasNextSegment()) throw new
-	 * GeometryException("corrupted geometry");
-	 * 
-	 * PiPResult res = PiPResult.PiPBoundary;
-	 * 
-	 * while ((res == PiPResult.PiPBoundary) && segIter.hasNextSegment()) {
-	 * Segment segment = segIter.nextSegment(); Point2D point =
-	 * segment.getCoord2D(0.5); res =
-	 * PointInPolygonHelper.isPointInRing(polygonImpl, iRing2, point,
-	 * tolerance); }
-	 * 
-	 * if (res == PiPResult. PiPBoundary) throw new
-	 * GeometryException("internal error"); if (res == PiPResult.PiPInside)
-	 * return true;
-	 * 
-	 * return false; }
-	 */
 }

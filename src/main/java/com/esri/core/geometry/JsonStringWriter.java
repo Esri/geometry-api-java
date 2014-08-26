@@ -247,7 +247,7 @@ final class JsonStringWriter extends JsonWriter {
                 elementEnd_(action);
                 break;
             default:
-                throw new GeometryException("internal error");
+                throw GeometryException.GeometryInternalError();
         }
     }
 

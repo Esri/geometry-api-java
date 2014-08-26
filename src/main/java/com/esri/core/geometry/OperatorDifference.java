@@ -25,7 +25,6 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.Operator.Type;
-import com.esri.core.geometry.CombineOperator;
 
 /**
  * Difference of geometries.

@@ -24,17 +24,52 @@
 package com.esri.core.geometry;
 
 class Boundary {
+
+	static boolean hasNonEmptyBoundary(Geometry geom,
+			ProgressTracker progress_tracker) {
+		if (geom.isEmpty())
+			return false;
+
+		Geometry.Type gt = geom.getType();
+		if (gt == Geometry.Type.Polygon) {
+			if (geom.calculateArea2D() == 0)
+				return false;
+
+			return true;
+		} else if (gt == Geometry.Type.Polyline) {
+			boolean[] b = new boolean[1];
+			b[0] = false;
+			calculatePolylineBoundary_(geom._getImpl(), progress_tracker, true,
+					b);
+			return b[0];
+		} else if (gt == Geometry.Type.Envelope) {
+			return true;
+		} else if (Geometry.isSegment(gt.value())) {
+			if (!((Segment) geom).isClosed()) {
+				return true;
+			}
+
+			return false;
+		} else if (Geometry.isPoint(gt.value())) {
+			return false;
+		}
+
+		return false;
+	}
+
 	static Geometry calculate(Geometry geom, ProgressTracker progress_tracker) {
 		int gt = geom.getType().value();
 		if (gt == Geometry.GeometryType.Polygon) {
 			Polyline dst = new Polyline(geom.getDescription());
-			if (!geom.isEmpty()) { 
-				((MultiPathImpl)geom._getImpl())._copyToUnsafe((MultiPathImpl)dst._getImpl());
+			if (!geom.isEmpty()) {
+				((MultiPathImpl) geom._getImpl())
+						._copyToUnsafe((MultiPathImpl) dst._getImpl());
 			}
 
 			return dst;
 		} else if (gt == Geometry.GeometryType.Polyline) {
-			return calculatePolylineBoundary_(geom._getImpl(), progress_tracker);
+			return calculatePolylineBoundary_(geom._getImpl(),
+					progress_tracker, false, null);
 		} else if (gt == Geometry.GeometryType.Envelope) {
 			Polyline dst = new Polyline(geom.getDescription());
 			if (!geom.isEmpty())
@@ -98,9 +133,15 @@ class Boundary {
 	}
 
 	static MultiPoint calculatePolylineBoundary_(Object impl,
-			ProgressTracker progress_tracker) {
+			ProgressTracker progress_tracker,
+			boolean only_check_non_empty_boundary, boolean[] not_empty) {
+		if (not_empty != null)
+			not_empty[0] = false;
 		MultiPathImpl mpImpl = (MultiPathImpl) impl;
-		MultiPoint dst = new MultiPoint(mpImpl.getDescription());
+		MultiPoint dst = null;
+		if (!only_check_non_empty_boundary)
+			dst = new MultiPoint(mpImpl.getDescription());
+
 		if (!mpImpl.isEmpty()) {
 			AttributeStreamOfInt32 indices = new AttributeStreamOfInt32(0);
 			indices.reserve(mpImpl.getPathCount() * 2);
@@ -151,6 +192,12 @@ class Boundary {
 					} else {
 						if ((counter & 1) == 0) {// remove boundary point
 							indices.set(ind, NumberUtils.intMax());
+						} else {
+							if (only_check_non_empty_boundary) {
+								if (not_empty != null)
+									not_empty[0] = true;
+								return null;
+							}
 						}
 
 						ptPrev.setCoords(pt);
@@ -161,19 +208,29 @@ class Boundary {
 
 				if ((counter & 1) == 0) {// remove the point
 					indices.set(ind, NumberUtils.intMax());
+				} else {
+					if (only_check_non_empty_boundary) {
+						if (not_empty != null)
+							not_empty[0] = true;
+						return null;
+					}
 				}
+				if (!only_check_non_empty_boundary) {
+					indices.sort(0, indices.size());
 
-				indices.sort(0, indices.size());
+					for (int i = 0, n = indices.size(); i < n; i++) {
+						if (indices.get(i) == NumberUtils.intMax())
+							break;
 
-				for (int i = 0, n = indices.size(); i < n; i++) {
-					if (indices.get(i) == NumberUtils.intMax())
-						break;
-
-					mpImpl.getPointByVal(indices.get(i), point);
-					dst.add(point);
+						mpImpl.getPointByVal(indices.get(i), point);
+						dst.add(point);
+					}
 				}
 			}
 		}
+
+		if (only_check_non_empty_boundary)
+			return null;
 
 		return dst;
 	}

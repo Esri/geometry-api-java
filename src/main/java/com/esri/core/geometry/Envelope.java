@@ -925,7 +925,7 @@ public final class Envelope extends Geometry implements Serializable {
 	 * @return Returns the lower left corner point.
 	 */
 	public Point getLowerLeft() {
-		return m_envelope.getLowerLeft();
+		return new Point(m_envelope.getLowerLeft());
 	}
 
 	/**
@@ -934,7 +934,7 @@ public final class Envelope extends Geometry implements Serializable {
 	 * @return Returns the upper right corner point.
 	 */
 	public Point getUpperRight() {
-		return m_envelope.getUpperRight();
+		return new Point(m_envelope.getUpperRight());
 	}
 
 	/**
@@ -943,7 +943,7 @@ public final class Envelope extends Geometry implements Serializable {
 	 * @return Returns the lower right corner point.
 	 */
 	public Point getLowerRight() {
-		return m_envelope.getLowerRight();
+		return new Point(m_envelope.getLowerRight());
 	}
 
 	/**
@@ -952,7 +952,7 @@ public final class Envelope extends Geometry implements Serializable {
 	 * @return Returns the upper left corner point.
 	 */
 	public Point getUpperLeft() {
-		return m_envelope.getUpperLeft();
+		return new Point(m_envelope.getUpperLeft());
 	}
 
 	/**
@@ -1108,4 +1108,9 @@ public final class Envelope extends Geometry implements Serializable {
 		_touch();
 		m_envelope.ymax = y;
 	}
+
+    @Override
+    public Geometry getBoundary() {
+        return Boundary.calculate(this, null);
+    }
 }

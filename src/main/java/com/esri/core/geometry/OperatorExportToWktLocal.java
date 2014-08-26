@@ -42,7 +42,7 @@ class OperatorExportToWktLocal extends OperatorExportToWkt {
 					|| (export_flags & WktExportFlags.wktExportMultiLineString) != 0
 					|| (export_flags & WktExportFlags.wktExportPoint) != 0
 					|| (export_flags & WktExportFlags.wktExportMultiPoint) != 0)
-				throw new IllegalArgumentException("Cannot export a Polygon as Line/Point : "+export_flags);
+				throw new IllegalArgumentException("Cannot export a Polygon as (Multi)LineString/(Multi)Point : "+export_flags);
 
 			exportPolygonToWkt(export_flags, (Polygon) geometry, string);
 			return;
@@ -82,13 +82,13 @@ class OperatorExportToWktLocal extends OperatorExportToWkt {
 					|| (export_flags & WktExportFlags.wktExportMultiLineString) != 0
 					|| (export_flags & WktExportFlags.wktExportPoint) != 0
 					|| (export_flags & WktExportFlags.wktExportMultiPoint) != 0)
-				throw new IllegalArgumentException("Cannot export an Envelop as (Multi)LineString/(Multi)Point: "+export_flags);
+				throw new IllegalArgumentException("Cannot export an Envelope as (Multi)LineString/(Multi)Point: "+export_flags);
 
 			exportEnvelopeToWkt(export_flags, (Envelope) geometry, string);
 			return;
 
 		default: {
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 		}
 		}
 	}

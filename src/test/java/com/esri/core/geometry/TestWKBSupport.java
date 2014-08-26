@@ -48,8 +48,6 @@ public class TestWKBSupport extends TestCase {
 			// geom = operatorImport.execute(0, Geometry.Type.Polygon,
 			// byteBuffer);
 			String outputPolygon1 = GeometryEngine.geometryToJson(-1, geom);
-			System.out.println(strPolygon1);
-			System.out.println(outputPolygon1);
 		} catch (JsonParseException ex) {
 		} catch (IOException ex) {
 		}

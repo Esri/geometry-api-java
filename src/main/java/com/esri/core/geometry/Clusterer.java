@@ -33,13 +33,14 @@ final class Clusterer {
 	// (clustered).
 	// Uses reciprocal clustering (cluster vertices that are mutual nearest
 	// neighbours)
-	static boolean executeReciprocal(EditShape shape, double tolerance) {
-		Clusterer clusterer = new Clusterer();
-		clusterer.m_shape = shape;
-		clusterer.m_tolerance = tolerance;
-		clusterer.m_cell_size = 2 * tolerance;
-		return clusterer.clusterReciprocal_();
-	}
+	/*
+	 * static boolean executeReciprocal(EditShape shape, double tolerance) {
+	 * Clusterer clusterer = new Clusterer(); clusterer.m_shape = shape;
+	 * clusterer.m_tolerance = tolerance; clusterer.m_sqr_tolerance = tolerance
+	 * * tolerance; clusterer.m_cell_size = 2 * tolerance;
+	 * clusterer.m_inv_cell_size = 1.0 / clusterer.m_cell_size; return
+	 * clusterer.clusterReciprocal_(); }
+	 */
 
 	// Clusters vertices of the shape. Returns True, if some vertices were moved
 	// (clustered).
@@ -49,88 +50,102 @@ final class Clusterer {
 		Clusterer clusterer = new Clusterer();
 		clusterer.m_shape = shape;
 		clusterer.m_tolerance = tolerance;
-		clusterer.m_cell_size = 2 * tolerance;// revisit this value. Probably
-												// should be m_tolerance?
+		clusterer.m_sqr_tolerance = tolerance * tolerance;
+		clusterer.m_cell_size = 2 * tolerance;
+		clusterer.m_inv_cell_size = 1.0 / clusterer.m_cell_size;
 		return clusterer.clusterNonReciprocal_();
 	}
 
 	// Use b_conservative == True for simplify, and False for IsSimple. This
 	// makes sure Simplified shape is more robust to transformations.
-	static boolean isClusterCandidate(double x_1, double y1, double x2,
-			double y2, double tolerance) {
+	static boolean isClusterCandidate_(double x_1, double y1, double x2,
+			double y2, double sqr_tolerance) {
 		double dx = x_1 - x2;
 		double dy = y1 - y2;
-		return Math.sqrt(dx * dx + dy * dy) <= tolerance;
+		return dx * dx + dy * dy <= sqr_tolerance;
 	}
 
 	Point2D m_origin = new Point2D();
 	double m_tolerance;
+	double m_sqr_tolerance;
 	double m_cell_size;
+	double m_inv_cell_size;
 	int[] m_bucket_array = new int[4];// temporary 4 element array
-	int m_dbg_candidate_check_count;
-	int m_hash_values;
+	int[] m_bucket_hash = new int[4];// temporary 4 element array
+	int m_dbg_candidate_check_count = 0;
+	int m_hash_values = -1;
+	int m_new_clusters = -1;
 
-	static int hashFunction_(double xi, double yi) {
+	static int hashFunction_(int xi, int yi) {
 		int h = NumberUtils.hash(xi);
 		return NumberUtils.hash(h, yi);
 	}
 
-	class ClusterHashFunction extends IndexHashTable.HashFunction {
-		IndexMultiList m_clusters;
+	final class ClusterHashFunction extends IndexHashTable.HashFunction {
 		EditShape m_shape;
-		double m_tolerance;
-		double m_cell_size;
+		double m_sqr_tolerance;
+		double m_inv_cell_size;
 		Point2D m_origin = new Point2D();
 		Point2D m_pt = new Point2D();
 		Point2D m_pt_2 = new Point2D();
 		int m_hash_values;
 
-		public ClusterHashFunction(IndexMultiList clusters, EditShape shape,
-				Point2D origin, double tolerance, double cell_size,
-				int hash_values) {
-			m_clusters = clusters;
+		public ClusterHashFunction(EditShape shape, Point2D origin,
+				double sqr_tolerance, double inv_cell_size, int hash_values) {
 			m_shape = shape;
-			m_tolerance = tolerance;
-			m_cell_size = cell_size;
+			m_sqr_tolerance = sqr_tolerance;
+			m_inv_cell_size = inv_cell_size;
 			m_origin = origin;
 			m_hash_values = hash_values;
 			m_pt.setNaN();
 			m_pt_2.setNaN();
 		}
 
-		@Override
-		public int getHash(int element) {
-			int vertex = m_clusters.getFirstElement(element);
-			return m_shape.getUserIndex(vertex, m_hash_values);
+		int calculate_hash(int element) {
+			return calculate_hash_from_vertex(element);
 		}
 
-		int calculateHash(int element) {
-			int vertex = m_clusters.getFirstElement(element);
+		int dbg_calculate_hash_from_xy(double x, double y) {
+			double dx = x - m_origin.x;
+			int xi = (int) (dx * m_inv_cell_size + 0.5);
+			double dy = y - m_origin.y;
+			int yi = (int) (dy * m_inv_cell_size + 0.5);
+			return hashFunction_(xi, yi);
+		}
+
+		int calculate_hash_from_vertex(int vertex) {
 			m_shape.getXY(vertex, m_pt);
 			double dx = m_pt.x - m_origin.x;
-			double xi = Math.round(dx / m_cell_size);
+			int xi = (int) (dx * m_inv_cell_size + 0.5);
 			double dy = m_pt.y - m_origin.y;
-			double yi = Math.round(dy / m_cell_size);
+			int yi = (int) (dy * m_inv_cell_size + 0.5);
 			return hashFunction_(xi, yi);
 		}
 
 		@Override
+		public int getHash(int element) {
+			return m_shape.getUserIndex(element, m_hash_values);
+		}
+
+		@Override
 		public boolean equal(int element_1, int element_2) {
-			int xyindex_1 = m_clusters.getFirstElement(element_1);
+			int xyindex_1 = element_1;
+			int xyindex_2 = element_2;
 			m_shape.getXY(xyindex_1, m_pt);
-			int xyindex_2 = m_clusters.getFirstElement(element_2);
 			m_shape.getXY(xyindex_2, m_pt_2);
-			return isClusterCandidate(m_pt.x, m_pt.y, m_pt_2.x, m_pt_2.y,
-					m_tolerance);
+			return isClusterCandidate_(m_pt.x, m_pt.y, m_pt_2.x, m_pt_2.y,
+					m_sqr_tolerance);
 		}
 
 		@Override
 		public int getHash(Object element_descriptor) {
+			// UNUSED
 			return 0;
 		}
 
 		@Override
 		public boolean equal(Object element_descriptor, int element) {
+			// UNUSED
 			return false;
 		}
 	};
@@ -141,30 +156,30 @@ final class Clusterer {
 	IndexHashTable m_hash_table;
 
 	static class ClusterCandidate {
-		public int cluster;
+		public int vertex;
 		double distance;
 	};
 
 	void getNearestNeighbourCandidate_(int xyindex, Point2D pointOfInterest,
 			int bucket_ptr, ClusterCandidate candidate) {
-		candidate.cluster = IndexMultiList.nullNode();
+		candidate.vertex = -1;
 		candidate.distance = NumberUtils.doubleMax();
 
 		Point2D pt = new Point2D();
-		for (int node = bucket_ptr; node != IndexHashTable.nullNode(); node = m_hash_table
+		for (int node = bucket_ptr; node != -1; node = m_hash_table
 				.getNextInBucket(node)) {
-			int cluster = m_hash_table.getElement(node);
-			int xyind = m_clusters.getFirstElement(cluster);
+			int xyind = m_hash_table.getElement(node);
 			if (xyindex == xyind)
 				continue;
+
 			m_shape.getXY(xyind, pt);
-			if (isClusterCandidate(pointOfInterest.x, pointOfInterest.y, pt.x,
-					pt.y, m_tolerance)) {
+			if (isClusterCandidate_(pointOfInterest.x, pointOfInterest.y, pt.x,
+					pt.y, m_sqr_tolerance)) {
 				pt.sub(pointOfInterest);
 				double l = pt.length();
 				if (l < candidate.distance) {
 					candidate.distance = l;
-					candidate.cluster = cluster;
+					candidate.vertex = xyind;
 				}
 			}
 		}
@@ -174,26 +189,26 @@ final class Clusterer {
 		Point2D pointOfInterest = new Point2D();
 		m_shape.getXY(xyindex, pointOfInterest);
 		double x_0 = pointOfInterest.x - m_origin.x;
-		double x = x_0 / m_cell_size;
+		double x = x_0 * m_inv_cell_size;
 		double y0 = pointOfInterest.y - m_origin.y;
-		double y = y0 / m_cell_size;
+		double y = y0 * m_inv_cell_size;
 
-		double xi = Math.round(x - 0.5);
-		double yi = Math.round(y - 0.5);
+		int xi = (int) x;
+		int yi = (int) y;
 
 		// find the nearest neighbour in the 4 neigbouring cells.
 
-		candidate.cluster = IndexHashTable.nullNode();
+		candidate.vertex = -1;
 		candidate.distance = NumberUtils.doubleMax();
 		ClusterCandidate c = new ClusterCandidate();
-		for (double dx = 0; dx <= 1.0; dx += 1.0) {
-			for (double dy = 0; dy <= 1.0; dy += 1.0) {
+		for (int dx = 0; dx <= 1; dx += 1) {
+			for (int dy = 0; dy <= 1; dy += 1) {
 				int bucket_ptr = m_hash_table.getFirstInBucket(hashFunction_(xi
 						+ dx, yi + dy));
 				if (bucket_ptr != IndexHashTable.nullNode()) {
 					getNearestNeighbourCandidate_(xyindex, pointOfInterest,
 							bucket_ptr, c);
-					if (c.cluster != IndexHashTable.nullNode()
+					if (c.vertex != IndexHashTable.nullNode()
 							&& c.distance < candidate.distance) {
 						candidate = c;
 					}
@@ -207,79 +222,190 @@ final class Clusterer {
 		Point2D pointOfInterest = new Point2D();
 		m_shape.getXY(xyindex, pointOfInterest);
 		double x_0 = pointOfInterest.x - m_origin.x;
-		double x = x_0 / m_cell_size;
+		double x = x_0 * m_inv_cell_size;
 		double y0 = pointOfInterest.y - m_origin.y;
-		double y = y0 / m_cell_size;
+		double y = y0 * m_inv_cell_size;
 
-		double xi = Math.round(x - 0.5);
-		double yi = Math.round(y - 0.5);
-		for (int i = 0; i < 4; i++)
-			m_bucket_array[i] = -1;
+		int xi = (int) x;
+		int yi = (int) y;
+
 		int bucket_count = 0;
 		// find all nearest neighbours in the 4 neigbouring cells.
 		// Note, because we check four neighbours, there should be 4 times more
 		// bins in the hash table to reduce collision probability in this loop.
-		for (double dx = 0; dx <= 1.0; dx += 1.0) {
-			for (double dy = 0; dy <= 1.0; dy += 1.0) {
-				int bucket_ptr = m_hash_table.getFirstInBucket(hashFunction_(xi
-						+ dx, yi + dy));
-				if (bucket_ptr != IndexHashTable.nullNode()) {
+		for (int dx = 0; dx <= 1; dx += 1) {
+			for (int dy = 0; dy <= 1; dy += 1) {
+				int hash = hashFunction_(xi + dx, yi + dy);
+				int bucket_ptr = m_hash_table.getFirstInBucket(hash);
+				if (bucket_ptr != -1) {
 					// Check if we already have this bucket.
 					// There could be a hash collision for neighbouring buckets.
-					for (int j = 0; j < bucket_count; j++) {
-						if (m_bucket_array[j] == bucket_ptr) {
-							bucket_ptr = -1;// hash values for two neighbouring
-											// cells have collided.
-							break;
-						}
-					}
+					m_bucket_array[bucket_count] = bucket_ptr;
+					m_bucket_hash[bucket_count] = hash;
 
-					if (bucket_ptr != -1) {
-						m_bucket_array[bucket_count] = bucket_ptr;
-						bucket_count++;
-					}
+					bucket_count++;
 				}
 			}
 		}
 
-		for (int i = 0; i < 4; i++) {
-			int bucket_ptr = m_bucket_array[i];
-			if (bucket_ptr == -1)
-				break;
+		// Clear duplicate buckets
+		// There could be a hash collision for neighboring buckets.
+		for (int j = bucket_count - 1; j >= 1; j--) {
+			int bucket_ptr = m_bucket_array[j];
+			for (int i = j - 1; i >= 0; i--) {
+				if (bucket_ptr == m_bucket_array[i])// hash values for two
+													// neighbouring cells have
+													// collided.
+				{
+					m_bucket_hash[i] = -1; // forget collided hash
+					bucket_count--;
+					if (j != bucket_count) {
+						m_bucket_hash[j] = m_bucket_hash[bucket_count];
+						m_bucket_array[j] = m_bucket_array[bucket_count];
+					}
+					break;// duplicate
+				}
+			}
+		}
 
-			collectNearestNeighbourCandidates_(xyindex, pointOfInterest,
-					bucket_ptr, candidates);
+		for (int i = 0; i < bucket_count; i++) {
+			collectNearestNeighbourCandidates_(xyindex, m_bucket_hash[i],
+					pointOfInterest, m_bucket_array[i], candidates);
 		}
 	}
 
-	void collectNearestNeighbourCandidates_(int xyindex,
+	void collectNearestNeighbourCandidates_(int xyindex, int hash,
 			Point2D pointOfInterest, int bucket_ptr,
 			AttributeStreamOfInt32 candidates) {
 		Point2D pt = new Point2D();
-		for (int node = bucket_ptr; node != IndexHashTable.nullNode(); node = m_hash_table
+		for (int node = bucket_ptr; node != -1; node = m_hash_table
 				.getNextInBucket(node)) {
-			int cluster = m_hash_table.getElement(node);
-			int xyind = m_clusters.getFirstElement(cluster);
-			if (xyindex == xyind)
-				continue;
+			int xyind = m_hash_table.getElement(node);
+			if (xyindex == xyind || hash != -1
+					&& m_shape.getUserIndex(xyind, m_hash_values) != hash)
+				continue;// processing same vertex, or the bucket hash modulo
+							// bin count collides.
+
 			m_shape.getXY(xyind, pt);
 			m_dbg_candidate_check_count++;
-			if (isClusterCandidate(pointOfInterest.x, pointOfInterest.y, pt.x,
-					pt.y, m_tolerance)) {
+			if (isClusterCandidate_(pointOfInterest.x, pointOfInterest.y, pt.x,
+					pt.y, m_sqr_tolerance)) {
 				candidates.add(node);// note that we add the cluster node
 										// instead of the cluster.
 			}
 		}
 	}
 
-	boolean mergeClusters_(int cluster_1, int cluster_2) {
-		int xyindex_1 = m_clusters.getFirstElement(cluster_1);
-		int xyindex_2 = m_clusters.getFirstElement(cluster_2);
-		boolean res = mergeVertices_(xyindex_1, xyindex_2);
-		m_clusters.concatenateLists(cluster_1, cluster_2);
-		int hash = m_hash_function.calculateHash(cluster_1);
-		m_shape.setUserIndex(xyindex_1, m_hash_values, hash);
+	boolean mergeClusters_(int vertex1, int vertex2, boolean update_hash) {
+		int cluster_1 = m_shape.getUserIndex(vertex1, m_new_clusters);
+		int cluster_2 = m_shape.getUserIndex(vertex2, m_new_clusters);
+		assert (cluster_1 != StridedIndexTypeCollection.impossibleIndex2());
+		assert (cluster_2 != StridedIndexTypeCollection.impossibleIndex2());
+
+		if (cluster_1 == -1) {
+			cluster_1 = m_clusters.createList();
+			m_clusters.addElement(cluster_1, vertex1);
+			m_shape.setUserIndex(vertex1, m_new_clusters, cluster_1);
+		}
+
+		if (cluster_2 == -1) {
+			m_clusters.addElement(cluster_1, vertex2);
+		} else {
+			m_clusters.concatenateLists(cluster_1, cluster_2);
+		}
+
+		// ensure only single vertex refers to the cluster.
+		m_shape.setUserIndex(vertex2, m_new_clusters,
+				StridedIndexTypeCollection.impossibleIndex2());
+
+		// merge cordinates
+		boolean res = mergeVertices_(vertex1, vertex2);
+
+		if (update_hash) {
+			int hash = m_hash_function.calculate_hash_from_vertex(vertex1);
+			m_shape.setUserIndex(vertex1, m_hash_values, hash);
+		} else {
+
+		}
+
 		return res;
+	}
+
+	// recalculate coordinates of the vertices by averaging them using weights.
+	// return true if the coordinates has changed.
+	static boolean mergeVertices(Point pt_1, Point pt_2, double w_1,
+			int rank_1, double w_2, int rank_2, Point pt_res, double[] w_res,
+			int[] rank_res) {
+		assert (!pt_1.isEmpty() && !pt_2.isEmpty());
+		boolean res = pt_1.equals(pt_2);
+
+		if (rank_1 > rank_2) {
+			pt_res = pt_1;
+			if (w_res != null) {
+				rank_res[0] = rank_1;
+				w_res[0] = w_1;
+			}
+			return res;
+		} else if (rank_2 > rank_1) {
+			pt_res = pt_2;
+			if (w_res != null) {
+				rank_res[0] = rank_1;
+				w_res[0] = w_1;
+			}
+			return res;
+		}
+
+		pt_res = pt_1;
+		Point2D pt2d = new Point2D();
+		mergeVertices2D(pt_1.getXY(), pt_2.getXY(), w_1, rank_1, w_2, rank_2,
+				pt2d, w_res, rank_res);
+		pt_res.setXY(pt2d);
+		return res;
+	}
+
+	static boolean mergeVertices2D(Point2D pt_1, Point2D pt_2, double w_1,
+			int rank_1, double w_2, int rank_2, Point2D pt_res, double[] w_res,
+			int[] rank_res) {
+		double w = w_1 + w_2;
+		boolean r = false;
+		double x = pt_1.x;
+		if (pt_1.x != pt_2.x) {
+			if (rank_1 == rank_2)
+				x = (pt_1.x * w_1 + pt_2.x * w_2) / w;
+
+			r = true;
+		}
+		double y = pt_1.y;
+		if (pt_1.y != pt_2.y) {
+			if (rank_1 == rank_2)
+				y = (pt_1.y * w_1 + pt_2.y * w_2) / w;
+
+			r = true;
+		}
+
+		if (rank_1 != rank_2) {
+			if (rank_1 > rank_2) {
+				if (w_res != null) {
+					rank_res[0] = rank_1;
+					w_res[0] = w_1;
+				}
+				pt_res = pt_1;
+			} else {
+				if (w_res != null) {
+					rank_res[0] = rank_2;
+					w_res[0] = w_2;
+				}
+				pt_res = pt_2;
+			}
+		} else {
+			pt_res.setCoords(x, y);
+			if (w_res != null) {
+				w_res[0] = w;
+				rank_res[0] = rank_1;
+			}
+		}
+
+		return r;
 	}
 
 	boolean mergeVertices_(int vert_1, int vert_2) {
@@ -305,197 +431,39 @@ final class Clusterer {
 
 		if (r > 0)
 			m_shape.setXY(vert_1, x, y);
+
 		m_shape.setWeight(vert_1, w);
 		return r != 0;
 	}
 
-	boolean clusterReciprocal_() {
-		m_hash_values = m_shape.createUserIndex();
-		int point_count = m_shape.getTotalPointCount();
-
-		m_shape.getXY(m_shape.getFirstVertex(m_shape.getFirstPath(m_shape
-				.getFirstGeometry())), m_origin);
-
-		// This holds clusters.
-		m_clusters.clear();
-		m_clusters.reserveLists(m_shape.getTotalPointCount());
-		m_clusters.reserveNodes(m_shape.getTotalPointCount());
-
-		// Make the hash table. It serves a purpose of fine grain grid.
-		// Make it 25% larger than the point count to reduce the chance of
-		// collision.
-		m_hash_table = new IndexHashTable((point_count * 5) / 4,
-				new ClusterHashFunction(m_clusters, m_shape, m_origin,
-						m_tolerance, m_cell_size, m_hash_values));
-		m_hash_table.reserveElements(m_shape.getTotalPointCount());
-
-		boolean b_clustered = false;
-
-		// Go through all vertices stored in the m_shape and put the handles of
-		// the vertices into the clusters and the hash table.
-		for (int geometry = m_shape.getFirstGeometry(); geometry != -1; geometry = m_shape
-				.getNextGeometry(geometry)) {
-			for (int path = m_shape.getFirstPath(geometry); path != -1; path = m_shape
-					.getNextPath(path)) {
-				int vertex = m_shape.getFirstVertex(path);
-				for (int index = 0, nindex = m_shape.getPathSize(path); index < nindex; index++) {
-					assert (vertex != -1);
-					int cluster = m_clusters.createList();
-					m_clusters.addElement(cluster, vertex); // initially each
-															// cluster consist
-															// of a single
-															// vertex
-					int hash = m_hash_function.calculateHash(cluster);
-					m_shape.setUserIndex(vertex, m_hash_values, hash);
-					m_hash_table.addElement(cluster); // add cluster to the hash
-														// table
-					vertex = m_shape.getNextVertex(vertex);
-				}
-			}
-		}
-
-		AttributeStreamOfInt32 nn_chain = new AttributeStreamOfInt32(0);
-		AttributeStreamOfDbl nn_chain_distances = new AttributeStreamOfDbl(0);// array
-																				// of
-																				// distances
-																				// between
-																				// neighbour
-																				// elements
-																				// on
-																				// nn_chain.
-																				// nn_chain_distances->size()
-																				// +
-																				// 1
-																				// ==
-																				// nn_chain->size()
-
-		ClusterCandidate candidate = new ClusterCandidate();
-
-		// Reciprocal nearest neighbour clustering, using a hash table.
-		while (m_hash_table.size() != 0 || nn_chain.size() != 0) {
-			if (nn_chain.size() == 0) {
-				int cluster = m_hash_table.getAnyElement();
-				nn_chain.add(cluster);
-				continue;
-			}
-
-			int cluster_1 = nn_chain.getLast();
-			int xyindex = m_clusters.getFirstElement(cluster_1);
-			findClusterCandidate_(xyindex, candidate);
-			if (candidate.cluster == IndexHashTable.nullNode()) {// no candidate
-																	// for
-																	// clustering
-																	// has been
-																	// found for
-																	// the
-																	// cluster_1.
-				assert (nn_chain.size() == 1);
-				nn_chain.removeLast();
-				continue;
-			}
-
-			if (nn_chain.size() == 1) {
-				m_hash_table.deleteElement(candidate.cluster);
-
-				if (candidate.distance == 0) {// coincident points. Cluster them
-												// at once.
-												// cluster xyNearestNeighbour
-												// with xyindex. The coordinates
-												// do not need to be changed,
-												// but weight need to be doubled
-					m_clusters.concatenateLists(cluster_1, candidate.cluster);
-					int cluster_weight_1 = m_clusters
-							.getFirstElement(cluster_1);
-					int cluster_weight_2 = m_clusters
-							.getFirstElement(candidate.cluster);
-					m_shape.setWeight(
-							cluster_weight_1,
-							m_shape.getWeight(cluster_weight_1)
-									+ m_shape.getWeight(cluster_weight_2));
-				} else
-					nn_chain.add(candidate.cluster);
-
-				continue;
-			}
-
-			assert (nn_chain.size() > 1);
-			if (nn_chain.get(nn_chain.size() - 2) == candidate.cluster) {// reciprocal
-																			// NN
-				nn_chain.clear(false);
-				b_clustered |= mergeClusters_(cluster_1, candidate.cluster);
-				m_hash_table.addElement(cluster_1);
-			} else {
-				if (nn_chain_distances.get(nn_chain_distances.size()) <= candidate.distance) {// this
-																								// neighbour
-																								// is
-																								// not
-																								// better
-																								// than
-																								// the
-																								// previous
-																								// one
-																								// (can
-																								// happen
-																								// when
-																								// there
-																								// are
-																								// equidistant
-																								// points).
-					nn_chain.clear(false);
-					b_clustered |= mergeClusters_(cluster_1, candidate.cluster);
-					m_hash_table.addElement(cluster_1);
-				} else {
-					nn_chain.add(candidate.cluster);
-					nn_chain_distances.add(candidate.distance);
-				}
-			}
-		}// while (hashTable->size() != 0 || nn_chain->size() != 0)
-
-		if (b_clustered) {
-			applyClusterPositions_();
-		}
-
-		m_shape.removeUserIndex(m_hash_values);
-		return b_clustered;
-	}
-
 	boolean clusterNonReciprocal_() {
 		int point_count = m_shape.getTotalPointCount();
-
-		{
-			int geometry = m_shape.getFirstGeometry();
-			int path = m_shape.getFirstPath(geometry);
-			int vertex = m_shape.getFirstVertex(path);
-			m_shape.getXY(vertex, m_origin);
+		Envelope2D env = m_shape.getEnvelope2D();
+		m_origin = env.getLowerLeft();
+		double dim = Math.max(env.getHeight(), env.getWidth());
+		double mincell = dim / (NumberUtils.intMax() - 1);
+		if (m_cell_size < mincell) {
+			m_cell_size = mincell;
+			m_inv_cell_size = 1.0 / m_cell_size;
 		}
 
 		// This holds clusters.
-		if (m_clusters == null)
-			m_clusters = new IndexMultiList();
-		m_clusters.clear();
-		m_clusters.reserveLists(m_shape.getTotalPointCount());
-		m_clusters.reserveNodes(m_shape.getTotalPointCount());
+		m_clusters = new IndexMultiList();
+		m_clusters.reserveLists(m_shape.getTotalPointCount() / 3 + 1);
+		m_clusters.reserveNodes(m_shape.getTotalPointCount() / 3 + 1);
 
 		m_hash_values = m_shape.createUserIndex();
+		m_new_clusters = m_shape.createUserIndex();
 
 		// Make the hash table. It serves a purpose of fine grain grid.
 		// Make it 25% larger than the 4 times point count to reduce the chance
 		// of collision.
 		// The 4 times comes from the fact that we check four neighbouring cells
 		// in the grid for each point.
-		m_hash_function = new ClusterHashFunction(m_clusters, m_shape,
-				m_origin, m_tolerance, m_cell_size, m_hash_values);
-		m_hash_table = new IndexHashTable(point_count * 5, m_hash_function); // N
-																				// *
-																				// 4
-																				// *
-																				// 1.25
-																				// =
-																				// N
-																				// *
-																				// 5.
+		m_hash_function = new ClusterHashFunction(m_shape, m_origin,
+				m_sqr_tolerance, m_inv_cell_size, m_hash_values);
+		m_hash_table = new IndexHashTable(4 * point_count / 3, m_hash_function);
 		m_hash_table.reserveElements(m_shape.getTotalPointCount());
-
 		boolean b_clustered = false;
 
 		// Go through all vertices stored in the m_shape and put the handles of
@@ -507,44 +475,75 @@ final class Clusterer {
 				int vertex = m_shape.getFirstVertex(path);
 				for (int index = 0, nindex = m_shape.getPathSize(path); index < nindex; index++) {
 					assert (vertex != -1);
-					int cluster = m_clusters.createList();
-					m_clusters.addElement(cluster, vertex); // initially each
-															// cluster consist
-															// of a single
-															// vertex
-					int hash = m_hash_function.calculateHash(cluster);
+					int hash = m_hash_function
+							.calculate_hash_from_vertex(vertex);
 					m_shape.setUserIndex(vertex, m_hash_values, hash);
-					m_hash_table.addElement(cluster); // add cluster to the hash
-														// table
+					m_hash_table.addElement(vertex, hash); // add cluster to the
+															// hash table
+					assert (m_shape.getUserIndex(vertex, m_new_clusters) == -1);
 					vertex = m_shape.getNextVertex(vertex);
 				}
 			}
 		}
 
-		// m_hash_table.dbg_print_bucket_histogram_();
+		// m_hash_table->dbg_print_bucket_histogram_();
 
 		{// scope for candidates array
 			AttributeStreamOfInt32 candidates = new AttributeStreamOfInt32(0);
-			while (m_hash_table.size() != 0) {
-				int node = m_hash_table.getAnyNode();
-				assert (node != IndexHashTable.nullNode());
-				int cluster_1 = m_hash_table.getElement(node);
-				m_hash_table.deleteNode(node);
-				int xyindex = m_clusters.getFirstElement(cluster_1);
-				collectClusterCandidates_(xyindex, candidates);
-				if (candidates.size() == 0) {// no candidate for clustering has
-												// been found for the cluster_1.
-					continue;
-				}
+			candidates.reserve(10);
 
-				for (int candidate_index = 0, ncandidates = candidates.size(); candidate_index < ncandidates; candidate_index++) {
-					int cluster_node = candidates.get(candidate_index);
-					int cluster = m_hash_table.getElement(cluster_node);
-					m_hash_table.deleteNode(cluster_node);
-					b_clustered |= mergeClusters_(cluster_1, cluster);
+			for (int geometry = m_shape.getFirstGeometry(); geometry != -1; geometry = m_shape
+					.getNextGeometry(geometry)) {
+				for (int path = m_shape.getFirstPath(geometry); path != -1; path = m_shape
+						.getNextPath(path)) {
+					int vertex = m_shape.getFirstVertex(path);
+					for (int index = 0, nindex = m_shape.getPathSize(path); index < nindex; index++) {
+						if (m_shape.getUserIndex(vertex, m_new_clusters) == StridedIndexTypeCollection
+								.impossibleIndex2()) {
+							vertex = m_shape.getNextVertex(vertex);
+							continue;// this vertex was merged with another
+										// cluster. It also was removed from the
+										// hash table.
+						}
+
+						int hash = m_shape.getUserIndex(vertex, m_hash_values);
+						m_hash_table.deleteElement(vertex, hash);
+
+						while (true) {
+							collectClusterCandidates_(vertex, candidates);
+							if (candidates.size() == 0) {// no candidate for
+															// clustering has
+															// been found for
+															// the cluster_1.
+								break;
+							}
+
+							boolean clustered = false;
+							for (int candidate_index = 0, ncandidates = candidates
+									.size(); candidate_index < ncandidates; candidate_index++) {
+								int cluster_node = candidates
+										.get(candidate_index);
+								int other_vertex = m_hash_table
+										.getElement(cluster_node);
+								m_hash_table.deleteNode(cluster_node);
+								clustered |= mergeClusters_(vertex,
+										other_vertex,
+										candidate_index + 1 == ncandidates);
+							}
+
+							b_clustered |= clustered;
+							candidates.clear(false);
+							// repeat search for the cluster candidates for
+							// cluster_1
+							if (!clustered)
+								break;// positions did not change
+						}
+
+						// m_shape->set_user_index(vertex, m_new_clusters,
+						// Strided_index_type_collection::impossible_index_2());
+						vertex = m_shape.getNextVertex(vertex);
+					}
 				}
-				m_hash_table.addElement(cluster_1);
-				candidates.clear(false);
 			}
 		}
 
@@ -552,24 +551,27 @@ final class Clusterer {
 			applyClusterPositions_();
 		}
 
-		// m_hash_table.reset();
-		// m_hash_function.reset();
+		m_hash_table = null;
+		m_hash_function = null;
 		m_shape.removeUserIndex(m_hash_values);
+		m_shape.removeUserIndex(m_new_clusters);
 
+		// output_debug_printf("total: %d\n",m_shape->get_total_point_count());
+		// output_debug_printf("clustered: %d\n",m_dbg_candidate_check_count);
 		return b_clustered;
 	}
 
 	void applyClusterPositions_() {
 		Point2D cluster_pt = new Point2D();
 		// move vertices to the clustered positions.
-		for (int list = m_clusters.getFirstList(); list != IndexMultiList
-				.nullNode(); list = m_clusters.getNextList(list)) {
+		for (int list = m_clusters.getFirstList(); list != -1; list = m_clusters
+				.getNextList(list)) {
 			int node = m_clusters.getFirst(list);
-			assert (node != IndexMultiList.nullNode());
+			assert (node != -1);
 			int vertex = m_clusters.getElement(node);
 			m_shape.getXY(vertex, cluster_pt);
-			for (node = m_clusters.getNext(node); node != IndexMultiList
-					.nullNode(); node = m_clusters.getNext(node)) {
+			for (node = m_clusters.getNext(node); node != -1; node = m_clusters
+					.getNext(node)) {
 				int vertex_1 = m_clusters.getElement(node);
 				m_shape.setXY(vertex_1, cluster_pt);
 			}
@@ -577,8 +579,6 @@ final class Clusterer {
 	}
 
 	Clusterer() {
-		m_hash_values = -1;
-		m_dbg_candidate_check_count = 0;
 	}
 
 }

@@ -152,6 +152,10 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	public void queryEnvelope2D(Envelope2D env) {
 		m_impl.queryEnvelope2D(env);
 	}
+	
+	public void queryPathEnvelope2D(int pathIndex, Envelope2D env) {
+		m_impl.queryPathEnvelope2D(pathIndex, env);
+	}
 
 	@Override
 	void queryEnvelope3D(Envelope3D env) {
@@ -179,13 +183,18 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 		m_impl.copyTo((Geometry) dst._getImpl());
 	}
 
-	Geometry getBoundary() {
+	@Override
+	public Geometry getBoundary() {
 		return m_impl.getBoundary();
 	}
 
 	@Override
 	public void queryCoordinates(Point2D[] dst) {
 		m_impl.queryCoordinates(dst);
+	}
+	
+	public void queryCoordinates(Point2D[] dst, int dstSize, int beginIndex, int endIndex) {
+	  m_impl.queryCoordinates(dst, dstSize, beginIndex, endIndex);
 	}
 
 	@Override
@@ -636,31 +645,6 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 		return m_impl.hasNonLinearSegments(pathIndex);
 	}
 
-	// //Elliptic Arc
-	// //returns true, if parameters of the arc are correct (conform with
-	// equation of elliptic arc)
-	// //returns false, if parameters are incorrect.
-	// //In the latter case the command will be executed anyway, however, the
-	// EllipseAxes will be automatically corrected
-	// //to conform with equation of the elliptic arc.
-	// //Elliptic arcs are stored as rational bezier curves. Use
-	// CalcEllipticArcParams function
-	// //to calculate geometric parameters of arc
-	// //bCW - clockwise (true) or anti-clockwise (false).
-	// //The type parameter helps to resolve situation, when start and end point
-	// of arc are too close.
-	// //It gives a hint to the function how to deal with the situation, when
-	// start point equal or almost equal to the end point.
-	// //If type == unknownArc and EndPoint == start point, the arc is a point.
-	// //If type == minorArc, and abs(SweepAngle - 2 * PI) < 0.001 the arc is
-	// replaced by the line from start point to EndPoint.
-	// //If type == majorArc, and abs(SweepAngle) < 0.001 the SweepAngle is
-	// replaced by SweepAngle + (bCW ? -1. : 1.) * 2. * PI.
-	// //Here SweepAngle is calculated sweep angle of the arc.
-	// boolean ArcTo(Point2D endPoint, Point2D ellipseAxes, Point2D center,
-	// double axisXRotationRad, boolean bCW, enum enumArcType type =
-	// unknownArc);
-
 	/**
 	 * Adds a rectangular closed Path to the MultiPathImpl.
 	 * 
@@ -684,22 +668,6 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	public void addEnvelope(Envelope envSrc, boolean bReverse) {
 		m_impl.addEnvelope(envSrc, bReverse);
 	}
-
-	// void AddRoundRect(Envelope2D envSrc, double EllipseWidth, double
-	// EllipseHeight, boolean bReverse);
-
-	// //Adds ellipse with center point Center and rotation angle between axis X
-	// and ellipse axes Axes.X equal to RotationAngle.
-	// boolean AddEllipse(Point2D center, Point2D axes, double rotationAngle,
-	// boolean bReverse);
-
-	// //adds a pie - a closed figure, consisting of two lines and a segment of
-	// an ellipse
-	// //pie is drawn always ccw (when axis X is left-right, axis Y is
-	// bottom-up). negative sweep angle is converted to positive.
-	// //angles greater than 2 * pi are converted back into the 2 * pi range.
-	// boolean AddPie(const DRect & rect, double startAngle, double sweepAngle,
-	// boolean bReverse);
 
 	/**
 	 * Returns a SegmentIterator that is set right before the beginning of the

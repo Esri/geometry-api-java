@@ -28,7 +28,7 @@ package com.esri.core.geometry;
 /**
  * A class that represents axis parallel 3D rectangle.
  */
-final class Envelope3D {
+public final class Envelope3D {
 	public double xmin;
 
 	public double ymin;
@@ -170,7 +170,7 @@ final class Envelope3D {
 	public void merge(Point3D pt) {
 		merge(pt.x, pt.y, pt.z);
 	}
-
+	
 	public void merge(Envelope3D other) {
 		if (other.isEmpty())
 			return;

@@ -43,4 +43,9 @@ interface GeodeticCurveType {
 	 */
 	public final static int GreatElliptic = 2;
 	public final static int NormalSection = 3;
+	/*The ShapePreserving type means the segments shapes are preserved in the spatial reference where they are defined.
+	 *The behavior of the ShapePreserving type can be emulated by densifying the geometry with a small step, and then calling a geodetic method
+	 *using Geodesic or GreatElliptic curve types.
+	 */
+	public final static int ShapePreserving = 4;
 }

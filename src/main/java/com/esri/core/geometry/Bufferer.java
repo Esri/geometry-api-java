@@ -470,7 +470,7 @@ class Bufferer {
 		case Geometry.GeometryType.Envelope:
 			return bufferEnvelope_();
 		default:
-			throw new GeometryException("internal error");
+			throw GeometryException.GeometryInternalError();
 		}
 	}
 
@@ -796,7 +796,7 @@ class Bufferer {
 			src_mp.getXY(path_start + (i + 2) % path_size, pt_3);
 			v_1.sub(pt_2, pt_1);
 			if (v_1.length() == 0)
-				throw new GeometryException("internal error");
+				throw GeometryException.GeometryInternalError();
 
 			v_1.leftPerpendicular();
 			v_1.normalize();
@@ -813,7 +813,7 @@ class Bufferer {
 
 			v_2.sub(pt_3, pt_2);
 			if (v_2.length() == 0)
-				throw new GeometryException("internal error");
+				throw GeometryException.GeometryInternalError();
 
 			v_2.leftPerpendicular();
 			v_2.normalize();
@@ -1085,7 +1085,7 @@ class Bufferer {
 						pt_current, BufferCommand.Flags.enum_arc,
 						m_buffer_commands.size() + 1,
 						m_buffer_commands.size() - 1));
-			} else if (!pt_left_prev.equals(pt)) {
+			} else if (!pt_left_prev.isEqual(pt)) {
 				m_buffer_commands.add(new BufferCommand(pt_left_prev,
 						pt_current, m_buffer_commands.size() + 1,
 						m_buffer_commands.size() - 1, "dummy"));

@@ -464,13 +464,11 @@ public class TestJsonParser extends TestCase {
         mapGeom = GeometryEngine.jsonToGeometry(jsonParserEnv);
         Assert.assertTrue(mapGeom.getSpatialReference().getID() == 4326);
         // showProjectedGeometryInfo(mapGeom);
-        // System.out.println("\n\nWKID: "+
-        // SpatialReference.create(wkid).fromJson(jsonParserSR).getID());
 
         try {
             GeometryEngine.jsonToGeometry(jsonParserInvalidWKID);
         } catch (Exception ex) {
-            System.out.print(ex.getMessage());
+        	Assert.assertTrue("Should not throw for invalid wkid", false);
         }
     }
 
@@ -629,13 +627,13 @@ public class TestJsonParser extends TestCase {
         String outputPolygon1 = GeometryEngine.geometryToJson(-1, geom);// Test
         // WKID
         // == -1
-        System.out.println("Geom JSON STRING is" + outputPolygon1);
+        //System.out.println("Geom JSON STRING is" + outputPolygon1);
         String correctPolygon1 = "{\"rings\":[[[-113,34],[-105,34],[-108,40],[-113,34]]]}";
 
         assertEquals(correctPolygon1, outputPolygon1);
 
         String outputPolygon2 = GeometryEngine.geometryToJson(4326, geom);
-        System.out.println("Geom JSON STRING is" + outputPolygon2);
+        //System.out.println("Geom JSON STRING is" + outputPolygon2);
 
         String correctPolygon2 = "{\"rings\":[[[-113,34],[-105,34],[-108,40],[-113,34]]],\"spatialReference\":{\"wkid\":4326}}";
         assertEquals(correctPolygon2, outputPolygon2);

@@ -23,6 +23,8 @@
  */
 package com.esri.core.geometry;
 
+import java.util.ArrayList;
+
 class GeometryAccelerators {
 
 	// /**
@@ -39,6 +41,7 @@ class GeometryAccelerators {
 
 	private RasterizedGeometry2D m_rasterizedGeometry;
 	private QuadTreeImpl m_quad_tree;
+	private ArrayList<Envelope2D> m_path_envelopes;
 
 	public RasterizedGeometry2D getRasterizedGeometry() {
 		return m_rasterizedGeometry;
@@ -48,11 +51,50 @@ class GeometryAccelerators {
 		return m_quad_tree;
 	}
 
+	public ArrayList<Envelope2D> getPathEnvelopes() {
+		return m_path_envelopes;
+	}
+
 	void _setRasterizedGeometry(RasterizedGeometry2D rg) {
 		m_rasterizedGeometry = rg;
 	}
 
 	void _setQuadTree(QuadTreeImpl quad_tree) {
 		m_quad_tree = quad_tree;
+	}
+
+	void _setPathEnvelopes(ArrayList<Envelope2D> pe) {
+		m_path_envelopes = pe;
+	}
+
+	static boolean canUseRasterizedGeometry(Geometry geom) {
+		if (geom.isEmpty()
+				|| !(geom.getType() == Geometry.Type.Polyline || geom.getType() == Geometry.Type.Polygon)) {
+			return false;
+		}
+
+		return true;
+	}
+
+	static boolean canUseQuadTree(Geometry geom) {
+		if (geom.isEmpty()
+				|| !(geom.getType() == Geometry.Type.Polyline || geom.getType() == Geometry.Type.Polygon)) {
+			return false;
+		}
+
+		if (((MultiVertexGeometry) geom).getPointCount() < 20) {
+			return false;
+		}
+
+		return true;
+	}
+
+	static boolean canUsePathEnvelopes(Geometry geom) {
+		if (geom.isEmpty()
+				|| !(geom.getType() == Geometry.Type.Polyline || geom.getType() == Geometry.Type.Polygon)) {
+			return false;
+		}
+
+		return true;
 	}
 }

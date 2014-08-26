@@ -199,19 +199,21 @@ final class Treap {
 	// get_duplicate_element reutrns the node of the already existing element.
 	public int addElementAtPosition(int prevNode, int nextNode, int element,
 			boolean bUnique, boolean bCallCompare, int treap) {
-		int treap_;
-		if (treap == -1) {
+		int treap_ = treap;
+		if (treap_ == -1) {
 			if (m_defaultTreap == nullNode())
 				m_defaultTreap = createTreap(-1);
 			treap_ = m_defaultTreap;
-		} else {
-			treap_ = treap;
 		}
 
 		// dbg_check_(m_root);
-		if (getRoot_(treap_) == nullNode()
-				|| (prevNode == nullNode() && nextNode == nullNode()))
-			throw new GeometryException("invald call");
+		if (getRoot_(treap_) == nullNode()) {
+			assert (nextNode == nullNode() && prevNode == nullNode());
+			int root = newNode_(element);
+			setRoot_(root, treap_);
+			addToList_(-1, root, treap_);
+			return root;
+		}
 
 		int cmpNext;
 		int cmpPrev;

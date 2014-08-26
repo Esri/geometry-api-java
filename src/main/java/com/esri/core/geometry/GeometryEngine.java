@@ -24,9 +24,12 @@
 
 package com.esri.core.geometry;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+
+import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.JsonParser;
 import org.json.JSONException;
 
@@ -53,6 +56,23 @@ public class GeometryEngine {
 		return geom;
 	}
 
+	/**
+	 * Imports the MapGeometry from its JSON representation. M and Z values are
+	 * not imported from JSON representation.
+	 * 
+	 * @param json
+	 *            The JSON representation of the geometry (with spatial
+	 *            reference).
+	 * @return The MapGeometry instance containing the imported geometry and its
+	 *         spatial reference.
+	 * @throws IOException 
+	 * @throws JsonParseException 
+	 */
+	public static MapGeometry jsonToGeometry(String json) throws JsonParseException, IOException {
+		MapGeometry geom = OperatorImportFromJson.local().execute(Geometry.Type.Unknown, json);
+		return geom;
+	}
+	
 	/**
 	 * Exports the specified geometry instance to it's JSON representation.
 	 * 
@@ -236,38 +256,6 @@ public class GeometryEngine {
 		GeometryCursor result = op.execute(inputGeometries, spatialReference,
 				null);
 		return result.next();
-	}
-
-	// TODO Remove this method from geometry engine
-	/**
-	 * constructs the set-theoretic difference between an array of geometries
-	 * and another geometry. The dimension of the input geometry has to be equal
-	 * to or greater than that of any element in the array of "geometries".
-	 * 
-	 * @param inputGeometries
-	 *            an array of geometry objects being subtracted
-	 * @param subtractor
-	 *            geometry object to subtract from
-	 * @return any array of geometry objects showing the difference
-	 * */
-	static Geometry[] difference(Geometry[] inputGeometries,
-			Geometry subtractor, SpatialReference spatialReference) {
-		OperatorDifference op = (OperatorDifference) factory
-				.getOperator(Operator.Type.Difference);
-		SimpleGeometryCursor inputGeometriesCursor = new SimpleGeometryCursor(
-				inputGeometries);
-		SimpleGeometryCursor subtractorCursor = new SimpleGeometryCursor(
-				subtractor);
-		GeometryCursor result = op.execute(inputGeometriesCursor,
-				subtractorCursor, spatialReference, null);
-
-		ArrayList<Geometry> resultGeoms = new ArrayList<Geometry>();
-		Geometry g;
-		while ((g = result.next()) != null) {
-			resultGeoms.add(g);
-		}
-		Geometry[] resultarr = resultGeoms.toArray(new Geometry[0]);
-		return resultarr;
 	}
 
 	/**

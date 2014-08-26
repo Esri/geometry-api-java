@@ -116,6 +116,18 @@ public class SegmentIterator {
 	}
 
 	/**
+	 *Resets the iterator to a specific vertex.
+	 *The call to next_segment will return the segment that starts at the vertex.
+	 *Call to previous_segment will return the segment that starts at the previous vertex.
+	 *@param vertexIndex The vertex index to reset the iterator to.
+	 *@param pathIndex The path index to reset the iterator to. Used as a hint. If the path_index is wrong or -1, then the path_index is automatically calculated.
+	 *
+	 */
+	public void resetToVertex(int vertexIndex, int pathIndex) {
+		m_impl.resetToVertex(vertexIndex, pathIndex);
+	}
+
+	/**
 	 * Indicates whether a next segment exists for the path.
 	 * 
 	 * @return TRUE is the next segment exists.

@@ -63,11 +63,32 @@ public final class Point2D {
 	public boolean isEqual(Point2D other) {
 		return x == other.x && y == other.y;
 	}
+	
+	public boolean isEqual(double x_, double y_) { 
+		return x == x_ && y == y_;
+	}
 
 	public boolean isEqual(Point2D other, double tol) {
 		return (Math.abs(x - other.x) <= tol) && (Math.abs(y - other.y) <= tol);
 	}
 
+	public boolean equals(Point2D other) {
+		return x == other.x && y == other.y;
+	}
+	
+	@Override
+	public boolean equals(Object other) {
+		if (other == this)
+			return true;
+
+		if (!(other instanceof Point2D))
+			return false;
+		
+		Point2D v = (Point2D)other;
+		
+		return x == v.x && y == v.y;
+	}
+	
 	public void sub(Point2D other) {
 		x -= other.x;
 		y -= other.y;
@@ -450,6 +471,11 @@ public final class Point2D {
 		det_mp = det_mp.subtract(qp_y_mp);
 
 		return det_mp.signum();
+	}
+	
+	@Override
+	public int hashCode() {
+		return NumberUtils.hash(NumberUtils.hash(x), y);
 	}
 
 }
