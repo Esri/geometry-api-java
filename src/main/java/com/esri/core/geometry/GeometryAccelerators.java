@@ -27,18 +27,6 @@ import java.util.ArrayList;
 
 class GeometryAccelerators {
 
-	// /**
-	// *Describes the degree of acceleration of the geometry.
-	// */
-	// enum GeometryAccelerationDegree
-	// {
-	// enumMild, //<!mild acceleration, takes least amount of memory.
-	// enumMedium, //<!medium acceleration, takes more memory and takes more
-	// time to accelerate, but may work faster.
-	// enumHot //<!high acceleration, takes even more memory and may take
-	// longest time to accelerate, but may work faster than the other two.
-	// }
-
 	private RasterizedGeometry2D m_rasterizedGeometry;
 	private QuadTreeImpl m_quad_tree;
 	private ArrayList<Envelope2D> m_path_envelopes;

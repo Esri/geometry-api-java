@@ -33,7 +33,7 @@ public abstract class Operator {
 	 * The operator type enum.
 	 */
 	public enum Type {
-		Project, // = 10300,//<!Projection operator
+		Project,
 
 		ExportToJson, ImportFromJson,
 		@Deprecated ImportMapGeometryFromJson,
@@ -45,7 +45,7 @@ public abstract class Operator {
 
 		Relate, Equals, Disjoint, Intersects, Within, Contains, Crosses, Touches, Overlaps,
 
-		Buffer, Distance, Intersection, Clip, Cut, DensifyByLength, // <!DensfiyByLength
+		Buffer, Distance, Intersection, Clip, Cut, DensifyByLength,
 		DensifyByAngle, LabelPoint,
 
 		GeodesicBuffer, GeodeticDensifyByLength, ShapePreservingDensify, GeodeticLength, GeodeticArea,
@@ -62,7 +62,7 @@ public abstract class Operator {
 	 * Processes Geometry to accelerate operations on it. The Geometry and it's
 	 * copies remain accelerated until modified. The acceleration of Geometry
 	 * can be a time consuming operation. The accelerated geometry also takes
-	 * more memory. Some operators share same the same accelerator, some require
+	 * more memory. Some operators share the same accelerator, some require
 	 * a different one. If the accelerator is built for the given parameters,
 	 * the method returns immediately.
 	 * 
@@ -70,7 +70,7 @@ public abstract class Operator {
 	 *            The geometry to be accelerated
 	 * @param spatialReference
 	 *            The spatial reference of that geometry
-	 * @param accelDegree
+	 * @param accelDegree The acceleration degree for geometry.
 	 */
 	public boolean accelerateGeometry(Geometry geometry,
 			SpatialReference spatialReference,
@@ -91,6 +91,10 @@ public abstract class Operator {
 		return false;
 	}
 
+	/**
+	 * Removes accelerators from given geometry.
+	 * @param geometry The geometry instance to remove accelerators from.
+	 */
 	public static void deaccelerateGeometry(Geometry geometry) {
 		Geometry.Type gt = geometry.getType();
 		if (Geometry.isMultiVertex(gt.value()))

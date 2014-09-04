@@ -537,15 +537,25 @@ public abstract class Geometry implements Serializable {
 
 	/**
 	 * Describes the degree of acceleration of the geometry.
+	 * Acceleration usually builds a raster and a quadtree.
 	 */
 	static public enum GeometryAccelerationDegree {
-		enumMild, // <!mild acceleration, takes least amount of memory.
-		enumMedium, // <!medium acceleration, takes more memory and takes more
-					// time to accelerate, but may work faster.
+		/**
+		 * mild acceleration, takes least amount of memory. (64x64x2 bit raster)
+		 */
+		enumMild,
+		/**
+		 * medium acceleration, takes more memory and takes more time to accelerate, but may work faster.
+		 * (256x256x2 bit raster and a quad tree for segments)
+		 */
+		enumMedium,
+		/**
+		*high acceleration, takes even more memory and may take
+		*longest time to accelerate, but may work faster than the
+		*other two.
+		*(1024x1024x2 bit raster and a quad tree for segments)
+		*/
 		enumHot
-		// <!high acceleration, takes even more memory and may take
-		// longest time to accelerate, but may work faster than the
-		// other two.
 	}
 
 	Object writeReplace() throws ObjectStreamException {
