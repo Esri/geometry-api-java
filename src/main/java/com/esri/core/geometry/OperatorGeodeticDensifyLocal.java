@@ -25,7 +25,7 @@
 package com.esri.core.geometry;
 
 //This is a stub
-public class OperatorGeodeticDensifyLocal extends
+class OperatorGeodeticDensifyLocal extends
 		OperatorGeodeticDensifyByLength {
 
 	@Override

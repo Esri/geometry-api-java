@@ -33,6 +33,7 @@ import java.io.Serializable;
  */
 public final class Envelope2D implements Serializable {
 	private static final long serialVersionUID = 1L;
+	
 	private final static int XLESSXMIN = 1;
 	// private final int XGREATERXMAX = 2;
 	private final static int YLESSYMIN = 4;
