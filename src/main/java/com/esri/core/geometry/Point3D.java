@@ -25,12 +25,16 @@
 
 package com.esri.core.geometry;
 
+import java.io.Serializable;
+
 /**
  * 
  * Basic 3D point class.
  * 
  */
-public final class Point3D {
+public final class Point3D implements Serializable {
+	private static final long serialVersionUID = 1L;
+	
 	public double x;
 	public double y;
 	public double z;

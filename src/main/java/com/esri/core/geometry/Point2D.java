@@ -25,6 +25,7 @@
 
 package com.esri.core.geometry;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Comparator;
 
@@ -33,8 +34,9 @@ import java.util.Comparator;
  * Basic 2D point class. Contains only two double fields.
  * 
  */
-public final class Point2D {
-
+public final class Point2D implements Serializable{
+	private static final long serialVersionUID = 1L;
+	
 	public double x;
 	public double y;
 

@@ -25,10 +25,13 @@
 
 package com.esri.core.geometry;
 
+import java.io.Serializable;
+
 /**
  * A 1-dimensional interval.
  */
-public final class Envelope1D {
+public final class Envelope1D implements Serializable {
+	private static final long serialVersionUID = 1L;
 
 	public double vmin;
 
