@@ -272,8 +272,11 @@ public final class Envelope2D implements Serializable {
 	}
 
 	/**
-   * Checks if this envelope intersects the other.
-   * @return True if this envelope intersects the other.
+	 * Intersects this envelope with the other and stores result in this
+	 * envelope.
+	 * 
+	 * @return True if this envelope intersects the other, otherwise sets this
+	 *         envelope to empty state and returns False.
 	 */
 	public boolean intersect(Envelope2D other) {
 		if (isEmpty() || other.isEmpty())
