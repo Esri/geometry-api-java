@@ -3,7 +3,7 @@
 
 	<groupId>com.esri.geometry</groupId>
 	<artifactId>esri-geometry-api</artifactId>
-	<version>1.1.2-SNAPSHOT</version>
+	<version>1.2</version>
 	<packaging>jar</packaging>
 
 	<name>Esri Geometry API for Java</name>
@@ -19,12 +19,69 @@
 		</license>
 	</licenses>
 
+	<developers>
+		<developer>
+			<id>stolstov</id>
+			<name>Sergey Tolstov</name>
+			<organization>Esri</organization>
+			<organizationUrl>http://www.esri.com</organizationUrl>
+			<roles>
+				<role>developer</role>
+			</roles>
+		</developer>
+		<developer>
+			<id>abalog</id>
+			<name>Aaron Balog</name>
+			<organization>Esri</organization>
+			<organizationUrl>http://www.esri.com</organizationUrl>
+			<roles>
+				<role>developer</role>
+			</roles>
+		</developer>
+	</developers>
+	
 	<scm>
 		<connection>scm:git:git@github.com:Esri/geometry-api-java.git</connection>
 		<developerConnection>scm:git:git@github.com:Esri/geometry-api-java.git</developerConnection>
 		<url>git@github.com:Esri/geometry-api-java.git</url>
 	</scm>
 
+	<profiles>
+		<profile>
+			<id>release-sign-artifacts</id>
+			<activation>
+			<property>
+				<name>performRelease</name>
+				<value>true</value>
+			</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+	
+	<distributionManagement>
+		<snapshotRepository>
+			<id>ossrh</id>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+		</snapshotRepository>
+	</distributionManagement>
+	
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
@@ -41,13 +98,6 @@
 		<source.plugin.version>2.2.1</source.plugin.version>
 		<javadoc.plugin.version>2.9</javadoc.plugin.version>
 	</properties>
-
-	<!-- this parent is needed for central repository hosting -->
-	<parent>
-		<groupId>org.sonatype.oss</groupId>
-		<artifactId>oss-parent</artifactId>
-		<version>7</version>
-	</parent>
 
 	<dependencies>
 		<dependency>
@@ -124,6 +174,17 @@
 						</goals>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.sonatype.plugins</groupId>
+				<artifactId>nexus-staging-maven-plugin</artifactId>
+				<version>1.6.2</version>
+				<extensions>true</extensions>
+				<configuration>
+					<serverId>ossrh</serverId>
+					<nexusUrl>https://oss.sonatype.org/</nexusUrl>
+					<autoReleaseAfterClose>true</autoReleaseAfterClose>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
