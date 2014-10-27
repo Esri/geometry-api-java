@@ -22,6 +22,7 @@
  email: contracts@esri.com
  */
 package com.esri.core.geometry;
+import java.util.Locale;
 
 class StringUtils {
 
@@ -35,7 +36,7 @@ class StringUtils {
 
         String format = "%." + precision + "g";
 
-        String str_dbl = String.format(format, value);
+        String str_dbl = String.format(Locale.US, format, value);
 
         boolean b_found_dot = false;
         boolean b_found_exponent = false;
@@ -69,7 +70,7 @@ class StringUtils {
 
         String format = "%." + decimals + "f";
 
-        String str_dbl = String.format(format, value);
+        String str_dbl = String.format(Locale.US, format, value);
 
         boolean b_found_dot = false;
 
