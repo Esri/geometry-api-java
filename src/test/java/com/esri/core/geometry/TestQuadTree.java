@@ -1,6 +1,9 @@
 package com.esri.core.geometry;
 
+import java.util.ArrayList;
+
 import junit.framework.TestCase;
+
 import org.junit.Test;
 
 public class TestQuadTree extends TestCase {
@@ -78,6 +81,7 @@ public class TestQuadTree extends TestCase {
 		assertTrue(count == 10000);
 	}
 
+	
 	public static Polyline makePolyline() {
 		Polyline poly = new Polyline();
 

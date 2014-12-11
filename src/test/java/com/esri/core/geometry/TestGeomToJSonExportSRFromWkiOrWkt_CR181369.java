@@ -25,20 +25,18 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 	SpatialReference spatialReferenceWGS84 = SpatialReference.create(4326);
 
 	@Test
-	public void testGeomToJSonExportSRFromWkiOrWkt_CR181369()
+	public void testLocalExport()
 			throws JsonParseException, IOException {
-		testPoint();
-		testPolyline();
-		testPolygon();
-		testEnvelope();
-		testMultiPoint();
-		testCR181369();
-		// These tests return the result of a method called
-		// checkResultSpatialRef.
-		// However, the tests pass or fail regardless of what that method
-		// returns.
+		String s = OperatorExportToJson.local().execute(null, new Point(1000000.2, 2000000.3));
+		//assertTrue(s.contains("."));
+		//assertFalse(s.contains(","));
+		Polyline line = new Polyline();
+		line.startPath(1.1,  2.2);
+		line.lineTo(2.3,  4.5);
+		String s1 = OperatorExportToJson.local().execute(null, line);
+		assertTrue(s.contains("."));
 	}
-
+	
 	boolean testPoint() throws JsonParseException, IOException {
 		boolean bAnswer = true;
 		Point point1 = new Point(10.0, 20.0);

@@ -10,6 +10,7 @@ import java.io.IOException;
 import junit.framework.TestCase;
 
 import org.codehaus.jackson.JsonFactory;
+import org.codehaus.jackson.JsonParseException;
 import org.junit.Test;
 
 public class TestSimplify extends TestCase {
@@ -1324,6 +1325,22 @@ public class TestSimplify extends TestCase {
 			assertTrue(!res);
 		}
 
+	}
+	
+	@Test
+	public void testFillRule() throws JsonParseException, IOException {
+		//self intersecting star shape
+		MapGeometry mg = OperatorImportFromJson.local().execute(Geometry.Type.Unknown, "{\"rings\":[[[0,0], [5,10], [10, 0], [0, 7], [10, 7], [0, 0]]]}");
+		Polygon poly = (Polygon)mg.getGeometry();
+		assertTrue(poly.getFillRule() == Polygon.FillRule.enumFillRuleOddEven);
+		poly.setFillRule(Polygon.FillRule.enumFillRuleWinding);
+		assertTrue(poly.getFillRule() == Polygon.FillRule.enumFillRuleWinding);
+		Geometry simpleResult = OperatorSimplify.local().execute(poly, null, true, null);
+		assertTrue(((Polygon)simpleResult).getFillRule() == Polygon.FillRule.enumFillRuleOddEven);
+		//solid start without holes:
+		MapGeometry mg1 = OperatorImportFromJson.local().execute(Geometry.Type.Unknown, "{\"rings\":[[[0,0],[2.5925925925925926,5.185185185185185],[0,7],[3.5,7],[5,10],[6.5,7],[10,7],[7.407407407407407,5.185185185185185],[10,0],[5,3.5],[0,0]]]}");
+		boolean equals = OperatorEquals.local().execute(mg1.getGeometry(), simpleResult, null, null);
+		assertTrue(equals);
 	}
 
 }

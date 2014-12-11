@@ -48,6 +48,15 @@ public final class Polyline extends MultiPath implements Serializable {
 		m_impl = new MultiPathImpl(false, vd);
 	}
 
+	/**
+	 * Creates a polyline with one line segment.
+	 */
+	public Polyline(Point start, Point end) {
+		m_impl = new MultiPathImpl(false, start.getDescription());
+		startPath(start);
+		lineTo(end);
+	}
+
 	@Override
 	public Geometry createInstance() {
 		return new Polyline(getDescription());

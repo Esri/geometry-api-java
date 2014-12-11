@@ -25,374 +25,374 @@ package com.esri.core.geometry;
 
 final class JsonStringWriter extends JsonWriter {
 
-    @Override
-    Object getJson() {
-        next_(Action.accept);
-        return m_jsonString.toString();
-    }
+	@Override
+	Object getJson() {
+		next_(Action.accept);
+		return m_jsonString.toString();
+	}
 
-    @Override
-    void startObject() {
-        next_(Action.addContainer);
-        m_jsonString.append('{');
-        m_functionStack.add(State.objectStart);
-    }
+	@Override
+	void startObject() {
+		next_(Action.addContainer);
+		m_jsonString.append('{');
+		m_functionStack.add(State.objectStart);
+	}
 
-    @Override
-    void startArray() {
-        next_(Action.addContainer);
-        m_jsonString.append('[');
-        m_functionStack.add(State.arrayStart);
-    }
+	@Override
+	void startArray() {
+		next_(Action.addContainer);
+		m_jsonString.append('[');
+		m_functionStack.add(State.arrayStart);
+	}
 
-    @Override
-    void endObject() {
-        next_(Action.popObject);
-        m_jsonString.append('}');
-    }
+	@Override
+	void endObject() {
+		next_(Action.popObject);
+		m_jsonString.append('}');
+	}
 
-    @Override
-    void endArray() {
-        next_(Action.popArray);
-        m_jsonString.append(']');
-    }
+	@Override
+	void endArray() {
+		next_(Action.popArray);
+		m_jsonString.append(']');
+	}
 
-    @Override
-    void addPairObject(String fieldName) {
-        next_(Action.addPair);
-        appendQuote_(fieldName);
-        m_jsonString.append(":");
-        addValueObject_();
-    }
+	@Override
+	void addPairObject(String fieldName) {
+		next_(Action.addPair);
+		appendQuote_(fieldName);
+		m_jsonString.append(":");
+		addValueObject_();
+	}
 
-    @Override
-    void addPairArray(String fieldName) {
-        next_(Action.addPair);
-        appendQuote_(fieldName);
-        m_jsonString.append(":");
-        addValueArray_();
-    }
+	@Override
+	void addPairArray(String fieldName) {
+		next_(Action.addPair);
+		appendQuote_(fieldName);
+		m_jsonString.append(":");
+		addValueArray_();
+	}
 
-    @Override
-    void addPairString(String fieldName, String v) {
-        next_(Action.addPair);
-        appendQuote_(fieldName);
-        m_jsonString.append(":");
-        addValueString_(v);
-    }
+	@Override
+	void addPairString(String fieldName, String v) {
+		next_(Action.addPair);
+		appendQuote_(fieldName);
+		m_jsonString.append(":");
+		addValueString_(v);
+	}
 
-    @Override
-    void addPairDouble(String fieldName, double v) {
-        next_(Action.addPair);
-        appendQuote_(fieldName);
-        m_jsonString.append(":");
-        addValueDouble_(v);
-    }
+	@Override
+	void addPairDouble(String fieldName, double v) {
+		next_(Action.addPair);
+		appendQuote_(fieldName);
+		m_jsonString.append(":");
+		addValueDouble_(v);
+	}
 
-    @Override
-    void addPairDoubleF(String fieldName, double v, int decimals) {
-        next_(Action.addPair);
-        appendQuote_(fieldName);
-        m_jsonString.append(":");
-        addValueDoubleF_(v, decimals);
-    }
+	@Override
+	void addPairDoubleF(String fieldName, double v, int decimals) {
+		next_(Action.addPair);
+		appendQuote_(fieldName);
+		m_jsonString.append(":");
+		addValueDoubleF_(v, decimals);
+	}
 
-    @Override
-    void addPairInt(String fieldName, int v) {
-        next_(Action.addPair);
-        appendQuote_(fieldName);
-        m_jsonString.append(":");
-        addValueInt_(v);
-    }
+	@Override
+	void addPairInt(String fieldName, int v) {
+		next_(Action.addPair);
+		appendQuote_(fieldName);
+		m_jsonString.append(":");
+		addValueInt_(v);
+	}
 
-    @Override
-    void addPairBoolean(String fieldName, boolean v) {
-        next_(Action.addPair);
-        appendQuote_(fieldName);
-        m_jsonString.append(":");
-        addValueBoolean_(v);
-    }
+	@Override
+	void addPairBoolean(String fieldName, boolean v) {
+		next_(Action.addPair);
+		appendQuote_(fieldName);
+		m_jsonString.append(":");
+		addValueBoolean_(v);
+	}
 
-    @Override
-    void addPairNull(String fieldName) {
-        next_(Action.addPair);
-        appendQuote_(fieldName);
-        m_jsonString.append(":");
-        addValueNull_();
-    }
+	@Override
+	void addPairNull(String fieldName) {
+		next_(Action.addPair);
+		appendQuote_(fieldName);
+		m_jsonString.append(":");
+		addValueNull_();
+	}
 
-    @Override
-    void addValueObject() {
-        next_(Action.addValue);
-        addValueObject_();
-    }
+	@Override
+	void addValueObject() {
+		next_(Action.addContainer);
+		addValueObject_();
+	}
 
-    @Override
-    void addValueArray() {
-        next_(Action.addValue);
-        addValueArray_();
-    }
+	@Override
+	void addValueArray() {
+		next_(Action.addContainer);
+		addValueArray_();
+	}
 
-    @Override
-    void addValueString(String v) {
-        next_(Action.addValue);
-        addValueString_(v);
-    }
+	@Override
+	void addValueString(String v) {
+		next_(Action.addTerminal);
+		addValueString_(v);
+	}
 
-    @Override
-    void addValueDouble(double v) {
-        next_(Action.addValue);
-        addValueDouble_(v);
-    }
+	@Override
+	void addValueDouble(double v) {
+		next_(Action.addTerminal);
+		addValueDouble_(v);
+	}
 
-    @Override
-    void addValueDoubleF(double v, int decimals) {
-        next_(Action.addValue);
-        addValueDoubleF_(v, decimals);
-    }
+	@Override
+	void addValueDoubleF(double v, int decimals) {
+		next_(Action.addTerminal);
+		addValueDoubleF_(v, decimals);
+	}
 
-    @Override
-    void addValueInt(int v) {
-        next_(Action.addValue);
-        addValueInt_(v);
-    }
+	@Override
+	void addValueInt(int v) {
+		next_(Action.addTerminal);
+		addValueInt_(v);
+	}
 
-    @Override
-    void addValueBoolean(boolean v) {
-        next_(Action.addValue);
-        addValueBoolean_(v);
-    }
+	@Override
+	void addValueBoolean(boolean v) {
+		next_(Action.addTerminal);
+		addValueBoolean_(v);
+	}
 
-    @Override
-    void addValueNull() {
-        next_(Action.addValue);
-        addValueNull_();
-    }
+	@Override
+	void addValueNull() {
+		next_(Action.addTerminal);
+		addValueNull_();
+	}
 
-    JsonStringWriter() {
-        m_jsonString = new StringBuilder();
-        m_functionStack = new AttributeStreamOfInt32(0);
-        m_functionStack.add(State.accept);
-        m_functionStack.add(State.start);
-    }
-    private StringBuilder m_jsonString;
-    private AttributeStreamOfInt32 m_functionStack;
+	JsonStringWriter() {
+		m_jsonString = new StringBuilder();
+		m_functionStack = new AttributeStreamOfInt32(0);
+		m_functionStack.add(State.accept);
+		m_functionStack.add(State.start);
+	}
 
-    private void addValueObject_() {
-        m_jsonString.append('{');
-        m_functionStack.add(State.objectStart);
-    }
+	private StringBuilder m_jsonString;
+	private AttributeStreamOfInt32 m_functionStack;
 
-    private void addValueArray_() {
-        m_jsonString.append('[');
-        m_functionStack.add(State.arrayStart);
-    }
+	private void addValueObject_() {
+		m_jsonString.append('{');
+		m_functionStack.add(State.objectStart);
+	}
 
-    private void addValueString_(String v) {
-        appendQuote_(v);
-    }
+	private void addValueArray_() {
+		m_jsonString.append('[');
+		m_functionStack.add(State.arrayStart);
+	}
 
-    private void addValueDouble_(double v) {
-        if (NumberUtils.isNaN(v)) {
-            addValueNull_();
-            return;
-        }
+	private void addValueString_(String v) {
+		appendQuote_(v);
+	}
 
-        StringUtils.appendDouble(v, 17, m_jsonString);
-    }
+	private void addValueDouble_(double v) {
+		if (NumberUtils.isNaN(v)) {
+			addValueNull_();
+			return;
+		}
 
-    private void addValueDoubleF_(double v, int decimals) {
-        if (NumberUtils.isNaN(v)) {
-            addValueNull_();
-            return;
-        }
+		StringUtils.appendDouble(v, 17, m_jsonString);
+	}
 
-        StringUtils.appendDoubleF(v, decimals, m_jsonString);
-    }
+	private void addValueDoubleF_(double v, int decimals) {
+		if (NumberUtils.isNaN(v)) {
+			addValueNull_();
+			return;
+		}
 
-    private void addValueInt_(int v) {
-        m_jsonString.append(v);
-    }
+		StringUtils.appendDoubleF(v, decimals, m_jsonString);
+	}
 
-    private void addValueBoolean_(boolean v) {
-        if (v) {
-            m_jsonString.append("true");
-        } else {
-            m_jsonString.append("false");
-        }
-    }
+	private void addValueInt_(int v) {
+		m_jsonString.append(v);
+	}
 
-    private void addValueNull_() {
-        m_jsonString.append("null");
-    }
+	private void addValueBoolean_(boolean v) {
+		if (v) {
+			m_jsonString.append("true");
+		} else {
+			m_jsonString.append("false");
+		}
+	}
 
-    private void next_(int action) {
-        switch (m_functionStack.getLast()) {
-            case State.accept:
-                accept_(action);
-                break;
-            case State.start:
-                start_(action);
-                break;
-            case State.objectStart:
-                objectStart_(action);
-                break;
-            case State.arrayStart:
-                arrayStart_(action);
-                break;
-            case State.pairEnd:
-                pairEnd_(action);
-                break;
-            case State.elementEnd:
-                elementEnd_(action);
-                break;
-            default:
-                throw GeometryException.GeometryInternalError();
-        }
-    }
+	private void addValueNull_() {
+		m_jsonString.append("null");
+	}
 
-    private void accept_(int action) {
-        if (action != Action.accept) {
-            throw new GeometryException("invalid call");
-        }
-    }
+	private void next_(int action) {
+		switch (m_functionStack.getLast()) {
+		case State.accept:
+			accept_(action);
+			break;
+		case State.start:
+			start_(action);
+			break;
+		case State.objectStart:
+			objectStart_(action);
+			break;
+		case State.arrayStart:
+			arrayStart_(action);
+			break;
+		case State.pairEnd:
+			pairEnd_(action);
+			break;
+		case State.elementEnd:
+			elementEnd_(action);
+			break;
+		default:
+			throw new GeometryException("internal error");
+		}
+	}
 
-    private void start_(int action) {
-        if (action == Action.addContainer) {
-            m_functionStack.removeLast();
-        } else {
-            throw new GeometryException("invalid call");
-        }
-    }
+	private void accept_(int action) {
+		if (action != Action.accept) {
+			throw new GeometryException("invalid call");
+		}
+	}
 
-    private void objectStart_(int action) {
-        m_functionStack.removeLast();
+	private void start_(int action) {
+		if (action == Action.addContainer) {
+			m_functionStack.removeLast();
+		} else {
+			throw new GeometryException("invalid call");
+		}
+	}
 
-        if (action == Action.addPair) {
-            m_functionStack.add(State.pairEnd);
-        } else if (action != Action.popObject) {
-            throw new GeometryException("invalid call");
-        }
-    }
+	private void objectStart_(int action) {
+		m_functionStack.removeLast();
 
-    private void pairEnd_(int action) {
-        if (action == Action.addPair) {
-            m_jsonString.append(',');
-        } else if (action == Action.popObject) {
-            m_functionStack.removeLast();
-        } else {
-            throw new GeometryException("invalid call");
-        }
-    }
+		if (action == Action.addPair) {
+			m_functionStack.add(State.pairEnd);
+		} else if (action != Action.popObject) {
+			throw new GeometryException("invalid call");
+		}
+	}
 
-    private void arrayStart_(int action) {
-        m_functionStack.removeLast();
+	private void pairEnd_(int action) {
+		if (action == Action.addPair) {
+			m_jsonString.append(',');
+		} else if (action == Action.popObject) {
+			m_functionStack.removeLast();
+		} else {
+			throw new GeometryException("invalid call");
+		}
+	}
 
-        if (action == Action.addValue) {
-            m_functionStack.add(State.elementEnd);
-        } else if (action != Action.popArray) {
-            throw new GeometryException("invalid call");
-        }
-    }
+	private void arrayStart_(int action) {
+		m_functionStack.removeLast();
 
-    private void elementEnd_(int action) {
-        if (action == Action.addValue) {
-            m_jsonString.append(',');
-        } else if (action == Action.popArray) {
-            m_functionStack.removeLast();
-        } else {
-            throw new GeometryException("invalid call");
-        }
-    }
+		if ((action & Action.addValue) != 0) {
+			m_functionStack.add(State.elementEnd);
+		} else if (action != Action.popArray) {
+			throw new GeometryException("invalid call");
+		}
+	}
 
-    private void appendQuote_(String string) {
-        int count = 0;
-        int start = 0;
-        int end = string.length();
+	private void elementEnd_(int action) {
+		if ((action & Action.addValue) != 0) {
+			m_jsonString.append(',');
+		} else if (action == Action.popArray) {
+			m_functionStack.removeLast();
+		} else {
+			throw new GeometryException("invalid call");
+		}
+	}
 
-        m_jsonString.append('"');
+	private void appendQuote_(String string) {
+		int count = 0;
+		int start = 0;
+		int end = string.length();
 
-        for (int i = 0; i < end; i++) {
-            switch (string.charAt(i)) {
-                case '"':
-                    if (count > 0) {
-                        m_jsonString.append(string, start, start + count);
-                        count = 0;
-                    }
-                    m_jsonString.append("\\\"");
-                    start = i + 1;
-                    break;
-                case '\\':
-                    if (count > 0) {
-                        m_jsonString.append(string, start, start + count);
-                        count = 0;
-                    }
-                    m_jsonString.append("\\\\");
-                    start = i + 1;
-                    break;
-                case '/':
-                    if (i > 0 && string.charAt(i - 1) == '<') {
-                        if (count > 0) {
-                            m_jsonString.append(string, start, start + count);
-                            count = 0;
-                        }
-                        m_jsonString.append("\\/");
-                        start = i + 1;
-                    } else {
-                        count++;
-                    }
-                    break;
-                case '\b':
-                    if (count > 0) {
-                        m_jsonString.append(string, start, start + count);
-                        count = 0;
-                    }
-                    m_jsonString.append("\\b");
-                    start = i + 1;
-                    break;
-                case '\f':
-                    if (count > 0) {
-                        m_jsonString.append(string, start, start + count);
-                        count = 0;
-                    }
-                    m_jsonString.append("\\f");
-                    start = i + 1;
-                    break;
-                case '\n':
-                    if (count > 0) {
-                        m_jsonString.append(string, start, start + count);
-                        count = 0;
-                    }
-                    m_jsonString.append("\\n");
-                    start = i + 1;
-                    break;
-                case '\r':
-                    if (count > 0) {
-                        m_jsonString.append(string, start, start + count);
-                        count = 0;
-                    }
-                    m_jsonString.append("\\r");
-                    start = i + 1;
-                    break;
-                case '\t':
-                    if (count > 0) {
-                        m_jsonString.append(string, start, start + count);
-                        count = 0;
-                    }
-                    m_jsonString.append("\\t");
-                    start = i + 1;
-                    break;
-                default:
-                    count++;
-                    break;
-            }
-        }
+		m_jsonString.append('"');
 
-        if (count > 0) {
-            m_jsonString.append(string, start, start + count);
-        }
+		for (int i = 0; i < end; i++) {
+			switch (string.charAt(i)) {
+			case '"':
+				if (count > 0) {
+					m_jsonString.append(string, start, start + count);
+					count = 0;
+				}
+				m_jsonString.append("\\\"");
+				start = i + 1;
+				break;
+			case '\\':
+				if (count > 0) {
+					m_jsonString.append(string, start, start + count);
+					count = 0;
+				}
+				m_jsonString.append("\\\\");
+				start = i + 1;
+				break;
+			case '/':
+				if (i > 0 && string.charAt(i - 1) == '<') {
+					if (count > 0) {
+						m_jsonString.append(string, start, start + count);
+						count = 0;
+					}
+					m_jsonString.append("\\/");
+					start = i + 1;
+				} else {
+					count++;
+				}
+				break;
+			case '\b':
+				if (count > 0) {
+					m_jsonString.append(string, start, start + count);
+					count = 0;
+				}
+				m_jsonString.append("\\b");
+				start = i + 1;
+				break;
+			case '\f':
+				if (count > 0) {
+					m_jsonString.append(string, start, start + count);
+					count = 0;
+				}
+				m_jsonString.append("\\f");
+				start = i + 1;
+				break;
+			case '\n':
+				if (count > 0) {
+					m_jsonString.append(string, start, start + count);
+					count = 0;
+				}
+				m_jsonString.append("\\n");
+				start = i + 1;
+				break;
+			case '\r':
+				if (count > 0) {
+					m_jsonString.append(string, start, start + count);
+					count = 0;
+				}
+				m_jsonString.append("\\r");
+				start = i + 1;
+				break;
+			case '\t':
+				if (count > 0) {
+					m_jsonString.append(string, start, start + count);
+					count = 0;
+				}
+				m_jsonString.append("\\t");
+				start = i + 1;
+				break;
+			default:
+				count++;
+				break;
+			}
+		}
 
-        m_jsonString.append('"');
-    }
+		if (count > 0) {
+			m_jsonString.append(string, start, start + count);
+		}
+
+		m_jsonString.append('"');
+	}
 }
-

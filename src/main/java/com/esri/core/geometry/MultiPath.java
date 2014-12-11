@@ -738,4 +738,9 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 		return m_impl.getStateFlag();
 	}
 
+    @Override
+    public void replaceNaNs(int semantics, double value) {
+    	m_impl.replaceNaNs(semantics, value);
+    }
+	
 }

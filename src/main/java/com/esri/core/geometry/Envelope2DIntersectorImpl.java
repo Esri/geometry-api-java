@@ -43,6 +43,7 @@ class Envelope2DIntersectorImpl {
 			m_elements_red = new AttributeStreamOfInt32(0);
 			m_envelopes_red = new ArrayList<Envelope2D>(0);
 		} else {
+
 			m_elements_red.resizePreserveCapacity(0);
 			m_envelopes_red.clear();
 		}

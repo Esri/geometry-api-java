@@ -364,4 +364,9 @@ public final class MultiPoint extends MultiVertexGeometry implements
     public Geometry getBoundary() {
         return m_impl.getBoundary();
     }
+    
+    @Override
+    public void replaceNaNs(int semantics, double value) {
+    	m_impl.replaceNaNs(semantics, value);
+    }
 }

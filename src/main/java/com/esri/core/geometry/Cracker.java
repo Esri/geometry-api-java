@@ -30,7 +30,7 @@ package com.esri.core.geometry;
  * Finds and splits all intersecting segments. Used by the TopoGraph and
  * Simplify.
  */
-class Cracker {
+final class Cracker {
 	private EditShape m_shape;
 	private ProgressTracker m_progress_tracker;
 	private NonSimpleResult m_non_simple_result;
@@ -39,7 +39,19 @@ class Cracker {
 	private SweepComparator m_sweep_comparator;
 	private boolean m_bAllowCoincident;
 
-	boolean crackBruteForce_() {
+	private Segment getSegment_(int vertex, Line lineHelper) {
+		Segment seg = m_shape.getSegment(vertex);
+		if (seg == null) {
+			if (!m_shape.queryLineConnector(vertex, lineHelper))
+				return null;
+			
+			seg = (Segment)lineHelper;
+		}
+		
+		return seg;
+	}
+	
+	private boolean crackBruteForce_() {
 		EditShape.VertexIterator iter_1 = m_shape.queryVertexIterator(false);
 		boolean b_cracked = false;
 		Line line_1 = new Line();
@@ -59,24 +71,25 @@ class Cracker {
 			int GT_1 = m_shape.getGeometryType(iter_1.currentGeometry());
 
 			Segment seg_1 = null;
+			boolean seg_1_zero = false;
 			if (!Geometry.isPoint(GT_1)) {
-				seg_1 = m_shape.getSegment(vertex_1);
-
-				if (seg_1 == null) {
-					if (!m_shape.queryLineConnector(vertex_1, line_1))
-						continue;
-					seg_1 = line_1;
-					line_1.queryEnvelope2D(seg_1_env);
-				} else {
-					seg_1.queryEnvelope2D(seg_1_env);
-				}
-
+				seg_1 = getSegment_(vertex_1, line_1);
+				if (seg_1 == null)
+					continue;
+				
+				seg_1.queryEnvelope2D(seg_1_env);
 				seg_1_env.inflate(m_tolerance, m_tolerance);
 
 				if (seg_1.isDegenerate(m_tolerance))// do not crack with
 													// degenerate segments
 				{
-					continue;
+					if (seg_1.isDegenerate(0)) {
+						seg_1_zero = true;
+						seg_1 = null;
+					}
+					else {
+						continue;
+					}
 				}
 			}
 
@@ -90,20 +103,24 @@ class Cracker {
 				int GT_2 = m_shape.getGeometryType(iter_2.currentGeometry());
 
 				Segment seg_2 = null;
+				boolean seg_2_zero = false;
 				if (!Geometry.isPoint(GT_2)) {
-					seg_2 = m_shape.getSegment(vertex_2);
+					seg_2 = getSegment_(vertex_2, line_2);
 					if (seg_2 == null) {
-						if (!m_shape.queryLineConnector(vertex_2, line_2))
-							continue;
-						seg_2 = line_2;
-						line_2.queryEnvelope2D(seg_2_env);
-					} else
-						seg_2.queryEnvelope2D(seg_2_env);
-
+						continue;
+					}
+					
+					seg_2.queryEnvelope2D(seg_2_env);
 					if (seg_2.isDegenerate(m_tolerance))// do not crack with
 														// degenerate segments
 					{
-						continue;
+						if (seg_2.isDegenerate(0)) {
+							seg_2_zero = true;
+							seg_2 = null;
+						}
+						else {
+							continue;
+						}
 					}
 				}
 
@@ -141,8 +158,29 @@ class Cracker {
 							if (split_count_1 > 0) {
 								m_shape.splitSegment_(vertex_1,
 										segment_intersector, 0, true);
-								m_shape.setPoint(vertex_2,
-										segment_intersector.getResultPoint());
+								if (seg_2_zero) {
+				                    //seg_2 was zero length. Need to change all coincident points
+				                    //segment at vertex_2 is dzero length, change all attached zero length segments
+				                    int v_to = -1;
+				                    for (int v = m_shape.getNextVertex(vertex_2); v != -1 && v != vertex_2; v = m_shape.getNextVertex(v))
+				                    {
+				                      seg_2 = getSegment_(v, line_2);
+				                      v_to = v;
+				                      if (seg_2 == null || !seg_2.isDegenerate(0))
+				                        break;
+				                    }
+				                    //change from vertex_2 to v_to (inclusive).
+				                    for (int v = vertex_2; v != -1; v = m_shape.getNextVertex(v))
+				                    {
+				                      m_shape.setPoint(v, segment_intersector.getResultPoint());
+				                      if (v == v_to)
+				                        break;
+				                    }									
+								}
+								else {
+									m_shape.setPoint(vertex_2,
+											segment_intersector.getResultPoint());
+								}
 							}
 							segment_intersector.clear();
 						}
@@ -160,8 +198,27 @@ class Cracker {
 							if (split_count_2 > 0) {
 								m_shape.splitSegment_(vertex_2,
 										segment_intersector, 0, true);
-								m_shape.setPoint(vertex_1,
-										segment_intersector.getResultPoint());
+								if (seg_1_zero) {
+				                    //seg_1 was zero length. Need to change all coincident points
+				                    //segment at vertex_2 is dzero length, change all attached zero length segments
+				                    int v_to = -1;
+				                    for (int v = m_shape.getNextVertex(vertex_1); v != -1 && v != vertex_1; v = m_shape.getNextVertex(v)) {
+				                      seg_2 = getSegment_(v, line_2);//using here seg_2 for seg_1
+				                      v_to = v;
+				                      if (seg_2 == null || !seg_2.isDegenerate(0))
+				                        break;
+				                    }
+				                    //change from vertex_2 to v_to (inclusive).
+				                    for (int v = vertex_1; v != -1; v = m_shape.getNextVertex(v)) {
+				                      m_shape.setPoint(v, segment_intersector.getResultPoint());
+				                      if (v == v_to)
+				                        break;
+				                    }
+								}
+								else {
+									m_shape.setPoint(vertex_1,
+											segment_intersector.getResultPoint());
+								}
 							}
 							segment_intersector.clear();
 						}

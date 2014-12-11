@@ -30,6 +30,7 @@ final class CrackAndCluster {
 	private EditShape m_shape = null;
 	private ProgressTracker m_progressTracker = null;
 	private double m_tolerance;
+	private boolean m_filter_degenerate_segments = true;
 
 	private CrackAndCluster(ProgressTracker progressTracker) {
 		m_progressTracker = progressTracker;
@@ -60,10 +61,11 @@ final class CrackAndCluster {
     }
 	
 	public static boolean execute(EditShape shape, double tolerance,
-			ProgressTracker progressTracker) {
+			ProgressTracker progressTracker, boolean filter_degenerate_segments) {
 		CrackAndCluster cracker = new CrackAndCluster(progressTracker);
 		cracker.m_shape = shape;
 		cracker.m_tolerance = tolerance;
+		cracker.m_filter_degenerate_segments = filter_degenerate_segments;
 		return cracker._do();
 	}
 
@@ -121,12 +123,14 @@ final class CrackAndCluster {
 			// clamp them
 			// together.
 			bChanged |= bClustered;
-
-			boolean bFiltered = (m_shape.filterClosePoints(
-					tolerance_for_clustering, true) != 0); // remove all
-															// degenerate
-															// segments.
-			bChanged |= bFiltered;
+			
+			if (m_filter_degenerate_segments) {
+				boolean bFiltered = (m_shape.filterClosePoints(
+						tolerance_for_clustering, true, false) != 0); // remove all
+																// degenerate
+																// segments.
+				bChanged |= bFiltered;
+			}
 
 			boolean b_cracked = false;
 			if (iter == 0

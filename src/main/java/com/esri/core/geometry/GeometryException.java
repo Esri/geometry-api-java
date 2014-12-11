@@ -31,10 +31,6 @@ package com.esri.core.geometry;
 public class GeometryException extends RuntimeException {
 
 	private static final long serialVersionUID = 1L;
-	/**
-	 * The internal code for geometry exception.
-	 */
-	public int internalCode;
 
 	/**
 	 * Constructs a Geometry Exception with the given error string/message.
@@ -42,14 +38,8 @@ public class GeometryException extends RuntimeException {
 	 * @param str
 	 *            - The error string.
 	 */
-	GeometryException(String str) {
+	public GeometryException(String str) {
 		super(str);
-		internalCode = 0;
-	}
-
-	GeometryException(String str, int sgCode) {
-		super(str);
-		internalCode = sgCode;
 	}
 
 	static GeometryException GeometryInternalError() {

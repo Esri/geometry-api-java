@@ -183,7 +183,7 @@ public class TestEditShape extends TestCase {
 
 			EditShape editShape = new EditShape();
 			int geom = editShape.addGeometry(poly);
-			editShape.filterClosePoints(0.002, true);
+			editShape.filterClosePoints(0.002, true, false);
 			Polygon poly2 = (Polygon) editShape.getGeometry(geom);
 			assertTrue(poly2.isEmpty());
 		}
@@ -197,7 +197,7 @@ public class TestEditShape extends TestCase {
 
 			EditShape editShape = new EditShape();
 			int geom = editShape.addGeometry(poly);
-			editShape.filterClosePoints(0.002, true);
+			editShape.filterClosePoints(0.002, true, false);
 			Polygon poly2 = (Polygon) editShape.getGeometry(geom);
 			assertTrue(!poly2.isEmpty());
 		}
@@ -211,7 +211,7 @@ public class TestEditShape extends TestCase {
 
 			EditShape editShape = new EditShape();
 			int geom = editShape.addGeometry(poly);
-			editShape.filterClosePoints(0.002, true);
+			editShape.filterClosePoints(0.002, true, false);
 			Polygon poly2 = (Polygon) editShape.getGeometry(geom);
 			assertTrue(poly2.isEmpty());
 		}
@@ -295,7 +295,7 @@ public class TestEditShape extends TestCase {
 			EditShape shape = new EditShape();
 			int g1 = shape.addGeometry(line1);
 			int g2 = shape.addGeometry(line2);
-			CrackAndCluster.execute(shape, 0.001, null);
+			CrackAndCluster.execute(shape, 0.001, null, true);
 
 			Polyline chopped_line1 = (Polyline) shape.getGeometry(g1);
 			Polyline chopped_line2 = (Polyline) shape.getGeometry(g2);

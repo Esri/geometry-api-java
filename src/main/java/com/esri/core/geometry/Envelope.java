@@ -1113,4 +1113,34 @@ public final class Envelope extends Geometry implements Serializable {
     public Geometry getBoundary() {
         return Boundary.calculate(this, null);
     }
+    
+    @Override
+    public void replaceNaNs(int semantics, double value) {
+    	addAttribute(semantics);
+    	if (isEmpty())
+    		return;
+    	
+    	int ncomps = VertexDescription.getComponentCount(semantics);
+    	for (int i = 0; i < ncomps; i++) {
+    		Envelope1D interval = queryInterval(semantics, i);
+    		if (interval.isEmpty()) {
+    			interval.vmin = value;
+    			interval.vmax = value;
+    			setInterval(semantics, i, interval);
+    		}
+    	}
+    }
+    
+	/**
+	 * The output of this method can be only used for debugging. It is subject to change without notice. 
+	 */
+	@Override
+	public String toString() {
+		if (isEmpty())
+			return "Envelope: []";
+		
+		String s = "Envelope: [" + m_envelope.xmin + ", " + m_envelope.ymin + ", " + m_envelope.xmin + ", " + m_envelope.ymin +"]"; 
+		return s;
+	}
+    
 }

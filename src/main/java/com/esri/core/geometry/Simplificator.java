@@ -42,6 +42,7 @@ class Simplificator {
 	private int m_knownSimpleResult;
 	private boolean m_bWinding;
 	private boolean m_fixSelfTangency;
+	private ProgressTracker m_progressTracker;
 
 	private void _beforeRemoveVertex(int vertex, boolean bChangePathFirst) {
 		int vertexlistIndex = m_shape.getUserIndex(vertex,
@@ -370,6 +371,15 @@ class Simplificator {
 	}
 
 	private boolean _simplify() {
+		if (m_shape.getGeometryType(m_geometry) == Polygon.Type.Polygon.value()
+				&& m_shape.getFillRule(m_geometry) == Polygon.FillRule.enumFillRuleWinding)
+
+		{
+			TopologicalOperations ops = new TopologicalOperations();
+			ops.planarSimplifyNoCrackingAndCluster(m_fixSelfTangency,
+					m_shape, m_geometry, m_progressTracker);
+			assert (m_shape.getFillRule(m_geometry) == Polygon.FillRule.enumFillRuleOddEven);
+		}
 		boolean bChanged = false;
 		boolean bNeedWindingRepeat = true;
 		boolean bWinding = false;
@@ -978,13 +988,14 @@ class Simplificator {
 	}
 
 	public static boolean execute(EditShape shape, int geometry,
-			int knownSimpleResult, boolean fixSelfTangency) {
+			int knownSimpleResult, boolean fixSelfTangency, ProgressTracker progressTracker) {
 		Simplificator simplificator = new Simplificator();
 		simplificator.m_shape = shape;
 		// simplificator.m_bWinding = bWinding;
 		simplificator.m_geometry = geometry;
 		simplificator.m_knownSimpleResult = knownSimpleResult;
 		simplificator.m_fixSelfTangency = fixSelfTangency;
+		simplificator.m_progressTracker = progressTracker;
 		return simplificator._simplify();
 	}
 

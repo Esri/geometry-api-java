@@ -24,7 +24,7 @@
 
 package com.esri.core.geometry;
 
-class PointInPolygonHelper {
+final class PointInPolygonHelper {
 
 	private Point2D m_inputPoint;
 	private int m_windnum;
@@ -164,7 +164,7 @@ class PointInPolygonHelper {
 	private static int _isPointInPolygonInternal(Polygon inputPolygon,
 			Point2D inputPoint, double tolerance) {
 
-		boolean bAltenate = true;// Path.get_FillMode() == fillmodeAlternate;
+		boolean bAltenate = inputPolygon.getFillRule() == Polygon.FillRule.enumFillRuleOddEven;
 		PointInPolygonHelper helper = new PointInPolygonHelper(bAltenate,
 				inputPoint, tolerance);
 		MultiPathImpl mpImpl = (MultiPathImpl) inputPolygon._getImpl();
@@ -187,7 +187,7 @@ class PointInPolygonHelper {
 		inputPolygon.queryLooseEnvelope(envPoly);
 		envPoly.inflate(tolerance, tolerance);
 
-		boolean bAltenate = true;// Path.get_FillMode() == fillmodeAlternate;
+		boolean bAltenate = inputPolygon.getFillRule() == Polygon.FillRule.enumFillRuleOddEven;
 		PointInPolygonHelper helper = new PointInPolygonHelper(bAltenate,
 				inputPoint, tolerance);
 
@@ -229,7 +229,7 @@ class PointInPolygonHelper {
 		MultiPathImpl mpImpl = (MultiPathImpl) inputPolygon._getImpl();
 		GeometryAccelerators accel = mpImpl._getAccelerators();
 		if (accel != null) {
-			//geometry has spatial indices built. Try using them.
+			// geometry has spatial indices built. Try using them.
 			RasterizedGeometry2D rgeom = accel.getRasterizedGeometry();
 			if (rgeom != null) {
 				RasterizedGeometry2D.HitType hit = rgeom.queryPointInGeometry(
@@ -241,7 +241,7 @@ class PointInPolygonHelper {
 			}
 
 			QuadTreeImpl qtree = accel.getQuadTree();
-			if (qtree != null) {  
+			if (qtree != null) {
 				return _isPointInPolygonInternalWithQuadTree(inputPolygon,
 						qtree, inputPoint, tolerance);
 			}
@@ -280,28 +280,61 @@ class PointInPolygonHelper {
 	}
 
 	public static int isPointInRing(MultiPathImpl inputPolygonImpl, int iRing,
-			Point2D inputPoint, double tolerance) {
+			Point2D inputPoint, double tolerance, QuadTree quadTree) {
 		Envelope2D env = new Envelope2D();
 		inputPolygonImpl.queryLooseEnvelope2D(env);
 		env.inflate(tolerance, tolerance);
 		if (!env.contains(inputPoint))
 			return 0;
 
-		boolean bAltenate = true;// Path.get_FillMode() == fillmodeAlternate;
+		boolean bAltenate = true;
 		PointInPolygonHelper helper = new PointInPolygonHelper(bAltenate,
 				inputPoint, tolerance);
-		SegmentIteratorImpl iter = inputPolygonImpl.querySegmentIterator();
-		iter.resetToPath(iRing);
 
-		if (iter.nextPath()) {
-			while (iter.hasNextSegment()) {
-				Segment segment = iter.nextSegment();
-				if (helper.processSegment(segment))
-					return -1; // point on boundary
+		if (quadTree != null) {
+			Envelope2D queryEnv = new Envelope2D();
+			queryEnv.setCoords(env);
+			queryEnv.xmax = inputPoint.x + tolerance;// no need to query
+														// segments to
+														// the right of the
+														// point.
+														// Only segments to the
+														// left
+														// matter.
+			queryEnv.ymin = inputPoint.y - tolerance;
+			queryEnv.ymax = inputPoint.y + tolerance;
+			SegmentIteratorImpl iter = inputPolygonImpl.querySegmentIterator();
+			QuadTree.QuadTreeIterator qiter = quadTree.getIterator(queryEnv,
+					tolerance);
+
+			for (int qhandle = qiter.next(); qhandle != -1; qhandle = qiter
+					.next()) {
+				iter.resetToVertex(quadTree.getElement(qhandle), iRing);
+				if (iter.hasNextSegment()) {
+					if (iter.getPathIndex() != iRing)
+						continue;
+
+					Segment segment = iter.nextSegment();
+					if (helper.processSegment(segment))
+						return -1; // point on boundary
+				}
 			}
-		}
 
-		return helper.result();
+			return helper.result();
+		} else {
+			SegmentIteratorImpl iter = inputPolygonImpl.querySegmentIterator();
+			iter.resetToPath(iRing);
+
+			if (iter.nextPath()) {
+				while (iter.hasNextSegment()) {
+					Segment segment = iter.nextSegment();
+					if (helper.processSegment(segment))
+						return -1; // point on boundary
+				}
+			}
+
+			return helper.result();
+		}
 	}
 
 	public static int isPointInPolygon(Polygon inputPolygon, Point inputPoint,
@@ -353,5 +386,51 @@ class PointInPolygonHelper {
 
 		return helper.result();
 	}
+
+	// Tests if Ring1 is inside Ring2.
+	// We assume here that the Polygon is Weak Simple. That is if one point of
+	// Ring1 is found to be inside of Ring2, then
+	// we assume that all of Ring1 is inside Ring2.
+	static boolean _isRingInRing2D(MultiPath polygon, int iRing1, int iRing2,
+			double tolerance, QuadTree quadTree) {
+		MultiPathImpl polygonImpl = (MultiPathImpl) polygon._getImpl();
+		SegmentIteratorImpl segIter = polygonImpl.querySegmentIterator();
+		segIter.resetToPath(iRing1);
+		if (!segIter.nextPath() || !segIter.hasNextSegment())
+			throw new GeometryException("corrupted geometry");
+
+		int res = 2;
+
+		while (res == 2 && segIter.hasNextSegment()) {
+			Segment segment = segIter.nextSegment();
+			Point2D point = segment.getCoord2D(0.5);
+			res = PointInPolygonHelper.isPointInRing(polygonImpl, iRing2,
+					point, tolerance, quadTree);
+		}
+
+		if (res == 2)
+			throw GeometryException.GeometryInternalError();
+		if (res == 1)
+			return true;
+
+		return false;
+	}
+
+    static boolean quadTreeWillHelp(Polygon polygon, int c_queries)
+    {
+        int n = polygon.getPointCount();
+
+        if (n < 16)
+            return false;
+
+        double c_build_quad_tree = 2.0; // what's a good constant?
+        double c_query_quad_tree = 1.0; // what's a good constant?
+        double c_point_in_polygon_brute_force = 1.0; // what's a good constant?
+
+        double c_quad_tree = c_build_quad_tree * n + c_query_quad_tree * (Math.log((double)n) / Math.log(2.0)) * c_queries;
+        double c_brute_force = c_point_in_polygon_brute_force * n * c_queries;
+
+        return c_quad_tree < c_brute_force;
+    }
 
 }

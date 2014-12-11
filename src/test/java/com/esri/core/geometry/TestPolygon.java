@@ -1,6 +1,7 @@
 package com.esri.core.geometry;
 
 import junit.framework.TestCase;
+
 import org.junit.Test;
 
 import com.esri.core.geometry.ogc.OGCGeometry;
@@ -66,8 +67,9 @@ public class TestPolygon extends TestCase {
 		@SuppressWarnings("unused")
 		int number = poly.getStateFlag();
 		Envelope env = new Envelope(1000, 2000, 1010, 2010);
-
+		env.toString();
 		poly.addEnvelope(env, false);
+		poly.toString();
 		number = poly.getStateFlag();
 		assertTrue(Math.abs(poly.calculateArea2D() - 100) < 1e-12);
 		assertTrue(Math.abs(poly.calculateLength2D() - 40) < 1e-12);
@@ -1074,8 +1076,12 @@ public class TestPolygon extends TestCase {
 		// int endIndex = pg.getPathEnd(pathCount - 1);
 
 		Line line = new Line();
+		line.toString();
+		
 		line.setStart(new Point(0, 0));
 		line.setEnd(new Point(1, 0));
+		
+		line.toString();
 
 		double geoLength = GeometryEngine.geodesicDistanceOnWGS84(new Point(0,
 				0), new Point(1, 0));
@@ -1138,4 +1144,40 @@ public class TestPolygon extends TestCase {
 		assertTrue(s
 				.equals("MULTILINESTRING ((-10 -10, 10 -10, 10 10, -10 10, -10 -10), (-5 -5, -5 5, 5 5, 5 -5, -5 -5))"));
 	}
+	
+	@Test
+	public void testReplaceNaNs() {
+		{
+		MultiPoint mp = new MultiPoint();
+		Point pt = new Point();
+		pt.setXY(1, 2);
+		pt.setZ(Double.NaN);
+		mp.add(pt);
+		pt = new Point();
+		pt.setXY(11, 12);
+		pt.setZ(3);
+		mp.add(pt);
+		
+		mp.replaceNaNs(VertexDescription.Semantics.Z, 5);
+		assertTrue(mp.getPoint(0).equals(new Point(1, 2, 5)));
+		assertTrue(mp.getPoint(1).equals(new Point(11, 12, 3)));
+		}
+
+		{
+		Polygon mp = new Polygon();
+		Point pt = new Point();
+		pt.setXY(1, 2);
+		pt.setZ(Double.NaN);
+		mp.startPath(pt);
+		pt = new Point();
+		pt.setXY(11, 12);
+		pt.setZ(3);
+		mp.lineTo(pt);
+		
+		mp.replaceNaNs(VertexDescription.Semantics.Z, 5);
+		assertTrue(mp.getPoint(0).equals(new Point(1, 2, 5)));
+		assertTrue(mp.getPoint(1).equals(new Point(11, 12, 3)));
+		}
+	}	
+	
 }

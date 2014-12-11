@@ -24,7 +24,9 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.AttributeStreamOfInt32.IntComparator;
+import com.esri.core.geometry.Geometry.GeometryType;
 import com.esri.core.geometry.MultiVertexGeometryImpl.GeometryXSimple;
+
 import java.util.ArrayList;
 
 final class TopologicalOperations {
@@ -88,13 +90,14 @@ final class TopologicalOperations {
 
 	void setEditShapeCrackAndCluster(EditShape shape, double tolerance,
 			ProgressTracker progressTracker) {
-		CrackAndCluster.execute(shape, tolerance, progressTracker);
+		CrackAndCluster.execute(shape, tolerance, progressTracker, true);
 		for (int geometry = shape.getFirstGeometry(); geometry != -1; geometry = shape
 				.getNextGeometry(geometry)) {
 			if (shape.getGeometryType(geometry) == Geometry.Type.Polygon
 					.value())
-				Simplificator.execute(shape, geometry, -1, m_bOGCOutput);
+				Simplificator.execute(shape, geometry, -1, m_bOGCOutput, progressTracker);
 		}
+		
 		setEditShape(shape, progressTracker);
 	}
 
@@ -294,7 +297,7 @@ final class TopologicalOperations {
 
 		m_topo_graph.deleteUserIndexForHalfEdges(visitedEdges);
 		Simplificator.execute(shape, newGeometry,
-				MultiVertexGeometryImpl.GeometryXSimple.Weak, m_bOGCOutput);
+				MultiVertexGeometryImpl.GeometryXSimple.Weak, m_bOGCOutput, null);
 		return newGeometry;
 	}
 
@@ -513,7 +516,7 @@ final class TopologicalOperations {
 		m_topo_graph.deleteUserIndexForClusters(visitedClusters);
 		m_topo_graph.deleteUserIndexForHalfEdges(visitedEdges);
 		Simplificator.execute(shape, newGeometryPolygon,
-				MultiVertexGeometryImpl.GeometryXSimple.Weak, m_bOGCOutput);
+				MultiVertexGeometryImpl.GeometryXSimple.Weak, m_bOGCOutput, null);
 		int[] result = new int[3];// always returns size 3 result.
 
 		result[0] = newGeometryMultipoint;
@@ -1150,11 +1153,16 @@ final class TopologicalOperations {
 													// complications. Need to do
 													// full crack and cluster.
 				{
-					CrackAndCluster.execute(shape, tolerance, progress_tracker);
+					CrackAndCluster.execute(shape, tolerance, progress_tracker, true);
+					dirty_result = false;
+				} else {
+					m_topo_graph.check_dirty_planesweep(tolerance);
 				}
 			} else {
-				CrackAndCluster.execute(shape, tolerance, progress_tracker);
+				CrackAndCluster.execute(shape, tolerance, progress_tracker, true);
+				dirty_result = false;
 			}
+			
 			if (!b_use_winding_rule_for_polygons
 					|| shape.getGeometryType(geom) == Geometry.Type.MultiPoint
 							.value())
@@ -1162,6 +1170,22 @@ final class TopologicalOperations {
 			else
 				m_topo_graph.setAndSimplifyEditShapeWinding(shape, geom, progress_tracker);
 	
+			if (m_topo_graph.dirty_check_failed()) {
+				// we ran the sweep_vertical() before and it produced some
+				// issues that where detected by topo graph only.
+				assert (dirty_result);
+				m_topo_graph.removeShape();
+				m_topo_graph = null;
+				// that's at most two level recursion
+				return planarSimplify(shape, geom, tolerance,
+						b_use_winding_rule_for_polygons, false,
+						progress_tracker);
+			} else {
+				//can proceed
+			}
+			
+			m_topo_graph.check_dirty_planesweep(NumberUtils.TheNaN);
+			
 			int ID_a = m_topo_graph.getGeometryID(geom);
 			initMaskLookupArray_((ID_a) + 1);
 			m_mask_lookup[ID_a] = true; // Works only when there is a single
@@ -1175,9 +1199,11 @@ final class TopologicalOperations {
 							.value())) {
 				// geom can be a polygon or a polyline.
 				// It can be a polyline only when the winding rule is true.
+				shape.setFillRule(geom,  Polygon.FillRule.enumFillRuleOddEven);
 				int resGeom = topoOperationPolygonPolygon_(geom, -1, -1);
 	
 				Polygon polygon = (Polygon) shape.getGeometry(resGeom);
+				polygon.setFillRule(Polygon.FillRule.enumFillRuleOddEven);//standardize the fill rule.
 				if (!dirty_result) {
 					((MultiVertexGeometryImpl) polygon._getImpl()).setIsSimple(
 							GeometryXSimple.Strong, tolerance, false);
@@ -1227,6 +1253,57 @@ final class TopologicalOperations {
 				use_winding_rule_for_polygons, dirty_result, progress_tracker);
 	}
 
+    boolean planarSimplifyNoCrackingAndCluster(boolean OGCoutput, EditShape shape, int geom, ProgressTracker progress_tracker)
+    {
+      m_bOGCOutput = OGCoutput;
+      m_topo_graph = new TopoGraph();
+      int rule = shape.getFillRule(geom);
+      int gt = shape.getGeometryType(geom);
+      if (rule != Polygon.FillRule.enumFillRuleWinding || gt == GeometryType.MultiPoint)
+        m_topo_graph.setAndSimplifyEditShapeAlternate(shape, geom, progress_tracker);
+      else
+        m_topo_graph.setAndSimplifyEditShapeWinding(shape, geom, progress_tracker);
+
+      if (m_topo_graph.dirty_check_failed())
+        return false;
+
+      m_topo_graph.check_dirty_planesweep(NumberUtils.TheNaN);
+
+      int ID_a = m_topo_graph.getGeometryID(geom);
+      initMaskLookupArray_((ID_a)+1);
+      m_mask_lookup[ID_a] = true; //Works only when there is a single geometry in the edit shape.
+      //To make it work when many geometries are present, this need to be modified.
+
+      if (shape.getGeometryType(geom) == GeometryType.Polygon || (rule == Polygon.FillRule.enumFillRuleWinding && shape.getGeometryType(geom) != GeometryType.MultiPoint))
+      {
+        //geom can be a polygon or a polyline.
+        //It can be a polyline only when the winding rule is true.
+        shape.setFillRule(geom, Polygon.FillRule.enumFillRuleOddEven);
+        int resGeom = topoOperationPolygonPolygon_(geom, -1, -1);
+        shape.swapGeometry(resGeom, geom);
+        shape.removeGeometry(resGeom);
+      }
+      else if (shape.getGeometryType(geom) == GeometryType.Polyline)
+      {
+        int resGeom = topoOperationPolylinePolylineOrPolygon_(-1);
+        shape.swapGeometry(resGeom, geom);
+        shape.removeGeometry(resGeom);
+      }
+      else if (shape.getGeometryType(geom) == GeometryType.MultiPoint)
+      {
+        int resGeom = topoOperationMultiPoint_();
+        shape.swapGeometry(resGeom, geom);
+        shape.removeGeometry(resGeom);
+      }
+      else
+      {
+        throw new GeometryException("internal error");
+      }
+      
+      return true;
+    }
+	
+	
     static MultiVertexGeometry simplifyOGC(MultiVertexGeometry input_geom, double tolerance, boolean dirty_result, ProgressTracker progress_tracker)
     {
       TopologicalOperations topoOps = new TopologicalOperations();

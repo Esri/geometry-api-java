@@ -23,6 +23,8 @@ public class TestPoint extends TestCase {
 		assertTrue(pt.isEmpty());
 		pt.setXY(10, 2);
 		assertFalse(pt.isEmpty());
+		
+		pt.toString();
 	}
 
 	@Test
@@ -165,5 +167,21 @@ public class TestPoint extends TestCase {
 		assertFalse(env.containsExclusive(env.getUpperLeft()));
 		assertTrue(env.contains(env.getUpperLeft()));
 		assertTrue(env.containsExclusive(env.getCenter()));
+	}
+	
+	@Test
+	public void testReplaceNaNs() {
+		Envelope env = new Envelope();
+		Point pt = new Point();
+		pt.setXY(1, 2);
+		pt.setZ(Double.NaN);
+		pt.queryEnvelope(env);
+		pt.replaceNaNs(VertexDescription.Semantics.Z, 5);
+		assertTrue(pt.equals(new Point(1, 2, 5)));
+
+		assertTrue(env.hasZ());
+		assertTrue(env.queryInterval(VertexDescription.Semantics.Z, 0).isEmpty());
+		env.replaceNaNs(VertexDescription.Semantics.Z, 5);
+		assertTrue(env.queryInterval(VertexDescription.Semantics.Z, 0).equals(new Envelope1D(5, 5)));
 	}	
 }

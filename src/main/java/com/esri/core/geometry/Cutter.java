@@ -116,7 +116,7 @@ class Cutter {
 		EditShape editShape = new EditShape();
 		int cutteeHandle = editShape.addGeometry(cuttee);
 		int cutterHandle = editShape.addGeometry(cutter);
-		CrackAndCluster.execute(editShape, tolerance, progressTracker);
+		CrackAndCluster.execute(editShape, tolerance, progressTracker, true);
 
 		int order = 0;
 		int orderIndex = editShape.createUserIndex();

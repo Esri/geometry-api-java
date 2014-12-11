@@ -70,6 +70,17 @@ final class TopoGraph {
 	
 	boolean m_buildChains = true;
 	
+	private boolean m_dirty_check_failed = false;
+	private double m_check_dirty_planesweep_tolerance = Double.NaN;
+	
+	void check_dirty_planesweep(double tolerance) {
+		m_check_dirty_planesweep_tolerance = tolerance;
+	}
+
+	boolean dirty_check_failed() {
+		return m_dirty_check_failed;
+	}
+	
 	NonSimpleResult m_non_simple_result = new NonSimpleResult();
 
 	int m_pointCount;// point count processed in this Topo_graph. Used to
@@ -990,9 +1001,16 @@ final class TopoGraph {
 
 				int clusterTo = m_shape.getUserIndex(next, m_clusterIndex);
 				assert (clusterTo != -1);
-				assert (cluster != clusterTo);// probably will assert for
-												// verticasl segments! Need to
-												// refactor a little
+                if (cluster == clusterTo) {
+                    if (m_shape.getSegment(vertex) != null) {
+                        assert (m_shape.getSegment(vertex).calculateLength2D() == 0);
+                    } else {
+                        assert (m_shape.getXY(vertex).isEqual(m_shape.getXY(next)));
+                    }
+
+                    continue;
+                }
+
 				int half_edge = newHalfEdgePair_();
 				int twinEdge = getHalfEdgeTwin(half_edge);
 
@@ -1182,6 +1200,7 @@ final class TopoGraph {
 				} while (edge != first);
 
 				if (angleSorter.size() > 1) {
+					boolean changed_order = true;
 					if (angleSorter.size() > 2) {
 						angleSorter.Sort(0, angleSorter.size(),
 								tgac); // std::sort(angleSorter.get_ptr(),
@@ -1191,11 +1210,15 @@ final class TopoGraph {
 																	// TopoGraphAngleComparer(this));
 						angleSorter.add(angleSorter.get(0));
 					} else {
-						if (compareEdgeAngles_(angleSorter.get(0),
+						//no need to sort most two edge cases. we only need to make sure that edges going up are sorted
+						if (compareEdgeAnglesForPair_(angleSorter.get(0),
 								angleSorter.get(1)) > 0) {
 							int tmp = angleSorter.get(0);
 							angleSorter.set(0, angleSorter.get(1));
 							angleSorter.set(1, tmp);
+						}
+						else {
+							changed_order = false;
 						}
 					}
 					// 2. get rid of duplicate edges by merging them (duplicate
@@ -1325,7 +1348,10 @@ final class TopoGraph {
 
 							continue;
 						}
-
+						else {
+							//edges do not coincide
+						}
+						
 						updateVertexToHalfEdgeConnection_(prevMerged, false);
 						prevMerged = -1;
 						ePrev = e;
@@ -1333,8 +1359,27 @@ final class TopoGraph {
 						ePrevTwin = eTwin;
 					}
 
+
 					updateVertexToHalfEdgeConnection_(prevMerged, false);
 					prevMerged = -1;
+					
+					if (!changed_order) {
+						//small optimization to avoid reconnecting if nothing changed
+						e0 = -1;
+						for (int i = 0, n = angleSorter.size(); i < n; i++) {
+							int e = angleSorter.get(i);
+							if (e == -1)
+								continue;
+							e0 = e;
+							break;
+						}
+						
+						if (first != e0)
+							setClusterHalfEdge_(cluster, e0);
+						
+						continue; //next cluster 
+					}
+						
 
 					// 3. Reconnect edges in the sorted order. The edges are
 					// sorted counter clockwise.
@@ -1582,6 +1627,7 @@ final class TopoGraph {
 	void setEditShapeImpl_(EditShape shape, int inputMode,
 			AttributeStreamOfInt32 editShapeGeometries,
 			ProgressTracker progress_tracker, boolean bBuildChains) {
+		assert(!m_dirty_check_failed);
 		assert (editShapeGeometries == null || editShapeGeometries.size() > 0);
 
 		removeShape();
@@ -1723,6 +1769,17 @@ final class TopoGraph {
 		if (m_non_simple_result.m_reason != NonSimpleResult.Reason.NotDetermined)
 			return;
 
+		if (!NumberUtils.isNaN(m_check_dirty_planesweep_tolerance)) {
+			if (!check_structure_after_dirty_sweep_())// checks the edges.
+			{
+				m_dirty_check_failed = true;// set m_dirty_check_failed when an
+											// issue is found. We'll rerun the
+											// planesweep using robust crack and
+											// cluster approach.
+				return;
+			}
+		}
+
 		buildChains_(inputMode);
 		if (m_non_simple_result.m_reason != NonSimpleResult.Reason.NotDetermined)
 			return;
@@ -1847,10 +1904,11 @@ final class TopoGraph {
 		if (m_shape == null)
 			return;
 
-		if (m_geometryIDIndex != -1)
+		if (m_geometryIDIndex != -1) {
 			m_shape.removeGeometryUserIndex(m_geometryIDIndex);
+			m_geometryIDIndex = -1;
+		}
 
-		m_geometryIDIndex = -1;
 		if (m_clusterIndex != -1) {
 			m_shape.removeUserIndex(m_clusterIndex);
 			m_clusterIndex = -1;
@@ -2454,13 +2512,6 @@ final class TopoGraph {
 
 		Point2D pt10 = new Point2D();
 		getHalfEdgeFromXY(edge1, pt10);
-		// #ifdef DEBUG
-		// {
-		// Point_2D pt20;
-		// get_half_edge_from_xy(edge2, pt20);
-		// assert(pt10.is_equal(pt20));
-		// }
-		// #endif
 
 		Point2D v_1 = new Point2D();
 		v_1.sub(pt_1, pt10);
@@ -2469,4 +2520,99 @@ final class TopoGraph {
 		int result = Point2D._compareVectors(v_1, v_2);
 		return result;
 	}
+	
+	int compareEdgeAnglesForPair_(int edge1, int edge2) {
+		if (edge1 == edge2)
+			return 0;
+
+		Point2D pt_1 = new Point2D();
+		getHalfEdgeToXY(edge1, pt_1);
+
+		Point2D pt_2 = new Point2D();
+		getHalfEdgeToXY(edge2, pt_2);
+
+		if (pt_1.isEqual(pt_2))
+			return 0;// overlap case
+
+		Point2D pt10 = new Point2D();
+		getHalfEdgeFromXY(edge1, pt10);
+
+		Point2D v_1 = new Point2D();
+		v_1.sub(pt_1, pt10);
+		Point2D v_2 = new Point2D();
+		v_2.sub(pt_2, pt10);
+		
+		if (v_2.y >= 0 && v_1.y > 0) {
+			int result = Point2D._compareVectors(v_1, v_2);
+			return result;
+		}
+		else {
+			return 0;
+		}
+	}
+	
+	boolean check_structure_after_dirty_sweep_() {
+		// for each cluster go through the cluster half edges and check that
+		// min(edge1_length, edge2_length) * angle_between is less than
+		// m_check_dirty_planesweep_tolerance.
+		// Doing this helps us weed out cases missed by the dirty plane sweep.
+		// We do not need absolute accuracy here.
+		assert (!m_dirty_check_failed);
+		assert (!NumberUtils.isNaN(m_check_dirty_planesweep_tolerance));
+		double sqr_tol = MathUtils.sqr(m_check_dirty_planesweep_tolerance);
+		Point2D pt10 = new Point2D();
+		Point2D pt_2 = new Point2D();
+		Point2D pt_1 = new Point2D();
+		Point2D v_1 = new Point2D();
+		Point2D v_2 = new Point2D();
+		for (int cluster = getFirstCluster(); cluster != -1; cluster = getNextCluster(cluster)) {
+			int first = getClusterHalfEdge(cluster);
+			if (first != -1) {
+				int edge = first;
+				getHalfEdgeFromXY(edge, pt10);
+				getHalfEdgeToXY(edge, pt_2);
+				v_2.sub(pt_2, pt10);
+				double sqr_len2 = v_2.sqrLength();
+
+				do {
+					int prev = edge;
+					edge = getHalfEdgeNext(getHalfEdgeTwin(edge));
+
+					if (edge != prev) {
+						getHalfEdgeToXY(edge, pt_1);
+						assert (!pt_1.isEqual(pt_2));
+						v_1.sub(pt_1, pt10);
+						double sqr_len1 = v_1.sqrLength();
+
+						double cross = v_1.crossProduct(v_2); // cross_prod =
+																// len1 * len2 *
+																// sinA => sinA
+																// = cross_prod
+																// / (len1 *
+																// len2);
+						double sqr_sinA = (cross * cross)
+								/ (sqr_len1 * sqr_len2); // sqr_sinA is
+															// approximately A^2
+															// especially for
+															// smaller angles
+						double sqr_dist = Math.min(sqr_len1, sqr_len2)
+								* sqr_sinA;
+						if (sqr_dist <= sqr_tol) {
+							// these edges incident on the cluster form a narrow
+							// wedge and thei require cracking event that was
+							// missed.
+							return false;
+						}
+
+						v_2.setCoords(v_1);
+						sqr_len2 = sqr_len1;
+						pt_2.setCoords(pt_1);
+					}
+				} while (edge != first);
+			}
+		}
+
+		return true;
+	}
+	
 }

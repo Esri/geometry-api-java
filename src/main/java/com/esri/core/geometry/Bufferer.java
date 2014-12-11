@@ -996,7 +996,7 @@ class Bufferer {
 		EditShape edit_shape = new EditShape();
 		int geom = edit_shape.addPathFromMultiPath((MultiPath) input_geom,
 				ipath, true);
-		edit_shape.filterClosePoints(m_filter_tolerance, false);
+		edit_shape.filterClosePoints(m_filter_tolerance, false, false);
 		if (edit_shape.getPointCount(geom) < 2) {// Got degenerate output.
 													// Wither bail out or
 													// produce a circle.
@@ -1429,7 +1429,7 @@ class Bufferer {
 				edit_shape.setXY(iprev, pt_middle);
 			}
 
-			edit_shape.filterClosePoints(m_filter_tolerance, false);
+			edit_shape.filterClosePoints(m_filter_tolerance, false, false);
 
 			if (!b_filtered)
 				break;

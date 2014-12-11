@@ -54,6 +54,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 	protected AttributeStreamOfDbl m_segmentParams;
 	protected int m_curveParamwritePoint;
 	private int m_currentPathIndex;
+	private int m_fill_rule = Polygon.FillRule.enumFillRuleOddEven;
 
 	static int[] _segmentParamSizes = { 0, 0, 6, 0, 8, 0 }; // None, Line,
 															// Bezier, XXX, Arc,
@@ -136,6 +137,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 			throw new IllegalArgumentException();// throw new
 													// IllegalArgumentException();
 
+		mergeVertexDescription(point.getDescription());
 		_initPathStartPoint();
 		point.copyTo(m_moveToPoint);
 
@@ -1632,8 +1634,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 					double segment_length = segment.calculateLength2D();
 					cumulative_length += segment_length;
 					double t = cumulative_length / sub_length;
-					interpolated_attribute = (1.0 - t) * from_attribute + t
-							* to_attribute;
+					interpolated_attribute = MathUtils.lerp(from_attribute,  to_attribute, t);
 
 					if (!seg_iter.isClosingSegment())
 						setAttribute(semantics, seg_iter.getEndPointIndex(),
@@ -1676,8 +1677,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 			double segment_length = segment.calculateLength2D();
 			cumulative_length += segment_length;
 			double t = cumulative_length / sub_length;
-			prev_interpolated_attribute = (1.0 - t) * from_attribute + t
-					* to_attribute;
+			prev_interpolated_attribute = MathUtils.lerp(from_attribute, to_attribute, t);
 
 		} while (seg_iter.getEndPointIndex() != absolute_to_index);
 	}
@@ -1846,7 +1846,8 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 		MultiPathImpl dstPoly = (MultiPathImpl) dst;
 		dstPoly.m_bPathStarted = false;
 		dstPoly.m_curveParamwritePoint = m_curveParamwritePoint;
-
+		dstPoly.m_fill_rule = m_fill_rule;
+		
 		if (m_paths != null)
 			dstPoly.m_paths = new AttributeStreamOfInt32(m_paths);
 		else
@@ -1924,6 +1925,9 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 
 		if (m_paths != null
 				&& !m_paths.equals(otherMultiPath.m_paths, 0, pathCount + 1))
+			return false;
+		
+		if (m_fill_rule != otherMultiPath.m_fill_rule)
 			return false;
 
 		if (m_pathFlags != null
@@ -2508,6 +2512,30 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 		}
 	}
 
+	public void queryLoosePathEnvelope2D(int path_index, Envelope2D envelope) {
+		if (path_index >= getPathCount())
+			throw new IllegalArgumentException();
+
+		if (isEmpty()) {
+			envelope.setEmpty();
+			return;
+		}
+
+		if (hasNonLinearSegments(path_index)) {
+			throw new GeometryException("not implemented");
+		} else {
+			AttributeStreamOfDbl stream = (AttributeStreamOfDbl) getAttributeStreamRef(VertexDescription.Semantics.POSITION);
+			Point2D pt = new Point2D();
+			Envelope2D env = new Envelope2D();
+			env.setEmpty();
+			for (int i = getPathStart(path_index), iend = getPathEnd(path_index); i < iend; i++) {
+				stream.read(2 * i, pt);
+				env.merge(pt);
+			}
+			envelope.setCoords(env);
+		}
+	}
+	
 	@Override
 	public boolean _buildQuadTreeAccelerator(GeometryAccelerationDegree d) {
 		if (m_accelerators == null)// (!m_accelerators)
@@ -2524,22 +2552,30 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 		return true;
 	}
 
-	boolean _buildPathEnvelopesAccelerator(GeometryAccelerationDegree d) {
-		if (m_accelerators == null) {
-			m_accelerators = new GeometryAccelerators();
-		}
+    boolean _buildQuadTreeForPathsAccelerator(GeometryAccelerationDegree degree) {
+        if (m_accelerators == null) {
+            m_accelerators = new GeometryAccelerators();
+        }
 
-		ArrayList<Envelope2D> path_envelopes = new ArrayList<Envelope2D>(0);
+        //TODO: when less than two envelopes - no need to this.
 
-		for (int ipath = 0; ipath < getPathCount(); ipath++) {
-			Envelope2D env = new Envelope2D();
-			queryPathEnvelope2D(ipath, env);
-			path_envelopes.add(env);
-		}
+        if (m_accelerators.getQuadTreeForPaths() != null)
+            return true;
 
-		m_accelerators._setPathEnvelopes(path_envelopes);
+        m_accelerators._setQuadTreeForPaths(null);
+        QuadTreeImpl quad_tree_impl = InternalUtils.buildQuadTreeForPaths(this);
+        m_accelerators._setQuadTreeForPaths(quad_tree_impl);
 
-		return true;
-	}
+        return true;
+    }
+
+    void setFillRule(int rule) {
+    	assert(m_bPolygon);
+    	m_fill_rule = rule;
+    }
+    int getFillRule() {
+    	return m_fill_rule;
+    }
+
 
 }

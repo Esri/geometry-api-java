@@ -50,8 +50,7 @@ public abstract class Geometry implements Serializable {
 	/**
 	 * Geometry types
 	 */
-	static interface GeometryType {
-
+	static public interface GeometryType {
 		public final static int Unknown = 0;
 		public final static int Point = 1 + 0x20; // points
 		public final static int Line = 2 + 0x40 + 0x100; // lines, segment
@@ -59,10 +58,10 @@ public abstract class Geometry implements Serializable {
 		final static int EllipticArc = 4 + 0x40 + 0x100; // lines, segment
 		public final static int Envelope = 5 + 0x40 + 0x80; // lines, areas
 		public final static int MultiPoint = 6 + 0x20 + 0x200; // points,
-																// multivertex
+		// multivertex
 		public final static int Polyline = 7 + 0x40 + 0x200 + 0x400; // lines,
 																		// multivertex,
-																		// multipath
+		// multipath
 		public final static int Polygon = 8 + 0x40 + 0x80 + 0x200 + 0x400;
 	}
 
@@ -509,7 +508,15 @@ public abstract class Geometry implements Serializable {
      * boundary is a Multi_point consisting of path endpoints. For Multi_point
      * and Point NULL is returned.
      */
-    public abstract Geometry getBoundary();    
+    public abstract Geometry getBoundary();
+    
+	/**
+	 * Replaces NaNs in the attribute with the given value.
+	 * If the geometry is not empty, it adds the attribute if geometry does not have it yet, and replaces the values.
+	 * If the geometry is empty, it adds the attribute and does not set any values.
+	 *   
+	 */
+	public abstract void replaceNaNs(int semantics, double value);
 
 	static Geometry _clone(Geometry src) {
 		Geometry geom = src.createInstance();
@@ -578,4 +585,30 @@ public abstract class Geometry implements Serializable {
 		}
 	}
 
+    /**
+    *Returns count of geometry vertices:
+    *1 for Point, 4 for Envelope, get_point_count for MultiVertexGeometry types,
+    *2 for segment types
+    *Returns 0 if geometry is empty.
+    */
+    public static int vertex_count(Geometry geom) {
+      Geometry.Type gt = geom.getType();
+      if (Geometry.isMultiVertex(gt.value()))
+        return ((MultiVertexGeometry)geom).getPointCount();
+
+      if (geom.isEmpty())
+        return 0;
+
+      if (gt == Geometry.Type.Envelope)
+        return 4;
+
+      if (gt == Geometry.Type.Point)
+        return 1;
+
+      if (Geometry.isSegment(gt.value()))
+        return 2;
+
+      throw new GeometryException("missing type");
+    }
+	
 }

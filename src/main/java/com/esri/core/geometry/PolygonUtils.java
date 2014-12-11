@@ -24,7 +24,7 @@
 
 package com.esri.core.geometry;
 
-class PolygonUtils {
+final class PolygonUtils {
 
 	enum PiPResult {
 		PiPOutside, PiPInside, PiPBoundary
@@ -89,7 +89,7 @@ class PolygonUtils {
 			Point2D inputPoint, double tolerance) {
 		MultiPathImpl polygonImpl = (MultiPathImpl) polygon._getImpl();
 		int res = PointInPolygonHelper.isPointInRing(polygonImpl, iRing,
-				inputPoint, tolerance);
+				inputPoint, tolerance, null);
 		if (res == 0)
 			return PiPResult.PiPOutside;
 		if (res == 1)
@@ -240,36 +240,6 @@ class PolygonUtils {
 					testResults);
 		} else
 			throw new GeometryException("invalid_call");// GEOMTHROW(invalid_call);
-	}
-
-	// Tests if Ring1 is inside Ring2.
-	// We assume here that the Polygon is Weak Simple. That is if one point of
-	// Ring1 is found to be inside of Ring2, then
-	// we assume that all of Ring1 is inside Ring2.
-	static boolean _isRingInRing2D(MultiPath polygon, int iRing1,
-			int iRing2, double tolerance) {
-	  MultiPathImpl polygonImpl = (MultiPathImpl)polygon._getImpl();	
-		SegmentIteratorImpl segIter = polygonImpl.querySegmentIterator();
-		segIter.resetToPath(iRing1);
-		if (!segIter.nextPath() || !segIter.hasNextSegment())
-			throw new GeometryException("corrupted geometry");
-
-		int res = 2;// 2(int)PiPResult.PiPBoundary;
-
-		while (res == 2 /* (int)PiPResult.PiPBoundary */
-				&& segIter.hasNextSegment()) {
-			Segment segment = segIter.nextSegment();
-			Point2D point = segment.getCoord2D(0.5);
-			res = PointInPolygonHelper.isPointInRing(polygonImpl, iRing2,
-					point, tolerance);
-		}
-
-		if (res == 2 /* (int)PiPResult.PiPBoundary */)
-			throw GeometryException.GeometryInternalError();
-		if (res == 1 /* (int)PiPResult.PiPInside */)
-			return true;
-
-		return false;
 	}
 
 	private static void _testPointsInEnvelope2D(Envelope2D env2D,

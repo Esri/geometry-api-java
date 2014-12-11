@@ -1643,6 +1643,16 @@ class OperatorSimplifyLocalHelper {
 		// ((MultiPathImpl)m_geometry._getImpl()).saveToTextFileDbg("c:/temp/_simplifyDbg0.txt");
 		// }
 
+		if (m_geometry.getType() == Geometry.Type.Polygon) {
+			if (((Polygon) m_geometry).getFillRule() == Polygon.FillRule.enumFillRuleWinding) {
+				// when the fill rule is winding, we need to call a special
+				// method.
+				return TopologicalOperations.planarSimplify(
+						(MultiVertexGeometry) m_geometry, m_toleranceSimplify,
+						true, false, m_progressTracker);
+			}
+		}
+		
 		m_editShape = new EditShape();
 		m_editShape.addGeometry(m_geometry);
 
@@ -1650,12 +1660,12 @@ class OperatorSimplifyLocalHelper {
 			assert (m_knownSimpleResult != GeometryXSimple.Strong);
 			if (m_knownSimpleResult != GeometryXSimple.Weak) {
 				CrackAndCluster.execute(m_editShape, m_toleranceSimplify,
-						m_progressTracker);
+						m_progressTracker, true);
 			}
 	
 			if (m_geometry.getType().equals(Geometry.Type.Polygon)) {
 				Simplificator.execute(m_editShape, m_editShape.getFirstGeometry(),
-						m_knownSimpleResult, false);
+						m_knownSimpleResult, false, m_progressTracker);
 			}
 		}
 		
@@ -1665,8 +1675,10 @@ class OperatorSimplifyLocalHelper {
 																				// of
 																				// simplify
 
-		if (m_geometry.getType().equals(Geometry.Type.Polygon))
-			((MultiPathImpl) m_geometry._getImpl())._updateOGCFlags();
+		if (m_geometry.getType().equals(Geometry.Type.Polygon)) {
+			((MultiPathImpl)m_geometry._getImpl())._updateOGCFlags();
+			((Polygon)m_geometry).setFillRule(Polygon.FillRule.enumFillRuleOddEven);
+		}
 
 		// We have simplified the geometry using the given tolerance. Now mark
 		// the geometry as strong simple,
@@ -1940,6 +1952,13 @@ class OperatorSimplifyLocalHelper {
 		// From the first sight it seems the SimplePlanar implies
 		// SimpleAsFeature.
 		if (knownSimpleResult == GeometryXSimple.Strong) {
+	        if (gt == Geometry.Type.Polygon && ((Polygon)geometry).getFillRule() != Polygon.FillRule.enumFillRuleOddEven)
+	        {
+	          Geometry res = geometry.copy();
+	          ((Polygon)res).setFillRule(Polygon.FillRule.enumFillRuleOddEven);//standardize on odd_even fill rule
+	          return res;
+	        }			
+	        
 			return geometry;
 		}
 

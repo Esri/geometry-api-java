@@ -19,7 +19,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testCreation() {
+	public void testCreation() {
 		{
 			OperatorFactoryLocal projEnv = OperatorFactoryLocal.getInstance();
 			SpatialReference inputSR = SpatialReference.create(3857);
@@ -132,7 +132,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testOperatorDisjoint() {
+	public void testOperatorDisjoint() {
 		{
 			OperatorFactoryLocal projEnv = OperatorFactoryLocal.getInstance();
 			SpatialReference inputSR = SpatialReference.create(3857);
@@ -191,7 +191,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testTouchPointLineCR183227() {// Tests CR 183227
+	public void testTouchPointLineCR183227() {// Tests CR 183227
 		OperatorTouches operatorTouches = (OperatorTouches) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Touches));
 
@@ -219,7 +219,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testTouchPointLineClosed() {// Tests CR 183227
+	public void testTouchPointLineClosed() {// Tests CR 183227
 		OperatorTouches operatorTouches = (OperatorTouches) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Touches));
 
@@ -247,7 +247,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testTouchPolygonPolygon() {
+	public void testTouchPolygonPolygon() {
 		OperatorTouches operatorTouches = (OperatorTouches) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Touches));
 
@@ -270,7 +270,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testContainsFailureCR186456() {
+	public void testContainsFailureCR186456() {
 		{
 			OperatorContains op = (OperatorContains) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Contains));
@@ -283,7 +283,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testWithin() {
+	public void testWithin() {
 		{
 			OperatorWithin op = (OperatorWithin) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Within));
@@ -364,7 +364,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testContains() {
+	public void testContains() {
 		{
 			OperatorContains op = (OperatorContains) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Contains));
@@ -444,7 +444,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testOverlaps() {
+	public void testOverlaps() {
 		{// empty polygon
 			OperatorOverlaps op = (OperatorOverlaps) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Overlaps));
@@ -618,7 +618,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolygonPolygonEquals() {
+	public void testPolygonPolygonEquals() {
 		OperatorEquals equals = (OperatorEquals) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Equals));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -697,7 +697,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testMultiPointMultiPointEquals() {
+	public void testMultiPointMultiPointEquals() {
 		OperatorEquals equals = (OperatorEquals) OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Equals);
 		SpatialReference sr = SpatialReference.create(102100);
@@ -738,7 +738,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testMultiPointPointEquals() {
+	public void testMultiPointPointEquals() {
 		OperatorEquals equals = (OperatorEquals) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Equals));
 		OperatorWithin within = (OperatorWithin) (OperatorFactoryLocal
@@ -780,7 +780,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPointPointEquals() {
+	public void testPointPointEquals() {
 		OperatorEquals equals = (OperatorEquals) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Equals));
 		OperatorWithin within = (OperatorWithin) (OperatorFactoryLocal
@@ -843,7 +843,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolygonPolygonDisjoint() {
+	public void testPolygonPolygonDisjoint() {
 		OperatorDisjoint disjoint = (OperatorDisjoint) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Disjoint));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -916,10 +916,61 @@ public class TestRelation extends TestCase {
 		assertTrue(!res);
 		res = disjoint.execute(polygon2, polygon1, sr, null);
 		assertTrue(!res);
+
+        polygon1 = (Polygon)OperatorDensifyByLength.local().execute(polygon1, 0.5, null);
+        disjoint.accelerateGeometry(polygon1, sr, GeometryAccelerationDegree.enumHot);
+        res = disjoint.execute(polygon1, polygon2, sr, null);
+        assertTrue(!res);
+        res = disjoint.execute(polygon2, polygon1, sr, null);
+        assertTrue(!res);
+
+        polygon1.reverseAllPaths();
+        polygon2.reverseAllPaths();
+        res = disjoint.execute(polygon1, polygon2, sr, null);
+        assertTrue(!res);
+        res = disjoint.execute(polygon2, polygon1, sr, null);
+        assertTrue(!res);
+
+        // Polygon1 contains polygon2, but polygon2 is counterclockwise.
+        str1 = "{\"rings\":[[[0,0],[10,0],[10,10],[0,10],[0,0]],[[11,0],[11,10],[21,10],[21,0],[11,0]]]}";
+        str2 = "{\"rings\":[[[2,2],[8,2],[8,8],[2,8],[2,2]]]}";
+        polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+        polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
+
+
+        res = disjoint.execute(polygon1, polygon2, sr, null);
+        assertTrue(!res);
+        res = disjoint.execute(polygon2, polygon1, sr, null);
+        assertTrue(!res);
+
+        polygon1 = (Polygon)OperatorDensifyByLength.local().execute(polygon1, 0.5, null);
+        disjoint.accelerateGeometry(polygon1, sr, GeometryAccelerationDegree.enumHot);
+        res = disjoint.execute(polygon1, polygon2, sr, null);
+        assertTrue(!res);
+        res = disjoint.execute(polygon2, polygon1, sr, null);
+        assertTrue(!res);
+
+        str1 = "{\"rings\":[[[0,0],[0,10],[10,10],[10,0],[0,0]],[[0,20],[0,30],[10,30],[10,20],[0,20]],[[20,20],[20,30],[30,30],[30,20],[20,20]],[[20,0],[20,10],[30,10],[30,0],[20,0]]]}";
+        str2 = "{\"rings\":[[[14,14],[14,16],[16,16],[16,14],[14,14]]]}";
+        polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+        polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
+
+
+        res = disjoint.execute(polygon1, polygon2, sr, null);
+        assertTrue(res);
+        res = disjoint.execute(polygon2, polygon1, sr, null);
+        assertTrue(res);
+
+        polygon1 = (Polygon)OperatorDensifyByLength.local().execute(polygon1, 0.5, null);
+        disjoint.accelerateGeometry(polygon1, sr, GeometryAccelerationDegree.enumHot);
+        res = disjoint.execute(polygon1, polygon2, sr, null);
+        assertTrue(res);
+        res = disjoint.execute(polygon2, polygon1, sr, null);
+        assertTrue(res);
 	}
 
 	@Test
-	public static void testPolylinePolylineDisjoint() {
+	public void testPolylinePolylineDisjoint() {
 		OperatorDisjoint disjoint = (OperatorDisjoint) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Disjoint));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -970,7 +1021,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolygonPolylineDisjoint() {
+	public void testPolygonPolylineDisjoint() {
 		OperatorDisjoint disjoint = (OperatorDisjoint) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Disjoint));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -1031,7 +1082,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolylineMultiPointDisjoint() {
+	public void testPolylineMultiPointDisjoint() {
 		OperatorDisjoint disjoint = (OperatorDisjoint) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Disjoint));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -1077,7 +1128,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolylinePointDisjoint() {
+	public void testPolylinePointDisjoint() {
 		OperatorDisjoint disjoint = (OperatorDisjoint) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Disjoint));
 		OperatorContains contains = (OperatorContains) (OperatorFactoryLocal
@@ -1136,7 +1187,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testMultiPointMultiPointDisjoint() {
+	public void testMultiPointMultiPointDisjoint() {
 		OperatorDisjoint disjoint = (OperatorDisjoint) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Disjoint));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -1178,7 +1229,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testMultiPointPointDisjoint() {
+	public void testMultiPointPointDisjoint() {
 		OperatorDisjoint disjoint = (OperatorDisjoint) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Disjoint));
 		OperatorContains contains = (OperatorContains) (OperatorFactoryLocal
@@ -1226,7 +1277,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolygonMultiPointDisjoint() {
+	public void testPolygonMultiPointDisjoint() {
 		OperatorDisjoint disjoint = (OperatorDisjoint) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Disjoint));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -1275,7 +1326,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolygonMultiPointTouches() {
+	public void testPolygonMultiPointTouches() {
 		OperatorTouches touches = (OperatorTouches) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Touches));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -1316,7 +1367,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolygonPointTouches() {
+	public void testPolygonPointTouches() {
 		OperatorTouches touches = (OperatorTouches) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Touches));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -1348,7 +1399,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolygonPolygonTouches() {
+	public void testPolygonPolygonTouches() {
 		OperatorTouches touches = (OperatorTouches) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Touches));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -1430,7 +1481,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolygonPolylineTouches() {
+	public void testPolygonPolylineTouches() {
 		OperatorTouches touches = (OperatorTouches) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Touches));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -1495,7 +1546,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolylinePolylineTouches() {
+	public void testPolylinePolylineTouches() {
 		OperatorTouches touches = (OperatorTouches) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Touches));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -1640,7 +1691,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolylineMultiPointTouches() {
+	public void testPolylineMultiPointTouches() {
 		OperatorTouches touches = (OperatorTouches) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Touches));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -1699,7 +1750,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolylineMultiPointCrosses() {
+	public void testPolylineMultiPointCrosses() {
 		OperatorCrosses crosses = (OperatorCrosses) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Crosses));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -1752,7 +1803,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolylinePointTouches() {
+	public void testPolylinePointTouches() {
 		OperatorTouches touches = (OperatorTouches) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Touches));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -1778,7 +1829,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolygonPolygonOverlaps() {
+	public void testPolygonPolygonOverlaps() {
 		OperatorOverlaps overlaps = (OperatorOverlaps) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Overlaps));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -1855,7 +1906,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolygonPolylineWithin() {
+	public void testPolygonPolylineWithin() {
 		OperatorWithin within = (OperatorWithin) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Within));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -1888,7 +1939,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testMultiPointMultiPointWithin() {
+	public void testMultiPointMultiPointWithin() {
 		OperatorWithin within = (OperatorWithin) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Within));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -1940,7 +1991,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolylinePolylineOverlaps() {
+	public void testPolylinePolylineOverlaps() {
 		OperatorOverlaps overlaps = (OperatorOverlaps) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Overlaps));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -2007,7 +2058,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testMultiPointMultiPointOverlaps() {
+	public void testMultiPointMultiPointOverlaps() {
 		OperatorOverlaps overlaps = (OperatorOverlaps) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Overlaps));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -2065,7 +2116,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolygonPolygonWithin() {
+	public void testPolygonPolygonWithin() {
 		OperatorWithin within = (OperatorWithin) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Within));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -2120,10 +2171,140 @@ public class TestRelation extends TestCase {
 		res = within.execute(polygon2, polygon1, sr, null);
 		assertTrue(!res);
 
+        str1 = "{\"rings\":[[[0,0],[10,0],[10,10],[0,10]]]}";
+        str2 = "{\"rings\":[[[2,2],[2,8],[8,8],[8,2],[2,2],[8,2],[8,8],[2,8],[2,2]]]}";
+
+        polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+        polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
+
+        res = within.execute(polygon2, polygon1, sr, null);
+        assertTrue(res);
+
+        str1 = "{\"rings\":[[[0,0],[0,10],[10,10],[10,0]],[[12,8],[12,10],[18,10],[18,8],[12,8]]]}";
+        str2 = "{\"paths\":[[[2,2],[2,8],[8,8],[8,2]],[[12,2],[12,4],[18,4],[18,2]]]}";
+
+        polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+        Polyline polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
+
+        res = within.execute(polyline2, polygon1, sr, null);
+        assertTrue(!res);
+
+        str1 = "{\"rings\":[[[0,0],[0,10],[10,10],[10,0],[0,0]],[[4,4],[6,4],[6,6],[4,6],[4,4]]]}";
+        str2 = "{\"rings\":[[[2,2],[2,8],[8,8],[8,2],[2,2],[2,8],[8,8],[8,2],[2,2]]]}";
+
+        polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+        polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
+
+        res = within.execute(polygon2, polygon1, sr, null);
+        assertTrue(res);
+
+        // Same as above, but winding fill rule
+        str1 = "{\"rings\":[[[0,0],[0,10],[10,10],[10,0],[0,0]],[[4,4],[6,4],[6,6],[4,6],[4,4]]]}";
+        str2 = "{\"rings\":[[[2,2],[2,8],[8,8],[8,2],[2,2],[2,8],[8,8],[8,2],[2,2]]]}";
+        polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+        polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
+        polygon1.setFillRule(Polygon.FillRule.enumFillRuleWinding);
+        polygon2.setFillRule(Polygon.FillRule.enumFillRuleWinding);
+
+        res = within.execute(polygon2, polygon1, sr, null);
+        assertTrue(!res);
+
+        str1 = "{\"rings\":[[[0,0],[0,10],[10,10],[10,0],[0,0]]]}";
+        str2 = "{\"paths\":[[[2,2],[2,2]]]}";
+        polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+        polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
+        res = within.execute(polyline2, polygon1, sr, null);
+        assertTrue(res);
+
+        str1 = "{\"rings\":[[[0,0],[0,10],[10,10],[10,0],[0,0]],[[11,11],[11,20],[20,20],[20,11],[11,11]]]}";
+        str2 = "{\"rings\":[[[2,2],[2,8],[8,8],[15,15],[8,8],[8,2],[2,2]]]}";
+        polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+        polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
+
+        res = within.execute(polygon2, polygon1, sr, null);
+        assertTrue(!res);
+
+        str1 = "{\"rings\":[[[0,0],[0,10],[10,10],[10,0],[0,0]],[[10,10],[10,20],[20,20],[20,10],[10,10]]]}";
+        str2 = "{\"rings\":[[[2,2],[2,8],[8,8],[15,15],[8,8],[8,2],[2,2]]]}";
+        polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+        polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
+
+        res = within.execute(polygon2, polygon1, sr, null);
+        assertTrue(res);
+
+        str1 = "{\"rings\":[[[0,0],[0,10],[10,10],[10,0],[0,0]]]}";
+        str2 = "{\"rings\":[[[9.9999999925,4],[9.9999999925,6],[10.0000000075,6],[10.0000000075,4],[9.9999999925,4]]]}";
+        polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+        polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
+
+        res = within.execute(polygon2, polygon1, sr, null);
+        assertTrue(!res);
+
+        res = OperatorOverlaps.local().execute(polygon1, polygon2, sr, null);
+        assertTrue(!res);
+
+        res = OperatorTouches.local().execute(polygon1, polygon2, sr, null);
+        assertTrue(res);
+
+        str1 = "{\"rings\":[[[0,0],[0,10],[10,10],[10,0],[0,0]],[[10,10],[10,20],[20,20],[20,10],[10,10]]]}";
+        str2 = "{\"rings\":[[[2,2],[2,8],[8,8],[15,15],[8,8],[8,2],[2,2]],[[15,5],[15,5],[15,5]]]}";
+        polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+        polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
+        res = within.execute(polygon2, polygon1, sr, null);
+        assertTrue(!res);
+
+        str1 = "{\"rings\":[[[0,0],[0,10],[10,10],[10,0],[0,0]]]}";
+        str2 = "{\"rings\":[[[2,2],[2,2],[2,2]],[[3,3],[3,3],[3,3]]]}";
+        polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+        polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
+        res = within.execute(polygon2, polygon1, sr, null);
+        assertTrue(res);
+
+        str1 = "{\"rings\":[[[0,0],[0,10],[10,10],[10,0],[0,0]]]}";
+        str2 = "{\"rings\":[[[2,2],[2,2],[2,2],[2,2]],[[3,3],[3,3],[3,3],[3,3]]]}";
+        polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+        polygon2 = (Polygon) (TestCommonMethods.fromJson(str2).getGeometry());
+        res = within.execute(polygon2, polygon1, sr, null);
+        assertTrue(res);
+
+        str1 = "{\"rings\":[[[0,0],[0,10],[10,10],[10,0],[0,0]]]}";
+        str2 = "{\"paths\":[[[2,2],[2,2]],[[3,3],[3,3]]]}";
+        polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+        polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
+        res = within.execute(polyline2, polygon1, sr, null);
+        assertTrue(res);
+
+        str1 = "{\"rings\":[[[0,0],[0,10],[10,10],[10,0],[0,0]],[[10,10],[10,20],[20,20],[20,10],[10,10]]]}";
+        str2 = "{\"paths\":[[[2,2],[2,8]],[[15,5],[15,5]]]}";
+        polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+        polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
+        res = within.execute(polyline2, polygon1, sr, null);
+        assertTrue(!res);
+
+        str1 = "{\"rings\":[[[0,0],[0,10],[10,10],[10,0],[0,0]],[[10,10],[10,20],[20,20],[20,10],[10,10]]]}";
+        str2 = "{\"paths\":[[[2,2],[2,8]],[[15,5],[15,5],[15,5],[15,5]]]}";
+        polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+        polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
+        res = within.execute(polyline2, polygon1, sr, null);
+        assertTrue(!res);
+
+        str1 = "{\"rings\":[[[0,0],[0,10],[10,10],[10,0],[0,0]],[[10,10],[10,20],[20,20],[20,10],[10,10]]]}";
+        str2 = "{\"paths\":[[[2,2],[2,2]],[[15,5],[15,6]]]}";
+        polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+        polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
+        res = within.execute(polyline2, polygon1, sr, null);
+        assertTrue(!res);
+
+        str1 = "{\"rings\":[[[0,0],[0,10],[10,10],[10,0],[0,0]],[[10,10],[10,20],[20,20],[20,10],[10,10]]]}";
+        str2 = "{\"paths\":[[[2,2],[2,2],[2,2],[2,2]],[[15,5],[15,6]]]}";
+        polygon1 = (Polygon) (TestCommonMethods.fromJson(str1).getGeometry());
+        polyline2 = (Polyline) (TestCommonMethods.fromJson(str2).getGeometry());
+        res = within.execute(polyline2, polygon1, sr, null);
+        assertTrue(!res);
 	}
 
 	@Test
-	public static void testPolylinePolylineWithin() {
+	public void testPolylinePolylineWithin() {
 		OperatorWithin within = (OperatorWithin) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Within));
 		OperatorContains contains = (OperatorContains) (OperatorFactoryLocal
@@ -2191,7 +2372,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolylineMultiPointWithin() {
+	public void testPolylineMultiPointWithin() {
 		OperatorWithin within = (OperatorWithin) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Within));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -2239,7 +2420,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolygonMultiPointWithin() {
+	public void testPolygonMultiPointWithin() {
 		OperatorWithin within = (OperatorWithin) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Within));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -2270,7 +2451,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolygonPolylineCrosses() {
+	public void testPolygonPolylineCrosses() {
 		OperatorCrosses crosses = (OperatorCrosses) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Crosses));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -2324,7 +2505,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolylinePolylineCrosses() {
+	public void testPolylinePolylineCrosses() {
 		OperatorCrosses crosses = (OperatorCrosses) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Crosses));
 		SpatialReference sr = SpatialReference.create(102100);
@@ -2414,7 +2595,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolygonEnvelope() {
+	public void testPolygonEnvelope() {
 		OperatorEquals equals = (OperatorEquals) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Equals));
 		OperatorContains contains = (OperatorContains) (OperatorFactoryLocal
@@ -2866,7 +3047,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolylineEnvelope() {
+	public void testPolylineEnvelope() {
 		OperatorEquals equals = (OperatorEquals) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Equals));
 		OperatorContains contains = (OperatorContains) (OperatorFactoryLocal
@@ -3254,7 +3435,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testMultiPointEnvelope() {
+	public void testMultiPointEnvelope() {
 		OperatorEquals equals = (OperatorEquals) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Equals));
 		OperatorContains contains = (OperatorContains) (OperatorFactoryLocal
@@ -3583,7 +3764,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPointEnvelope() {
+	public void testPointEnvelope() {
 		OperatorEquals equals = (OperatorEquals) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Equals));
 		OperatorContains contains = (OperatorContains) (OperatorFactoryLocal
@@ -3722,7 +3903,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testEnvelopeEnvelope() {
+	public void testEnvelopeEnvelope() {
 		OperatorEquals equals = (OperatorEquals) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Equals));
 		OperatorContains contains = (OperatorContains) (OperatorFactoryLocal
@@ -4350,7 +4531,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testDisjointRelationFalse() {
+	public void testDisjointRelationFalse() {
 		{
 			OperatorDisjoint op = (OperatorDisjoint) (OperatorFactoryLocal
 					.getInstance().getOperator(Operator.Type.Disjoint));
@@ -4425,259 +4606,341 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolylinePolylineRelate() {
-		OperatorRelate op = (OperatorRelate) (OperatorFactoryLocal
-				.getInstance().getOperator(Operator.Type.Relate));
-		SpatialReference sr = SpatialReference.create(4326);
-		boolean res;
-		String scl;
+	public void testPolylinePolylineRelate() {
+        OperatorRelate op = OperatorRelate.local();
+        SpatialReference sr = SpatialReference.create(4326);
+        boolean res;
+        String scl;
 
-		Polyline polyline1 = new Polyline();
-		Polyline polyline2 = new Polyline();
+        Polyline polyline1 = new Polyline();
+        Polyline polyline2 = new Polyline();
 
-		polyline1.startPath(0, 0);
-		polyline1.lineTo(1, 1);
+        polyline1.startPath(0, 0);
+        polyline1.lineTo(1, 1);
 
-		polyline2.startPath(1, 1);
-		polyline2.lineTo(2, 0);
+        polyline2.startPath(1, 1);
+        polyline2.lineTo(2, 0);
 
-		scl = "FF1FT01T2";
-		res = op.execute(polyline1, polyline2, sr, scl, null);
-		assertTrue(res);
+        scl = "FF1FT01T2";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(res);
 
-		scl = "****TF*T*";
-		res = op.execute(polyline1, polyline2, sr, scl, null);
-		assertTrue(!res);
+        scl = "****TF*T*";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(!res);
 
-		scl = "****F****";
-		res = op.execute(polyline1, polyline2, sr, scl, null);
-		assertTrue(!res);
+        scl = "****F****";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(!res);
 
-		scl = "**1*0*T**";
-		res = op.execute(polyline1, polyline2, sr, scl, null);
-		assertTrue(res);
+        scl = "**1*0*T**";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(res);
 
-		scl = "****1****";
-		res = op.execute(polyline1, polyline2, sr, scl, null);
-		assertTrue(!res);
+        scl = "****1****";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(!res);
 
-		scl = "**T*001*T";
-		res = op.execute(polyline1, polyline2, sr, scl, null);
-		assertTrue(res);
+        scl = "**T*001*T";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(res);
 
-		scl = "T********";
-		res = op.execute(polyline1, polyline2, sr, scl, null);
-		assertTrue(!res);
+        scl = "T********";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(!res);
 
-		scl = "F********";
-		res = op.execute(polyline1, polyline2, sr, scl, null);
-		assertTrue(res);
+        scl = "F********";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(res);
 
-		polyline1.setEmpty();
-		polyline2.setEmpty();
+        polyline1.setEmpty();
+        polyline2.setEmpty();
 
-		polyline1.startPath(0, 0);
-		polyline1.lineTo(1, 0);
+        polyline1.startPath(0, 0);
+        polyline1.lineTo(1, 0);
 
-		polyline2.startPath(0, 0);
-		polyline2.lineTo(1, 0);
+        polyline2.startPath(0, 0);
+        polyline2.lineTo(1, 0);
 
-		scl = "1FFFTFFFT";
-		res = op.execute(polyline1, polyline2, sr, scl, null);
-		assertTrue(res);
+        scl = "1FFFTFFFT";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(res);
 
-		scl = "1*T*T****";
-		res = op.execute(polyline1, polyline2, sr, scl, null);
-		assertTrue(!res);
+        scl = "1*T*T****";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(!res);
 
-		scl = "1T**T****";
-		res = op.execute(polyline1, polyline2, sr, scl, null);
-		assertTrue(!res);
+        scl = "1T**T****";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(!res);
 
-		polyline1.setEmpty();
-		polyline2.setEmpty();
+        polyline1.setEmpty();
+        polyline2.setEmpty();
 
-		polyline1.startPath(0, 0);
-		polyline1.lineTo(0.5, 0.5);
-		polyline1.lineTo(1, 1);
+        polyline1.startPath(0, 0);
+        polyline1.lineTo(0.5, 0.5);
+        polyline1.lineTo(1, 1);
 
-		polyline2.startPath(1, 0);
-		polyline2.lineTo(0.5, 0.5);
-		polyline2.lineTo(0, 1);
+        polyline2.startPath(1, 0);
+        polyline2.lineTo(0.5, 0.5);
+        polyline2.lineTo(0, 1);
 
-		scl = "0F1FFTT0T";
-		res = op.execute(polyline1, polyline2, sr, scl, null);
-		assertTrue(res);
+        scl = "0F1FFTT0T";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(res);
 
-		scl = "*T*******";
-		res = op.execute(polyline1, polyline2, sr, scl, null);
-		assertTrue(!res);
+        scl = "*T*******";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(!res);
 
-		scl = "*F*F*****";
-		res = op.execute(polyline1, polyline2, sr, scl, null);
-		assertTrue(res);
+        scl = "*F*F*****";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(res);
 
-		polyline1.setEmpty();
-		polyline2.setEmpty();
+        polyline1.setEmpty();
+        polyline2.setEmpty();
 
-		polyline1.startPath(0, 0);
-		polyline1.lineTo(1, 0);
+        polyline1.startPath(0, 0);
+        polyline1.lineTo(1, 0);
 
-		polyline2.startPath(1, -1);
-		polyline2.lineTo(1, 1);
+        polyline2.startPath(1, -1);
+        polyline2.lineTo(1, 1);
 
-		scl = "FT1TF01TT";
-		res = op.execute(polyline1, polyline2, sr, scl, null);
-		assertTrue(!res);
+        scl = "FT1TF01TT";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(!res);
 
-		scl = "***T*****";
-		res = op.execute(polyline1, polyline2, sr, scl, null);
-		assertTrue(res);
+        scl = "***T*****";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(res);
 
-		polyline1.setEmpty();
-		polyline2.setEmpty();
+        polyline1.setEmpty();
+        polyline2.setEmpty();
 
-		polyline1.startPath(0, 0);
-		polyline1.lineTo(0, 20);
-		polyline1.lineTo(20, 20);
-		polyline1.lineTo(20, 0);
-		polyline1.lineTo(0, 0); // has no boundary
+        polyline1.startPath(0, 0);
+        polyline1.lineTo(0, 20);
+        polyline1.lineTo(20, 20);
+        polyline1.lineTo(20, 0);
+        polyline1.lineTo(0, 0); // has no boundary
 
-		polyline2.startPath(3, 3);
-		polyline2.lineTo(5, 5);
+        polyline2.startPath(3, 3);
+        polyline2.lineTo(5, 5);
 
-		op.accelerateGeometry(polyline1, sr,
-				Geometry.GeometryAccelerationDegree.enumHot);
+        op.accelerateGeometry(polyline1, sr, Geometry.GeometryAccelerationDegree.enumHot);
 
-		scl = "FF1FFF102";
-		res = op.execute(polyline1, polyline2, sr, scl, null);
-		assertTrue(res);
+        scl = "FF1FFF102";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(res);
 
-		polyline1.setEmpty();
-		polyline2.setEmpty();
+        polyline1.setEmpty();
+        polyline2.setEmpty();
 
-		polyline1.startPath(4, 0);
-		polyline1.lineTo(0, 4);
-		polyline1.lineTo(4, 8);
-		polyline1.lineTo(8, 4);
+        polyline1.startPath(4, 0);
+        polyline1.lineTo(0, 4);
+        polyline1.lineTo(4, 8);
+        polyline1.lineTo(8, 4);
 
-		polyline2.startPath(8, 1);
-		polyline2.lineTo(8, 2);
+        polyline2.startPath(8, 1);
+        polyline2.lineTo(8, 2);
 
-		op.accelerateGeometry(polyline1, sr,
-				Geometry.GeometryAccelerationDegree.enumHot);
+        op.accelerateGeometry(polyline1, sr, GeometryAccelerationDegree.enumHot);
 
-		scl = "FF1FF0102";
-		res = op.execute(polyline1, polyline2, sr, scl, null);
-		assertTrue(res);
+        scl = "FF1FF0102";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(res);
+
+        polyline1.setEmpty();
+        polyline2.setEmpty();
+        polyline1.startPath(4, 0);
+        polyline1.lineTo(0, 4);
+        polyline2.startPath(3, 2);
+        polyline2.lineTo(3, 2);
+        assertTrue(polyline2.getBoundary().isEmpty());
+
+        scl = "******0F*";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(res);
+
+        polyline2.lineTo(3, 2);
+        assertTrue(polyline2.getBoundary().isEmpty());
+
+        scl = "******0F*";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(res);
+        scl = "******0F*";
+
+        polyline2.lineTo(3, 2);
+        assertTrue(polyline2.getBoundary().isEmpty());
+
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(res);
+
+        polyline1.setEmpty();
+        polyline2.setEmpty();
+        polyline1.startPath(3, 3);
+        polyline1.lineTo(3, 4);
+        polyline1.lineTo(3, 3);
+        polyline2.startPath(1, 1);
+        polyline2.lineTo(1, 1);
+
+        scl = "FF1FFF0F2";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(res);
+        scl = "FF0FFF1F2";
+        res = op.execute(polyline2, polyline1, sr, scl, null);
+        assertTrue(res);
+
+        polyline1.setEmpty();
+        polyline2.setEmpty();
+        polyline1.startPath(4, 0);
+        polyline1.lineTo(0, 4);
+        polyline2.startPath(2, 2);
+        polyline2.lineTo(2, 2);
+
+        scl = "0F*******";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(res);
+
+        polyline2.lineTo(2, 2);
+
+        scl = "0F*******";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(res);
+        scl = "0F*******";
+        res = op.execute(polyline1, polyline2, sr, scl, null);
+        assertTrue(res);
 	}
 
 	@Test
-	public static void testPolygonPolylineRelate() {
-		OperatorRelate op = (OperatorRelate) (OperatorFactoryLocal
-				.getInstance().getOperator(Operator.Type.Relate));
-		SpatialReference sr = SpatialReference.create(4326);
-		boolean res;
-		String scl;
+	public void testPolygonPolylineRelate() {
+        OperatorRelate op = OperatorRelate.local();
+        SpatialReference sr = SpatialReference.create(4326);
+        boolean res;
+        String scl;
 
-		Polygon polygon1 = new Polygon();
-		Polyline polyline2 = new Polyline();
+        Polygon polygon1 = new Polygon();
+        Polyline polyline2 = new Polyline();
 
-		polygon1.startPath(0, 0);
-		polygon1.lineTo(0, 10);
-		polygon1.lineTo(10, 10);
-		polygon1.lineTo(10, 0);
+        polygon1.startPath(0, 0);
+        polygon1.lineTo(0, 10);
+        polygon1.lineTo(10, 10);
+        polygon1.lineTo(10, 0);
 
-		polyline2.startPath(-10, 0);
-		polyline2.lineTo(0, 0);
+        polyline2.startPath(-10, 0);
+        polyline2.lineTo(0, 0);
 
-		scl = "FF2F01102";
-		res = op.execute(polygon1, polyline2, sr, scl, null);
-		assertTrue(res);
+        scl = "FF2F01102";
+        res = op.execute(polygon1, polyline2, sr, scl, null);
+        assertTrue(res);
 
-		scl = "**1*0110*";
-		res = op.execute(polygon1, polyline2, sr, scl, null);
-		assertTrue(!res);
+        scl = "**1*0110*";
+        res = op.execute(polygon1, polyline2, sr, scl, null);
+        assertTrue(!res);
 
-		scl = "T***T****";
-		res = op.execute(polygon1, polyline2, sr, scl, null);
-		assertTrue(!res);
+        scl = "T***T****";
+        res = op.execute(polygon1, polyline2, sr, scl, null);
+        assertTrue(!res);
 
-		scl = "FF*FT****";
-		res = op.execute(polygon1, polyline2, sr, scl, null);
-		assertTrue(res);
+        scl = "FF2FT****";
+        res = op.execute(polygon1, polyline2, sr, scl, null);
+        assertTrue(res);
 
-		polyline2.setEmpty();
-		polyline2.startPath(0, 0);
-		polyline2.lineTo(10, 0);
+        polyline2.setEmpty();
+        polyline2.startPath(0, 0);
+        polyline2.lineTo(10, 0);
 
-		scl = "***1*1FF*";
-		res = op.execute(polygon1, polyline2, sr, scl, null);
-		assertTrue(res);
+        scl = "**21*1FF*";
+        res = op.execute(polygon1, polyline2, sr, scl, null);
+        assertTrue(res);
 
-		scl = "F**1*1FF*";
-		res = op.execute(polygon1, polyline2, sr, scl, null);
-		assertTrue(res);
+        scl = "F*21*1FF*";
+        res = op.execute(polygon1, polyline2, sr, scl, null);
+        assertTrue(res);
 
-		scl = "0**1*1FF*";
-		res = op.execute(polygon1, polyline2, sr, scl, null);
-		assertTrue(!res);
+        scl = "0**1*1FF*";
+        res = op.execute(polygon1, polyline2, sr, scl, null);
+        assertTrue(!res);
 
-		scl = "F**1*1TF*";
-		res = op.execute(polygon1, polyline2, sr, scl, null);
-		assertTrue(!res);
+        scl = "F**1*1TF*";
+        res = op.execute(polygon1, polyline2, sr, scl, null);
+        assertTrue(!res);
 
-		polyline2.setEmpty();
-		polyline2.startPath(1, 1);
-		polyline2.lineTo(5, 5);
+        polyline2.setEmpty();
+        polyline2.startPath(1, 1);
+        polyline2.lineTo(5, 5);
 
-		scl = "TT*******";
-		res = op.execute(polygon1, polyline2, sr, scl, null);
-		assertTrue(res);
+        scl = "TT2******";
+        res = op.execute(polygon1, polyline2, sr, scl, null);
+        assertTrue(res);
 
-		scl = "1T2FF1FF*";
-		res = op.execute(polygon1, polyline2, sr, scl, null);
-		assertTrue(res);
+        scl = "1T2FF1FF*";
+        res = op.execute(polygon1, polyline2, sr, scl, null);
+        assertTrue(res);
 
-		scl = "1T1FF1FF*";
-		res = op.execute(polygon1, polyline2, sr, scl, null);
-		assertTrue(!res);
+        scl = "1T1FF1FF*";
+        res = op.execute(polygon1, polyline2, sr, scl, null);
+        assertTrue(!res);
 
-		polyline2.setEmpty();
-		polyline2.startPath(5, 5);
-		polyline2.lineTo(15, 5);
+        polyline2.setEmpty();
+        polyline2.startPath(5, 5);
+        polyline2.lineTo(15, 5);
 
-		scl = "1T*0F*T0T";
-		res = op.execute(polygon1, polyline2, sr, scl, null);
-		assertTrue(res);
+        scl = "1T20F*T0T";
+        res = op.execute(polygon1, polyline2, sr, scl, null);
+        assertTrue(res);
 
-		polygon1.setEmpty();
-		polyline2.setEmpty();
+        polygon1.setEmpty();
+        polyline2.setEmpty();
 
-		polygon1.startPath(2, 0);
-		polygon1.lineTo(0, 2);
-		polygon1.lineTo(2, 4);
-		polygon1.lineTo(4, 2);
+        polygon1.startPath(2, 0);
+        polygon1.lineTo(0, 2);
+        polygon1.lineTo(2, 4);
+        polygon1.lineTo(4, 2);
 
-		polyline2.startPath(1, 2);
-		polyline2.lineTo(3, 2);
+        polyline2.startPath(1, 2);
+        polyline2.lineTo(3, 2);
 
-		op.accelerateGeometry(polygon1, sr,
-				Geometry.GeometryAccelerationDegree.enumHot);
-		scl = "TTTFF****";
-		res = op.execute(polygon1, polyline2, sr, scl, null);
-		assertTrue(res);
+        op.accelerateGeometry(polygon1, sr, GeometryAccelerationDegree.enumHot);
+        scl = "TTTFF****";
+        res = op.execute(polygon1, polyline2, sr, scl, null);
+        assertTrue(res);
 
-		polyline2.setEmpty();
-		polyline2.startPath(5, 2);
-		polyline2.lineTo(7, 2);
-		scl = "FF2FFT***";
-		res = op.execute(polygon1, polyline2, sr, scl, null);
-		assertTrue(res);
+        polyline2.setEmpty();
+        polyline2.startPath(5, 2);
+        polyline2.lineTo(7, 2);
+        scl = "FF2FFT***";
+        res = op.execute(polygon1, polyline2, sr, scl, null);
+        assertTrue(res);
+
+        polygon1.setEmpty();
+        polyline2.setEmpty();
+        polygon1.startPath(0, 0);
+        polygon1.lineTo(0, 1);
+        polygon1.lineTo(1, 0);
+        polyline2.startPath(0, 10);
+        polyline2.lineTo(0, 9);
+        polyline2.startPath(10, 0);
+        polyline2.lineTo(9, 0);
+        polyline2.startPath(0, -10);
+        polyline2.lineTo(0, -9);
+        scl = "**2******";
+        res = op.execute(polygon1, polyline2, sr, scl, null);
+        assertTrue(res);
+
+        polygon1.setEmpty();
+        polyline2.setEmpty();
+        polygon1.startPath(0, 0);
+        polygon1.lineTo(0, 1);
+        polygon1.lineTo(0, 0);
+        polyline2.startPath(0, 10);
+        polyline2.lineTo(0, 9);
+        scl = "**1******";
+        res = op.execute(polygon1, polyline2, sr, scl, null);
+        assertTrue(res);
 	}
 
 	@Test
-	public static void testPolygonPolygonRelate() {
+	public void testPolygonPolygonRelate() {
 		OperatorRelate op = (OperatorRelate) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Relate));
 		SpatialReference sr = SpatialReference.create(4326);
@@ -4724,10 +4987,46 @@ public class TestRelation extends TestCase {
 		scl = "212FF1FFT";
 		res = op.execute(polygon1, polygon2, sr, scl, null);
 		assertTrue(res);
+
+        polygon1.setEmpty();
+        polygon2.setEmpty();
+        polygon1.startPath(3, 3);
+        polygon1.lineTo(3, 4);
+        polygon1.lineTo(3, 3);
+        polygon2.startPath(1, 1);
+        polygon2.lineTo(1, 1);
+
+        scl = "FF1FFF0F2";
+        res = op.execute(polygon1, polygon2, sr, scl, null);
+        assertTrue(res);
+        scl = "FF0FFF1F2";
+        res = op.execute(polygon2, polygon1, sr, scl, null);
+        assertTrue(res);
+
+        polygon1.setEmpty();
+        polygon2.setEmpty();
+        polygon1.startPath(0, 0);
+        polygon1.lineTo(0, 100);
+        polygon1.lineTo(100, 100);
+        polygon1.lineTo(100, 0);
+        polygon2.startPath(50, 50);
+        polygon2.lineTo(50, 50);
+        polygon2.lineTo(50, 50);
+
+        op.accelerateGeometry(polygon1, sr, GeometryAccelerationDegree.enumHot);
+
+        scl = "0F2FF1FF2";
+        res = op.execute(polygon1, polygon2, sr, scl, null);
+        assertTrue(res);
+
+        polygon2.lineTo(51, 50);
+        scl = "1F2FF1FF2";
+        res = op.execute(polygon1, polygon2, sr, scl, null);
+        assertTrue(res);
 	}
 
 	@Test
-	public static void testMultiPointPointRelate() {
+	public void testMultiPointPointRelate() {
 		OperatorRelate op = (OperatorRelate) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Relate));
 		SpatialReference sr = SpatialReference.create(4326);
@@ -4751,10 +5050,19 @@ public class TestRelation extends TestCase {
 		m1.add(1, 1);
 		res = op.execute(m1, p2, sr, scl, null);
 		assertTrue(res);
+
+        m1.setEmpty();
+
+        m1.add(1, 1);
+        m1.add(2, 2);
+
+        scl = "FF0FFFTF2";
+        res = op.execute(m1, p2, sr, scl, null);
+        assertTrue(res);
 	}
 
 	@Test
-	public static void testPointPointRelate() {
+	public void testPointPointRelate() {
 		OperatorRelate op = (OperatorRelate) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Relate));
 		SpatialReference sr = SpatialReference.create(4326);
@@ -4775,10 +5083,22 @@ public class TestRelation extends TestCase {
 		p2.setXY(1, 0);
 		res = op.execute(p1, p2, null, scl, null);
 		assertTrue(!res);
+
+        p1.setEmpty();
+        p2.setEmpty();
+        scl = "*********";
+        res = op.execute(p1, p2, null, scl, null);
+        assertTrue(res);
+        scl = "FFFFFFFFF";
+        res = op.execute(p1, p2, null, scl, null);
+        assertTrue(res);
+        scl = "FFFFFFFFT";
+        res = op.execute(p1, p2, null, scl, null);
+        assertTrue(!res);
 	}
 
 	@Test
-	public static void testPolygonMultiPointRelate() {
+	public void testPolygonMultiPointRelate() {
 		OperatorRelate op = (OperatorRelate) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Relate));
 		SpatialReference sr = SpatialReference.create(4326);
@@ -4858,7 +5178,7 @@ public class TestRelation extends TestCase {
 	}
 
 	@Test
-	public static void testPolygonPointRelate() {
+	public void testPolygonPointRelate() {
 		OperatorRelate op = (OperatorRelate) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Relate));
 		SpatialReference sr = SpatialReference.create(4326);
@@ -4878,42 +5198,147 @@ public class TestRelation extends TestCase {
 		scl = "FF20FTFFT";
 		res = op.execute(polygon, point, sr, scl, null);
 		assertTrue(res);
+
+        polygon.setEmpty();
+        polygon.startPath(0, 0);
+        polygon.lineTo(0, 0);
+        polygon.lineTo(0, 0);
+        scl = "0FFFFFFF2";
+        res = op.execute(polygon, point, sr, scl, null);
+        assertTrue(res);
+
+        polygon.setEmpty();
+        polygon.startPath(0, 0);
+        polygon.lineTo(0, 1);
+        polygon.lineTo(0, 0);
+        scl = "0F1FFFFF2";
+        res = op.execute(polygon, point, sr, scl, null);
+        assertTrue(res);
+
+        point.setXY(-1, 0);
+
+        scl = "FF1FFF0F2";
+        res = op.execute(polygon, point, sr, scl, null);
+        assertTrue(res);
+
+        polygon.setEmpty();
+        polygon.startPath(0, 0);
+        polygon.lineTo(0, 10);
+        polygon.lineTo(0, 0);
+        scl = "FF1FFFTFT";
+        res = op.execute(polygon, point, sr, scl, null);
+        assertTrue(res);
+
+        polygon.setEmpty();
+        polygon.startPath(0, 0);
+        polygon.lineTo(0, 0);
+        polygon.lineTo(0, 0);
+        scl = "FF0FFF0F2";
+        res = op.execute(polygon, point, sr, scl, null);
+        assertTrue(res);
 	}
 
 	@Test
-	public static void testPolylineMultiPointRelate() {
-		OperatorRelate op = (OperatorRelate) (OperatorFactoryLocal
-				.getInstance().getOperator(Operator.Type.Relate));
-		SpatialReference sr = SpatialReference.create(4326);
-		boolean res;
-		String scl;
+	public void testPolylineMultiPointRelate() {
+        OperatorRelate op = OperatorRelate.local();
+        SpatialReference sr = SpatialReference.create(4326);
+        boolean res;
+        String scl;
 
-		Polyline polyline1 = new Polyline();
-		MultiPoint multipoint2 = new MultiPoint();
+        Polyline polyline1 = new Polyline();
+        MultiPoint multipoint2 = new MultiPoint();
 
-		polyline1.startPath(0, 0);
-		polyline1.lineTo(10, 0);
+        polyline1.startPath(0, 0);
+        polyline1.lineTo(10, 0);
 
-		multipoint2.add(0, 0);
-		multipoint2.add(5, 5);
+        multipoint2.add(0, 0);
+        multipoint2.add(5, 5);
 
-		scl = "FF10F00F2";
-		res = op.execute(polyline1, multipoint2, sr, scl, null);
-		assertTrue(res);
+        scl = "FF10F00F2";
+        res = op.execute(polyline1, multipoint2, sr, scl, null);
+        assertTrue(res);
 
-		multipoint2.add(5, 0);
+        multipoint2.add(5, 0);
 
-		scl = "0F10F00F2";
-		res = op.execute(polyline1, multipoint2, sr, scl, null);
-		assertTrue(res);
+        scl = "0F10F00F2";
+        res = op.execute(polyline1, multipoint2, sr, scl, null);
+        assertTrue(res);
 
-		scl = "0F11F00F2";
-		res = op.execute(polyline1, multipoint2, sr, scl, null);
-		assertTrue(!res);
+        scl = "0F11F00F2";
+        res = op.execute(polyline1, multipoint2, sr, scl, null);
+        assertTrue(!res);
+
+        polyline1.setEmpty();
+        multipoint2.setEmpty();
+
+        polyline1.startPath(4, 0);
+        polyline1.lineTo(0, 4);
+        polyline1.lineTo(4, 8);
+        polyline1.lineTo(8, 4);
+        polyline1.lineTo(4, 0); // has no boundary
+
+        multipoint2.add(8, 1);
+        multipoint2.add(8, 2);
+
+        op.accelerateGeometry(polyline1, sr, GeometryAccelerationDegree.enumHot);
+
+        scl = "FF1FFF0F2";
+        res = op.execute(polyline1, multipoint2, sr, scl, null);
+        assertTrue(res);
+
+        polyline1.setEmpty();
+        multipoint2.setEmpty();
+
+        polyline1.startPath(4, 0);
+        polyline1.lineTo(4, 0);
+
+        multipoint2.add(8, 1);
+        multipoint2.add(8, 2);
+
+        scl = "FF0FFF0F2";
+        res = op.execute(polyline1, multipoint2, sr, scl, null);
+        assertTrue(res);
+
+        multipoint2.add(-2, 0);
+        res = op.execute(polyline1, multipoint2, sr, scl, null);
+        assertTrue(res);
+
+        op.accelerateGeometry(polyline1, sr, GeometryAccelerationDegree.enumHot);
+        res = op.execute(polyline1, multipoint2, sr, scl, null);
+        assertTrue(res);
+
+        polyline1.setEmpty();
+        multipoint2.setEmpty();
+
+        polyline1.startPath(10, 10);
+        polyline1.lineTo(10, 10);
+        multipoint2.add(10, 10);
+
+        scl = "0FFFFFFF2";
+        res = op.execute(polyline1, multipoint2, sr, scl, null);
+        assertTrue(res);
+
+        polyline1.startPath(12, 12);
+        polyline1.lineTo(12, 12);
+
+        scl = "0F0FFFFF2";
+        res = op.execute(polyline1, multipoint2, sr, scl, null);
+        assertTrue(res);
+
+        polyline1.setEmpty();
+        multipoint2.setEmpty();
+
+        polyline1.startPath(10, 10);
+        polyline1.lineTo(10, 10);
+        multipoint2.add(0, 0);
+
+        scl = "FF0FFF0F2";
+        res = op.execute(polyline1, multipoint2, sr, scl, null);
+        assertTrue(res);
 	}
 
 	@Test
-	public static void testMultiPointMultipointRelate() {
+	public void testMultiPointMultipointRelate() {
 		OperatorRelate op = (OperatorRelate) (OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Relate));
 		SpatialReference sr = SpatialReference.create(4326);
@@ -4945,10 +5370,101 @@ public class TestRelation extends TestCase {
 
 		res = GeometryEngine.relate(multipoint1, multipoint2, sr, scl);
 		assertTrue(res);
+
+        multipoint1.setEmpty();
+        multipoint2.setEmpty();
+
+        multipoint1.add(0, 0);
+        multipoint2.add(1, 1);
+
+        scl = "FFTFFF0FT";
+        res = op.execute(multipoint1, multipoint2, sr, scl, null);
+        assertTrue(res);
 	}
 
+    @Test
+    public void testPolylinePointRelate()
+    {
+        OperatorRelate op = OperatorRelate.local();
+        SpatialReference sr = SpatialReference.create(4326);
+        boolean res;
+        String scl;
+
+        Polyline polyline = new Polyline();
+        Point point = new Point();
+
+        polyline.startPath(0, 2);
+        polyline.lineTo(0, 4);
+
+        point.setXY(0, 3);
+
+        scl = "0F1FF0FF2";
+        res = op.execute(polyline, point, sr, scl, null);
+        assertTrue(res);
+
+        point.setXY(1, 3);
+
+        scl = "FF1FF00F2";
+        res = op.execute(polyline, point, sr, scl, null);
+        assertTrue(res);
+
+        polyline.lineTo(4, 4);
+        polyline.lineTo(4, 2);
+        polyline.lineTo(0, 2); // no bounadry
+        point.setXY(0, 3);
+
+        scl = "0F1FFFFF2";
+        res = op.execute(polyline, point, sr, scl, null);
+        assertTrue(res);
+
+        scl = "0F1FFFFF2";
+        res = op.execute(polyline, point, sr, scl, null);
+        assertTrue(res);
+
+        point.setXY(1, 3);
+
+        scl = "FF1FFF0F2";
+        res = op.execute(polyline, point, sr, scl, null);
+        assertTrue(res);
+
+        point.setXY(10, 10);
+
+        scl = "FF1FFF0F2";
+        res = op.execute(polyline, point, sr, scl, null);
+        assertTrue(res);
+
+        polyline.setEmpty();
+        point.setEmpty();
+
+        polyline.startPath(10, 10);
+        polyline.lineTo(10, 10);
+        point.setXY(10, 10);
+
+        scl = "0FFFFFFF2";
+        res = op.execute(polyline, point, sr, scl, null);
+        assertTrue(res);
+
+        polyline.startPath(12, 12);
+        polyline.lineTo(12, 12);
+
+        scl = "0F0FFFFF2";
+        res = op.execute(polyline, point, sr, scl, null);
+        assertTrue(res);
+
+        polyline.setEmpty();
+        point.setEmpty();
+
+        polyline.startPath(10, 10);
+        polyline.lineTo(10, 10);
+        point.setXY(0, 0);
+
+        scl = "FF0FFF0F2";
+        res = op.execute(polyline, point, sr, scl, null);
+        assertTrue(res);
+    }
+
 	@Test
-	public static void testCrosses_github_issue_40() {
+	public void testCrosses_github_issue_40() {
 		// Issue 40: Acceleration without a spatial reference changes the result
 		// of relation operators
 		Geometry geom1 = OperatorImportFromWkt.local().execute(0,

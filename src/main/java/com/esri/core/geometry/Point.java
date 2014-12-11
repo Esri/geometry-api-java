@@ -623,4 +623,18 @@ public final class Point extends Geometry implements Serializable {
     public Geometry getBoundary() {
         return null;
     }
+    
+    @Override
+    public void replaceNaNs(int semantics, double value) {
+    	addAttribute(semantics);
+    	if (isEmpty())
+    		return;
+    	
+    	int ncomps = VertexDescription.getComponentCount(semantics);
+    	for (int i = 0; i < ncomps; i++) {
+    		double v = getAttributeAsDbl(semantics, i);
+    		if (Double.isNaN(v))
+    			setAttribute(semantics, i, value);
+    	}
+    }
 }

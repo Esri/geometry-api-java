@@ -32,7 +32,7 @@ import java.io.Serializable;
  * together. To work with a geometry object in a map it is necessary to have a
  * spatial reference defined for this geometry.
  */
-public final class MapGeometry implements Serializable {
+public class MapGeometry implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	Geometry m_geometry = null;

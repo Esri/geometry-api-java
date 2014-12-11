@@ -35,13 +35,10 @@ import java.io.Serializable;
  */
 public final class Line extends Segment implements Serializable {
 
-	// UPDATED PORT TO MATCH NATIVE AS OF JAN 30 2011
-
 	private static final long serialVersionUID = 2L;// TODO:remove as we use
 													// writeReplace and
 													// GeometrySerializer
 
-	// HEADER DEF
 	@Override
 	public Geometry.Type getType() {
 		return Type.Line;
@@ -190,32 +187,15 @@ public final class Line extends Segment implements Serializable {
 	}
 
 	double getCoordX_(double t) {
-		// double x = m_x_end * t + (1.0 - t) * m_x_start; <<when endX ==
-		// startX, endY != startY, and t at 1/3, it produces value different
-		// from startX
 		// Must match query_coord_2D and vice verse
 		// Also match get_attribute_as_dbl
-		double x;
-		if (t <= 0.5) {
-			x = m_xStart + (m_xEnd - m_xStart) * t;
-		} else {
-			x = m_xEnd - (m_xEnd - m_xStart) * (1.0 - t);
-		}
-		assert (t < 0 || t > 1.0 || (x >= m_xStart && x <= m_xEnd) || (x <= m_xStart && x >= m_xEnd));
-		return x;
+		return MathUtils.lerp(m_xStart,  m_xEnd, t);
 	}
 
 	double getCoordY_(double t) {
 		// Must match query_coord_2D and vice verse
 		// Also match get_attribute_as_dbl
-		double y;
-		if (t <= 0.5) {
-			y = m_yStart + (m_yEnd - m_yStart) * t;
-		} else {
-			y = m_yEnd - (m_yEnd - m_yStart) * (1.0 - t);
-		}
-		assert (t < 0 || t > 1.0 || (y >= m_yStart && y <= m_yEnd) || (y <= m_yStart && y >= m_yEnd));
-		return y;
+		return MathUtils.lerp(m_yStart,  m_yEnd, t);
 	}
 
 	@Override
@@ -225,17 +205,7 @@ public final class Line extends Segment implements Serializable {
 		// 2. When t == 1, get exactly End
 		// 3. When m_x_end == m_x_start, we want m_x_start exactly
 		// 4. When m_y_end == m_y_start, we want m_y_start exactly
-		if (t <= 0.5) {
-			pt.x = m_xStart + (m_xEnd - m_xStart) * t;
-			pt.y = m_yStart + (m_yEnd - m_yStart) * t;
-		} else {
-			pt.x = m_xEnd - (m_xEnd - m_xStart) * (1.0 - t);
-			pt.y = m_yEnd - (m_yEnd - m_yStart) * (1.0 - t);
-		}
-		// assert(t < 0 || t > 1.0 || (pt.x >= m_x_start && pt.x <= m_x_end) ||
-		// (pt.x <= m_x_start && pt.x >= m_x_end));
-		// assert(t < 0 || t > 1.0 || (pt.y >= m_y_start && pt.y <= m_y_end) ||
-		// (pt.y <= m_y_start && pt.y >= m_y_end));
+		MathUtils.lerp(m_xStart, m_yStart, m_xEnd, m_yEnd, t, pt);
 	}
 
 	@Override
@@ -289,7 +259,7 @@ public final class Line extends Segment implements Serializable {
 		case VertexDescription.Interpolation.LINEAR: {
 			double s = getStartAttributeAsDbl(semantics, ordinate);
 			double e = getEndAttributeAsDbl(semantics, ordinate);
-			return s * (1.0 - t) + e * t;
+			return MathUtils.lerp(s,  e,  t);
 		}
 		case VertexDescription.Interpolation.ANGULAR: {
 			throw new GeometryException("not implemented");
@@ -1002,6 +972,25 @@ public final class Line extends Segment implements Serializable {
 
 		return 1;
 	}
+	
+    @Override
+    public void replaceNaNs(int semantics, double value) {
+    	addAttribute(semantics);
+    	if (isEmpty())
+    		return;
+    	
+    	int ncomps = VertexDescription.getComponentCount(semantics);
+    	for (int i = 0; i < ncomps; i++) {
+    		double v = _getAttributeAsDbl(0, semantics, i);
+    		if (Double.isNaN(v))
+    			_setAttribute(0, semantics, 0, value);
+    		
+    		v = _getAttributeAsDbl(1, semantics, i);
+    		if (Double.isNaN(v))
+    			_setAttribute(1, semantics, 0, value);
+    	}
+    }
+	
 
 	@Override
 	int getYMonotonicParts(SegmentBuffer[] monotonicSegments) {
@@ -1014,4 +1003,13 @@ public final class Line extends Segment implements Serializable {
 
 	}
 
+	/**
+	 * The output of this method can be only used for debugging. It is subject to change without notice. 
+	 */
+	@Override
+	public String toString() {
+		String s = "Line: [" + m_xStart + ", " + m_yStart + ", " + m_xEnd + ", " + m_yEnd +"]"; 
+		return s;
+	}
+	
 }

@@ -1139,32 +1139,49 @@ class RelationalOperations {
 		if (relation == Relation.disjoint || relation == Relation.contains)
 			return false;
 
-		Envelope2D env_a_inflated = new Envelope2D();
-		polygon_a.queryEnvelope2D(env_a_inflated);
-		env_a_inflated.inflate(tolerance, tolerance);
+        Envelope2D env_a_inflated = new Envelope2D();
+        polygon_a.queryEnvelope2D(env_a_inflated);
+        env_a_inflated.inflate(tolerance, tolerance);
 
-		Point2D ptB = new Point2D();
-		boolean b_boundary = false;
+        Point2D ptB;
+        boolean b_boundary = false;
 
-		for (int i = 0; i < multipoint_b.getPointCount(); i++) {
-			multipoint_b.getXY(i, ptB);
+        MultiPathImpl polygon_a_impl = (MultiPathImpl)polygon_a._getImpl();
 
-			if (!env_a_inflated.contains(ptB))
-				continue;
+        Polygon pa = null;
+        Polygon p_polygon_a = null;
 
-			PolygonUtils.PiPResult result = PolygonUtils.isPointInPolygon2D(
-					polygon_a, ptB, tolerance);
+        if (PointInPolygonHelper.quadTreeWillHelp(polygon_a, multipoint_b.getPointCount()) && (polygon_a_impl._getAccelerators() == null || polygon_a_impl._getAccelerators().getQuadTree() == null))
+        {
+            pa = new Polygon();
+            polygon_a.copyTo(pa);
+            ((MultiPathImpl)pa._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
+            p_polygon_a = pa;
+        }
+        else
+        {
+            p_polygon_a = polygon_a;
+        }
 
-			if (result == PolygonUtils.PiPResult.PiPBoundary)
-				b_boundary = true;
-			else if (result == PolygonUtils.PiPResult.PiPInside)
-				return false;
-		}
+        for (int i = 0; i < multipoint_b.getPointCount(); i++)
+        {
+            ptB = multipoint_b.getXY(i);
 
-		if (b_boundary)
-			return true;
+            if (!env_a_inflated.contains(ptB))
+                continue;
 
-		return false;
+            PolygonUtils.PiPResult result = PolygonUtils.isPointInPolygon2D(p_polygon_a, ptB, tolerance);
+
+            if (result == PolygonUtils.PiPResult.PiPBoundary)
+                b_boundary = true;
+            else if (result == PolygonUtils.PiPResult.PiPInside)
+                return false;
+        }
+
+        if (b_boundary)
+            return true;
+
+        return false;
 	}
 
 	// Returns true if polygon_a crosses multipoint_b.
@@ -1179,36 +1196,56 @@ class RelationalOperations {
 		if (relation == Relation.disjoint || relation == Relation.contains)
 			return false;
 
-		Envelope2D env_a = new Envelope2D(), env_a_inflated = new Envelope2D(), env_b = new Envelope2D();
-		polygon_a.queryEnvelope2D(env_a);
-		multipoint_b.queryEnvelope2D(env_b);
-		env_a_inflated.setCoords(env_a);
-		env_a_inflated.inflate(tolerance, tolerance);
+        Envelope2D env_a = new Envelope2D(), env_a_inflated = new Envelope2D(), env_b = new Envelope2D();
+        polygon_a.queryEnvelope2D(env_a);
+        multipoint_b.queryEnvelope2D(env_b);
+        env_a_inflated.setCoords(env_a);
+        env_a_inflated.inflate(tolerance, tolerance);
 
-		boolean b_interior = false, b_exterior = false;
+        boolean b_interior = false, b_exterior = false;
 
-		Point2D pt_b = new Point2D();
+        Point2D pt_b;
 
-		for (int i = 0; i < multipoint_b.getPointCount(); i++) {
-			multipoint_b.getXY(i, pt_b);
+        MultiPathImpl polygon_a_impl = (MultiPathImpl)polygon_a._getImpl();
 
-			if (!env_a_inflated.contains(pt_b)) {
-				b_exterior = true;
-			} else {
-				PolygonUtils.PiPResult result = PolygonUtils
-						.isPointInPolygon2D(polygon_a, pt_b, tolerance);
+        Polygon pa = null;
+        Polygon p_polygon_a = null;
 
-				if (result == PolygonUtils.PiPResult.PiPOutside)
-					b_exterior = true;
-				else if (result == PolygonUtils.PiPResult.PiPInside)
-					b_interior = true;
-			}
+        if (PointInPolygonHelper.quadTreeWillHelp(polygon_a, multipoint_b.getPointCount()) && (polygon_a_impl._getAccelerators() == null || polygon_a_impl._getAccelerators().getQuadTree() == null))
+        {
+            pa = new Polygon();
+            polygon_a.copyTo(pa);
+            ((MultiPathImpl)pa._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
+            p_polygon_a = pa;
+    }
+        else
+        {
+            p_polygon_a = polygon_a;
+        }
 
-			if (b_interior && b_exterior)
-				return true;
-		}
+        for (int i = 0; i < multipoint_b.getPointCount(); i++)
+        {
+            pt_b = multipoint_b.getXY(i);
 
-		return false;
+            if (!env_a_inflated.contains(pt_b))
+            {
+                b_exterior = true;
+            }
+            else
+            {
+                PolygonUtils.PiPResult result = PolygonUtils.isPointInPolygon2D(p_polygon_a, pt_b, tolerance);
+
+                if (result == PolygonUtils.PiPResult.PiPOutside)
+                    b_exterior = true;
+                else if (result == PolygonUtils.PiPResult.PiPInside)
+                    b_interior = true;
+            }
+
+            if (b_interior && b_exterior)
+                return true;
+        }
+
+        return false;
 	}
 
 	// Returns true if polygon_a contains multipoint_b.
@@ -1234,25 +1271,42 @@ class RelationalOperations {
 		if (relation == Relation.contains)
 			return true;
 
-		boolean b_interior = false;
-		Point2D ptB = new Point2D();
+        boolean b_interior = false;
+        Point2D ptB;
 
-		for (int i = 0; i < multipoint_b.getPointCount(); i++) {
-			multipoint_b.getXY(i, ptB);
+        MultiPathImpl polygon_a_impl = (MultiPathImpl)polygon_a._getImpl();
 
-			if (!env_a.contains(ptB))
-				return false;
+        Polygon pa = null;
+        Polygon p_polygon_a = null;
 
-			PolygonUtils.PiPResult result = PolygonUtils.isPointInPolygon2D(
-					polygon_a, ptB, tolerance);
+        if (PointInPolygonHelper.quadTreeWillHelp(polygon_a, multipoint_b.getPointCount()) && (polygon_a_impl._getAccelerators() == null || polygon_a_impl._getAccelerators().getQuadTree() == null))
+        {
+            pa = new Polygon();
+            polygon_a.copyTo(pa);
+            ((MultiPathImpl)pa._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
+            p_polygon_a = pa;
+        }
+        else
+        {
+            p_polygon_a = polygon_a;
+        }
 
-			if (result == PolygonUtils.PiPResult.PiPInside)
-				b_interior = true;
-			else if (result == PolygonUtils.PiPResult.PiPOutside)
-				return false;
-		}
+        for (int i = 0; i < multipoint_b.getPointCount(); i++)
+        {
+            ptB = multipoint_b.getXY(i);
 
-		return b_interior;
+            if (!env_a.contains(ptB))
+                return false;
+
+            PolygonUtils.PiPResult result = PolygonUtils.isPointInPolygon2D(p_polygon_a, ptB, tolerance);
+
+            if (result == PolygonUtils.PiPResult.PiPInside)
+                b_interior = true;
+            else if (result == PolygonUtils.PiPResult.PiPOutside)
+                return false;
+        }
+
+        return b_interior;
 	}
 
 	// Returns true if polygon_a equals envelope_b.
@@ -1540,6 +1594,14 @@ class RelationalOperations {
 				false) == Relation.disjoint)
 			return true;
 
+        MultiPathImpl multi_path_impl_a = (MultiPathImpl)polyline_a._getImpl();
+        MultiPathImpl multi_path_impl_b = (MultiPathImpl)polyline_b._getImpl();
+
+        PairwiseIntersectorImpl intersector_paths = new PairwiseIntersectorImpl(multi_path_impl_a, multi_path_impl_b, tolerance, true);
+
+        if (!intersector_paths.next())
+            return false;
+
 		return !linearPathIntersectsLinearPath_(polyline_a, polyline_b,
 				tolerance);
 	}
@@ -1716,14 +1778,16 @@ class RelationalOperations {
 		envInter.setCoords(env_a);
 		envInter.intersect(env_b);
 
-		QuadTreeImpl qtA;
-		QuadTreeImpl quadTreeA;
+		QuadTreeImpl qtA = null;
+		QuadTreeImpl quadTreeA = null;
+        QuadTreeImpl quadTreePathsA = null;
 
 		GeometryAccelerators accel = ((MultiPathImpl) (polyline_a._getImpl()))
 				._getAccelerators();
 
 		if (accel != null) {
 			quadTreeA = accel.getQuadTree();
+            quadTreePathsA = accel.getQuadTreeForPaths();
 			if (quadTreeA == null) {
 				qtA = InternalUtils.buildQuadTree(
 						(MultiPathImpl) polyline_a._getImpl(), envInter);
@@ -1736,6 +1800,10 @@ class RelationalOperations {
 		}
 
 		QuadTreeImpl.QuadTreeIteratorImpl qtIterA = quadTreeA.getIterator();
+
+        QuadTreeImpl.QuadTreeIteratorImpl qtIterPathsA = null;
+        if (quadTreePathsA != null)
+            qtIterPathsA = quadTreePathsA.getIterator();
 
 		Point2D ptB = new Point2D(), closest = new Point2D();
 		boolean b_intersects = false;
@@ -1755,6 +1823,14 @@ class RelationalOperations {
 			}
 
 			env_b.setCoords(ptB.x, ptB.y, ptB.x, ptB.y);
+
+            if (qtIterPathsA != null) {
+                qtIterPathsA.resetIterator(env_b, tolerance);
+
+                if (qtIterPathsA.next() == -1)
+                    continue;
+            }
+
 			qtIterA.resetIterator(env_b, tolerance);
 
 			for (int elementHandleA = qtIterA.next(); elementHandleA != -1; elementHandleA = qtIterA
@@ -1818,14 +1894,16 @@ class RelationalOperations {
 		envInter.setCoords(env_a);
 		envInter.intersect(env_b);
 
-		QuadTreeImpl qtA;
-		QuadTreeImpl quadTreeA;
+		QuadTreeImpl qtA = null;
+		QuadTreeImpl quadTreeA = null;
+        QuadTreeImpl quadTreePathsA = null;
 
 		GeometryAccelerators accel = ((MultiPathImpl) (polyline_a._getImpl()))
 				._getAccelerators();
 
 		if (accel != null) {
 			quadTreeA = accel.getQuadTree();
+            quadTreePathsA = accel.getQuadTreeForPaths();
 			if (quadTreeA == null) {
 				qtA = InternalUtils.buildQuadTree(
 						(MultiPathImpl) polyline_a._getImpl(), envInter);
@@ -1839,7 +1917,11 @@ class RelationalOperations {
 
 		QuadTreeImpl.QuadTreeIteratorImpl qtIterA = quadTreeA.getIterator();
 
-		Point2D ptB = new Point2D(), closest = new Point2D();
+        QuadTreeImpl.QuadTreeIteratorImpl qtIterPathsA = null;
+        if (quadTreePathsA != null)
+            qtIterPathsA = quadTreePathsA.getIterator();
+
+        Point2D ptB = new Point2D(), closest = new Point2D();
 		boolean b_intersects = false;
 		boolean b_exterior_found = false;
 		double toleranceSq = tolerance * tolerance;
@@ -1859,6 +1941,16 @@ class RelationalOperations {
 			}
 
 			env_b.setCoords(ptB.x, ptB.y, ptB.x, ptB.y);
+
+            if (qtIterPathsA != null) {
+                qtIterPathsA.resetIterator(env_b, tolerance);
+
+                if (qtIterPathsA.next() == -1) {
+                    b_exterior_found = true;
+                    continue;
+                }
+            }
+
 			qtIterA.resetIterator(env_b, tolerance);
 
 			boolean b_covered = false;
@@ -3071,71 +3163,90 @@ class RelationalOperations {
 	private static boolean polygonDisjointMultiPath_(Polygon polygon_a,
 			MultiPath multipath_b, double tolerance,
 			ProgressTracker progress_tracker) {
-		Point2D pt_a, pt_b;
-		Envelope2D env_a_inf = new Envelope2D(), env_b_inf = new Envelope2D();
+        Point2D pt_a, pt_b;
+        Envelope2D env_a_inf = new Envelope2D(), env_b_inf = new Envelope2D();
 
-		MultiPathImpl multi_path_impl_a = (MultiPathImpl) polygon_a._getImpl();
-		MultiPathImpl multi_path_impl_b = (MultiPathImpl) multipath_b
-				._getImpl();
+        MultiPathImpl multi_path_impl_a = (MultiPathImpl)polygon_a._getImpl();
+        MultiPathImpl multi_path_impl_b = (MultiPathImpl)multipath_b._getImpl();
 
-		boolean b_simple_a = multi_path_impl_a.getIsSimple(0.0) >= 1;
-		boolean b_simple_b = multi_path_impl_b.getIsSimple(0.0) >= 1;
-		Envelope2DIntersectorImpl intersector = InternalUtils
-				.getEnvelope2DIntersectorForParts(multi_path_impl_a,
-						multi_path_impl_b, tolerance, b_simple_a, b_simple_b);
+        PairwiseIntersectorImpl intersector = new PairwiseIntersectorImpl(multi_path_impl_a, multi_path_impl_b, tolerance, true);
 
-		if (intersector != null) {
-			if (!intersector.next()) {
-				return true; // no rings intersect
-			}
-		} else {
-			return true; // no rings intersect
-		}
+        if (!intersector.next())
+            return true; // no rings intersect
 
-		boolean b_intersects = linearPathIntersectsLinearPath_(polygon_a,
-				multipath_b, tolerance);
+        boolean b_intersects = linearPathIntersectsLinearPath_(polygon_a, multipath_b, tolerance);
 
-		if (b_intersects) {
-			return false;
-		}
+        if (b_intersects)
+            return false;
 
-		do {
-			int index_a = intersector.getHandleA();
-			int index_b = intersector.getHandleB();
-			int path_a = intersector.getRedElement(index_a);
-			int path_b = intersector.getBlueElement(index_b);
+        Polygon pa = null;
+        Polygon p_polygon_a = null;
 
-			pt_b = multipath_b.getXY(multipath_b.getPathStart(path_b));
-			env_a_inf.setCoords(intersector.getRedEnvelope(index_a));
-			env_a_inf.inflate(tolerance, tolerance);
+        if (PointInPolygonHelper.quadTreeWillHelp(polygon_a, multipath_b.getPointCount()) && (multi_path_impl_a._getAccelerators() == null || multi_path_impl_a._getAccelerators().getQuadTree() == null))
+        {
+            pa = new Polygon();
+            polygon_a.copyTo(pa);
+            ((MultiPathImpl)pa._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
+            p_polygon_a = pa;
+        }
+        else
+        {
+            p_polygon_a = polygon_a;
+        }
 
-			if (env_a_inf.contains(pt_b)) {
-				PolygonUtils.PiPResult result = PolygonUtils
-						.isPointInPolygon2D(polygon_a, pt_b, 0.0);
+        Polygon pb = null;
+        Polygon p_polygon_b = null;
 
-				if (result != PolygonUtils.PiPResult.PiPOutside) {
-					return false;
-				}
-			}
+        if (multipath_b.getType().value() == Geometry.GeometryType.Polygon)
+        {
+            Polygon polygon_b = (Polygon)multipath_b;
+            if (PointInPolygonHelper.quadTreeWillHelp(polygon_b, polygon_a.getPointCount()) && (multi_path_impl_b._getAccelerators() == null || multi_path_impl_b._getAccelerators().getQuadTree() == null))
+            {
+                pb = new Polygon();
+                polygon_b.copyTo(pb);
+                ((MultiPathImpl)pb._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
+                p_polygon_b = pb;
+            }
+            else
+            {
+                p_polygon_b = (Polygon)multipath_b;
+            }
+        }
 
-			if (multipath_b.getType() == Geometry.Type.Polygon) {
-				pt_a = polygon_a.getXY(polygon_a.getPathStart(path_a));
-				env_b_inf.setCoords(intersector.getBlueEnvelope(index_b));
-				env_b_inf.inflate(tolerance, tolerance);
+        do
+        {
+            int path_a = intersector.getRedElement();
+            int path_b = intersector.getBlueElement();
 
-				if (env_b_inf.contains(pt_a)) {
-					PolygonUtils.PiPResult result = PolygonUtils
-							.isPointInPolygon2D((Polygon) multipath_b, pt_a,
-									0.0);
+            pt_b = multipath_b.getXY(multipath_b.getPathStart(path_b));
+            env_a_inf.setCoords(intersector.getRedEnvelope());
+            env_a_inf.inflate(tolerance, tolerance);
 
-					if (result != PolygonUtils.PiPResult.PiPOutside) {
-						return false;
-					}
-				}
-			}
-		} while (intersector.next());
+            if (env_a_inf.contains(pt_b))
+            {
+                PolygonUtils.PiPResult result = PolygonUtils.isPointInPolygon2D(p_polygon_a, pt_b, 0.0);
 
-		return true;
+                if (result != PolygonUtils.PiPResult.PiPOutside)
+                    return false;
+            }
+
+            if (multipath_b.getType().value() == Geometry.GeometryType.Polygon)
+            {
+                pt_a = polygon_a.getXY(polygon_a.getPathStart(path_a));
+                env_b_inf.setCoords(intersector.getBlueEnvelope());
+                env_b_inf.inflate(tolerance, tolerance);
+
+                if (env_b_inf.contains(pt_a))
+                {
+                    PolygonUtils.PiPResult result = PolygonUtils.isPointInPolygon2D(p_polygon_b, pt_a, 0.0);
+
+                    if (result != PolygonUtils.PiPResult.PiPOutside)
+                        return false;
+                }
+            }
+        } while (intersector.next());
+
+        return true;
 	}
 
 	// Returns true if env_a inflated contains env_b.
@@ -3448,14 +3559,16 @@ class RelationalOperations {
 		SegmentIteratorImpl segIterB = ((MultiPathImpl) multipathB._getImpl())
 				.querySegmentIterator();
 
-		QuadTreeImpl qtB;
-		QuadTreeImpl quadTreeB;
+		QuadTreeImpl qtB = null;
+		QuadTreeImpl quadTreeB = null;
+        QuadTreeImpl quadTreePathsB = null;
 
 		GeometryAccelerators accel = ((MultiPathImpl) multipathB._getImpl())
 				._getAccelerators();
 
 		if (accel != null) {
 			quadTreeB = accel.getQuadTree();
+            quadTreePathsB = accel.getQuadTreeForPaths();
 			if (quadTreeB == null) {
 				qtB = InternalUtils.buildQuadTree(
 						(MultiPathImpl) multipathB._getImpl(), envInter);
@@ -3469,6 +3582,10 @@ class RelationalOperations {
 
 		QuadTreeImpl.QuadTreeIteratorImpl qtIterB = quadTreeB.getIterator();
 
+        QuadTreeImpl.QuadTreeIteratorImpl qtIterPathsB = null;
+        if (quadTreePathsB != null)
+            qtIterPathsB = quadTreePathsB.getIterator();
+
 		while (segIterA.nextPath()) {
 			while (segIterA.hasNextSegment()) {
 				boolean bStringOfSegmentAsCovered = false;
@@ -3479,6 +3596,15 @@ class RelationalOperations {
 				if (!env_a.isIntersecting(envInter)) {
 					return false; // bWithin = false
 				}
+
+                if (qtIterPathsB != null) {
+                    qtIterPathsB.resetIterator(env_a, tolerance);
+
+                    if (qtIterPathsB.next() == -1) {
+                        bWithin = false;
+                        return false;
+                    }
+                }
 
 				double lengthA = segmentA.calculateLength2D();
 
@@ -3709,14 +3835,16 @@ class RelationalOperations {
 			int_point = new Point2D();
 		}
 
-		QuadTreeImpl qtB;
-		QuadTreeImpl quadTreeB;
+		QuadTreeImpl qtB = null;
+		QuadTreeImpl quadTreeB = null;
+        QuadTreeImpl quadTreePathsB = null;
 
 		GeometryAccelerators accel = ((MultiPathImpl) multipathB._getImpl())
 				._getAccelerators();
 
 		if (accel != null) {
 			quadTreeB = accel.getQuadTree();
+            quadTreePathsB = accel.getQuadTreeForPaths();
 			if (quadTreeB == null) {
 				qtB = InternalUtils.buildQuadTree(
 						(MultiPathImpl) multipathB._getImpl(), envInter);
@@ -3730,6 +3858,10 @@ class RelationalOperations {
 
 		QuadTreeImpl.QuadTreeIteratorImpl qtIterB = quadTreeB.getIterator();
 
+        QuadTreeImpl.QuadTreeIteratorImpl qtIterPathsB = null;
+        if (quadTreePathsB != null)
+            qtIterPathsB = quadTreePathsB.getIterator();
+
 		while (segIterA.nextPath()) {
 			overlapLength = 0.0;
 
@@ -3740,6 +3872,13 @@ class RelationalOperations {
 				if (!env_a.isIntersecting(envInter)) {
 					continue;
 				}
+
+                if (qtIterPathsB != null) {
+                    qtIterPathsB.resetIterator(env_a, tolerance);
+
+                    if (qtIterPathsB.next() == -1)
+                        continue;
+                }
 
 				double lengthA = segmentA.calculateLength2D();
 
@@ -3954,12 +4093,11 @@ class RelationalOperations {
 		SegmentIteratorImpl segIterA = multi_path_impl_a.querySegmentIterator();
 		SegmentIteratorImpl segIterB = multi_path_impl_b.querySegmentIterator();
 
-		Pair_wise_intersector intersector = new Pair_wise_intersector(
-				multi_path_impl_a, multi_path_impl_b, tolerance);
+        PairwiseIntersectorImpl intersector = new PairwiseIntersectorImpl(multi_path_impl_a, multi_path_impl_b, tolerance, false);
 
 		while (intersector.next()) {
-			int vertex_a = intersector.get_red_element();
-			int vertex_b = intersector.get_blue_element();
+			int vertex_a = intersector.getRedElement();
+			int vertex_b = intersector.getBlueElement();
 
 			segIterA.resetToVertex(vertex_a);
 			segIterB.resetToVertex(vertex_b);
@@ -4006,6 +4144,7 @@ class RelationalOperations {
 
 		QuadTreeImpl qtA = null;
 		QuadTreeImpl quadTreeA = null;
+        QuadTreeImpl quadTreePathsA = null;
 
 		GeometryAccelerators accel = ((MultiPathImpl) multipathA._getImpl())
 				._getAccelerators();
@@ -4024,6 +4163,11 @@ class RelationalOperations {
 		}
 
 		QuadTreeImpl.QuadTreeIteratorImpl qtIterA = quadTreeA.getIterator();
+
+        QuadTreeImpl.QuadTreeIteratorImpl qtIterPathsA = null;
+        if (quadTreePathsA != null)
+            qtIterPathsA = quadTreePathsA.getIterator();
+
 		Point2D ptB = new Point2D(), closest = new Point2D();
 		boolean b_intersects = false;
 		double toleranceSq = tolerance * tolerance;
@@ -4035,8 +4179,15 @@ class RelationalOperations {
 				continue;
 			}
 
-			boolean bPtBContained = false;
 			env_b.setCoords(ptB.x, ptB.y, ptB.x, ptB.y);
+
+            if (qtIterPathsA != null) {
+                qtIterPathsA.resetIterator(env_b, tolerance);
+
+                if (qtIterPathsA.next() == -1)
+                    continue;
+            }
+
 			qtIterA.resetIterator(env_b, tolerance);
 
 			boolean b_covered = false;
@@ -4341,14 +4492,14 @@ class RelationalOperations {
 		double[] scalarsA = new double[2];
 		double[] scalarsB = new double[2];
 
-		Pair_wise_intersector intersector = new Pair_wise_intersector(
-				polygon_impl_a, polygon_impl_b, tolerance);
+		PairwiseIntersectorImpl intersector = new PairwiseIntersectorImpl(
+				polygon_impl_a, polygon_impl_b, tolerance, false);
 
 		boolean b_boundaries_intersect = false;
 
 		while (intersector.next()) {
-			int vertex_a = intersector.get_red_element();
-			int vertex_b = intersector.get_blue_element();
+			int vertex_a = intersector.getRedElement();
+			int vertex_b = intersector.getBlueElement();
 
 			segIterA.resetToVertex(vertex_a);
 			segIterB.resetToVertex(vertex_b);
@@ -4450,12 +4601,12 @@ class RelationalOperations {
 		double[] scalarsA = new double[2];
 		double[] scalarsB = new double[2];
 
-		Pair_wise_intersector intersector = new Pair_wise_intersector(
-				polygon_impl_a, polygon_impl_b, tolerance);
+		PairwiseIntersectorImpl intersector = new PairwiseIntersectorImpl(
+				polygon_impl_a, polygon_impl_b, tolerance, false);
 
 		while (intersector.next()) {
-			int vertex_a = intersector.get_red_element();
-			int vertex_b = intersector.get_blue_element();
+			int vertex_a = intersector.getRedElement();
+			int vertex_b = intersector.getBlueElement();
 
 			segIterA.resetToVertex(vertex_a);
 			segIterB.resetToVertex(vertex_b);
@@ -4552,64 +4703,173 @@ class RelationalOperations {
 
 	private static boolean polygonContainsPolygonImpl_(Polygon polygon_a,
 			Polygon polygon_b, double tolerance, ProgressTracker progressTracker) {
-		MultiPathImpl polygon_impl_a = (MultiPathImpl) polygon_a._getImpl();
-		MultiPathImpl polygon_impl_b = (MultiPathImpl) polygon_b._getImpl();
+        boolean[] b_result_known = new boolean[1];
+        b_result_known[0] = false;
+        boolean res = polygonContainsMultiPath_(polygon_a, polygon_b, tolerance, b_result_known, progressTracker);
 
-		SegmentIteratorImpl segIterA = polygon_impl_a.querySegmentIterator();
-		SegmentIteratorImpl segIterB = polygon_impl_b.querySegmentIterator();
-		double[] scalarsA = new double[2];
-		double[] scalarsB = new double[2];
+        if (b_result_known[0])
+            return res;
 
-		Pair_wise_intersector intersector = new Pair_wise_intersector(
-				polygon_impl_a, polygon_impl_b, tolerance);
+        // We can clip polygon_a to the extent of polyline_b
 
-		while (intersector.next()) {
-			int vertex_a = intersector.get_red_element();
-			int vertex_b = intersector.get_blue_element();
+        Envelope2D envBInflated = new Envelope2D();
+        polygon_b.queryEnvelope2D(envBInflated);
+        envBInflated.inflate(1000.0 * tolerance, 1000.0 * tolerance);
 
-			segIterA.resetToVertex(vertex_a);
-			segIterB.resetToVertex(vertex_b);
-			Segment segmentA = segIterA.nextSegment();
-			Segment segmentB = segIterB.nextSegment();
+        Polygon _polygonA = null;
 
-			int result = segmentB.intersect(segmentA, null, scalarsB, scalarsA,
-					tolerance);
+        if (polygon_a.getPointCount() > 10)
+        {
+            _polygonA = (Polygon)Clipper.clip(polygon_a, envBInflated, tolerance, 0.0);
+            if (_polygonA.isEmpty())
+                return false;
+        }
+        else
+        {
+            _polygonA = polygon_a;
+        }
 
-			if (result == 1) {
-				double scalar_a_0 = scalarsA[0];
-				double scalar_b_0 = scalarsB[0];
-
-				if (scalar_a_0 > 0.0 && scalar_a_0 < 1.0 && scalar_b_0 > 0.0
-						&& scalar_b_0 < 1.0) {
-					return false;
-				}
-			}
-		}
-
-		// We can clip polygon_a to the extent of polyline_b
-		Envelope2D envBInflated = new Envelope2D();
-		polygon_b.queryEnvelope2D(envBInflated);
-		envBInflated.inflate(1000.0 * tolerance, 1000.0 * tolerance);
-
-		Polygon _polygonA;
-
-		if (polygon_a.getPointCount() > 10) {
-			_polygonA = (Polygon) (Clipper.clip(polygon_a, envBInflated,
-					tolerance, 0.0));
-			if (_polygonA.isEmpty()) {
-				return false;
-			}
-		} else {
-			_polygonA = polygon_a;
-		}
-
-		String scl = "T*****F**"; // If Exterior-Interior is false, then
-		// Exterior-Boundary is false
-
-		boolean bRelation = RelationalOperationsMatrix.polygonRelatePolygon_(
-				_polygonA, polygon_b, tolerance, scl, progressTracker);
-		return bRelation;
+        boolean bContains = RelationalOperationsMatrix.polygonContainsPolygon_(_polygonA, polygon_b, tolerance, progressTracker);
+        return bContains;
 	}
+
+    private static boolean polygonContainsMultiPath_(Polygon polygon_a, MultiPath multi_path_b, double tolerance, boolean[] b_result_known, ProgressTracker progress_tracker)
+    {
+        b_result_known[0] = false;
+
+        MultiPathImpl polygon_impl_a = (MultiPathImpl)polygon_a._getImpl();
+        MultiPathImpl multi_path_impl_b = (MultiPathImpl)multi_path_b._getImpl();
+
+        SegmentIteratorImpl segIterA = polygon_impl_a.querySegmentIterator();
+        SegmentIteratorImpl segIterB = multi_path_impl_b.querySegmentIterator();
+        double[] scalarsA = new double[2];
+        double[] scalarsB = new double[2];
+
+        PairwiseIntersectorImpl intersector = new PairwiseIntersectorImpl(polygon_impl_a, multi_path_impl_b, tolerance, false);
+        boolean b_boundaries_intersect = false;
+
+        while (intersector.next())
+        {
+            b_boundaries_intersect = true;
+            int vertex_a = intersector.getRedElement();
+            int vertex_b = intersector.getBlueElement();
+
+            segIterA.resetToVertex(vertex_a, -1);
+            segIterB.resetToVertex(vertex_b, -1);
+            Segment segmentA = segIterA.nextSegment();
+            Segment segmentB = segIterB.nextSegment();
+
+            int result = segmentB.intersect(segmentA, null, scalarsB, scalarsA, tolerance);
+
+            if (result == 1)
+            {
+                double scalar_a_0 = scalarsA[0];
+                double scalar_b_0 = scalarsB[0];
+
+                if (scalar_a_0 > 0.0 && scalar_a_0 < 1.0 && scalar_b_0 > 0.0 && scalar_b_0 < 1.0)
+                {
+                    b_result_known[0] = true;
+                    return false;
+                }
+            }
+        }
+
+        if (!b_boundaries_intersect)
+        {
+            b_result_known[0] = true;
+
+            //boundaries do not intersect
+
+            Envelope2D env_a_inflated = new Envelope2D();
+            polygon_a.queryEnvelope2D(env_a_inflated);
+            env_a_inflated.inflate(tolerance, tolerance);
+
+            Polygon pa = null;
+            Polygon p_polygon_a = null;
+
+            if (PointInPolygonHelper.quadTreeWillHelp(polygon_a, multi_path_b.getPointCount()) && (polygon_impl_a._getAccelerators() == null || polygon_impl_a._getAccelerators().getQuadTree() == null))
+            {
+                pa = new Polygon();
+                polygon_a.copyTo(pa);
+                ((MultiPathImpl)pa._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
+                p_polygon_a = pa;
+            }
+            else
+            {
+                p_polygon_a = polygon_a;
+            }
+
+            Envelope2D path_env_b = new Envelope2D();
+
+            for (int ipath = 0, npath = multi_path_b.getPathCount(); ipath < npath; ipath++)
+            {
+                if (multi_path_b.getPathSize(ipath) > 0)
+                {
+                    multi_path_b.queryPathEnvelope2D(ipath, path_env_b);
+
+                    if (env_a_inflated.isIntersecting(path_env_b))
+                    {
+                        Point2D anyPoint = multi_path_b.getXY(multi_path_b.getPathStart(ipath));
+                        int res = PointInPolygonHelper.isPointInPolygon(p_polygon_a, anyPoint, 0);
+                        if (res == 0)
+                            return false;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            if (polygon_a.getPathCount() == 1 || multi_path_b.getType().value() == Geometry.GeometryType.Polyline)
+                return true; //boundaries do not intersect. all paths of b are inside of a
+
+            // Polygon A has multiple rings, and Multi_path B is a polygon.
+
+            Polygon polygon_b = (Polygon)multi_path_b;
+
+            Envelope2D env_b_inflated = new Envelope2D();
+            polygon_b.queryEnvelope2D(env_b_inflated);
+            env_b_inflated.inflate(tolerance, tolerance);
+
+            Polygon pb = null;
+            Polygon p_polygon_b = null;
+
+            if (PointInPolygonHelper.quadTreeWillHelp(polygon_b, polygon_a.getPointCount()) && (multi_path_impl_b._getAccelerators() == null || multi_path_impl_b._getAccelerators().getQuadTree() == null))
+            {
+                pb = new Polygon();
+                polygon_b.copyTo(pb);
+                ((MultiPathImpl)pb._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
+                p_polygon_b = pb;
+            }
+            else
+            {
+                p_polygon_b = polygon_b;
+            }
+
+            Envelope2D path_env_a = new Envelope2D();
+
+            for (int ipath = 0, npath = polygon_a.getPathCount(); ipath < npath; ipath++)
+            {
+                if (polygon_a.getPathSize(ipath) > 0)
+                {
+                    polygon_a.queryPathEnvelope2D(ipath, path_env_a);
+
+                    if (env_b_inflated.isIntersecting(path_env_a))
+                    {
+                        Point2D anyPoint = polygon_a.getXY(polygon_a.getPathStart(ipath));
+                        int res = PointInPolygonHelper.isPointInPolygon(p_polygon_b, anyPoint, 0);
+                        if (res == 1)
+                            return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        return false;
+    }
 
 	private static boolean polygonTouchesPolylineImpl_(Polygon polygon_a,
 			Polyline polyline_b, double tolerance,
@@ -4622,14 +4882,14 @@ class RelationalOperations {
 		double[] scalarsA = new double[2];
 		double[] scalarsB = new double[2];
 
-		Pair_wise_intersector intersector = new Pair_wise_intersector(
-				polygon_impl_a, polyline_impl_b, tolerance);
+		PairwiseIntersectorImpl intersector = new PairwiseIntersectorImpl(
+				polygon_impl_a, polyline_impl_b, tolerance, false);
 
 		boolean b_boundaries_intersect = false;
 
 		while (intersector.next()) {
-			int vertex_a = intersector.get_red_element();
-			int vertex_b = intersector.get_blue_element();
+			int vertex_a = intersector.getRedElement();
+			int vertex_b = intersector.getBlueElement();
 
 			segIterA.resetToVertex(vertex_a);
 			segIterB.resetToVertex(vertex_b);
@@ -4708,14 +4968,14 @@ class RelationalOperations {
 		double[] scalarsA = new double[2];
 		double[] scalarsB = new double[2];
 
-		Pair_wise_intersector intersector = new Pair_wise_intersector(
-				polygon_impl_a, polyline_impl_b, tolerance);
+		PairwiseIntersectorImpl intersector = new PairwiseIntersectorImpl(
+				polygon_impl_a, polyline_impl_b, tolerance, false);
 
 		boolean b_boundaries_intersect = false;
 
 		while (intersector.next()) {
-			int vertex_a = intersector.get_red_element();
-			int vertex_b = intersector.get_blue_element();
+			int vertex_a = intersector.getRedElement();
+			int vertex_b = intersector.getBlueElement();
 
 			segIterA.resetToVertex(vertex_a);
 			segIterB.resetToVertex(vertex_b);
@@ -4796,82 +5056,34 @@ class RelationalOperations {
 	private static boolean polygonContainsPolylineImpl_(Polygon polygon_a,
 			Polyline polyline_b, double tolerance,
 			ProgressTracker progress_tracker) {
-		MultiPathImpl polygon_impl_a = (MultiPathImpl) polygon_a._getImpl();
-		MultiPathImpl polyline_impl_b = (MultiPathImpl) polyline_b._getImpl();
+        boolean[] b_result_known = new boolean[1];
+        b_result_known[0] = false;
+        boolean res = polygonContainsMultiPath_(polygon_a, polyline_b, tolerance, b_result_known, progress_tracker);
 
-		SegmentIteratorImpl segIterA = polygon_impl_a.querySegmentIterator();
-		SegmentIteratorImpl segIterB = polyline_impl_b.querySegmentIterator();
-		double[] scalarsA = new double[2];
-		double[] scalarsB = new double[2];
+        if (b_result_known[0])
+            return res;
 
-		Pair_wise_intersector intersector = new Pair_wise_intersector(
-				polygon_impl_a, polyline_impl_b, tolerance);
+        // We can clip polygon_a to the extent of polyline_b
 
-		boolean b_boundaries_intersect = false;
+        Envelope2D envBInflated = new Envelope2D();
+        polyline_b.queryEnvelope2D(envBInflated);
+        envBInflated.inflate(1000.0 * tolerance, 1000.0 * tolerance);
 
-		while (intersector.next()) {
-			int vertex_a = intersector.get_red_element();
-			int vertex_b = intersector.get_blue_element();
+        Polygon _polygonA = null;
 
-			segIterA.resetToVertex(vertex_a);
-			segIterB.resetToVertex(vertex_b);
-			Segment segmentA = segIterA.nextSegment();
-			Segment segmentB = segIterB.nextSegment();
+        if (polygon_a.getPointCount() > 10)
+        {
+            _polygonA = (Polygon)Clipper.clip(polygon_a, envBInflated, tolerance, 0.0);
+            if (_polygonA.isEmpty())
+                return false;
+        }
+        else
+        {
+            _polygonA = polygon_a;
+        }
 
-			int result = segmentB.intersect(segmentA, null, scalarsB, scalarsA,
-					tolerance);
-
-			if (result == 2) {
-				b_boundaries_intersect = true;
-				// Keep going to see if we find a proper intersection of two
-				// segments (means contains is false)
-			} else if (result != 0) {
-				double scalar_a_0 = scalarsA[0];
-				double scalar_b_0 = scalarsB[0];
-
-				if (scalar_a_0 > 0.0 && scalar_a_0 < 1.0 && scalar_b_0 > 0.0
-						&& scalar_b_0 < 1.0) {
-					return false;
-				}
-
-				b_boundaries_intersect = true;
-				// Keep going to see if we find a proper intersection of two
-				// segments (means contains is false)
-			}
-		}
-
-		if (!b_boundaries_intersect) {
-			segIterB.resetToVertex(0);
-			Segment segmentB = segIterB.nextSegment();
-
-			Point2D ptB = new Point2D();
-			segmentB.getCoord2D(0.5, ptB);
-			return (PolygonUtils.isPointInPolygon2D(polygon_a, ptB, 0.0) == PolygonUtils.PiPResult.PiPInside);
-		}
-
-		// We can clip polygon_a to the extent of polyline_b
-		Envelope2D envBInflated = new Envelope2D();
-		polyline_b.queryEnvelope2D(envBInflated);
-		envBInflated.inflate(1000.0 * tolerance, 1000.0 * tolerance);
-
-		Polygon _polygonA;
-
-		if (polygon_a.getPointCount() > 10) {
-			_polygonA = (Polygon) (Clipper.clip(polygon_a, envBInflated,
-					tolerance, 0.0));
-			if (_polygonA.isEmpty()) {
-				return false;
-			}
-		} else {
-			_polygonA = polygon_a;
-		}
-
-		String scl = "T*****F**"; // If Exterior-Interior is false, then
-		// Exterior-Boundary is false
-		boolean bRelation = RelationalOperationsMatrix.polygonRelatePolyline_(
-				_polygonA, polyline_b, tolerance, scl, progress_tracker);
-
-		return bRelation;
+        boolean bContains = RelationalOperationsMatrix.polygonContainsPolyline_(_polygonA, polyline_b, tolerance, progress_tracker);
+        return bContains;
 	}
 
 	private static boolean polygonContainsPointImpl_(Polygon polygon_a,
@@ -4987,171 +5199,6 @@ class RelationalOperations {
 		return 1;
 	}
 
-	static final class Pair_wise_intersector {
-
-		Pair_wise_intersector(MultiPathImpl multi_path_impl_a,
-				MultiPathImpl multi_path_impl_b, double tolerance) {
-			m_b_quad_tree = false;
-
-			GeometryAccelerators geometry_accelerators_a = multi_path_impl_a
-					._getAccelerators();
-
-			if (geometry_accelerators_a != null) {
-				QuadTreeImpl qtree_a = geometry_accelerators_a.getQuadTree();
-
-				if (qtree_a != null) {
-					m_b_done = false;
-					m_tolerance = tolerance;
-					m_quad_tree = qtree_a;
-					m_qt_iter = m_quad_tree.getIterator();
-					m_b_quad_tree = true;
-					m_b_swap_elements = true;
-					m_seg_iter = multi_path_impl_b.querySegmentIterator();
-					m_function = State.next_path;
-				}
-			}
-
-			if (!m_b_quad_tree) {
-				GeometryAccelerators geometry_accelerators_b = multi_path_impl_b
-						._getAccelerators();
-
-				if (geometry_accelerators_b != null) {
-					QuadTreeImpl qtree_b = geometry_accelerators_b
-							.getQuadTree();
-
-					if (qtree_b != null) {
-						m_b_done = false;
-						m_tolerance = tolerance;
-						m_quad_tree = qtree_b;
-						m_qt_iter = m_quad_tree.getIterator();
-						m_b_quad_tree = true;
-						m_b_swap_elements = false;
-						m_seg_iter = multi_path_impl_a.querySegmentIterator();
-						m_function = State.next_path;
-					}
-				}
-			}
-
-			if (!m_b_quad_tree) {
-				m_intersector = InternalUtils.getEnvelope2DIntersector(
-						multi_path_impl_a, multi_path_impl_b, tolerance);
-			}
-		}
-
-		boolean next() {
-			if (m_b_quad_tree) {
-				if (m_b_done) {
-					return false;
-				}
-
-				boolean b_searching = true;
-				while (b_searching) {
-					switch (m_function) {
-					case State.next_path:
-						b_searching = next_path_();
-						break;
-					case State.next_segment:
-						b_searching = next_segment_();
-						break;
-					case State.iterate:
-						b_searching = iterate_();
-						break;
-					}
-
-				}
-
-				if (m_b_done) {
-					return false;
-				}
-
-				return true;
-			}
-
-			if (m_intersector == null) {
-				return false;
-			}
-
-			return m_intersector.next();
-		}
-
-		int get_red_element() {
-			if (m_b_quad_tree) {
-				if (!m_b_swap_elements) {
-					return m_seg_iter.getStartPointIndex();
-				}
-
-				return m_quad_tree.getElement(m_element_handle);
-			}
-
-			return m_intersector.getRedElement(m_intersector.getHandleA());
-		}
-
-		int get_blue_element() {
-			if (m_b_quad_tree) {
-				if (m_b_swap_elements) {
-					return m_seg_iter.getStartPointIndex();
-				}
-
-				return m_quad_tree.getElement(m_element_handle);
-			}
-
-			return m_intersector.getBlueElement(m_intersector.getHandleB());
-		}
-
-		private boolean next_path_() {
-			if (!m_seg_iter.nextPath()) {
-				m_b_done = true;
-				return false;
-			}
-
-			m_function = State.next_segment;
-			return true;
-		}
-
-		private boolean next_segment_() {
-			if (!m_seg_iter.hasNextSegment()) {
-				m_function = State.next_path;
-				return true;
-			}
-
-			Segment segment = m_seg_iter.nextSegment();
-			m_qt_iter.resetIterator(segment, m_tolerance);
-			m_function = State.iterate;
-			return true;
-		}
-
-		boolean iterate_() {
-			m_element_handle = m_qt_iter.next();
-			if (m_element_handle == -1) {
-				m_function = State.next_segment;
-				return true;
-			}
-
-			return false;
-		}
-
-		private interface State {
-
-			static final int next_path = 0;
-			static final int next_segment = 1;
-			static final int iterate = 2;
-		}
-
-		// Quad_tree
-		private boolean m_b_quad_tree;
-		private boolean m_b_done;
-		private boolean m_b_swap_elements;
-		private double m_tolerance;
-		private int m_element_handle;
-		private QuadTreeImpl m_quad_tree;
-		private QuadTreeImpl.QuadTreeIteratorImpl m_qt_iter;
-		private SegmentIteratorImpl m_seg_iter;
-		private int m_function;
-
-		// Envelope_2D_intersector
-		private Envelope2DIntersectorImpl m_intersector;
-	}
-
 	static final class Accelerate_helper {
 		static boolean accelerate_geometry(Geometry geometry,
 				SpatialReference sr,
@@ -5173,18 +5220,18 @@ class RelationalOperations {
 				bAccelerated |= ((MultiVertexGeometryImpl) geometry._getImpl())
 						._buildQuadTreeAccelerator(accel_degree);
 
-			if (type == Geometry.Type.Polygon
-					&& GeometryAccelerators.canUsePathEnvelopes(geometry)
+			if ((type == Geometry.Type.Polygon || type == Geometry.Type.Polyline)
+					&& GeometryAccelerators.canUseQuadTreeForPaths(geometry)
 					&& accel_degree != Geometry.GeometryAccelerationDegree.enumMild)
 				bAccelerated |= ((MultiPathImpl) geometry._getImpl())
-						._buildPathEnvelopesAccelerator(accel_degree);
+						._buildQuadTreeForPathsAccelerator(accel_degree);
 
 			return bAccelerated;
 		}
 
-		static boolean can_accelerate_geometry(Geometry geometry) {
-			return GeometryAccelerators.canUseRasterizedGeometry(geometry)
-					|| GeometryAccelerators.canUseQuadTree(geometry);
-		}
-	}
+        static boolean can_accelerate_geometry(Geometry geometry) {
+            return GeometryAccelerators.canUseRasterizedGeometry(geometry)
+                    || GeometryAccelerators.canUseQuadTree(geometry) || GeometryAccelerators.canUseQuadTreeForPaths(geometry);
+        }
+    }
 }
