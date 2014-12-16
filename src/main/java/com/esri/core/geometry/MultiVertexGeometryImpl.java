@@ -1078,8 +1078,7 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
     	boolean modified = false;
     	int ncomps = VertexDescription.getComponentCount(semantics);
     	for (int i = 0; i < ncomps; i++) {
-    		int attr = m_description.getAttributeIndex(semantics);
-    		AttributeStreamBase streamBase = getAttributeStreamRef(attr);
+    		AttributeStreamBase streamBase = getAttributeStreamRef(semantics);
     		if (streamBase instanceof AttributeStreamOfDbl)	{
     			AttributeStreamOfDbl dblStream = (AttributeStreamOfDbl)streamBase;
     			for (int ivert = 0, n = m_pointCount * ncomps; ivert < n; ivert++) {

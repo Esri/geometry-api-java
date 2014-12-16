@@ -1149,33 +1149,36 @@ class RelationalOperations {
         MultiPathImpl polygon_a_impl = (MultiPathImpl)polygon_a._getImpl();
 
         Polygon pa = null;
-        Polygon p_polygon_a = null;
+        Polygon p_polygon_a = polygon_a;
 
-        if (PointInPolygonHelper.quadTreeWillHelp(polygon_a, multipoint_b.getPointCount()) && (polygon_a_impl._getAccelerators() == null || polygon_a_impl._getAccelerators().getQuadTree() == null))
-        {
-            pa = new Polygon();
-            polygon_a.copyTo(pa);
-            ((MultiPathImpl)pa._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
-            p_polygon_a = pa;
-        }
-        else
-        {
-            p_polygon_a = polygon_a;
-        }
+        boolean b_checked_polygon_a_quad_tree = false;
 
         for (int i = 0; i < multipoint_b.getPointCount(); i++)
         {
             ptB = multipoint_b.getXY(i);
 
-            if (!env_a_inflated.contains(ptB))
-                continue;
+            if (env_a_inflated.contains(ptB)) {
 
-            PolygonUtils.PiPResult result = PolygonUtils.isPointInPolygon2D(p_polygon_a, ptB, tolerance);
+                PolygonUtils.PiPResult result = PolygonUtils.isPointInPolygon2D(p_polygon_a, ptB, tolerance);
 
-            if (result == PolygonUtils.PiPResult.PiPBoundary)
-                b_boundary = true;
-            else if (result == PolygonUtils.PiPResult.PiPInside)
-                return false;
+                if (result == PolygonUtils.PiPResult.PiPBoundary)
+                    b_boundary = true;
+                else if (result == PolygonUtils.PiPResult.PiPInside)
+                    return false;
+            }
+
+            if (!b_checked_polygon_a_quad_tree) {
+                if (PointInPolygonHelper.quadTreeWillHelp(polygon_a, multipoint_b.getPointCount() - 1) && (polygon_a_impl._getAccelerators() == null || polygon_a_impl._getAccelerators().getQuadTree() == null)) {
+                    pa = new Polygon();
+                    polygon_a.copyTo(pa);
+                    ((MultiPathImpl) pa._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
+                    p_polygon_a = pa;
+                } else {
+                    p_polygon_a = polygon_a;
+                }
+
+                b_checked_polygon_a_quad_tree = true;
+            }
         }
 
         if (b_boundary)
@@ -1209,19 +1212,9 @@ class RelationalOperations {
         MultiPathImpl polygon_a_impl = (MultiPathImpl)polygon_a._getImpl();
 
         Polygon pa = null;
-        Polygon p_polygon_a = null;
+        Polygon p_polygon_a = polygon_a;
 
-        if (PointInPolygonHelper.quadTreeWillHelp(polygon_a, multipoint_b.getPointCount()) && (polygon_a_impl._getAccelerators() == null || polygon_a_impl._getAccelerators().getQuadTree() == null))
-        {
-            pa = new Polygon();
-            polygon_a.copyTo(pa);
-            ((MultiPathImpl)pa._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
-            p_polygon_a = pa;
-    }
-        else
-        {
-            p_polygon_a = polygon_a;
-        }
+        boolean b_checked_polygon_a_quad_tree = false;
 
         for (int i = 0; i < multipoint_b.getPointCount(); i++)
         {
@@ -1243,6 +1236,19 @@ class RelationalOperations {
 
             if (b_interior && b_exterior)
                 return true;
+
+            if (!b_checked_polygon_a_quad_tree) {
+                if (PointInPolygonHelper.quadTreeWillHelp(polygon_a, multipoint_b.getPointCount() - 1) && (polygon_a_impl._getAccelerators() == null || polygon_a_impl._getAccelerators().getQuadTree() == null)) {
+                    pa = new Polygon();
+                    polygon_a.copyTo(pa);
+                    ((MultiPathImpl) pa._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
+                    p_polygon_a = pa;
+                } else {
+                    p_polygon_a = polygon_a;
+                }
+
+                b_checked_polygon_a_quad_tree = true;
+            }
         }
 
         return false;
@@ -1277,19 +1283,9 @@ class RelationalOperations {
         MultiPathImpl polygon_a_impl = (MultiPathImpl)polygon_a._getImpl();
 
         Polygon pa = null;
-        Polygon p_polygon_a = null;
+        Polygon p_polygon_a = polygon_a;
 
-        if (PointInPolygonHelper.quadTreeWillHelp(polygon_a, multipoint_b.getPointCount()) && (polygon_a_impl._getAccelerators() == null || polygon_a_impl._getAccelerators().getQuadTree() == null))
-        {
-            pa = new Polygon();
-            polygon_a.copyTo(pa);
-            ((MultiPathImpl)pa._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
-            p_polygon_a = pa;
-        }
-        else
-        {
-            p_polygon_a = polygon_a;
-        }
+        boolean b_checked_polygon_a_quad_tree = false;
 
         for (int i = 0; i < multipoint_b.getPointCount(); i++)
         {
@@ -1304,6 +1300,19 @@ class RelationalOperations {
                 b_interior = true;
             else if (result == PolygonUtils.PiPResult.PiPOutside)
                 return false;
+
+            if (!b_checked_polygon_a_quad_tree) {
+                if (PointInPolygonHelper.quadTreeWillHelp(polygon_a, multipoint_b.getPointCount() - 1) && (polygon_a_impl._getAccelerators() == null || polygon_a_impl._getAccelerators().getQuadTree() == null)) {
+                    pa = new Polygon();
+                    polygon_a.copyTo(pa);
+                    ((MultiPathImpl) pa._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
+                    p_polygon_a = pa;
+                } else {
+                    p_polygon_a = polygon_a;
+                }
+
+                b_checked_polygon_a_quad_tree = true;
+            }
         }
 
         return b_interior;
@@ -3180,38 +3189,16 @@ class RelationalOperations {
             return false;
 
         Polygon pa = null;
-        Polygon p_polygon_a = null;
-
-        if (PointInPolygonHelper.quadTreeWillHelp(polygon_a, multipath_b.getPointCount()) && (multi_path_impl_a._getAccelerators() == null || multi_path_impl_a._getAccelerators().getQuadTree() == null))
-        {
-            pa = new Polygon();
-            polygon_a.copyTo(pa);
-            ((MultiPathImpl)pa._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
-            p_polygon_a = pa;
-        }
-        else
-        {
-            p_polygon_a = polygon_a;
-        }
+        Polygon p_polygon_a = polygon_a;
 
         Polygon pb = null;
         Polygon p_polygon_b = null;
 
         if (multipath_b.getType().value() == Geometry.GeometryType.Polygon)
-        {
-            Polygon polygon_b = (Polygon)multipath_b;
-            if (PointInPolygonHelper.quadTreeWillHelp(polygon_b, polygon_a.getPointCount()) && (multi_path_impl_b._getAccelerators() == null || multi_path_impl_b._getAccelerators().getQuadTree() == null))
-            {
-                pb = new Polygon();
-                polygon_b.copyTo(pb);
-                ((MultiPathImpl)pb._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
-                p_polygon_b = pb;
-            }
-            else
-            {
-                p_polygon_b = (Polygon)multipath_b;
-            }
-        }
+            p_polygon_b = (Polygon)multipath_b;
+
+        boolean b_checked_polygon_a_quad_tree = false;
+        boolean b_checked_polygon_b_quad_tree = false;
 
         do
         {
@@ -3244,6 +3231,37 @@ class RelationalOperations {
                         return false;
                 }
             }
+
+            if (!b_checked_polygon_a_quad_tree) {
+                if (PointInPolygonHelper.quadTreeWillHelp(polygon_a, multipath_b.getPathCount() - 1) && (multi_path_impl_a._getAccelerators() == null || multi_path_impl_a._getAccelerators().getQuadTree() == null)) {
+                    pa = new Polygon();
+                    polygon_a.copyTo(pa);
+                    ((MultiPathImpl) pa._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
+                    p_polygon_a = pa;
+                } else {
+                    p_polygon_a = polygon_a;
+                }
+
+                b_checked_polygon_a_quad_tree = true;
+            }
+
+            if (multipath_b.getType().value() == Geometry.GeometryType.Polygon)
+            {
+                if (!b_checked_polygon_b_quad_tree) {
+                    Polygon polygon_b = (Polygon) multipath_b;
+                    if (PointInPolygonHelper.quadTreeWillHelp(polygon_b, polygon_a.getPathCount() - 1) && (multi_path_impl_b._getAccelerators() == null || multi_path_impl_b._getAccelerators().getQuadTree() == null)) {
+                        pb = new Polygon();
+                        polygon_b.copyTo(pb);
+                        ((MultiPathImpl) pb._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
+                        p_polygon_b = pb;
+                    } else {
+                        p_polygon_b = (Polygon) multipath_b;
+                    }
+
+                    b_checked_polygon_b_quad_tree = true;
+                }
+            }
+
         } while (intersector.next());
 
         return true;
@@ -4750,7 +4768,6 @@ class RelationalOperations {
 
         while (intersector.next())
         {
-            b_boundaries_intersect = true;
             int vertex_a = intersector.getRedElement();
             int vertex_b = intersector.getBlueElement();
 
@@ -4761,15 +4778,16 @@ class RelationalOperations {
 
             int result = segmentB.intersect(segmentA, null, scalarsB, scalarsA, tolerance);
 
-            if (result == 1)
-            {
-                double scalar_a_0 = scalarsA[0];
-                double scalar_b_0 = scalarsB[0];
+            if (result != 0) {
+                b_boundaries_intersect = true;
+                if (result == 1) {
+                    double scalar_a_0 = scalarsA[0];
+                    double scalar_b_0 = scalarsB[0];
 
-                if (scalar_a_0 > 0.0 && scalar_a_0 < 1.0 && scalar_b_0 > 0.0 && scalar_b_0 < 1.0)
-                {
-                    b_result_known[0] = true;
-                    return false;
+                    if (scalar_a_0 > 0.0 && scalar_a_0 < 1.0 && scalar_b_0 > 0.0 && scalar_b_0 < 1.0) {
+                        b_result_known[0] = true;
+                        return false;
+                    }
                 }
             }
         }
@@ -4785,19 +4803,9 @@ class RelationalOperations {
             env_a_inflated.inflate(tolerance, tolerance);
 
             Polygon pa = null;
-            Polygon p_polygon_a = null;
+            Polygon p_polygon_a = polygon_a;
 
-            if (PointInPolygonHelper.quadTreeWillHelp(polygon_a, multi_path_b.getPointCount()) && (polygon_impl_a._getAccelerators() == null || polygon_impl_a._getAccelerators().getQuadTree() == null))
-            {
-                pa = new Polygon();
-                polygon_a.copyTo(pa);
-                ((MultiPathImpl)pa._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
-                p_polygon_a = pa;
-            }
-            else
-            {
-                p_polygon_a = polygon_a;
-            }
+            boolean b_checked_polygon_a_quad_tree = false;
 
             Envelope2D path_env_b = new Envelope2D();
 
@@ -4818,6 +4826,19 @@ class RelationalOperations {
                     {
                         return false;
                     }
+
+                    if (!b_checked_polygon_a_quad_tree) {
+                        if (PointInPolygonHelper.quadTreeWillHelp(polygon_a, multi_path_b.getPathCount() - 1) && (polygon_impl_a._getAccelerators() == null || polygon_impl_a._getAccelerators().getQuadTree() == null)) {
+                            pa = new Polygon();
+                            polygon_a.copyTo(pa);
+                            ((MultiPathImpl) pa._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
+                            p_polygon_a = pa;
+                        } else {
+                            p_polygon_a = polygon_a;
+                        }
+
+                        b_checked_polygon_a_quad_tree = true;
+                    }
                 }
             }
 
@@ -4833,19 +4854,9 @@ class RelationalOperations {
             env_b_inflated.inflate(tolerance, tolerance);
 
             Polygon pb = null;
-            Polygon p_polygon_b = null;
+            Polygon p_polygon_b = polygon_b;
 
-            if (PointInPolygonHelper.quadTreeWillHelp(polygon_b, polygon_a.getPointCount()) && (multi_path_impl_b._getAccelerators() == null || multi_path_impl_b._getAccelerators().getQuadTree() == null))
-            {
-                pb = new Polygon();
-                polygon_b.copyTo(pb);
-                ((MultiPathImpl)pb._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
-                p_polygon_b = pb;
-            }
-            else
-            {
-                p_polygon_b = polygon_b;
-            }
+            boolean b_checked_polygon_b_quad_tree = false;
 
             Envelope2D path_env_a = new Envelope2D();
 
@@ -4861,6 +4872,19 @@ class RelationalOperations {
                         int res = PointInPolygonHelper.isPointInPolygon(p_polygon_b, anyPoint, 0);
                         if (res == 1)
                             return false;
+                    }
+
+                    if (!b_checked_polygon_b_quad_tree) {
+                        if (PointInPolygonHelper.quadTreeWillHelp(polygon_b, polygon_a.getPathCount() - 1) && (multi_path_impl_b._getAccelerators() == null || multi_path_impl_b._getAccelerators().getQuadTree() == null)) {
+                            pb = new Polygon();
+                            polygon_b.copyTo(pb);
+                            ((MultiPathImpl) pb._getImpl())._buildQuadTreeAccelerator(Geometry.GeometryAccelerationDegree.enumMedium);
+                            p_polygon_b = pb;
+                        } else {
+                            p_polygon_b = polygon_b;
+                        }
+
+                        b_checked_polygon_b_quad_tree = true;
                     }
                 }
             }

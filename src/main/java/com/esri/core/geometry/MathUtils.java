@@ -173,7 +173,7 @@ final class MathUtils {
 		else
 			v = end_ - (end_ - start_) * (1.0 - t);
 
-		assert (t < 0 || t > 1.0 || (v >= start_ && v <= end_) || (v <= start_ && v >= end_));
+		assert (t < 0 || t > 1.0 || (v >= start_ && v <= end_) || (v <= start_ && v >= end_) || NumberUtils.isNaN(start_) || NumberUtils.isNaN(end_));
 		return v;
 	}
 
