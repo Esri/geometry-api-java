@@ -383,21 +383,6 @@ class RelationalOperationsMatrix {
         edit_shape = new EditShape();
         geom_a = edit_shape.addGeometry(polygon_simple_a);
         geom_b = edit_shape.addGeometry(boundary_b);
-        
-        int pc1 = polygon_simple_a.getPointCount();
-        int pc2 = boundary_b.getPointCount();
-        
-        for (int i = 0; i < pc2; i++)
-        {
-        	Point2D p = boundary_b.getXY(i);
-        	i = i;
-        }
-        
-        boolean isclosed0 = boundary_b.isClosedPath(0);
-        boolean isclosed1 = boundary_b.isClosedPath(1);
-        
-        String s1 = OperatorExportToJson.local().execute(null, polygon_simple_a);
-        String s2 = OperatorExportToJson.local().execute(null, boundary_b);
         relOps.setEditShape_(edit_shape, progress_tracker);
 
         // Check no interior lines of the boundary intersect the exterior
