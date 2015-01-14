@@ -1139,7 +1139,7 @@ public final class Envelope extends Geometry implements Serializable {
 		if (isEmpty())
 			return "Envelope: []";
 		
-		String s = "Envelope: [" + m_envelope.xmin + ", " + m_envelope.ymin + ", " + m_envelope.xmin + ", " + m_envelope.ymin +"]"; 
+		String s = "Envelope: [" + m_envelope.xmin + ", " + m_envelope.ymin + ", " + m_envelope.xmax + ", " + m_envelope.ymax +"]"; 
 		return s;
 	}
     
