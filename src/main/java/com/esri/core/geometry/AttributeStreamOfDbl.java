@@ -405,7 +405,14 @@ final class AttributeStreamOfDbl extends AttributeStreamBase {
 		if (!bForward && (stride < 1 || count % stride != 0))
 			throw new IllegalArgumentException();
 
-		System.arraycopy(m_buffer, start, m_buffer, start + count, validSize
+        int excess_space = m_size - validSize;
+
+		if (excess_space < count) {
+			int original_size = m_size;
+			resize(original_size + count - excess_space);
+		}
+
+        System.arraycopy(m_buffer, start, m_buffer, start + count, validSize
 				- start);
 
 		if (m_buffer == ((AttributeStreamOfDbl) src).m_buffer) {
