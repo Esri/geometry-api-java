@@ -1,6 +1,7 @@
 package com.esri.core.geometry;
 
 import junit.framework.TestCase;
+
 import org.junit.Test;
 
 import com.esri.core.geometry.Geometry.GeometryAccelerationDegree;
@@ -130,5 +131,23 @@ public class TestRasterizedGeometry2D extends TestCase {
 			assertFalse(OperatorContains.local().execute(poly, new Point(1, 3), sr, null));
 			assertFalse(OperatorContains.local().execute(poly, new Point(1.6,  0.1), sr, null));
 		}
+		
+		/*
+		{
+			Geometry g = OperatorFactoryLocal.loadGeometryFromEsriShapeDbg("c:/temp/_poly_final.bin");
+			RasterizedGeometry2D rg1 = RasterizedGeometry2D
+					.create(g, 0, 1024);//warmup
+			rg1 = null;
+			
+		    long t0 = System.nanoTime();
+			RasterizedGeometry2D rg = RasterizedGeometry2D
+					.create(g, 0, 1024 * 1024);
+			long t1 = System.nanoTime();
+			double d = (t1 - t0) / 1000000.0;
+			System.out.printf("Time to rasterize the geometry: %f", d);
+			
+			rg.dbgSaveToBitmap("c:/temp/_dbg.bmp");
+			for (;;){}
+		}*/
 	}
 }

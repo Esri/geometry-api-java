@@ -1200,5 +1200,4 @@ public class TestPolygon extends TestCase {
 		}
 		
 	}	
-	
 }

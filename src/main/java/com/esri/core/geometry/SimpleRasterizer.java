@@ -1,5 +1,5 @@
 /*
- Copyright 2013 Esri
+ Copyright 2013-2015 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@
 package com.esri.core.geometry;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 
@@ -38,6 +39,7 @@ public class SimpleRasterizer {
 	 * Even odd fill rule
 	 */
 	public final static int EVEN_ODD = 0;
+	
 	/**
 	 * Winding fill rule
 	 */
@@ -46,11 +48,11 @@ public class SimpleRasterizer {
 	public static interface ScanCallback {
 		/**
 		 * Rasterizer calls this method for each scan it produced
-		 * @param y the Y coordinate for the scan
-		 * @param x the X coordinate for the scan
-		 * @param numPxls the number of pixels in the scan
+		 * @param scan array of scans. Scans are triplets of numbers. The start X coordinate for the scan (inclusive),
+		 * the end X coordinate of the scan (exclusive), the Y coordinate for the scan.
+		 * @param scanCount3 The number of initialized elements in the scans array. The scan count is scanCount3 / 3. 
 		 */
-		public abstract void drawScan(int y, int x, int numPxls);
+		public abstract void drawScan(int[] scans, int scanCount3);
 	}
 	
 	public SimpleRasterizer() {
@@ -68,31 +70,44 @@ public class SimpleRasterizer {
 		activeEdgesTable_ = null;
 		numEdges_ = 0;
 		callback_ = callback;
+		if (scanBuffer_ == null)
+			scanBuffer_ = new int[128 * 3];
+		
 		startAddingEdges();
 	}
 	
-	public int getWidth() {
+	public final int getWidth() {
 		return width_;
 	}
 	
-	public int getHeight() {
+	public final int getHeight() {
 		return height_;
 	}
 
 	/**
+	 * Flushes any cached scans.
+	 */
+	public final void flush() {
+		if (scanPtr_ > 0) {
+			callback_.drawScan(scanBuffer_, scanPtr_);
+			scanPtr_ = 0;
+		}
+	}
+	
+	/**
 	 * Adds edges of a triangle.
 	 */
-	public void addTriangle(double x1, double y1, double x2, double y2, double x3, double y3) {
+	public final void addTriangle(double x1, double y1, double x2, double y2, double x3, double y3) {
 		addEdge(x1, y1, x2, y2);
 		addEdge(x2, y2, x3, y3);
 		addEdge(x1, y1, x3, y3);
 	}
-	
+
 	/**
 	 * Adds edges of the ring to the rasterizer.
 	 * @param xy interleaved coordinates x1, y1, x2, y2,...
 	 */
-	public void addRing(double xy[]) {
+	public final void addRing(double xy[]) {
 		for (int i = 2; i < xy.length; i += 2) {
 			addEdge(xy[i-2], xy[i - 1], xy[i], xy[i + 1]);
 		}
@@ -100,16 +115,33 @@ public class SimpleRasterizer {
 	
 	/**
 	 * Call before starting the edges.
+	 *
 	 * For example to render two polygons that consist of a single ring:
 	 * startAddingEdges();
 	 * addRing(...);
 	 * renderEdges(Rasterizer.EVEN_ODD);
 	 * addRing(...);
 	 * renderEdges(Rasterizer.EVEN_ODD);
+	 *
+	 * For example to render a polygon consisting of three rings:
+	 * startAddingEdges();
+	 * addRing(...);
+	 * addRing(...);
+	 * addRing(...);
+	 * renderEdges(Rasterizer.EVEN_ODD);
 	 */
-	public void startAddingEdges() {
+	public final void startAddingEdges() {
 		if (numEdges_ > 0) {
-			ySortedEdges_ = null;
+			for (int i = 0; i < height_; i++) {
+				for (Edge e = ySortedEdges_[i]; e != null;) {
+					Edge p = e;
+					e = e.next;
+					p.next = null;
+				}
+				
+				ySortedEdges_[i] = null;
+			}
+
 			activeEdgesTable_ = null;
 		}
 		
@@ -120,19 +152,19 @@ public class SimpleRasterizer {
 	
 	/**
 	 * Renders all edges added so far, and removes them.
-	 * @param fillMode
+	 * Calls startAddingEdges after it's done.
+	 * @param fillMode Fill mode for the polygon fill can be one of two values: EVEN_ODD or WINDING.
+	 *
+	 * Note, as any other graphics algorithm, the scan line rasterizer doesn't require polygons
+	 * to be topologically simple, or have correct ring orientation.
 	 */
-	public void renderEdges(int fillMode) {
+	public final void renderEdges(int fillMode) {
 		evenOdd_ = fillMode == EVEN_ODD;
 		for (int line = minY_; line <= maxY_; line++) {
 			advanceAET_();
 			addNewEdgesToAET_(line);
 			emitScans_();
 		}
-		
-		numEdges_ = 0;
-		if (activeEdgesTable_ != null)
-			activeEdgesTable_.clear();
 		
 		startAddingEdges();//reset for new edges
 	}
@@ -144,9 +176,10 @@ public class SimpleRasterizer {
 	 * @param x2
 	 * @param y2
 	 */
-	public void addEdge(double x1, double y1, double x2, double y2) {
+	public final void addEdge(double x1, double y1, double x2, double y2) {
 		if (y1 == y2)
 			return;
+			
 		int dir = 1;
 		if (y1 > y2) {
 			double temp;
@@ -180,27 +213,26 @@ public class SimpleRasterizer {
 			y1 = 0;
 		}
 
-		//We know that dxdy != 0, otherwise it would return earlier
 		//do not clip x unless it is too small or too big
 		int bigX = Math.max(width_ + 1, 0x7fffff);
 		if (x1 < -0x7fffff) {
-			
+		    //from earlier logic, x2 >= -1, therefore dxdy is not 0
 			y1 = (0 - x1) / dxdy + y1;
 			x1 = 0;
 		}
 		else if (x1 > bigX) {
-			//we know that dx != 0, otherwise it would return earlier
+			//from earlier logic, x2 <= width_, therefore dxdy is not 0
 			y1 = (width_ - x1) / dxdy + y1;
 			x1 = width_;
 		}
 
 		if (x2 < -0x7fffff) {
-			//we know that dx != 0, otherwise it would return earlier
+			//from earlier logic, x1 >= -1, therefore dxdy is not 0
 			y2 = (0 - x1) / dxdy + y1;
 			x2 = 0;
 		}
 		else if (x2 > bigX) {
-			//we know that dx != 0, otherwise it would return earlier
+			//from earlier logic, x1 <= width_, therefore dxdy is not 0
 			y2 = (width_ - x1) / dxdy + y1;
 			x2 = width_;
 		}
@@ -210,11 +242,7 @@ public class SimpleRasterizer {
 		if (ystart == yend)
 			return;
 		
-		Edge e;
-		if (recycledEdges_ != null && recycledEdges_.size() > 0)
-			e = recycledEdges_.remove(recycledEdges_.size() - 1);
-		else
-			e = new Edge();
+		Edge e = new Edge();
 		
 		e.x = (long)(x1 * 4294967296.0);
 		e.y = ystart;
@@ -223,84 +251,155 @@ public class SimpleRasterizer {
 		e.dir = dir;
 		
 		if (ySortedEdges_ == null) {
-			ySortedEdges_ = new ArrayList<ArrayList<Edge>>();
-			ySortedEdges_.ensureCapacity(height_);
-			for (int i = 0; i < height_; i++) {
-				ySortedEdges_.add(null);
-			}
+			ySortedEdges_ = new Edge[height_];
 		}
 
-		if (ySortedEdges_.get(e.y) == null) {
-			ySortedEdges_.set(e.y, new ArrayList<Edge>());
-		}
+		e.next = ySortedEdges_[e.y];
+		ySortedEdges_[e.y] = e;
 		
-		ySortedEdges_.get(e.y).add(e);
 		if (e.y < minY_)
 			minY_ = e.y;
 		
 		if (e.ymax > maxY_)
 			maxY_ = e.ymax;
+		
+		numEdges_++;
 	}
 	
-	class Edge {
+	public final void fillEnvelope(Envelope2D envIn) {
+		Envelope2D env = new Envelope2D(0, 0, width_, height_);
+		if (!env.intersect(envIn))
+			return;
+
+		int x0 = (int)env.xmin;
+		int x = (int)env.xmax;
+
+		int xn = NumberUtils.snap(x0, 0, width_);
+		int xm = NumberUtils.snap(x, 0, width_);
+		if (x0 < width_ && xn < xm) {
+			int y0 = (int)env.ymin;
+			int y1 = (int)env.ymax;
+			y0 = NumberUtils.snap(y0, 0, height_);
+			y1 = NumberUtils.snap(y1, 0, height_);
+			if (y0 < height_) {
+				for (int y = y0; y < y1; y++) {
+					scanBuffer_[scanPtr_++] = xn;
+					scanBuffer_[scanPtr_++] = xm;
+					scanBuffer_[scanPtr_++] = y;
+					if (scanPtr_ == scanBuffer_.length) {
+						callback_.drawScan(scanBuffer_, scanPtr_);
+						scanPtr_ = 0;
+					}
+				}
+			}
+		}
+	}
+	
+	public final ScanCallback getScanCallback() { return callback_; }
+	
+	
+	//PRIVATE
+	
+	private static class Edge {
 		long x;
 		long dxdy;
 		int y;
 		int ymax;
 		int dir;
+		Edge next;
 	}
 	
-	private void advanceAET_() {
-		if (activeEdgesTable_ != null && activeEdgesTable_.size() > 0) {
-			for (int i = 0, n = activeEdgesTable_.size(); i < n; i++) {
-				Edge e = activeEdgesTable_.get(i);
-				e.y++;
-				if (e.y == e.ymax) {
-					if (recycledEdges_ == null) {
-						recycledEdges_ = new ArrayList<Edge>();
-					}
-					
-					recycledEdges_.add(e);
-					activeEdgesTable_.set(i, null);
-					continue;
-				}
-				
-				e.x += e.dxdy;
-			}
-		}
-	}
-	
-	private void addNewEdgesToAET_(int y) {
-		if (y >= ySortedEdges_.size())
+	private final void advanceAET_() {
+		if (activeEdgesTable_ == null)
 			return;
 		
-		if (activeEdgesTable_ == null)
-			activeEdgesTable_ = new ArrayList<Edge>();
-		
-		ArrayList<Edge> edgesOnLine = ySortedEdges_.get(y);
-		if (edgesOnLine != null) {
-			for (int i = 0, n = edgesOnLine.size(); i < n; i++) {
-				activeEdgesTable_.add(edgesOnLine.get(i));
+		boolean needSort = false;
+		Edge prev = null;
+		for (Edge e = activeEdgesTable_; e != null; ) {
+			e.y++;
+			if (e.y == e.ymax) {
+				Edge p = e; e = e.next;
+				if (prev != null)
+					prev.next = e;
+				else
+					activeEdgesTable_ = e;
+				
+				p.next = null;
+				continue;
 			}
 			
-			edgesOnLine.clear();
+			e.x += e.dxdy;
+			if (prev != null && prev.x > e.x)
+				needSort = true;
+			
+			prev = e;
+			e = e.next;
+		}
+		
+		if (needSort) {
+			//resort to fix the order
+			activeEdgesTable_ = sortAET_(activeEdgesTable_);
+		}
+	}
+	
+	private final void addNewEdgesToAET_(int y) {
+		if (y >= height_)
+			return;
+
+		Edge edgesOnLine = ySortedEdges_[y];
+		if (edgesOnLine != null) {
+			ySortedEdges_[y] = null;
+			edgesOnLine = sortAET_(edgesOnLine);//sort new edges
+			numEdges_ -= sortedNum_;//set in the sortAET
+
+			// merge the edges with sorted AET - O(n) operation
+			Edge aet = activeEdgesTable_;
+			boolean first = true; 
+			Edge newEdge = edgesOnLine;
+			Edge prev_aet = null;
+			while (aet != null && newEdge != null) {
+				if (aet.x > newEdge.x) {
+					if (first)
+						activeEdgesTable_ = newEdge;
+					
+					Edge p = newEdge.next;
+					newEdge.next = aet;
+					if (prev_aet != null) {
+						prev_aet.next = newEdge;
+					}
+					
+					prev_aet = newEdge;
+					newEdge = p;
+				} else { // aet.x <= newEdges.x
+					Edge p = aet.next;
+					aet.next = newEdge;
+					if (prev_aet != null)
+						prev_aet.next = aet;
+					
+					prev_aet = aet;
+					aet = p;
+				}
+				
+				first = false;
+			}
+			
+			if (activeEdgesTable_ == null)
+				activeEdgesTable_ = edgesOnLine;
 		}
 	}
 
-	static int snap_(int x, int mi, int ma) {
+	private static int snap_(int x, int mi, int ma) {
 		return x < mi ? mi : x > ma ? ma : x;
 	}
-	private void emitScans_() {
-		sortAET_();
-
-		if (activeEdgesTable_ == null || activeEdgesTable_.size() == 0)
+	
+	private final void emitScans_() {
+		if (activeEdgesTable_ == null)
 			return;
 		
 		int w = 0;
-		Edge e0 = activeEdgesTable_.get(0);
+		Edge e0 = activeEdgesTable_;
 		int x0 = (int)(e0.x >> 32);
-		for (int i = 1; i < activeEdgesTable_.size(); i++) {
-			Edge e = activeEdgesTable_.get(i);
+		for (Edge e = e0.next; e != null; e = e.next) {
 			if (evenOdd_)
 				w ^= 1;
 			else
@@ -308,11 +407,17 @@ public class SimpleRasterizer {
 			
 			if (e.x > e0.x) {
 				int x = (int)(e.x >> 32);
-				if (w == 1) {
+				if (w != 0) {
 					int xx0 = snap_(x0, 0, width_);
 					int xx = snap_(x, 0, width_);
 					if (xx > xx0 && xx0 < width_) {
-						callback_.drawScan(e.y, xx0, xx - xx0);
+						scanBuffer_[scanPtr_++] = xx0;
+						scanBuffer_[scanPtr_++] = xx;
+						scanBuffer_[scanPtr_++] = e.y;
+						if (scanPtr_ == scanBuffer_.length) {
+							callback_.drawScan(scanBuffer_, scanPtr_);
+							scanPtr_ = 0;
+						}
 					}
 				}
 				
@@ -322,56 +427,74 @@ public class SimpleRasterizer {
 		}
 	}
 	
-	static class EdgeComparator implements Comparator<Edge> {
+	static private class EdgeComparator implements Comparator<Edge> {
 		@Override
 		public int compare(Edge o1, Edge o2) {
-			if (o1 == null)
-				return o2 == null ? 0 : 1;
-			else if (o2 == null)
-				return -1;
-				
+			if (o1 == o2)
+				return 0;
+			
 			return o1.x < o2.x ? -1 : o1.x > o2.x ? 1 : 0;
 		}
 	}
 	
-	private static EdgeComparator edgeCompare_ = new EdgeComparator();
+	private final static EdgeComparator edgeCompare_ = new EdgeComparator();
  	
-	private void sortAET_() {
-		if (!checkAETIsSorted_())
+	private final Edge sortAET_(Edge aet) {
+		int num = 0;
+		for (Edge e = aet; e != null; e = e.next)
+			num++;
+		
+		sortedNum_ = num;
+		if (num == 1)
+			return aet;
+		
+		if (sortBuffer_ == null)
+			sortBuffer_ = new Edge[Math.max(num, 16)];
+		
+		else if (sortBuffer_.length < num)
+			sortBuffer_ = new Edge[Math.max(num, sortBuffer_.length * 2)];
+		
 		{
-			Collections.sort(activeEdgesTable_, edgeCompare_);
-			while (activeEdgesTable_.size() > 0 && activeEdgesTable_.get(activeEdgesTable_.size() - 1) == null)
-				activeEdgesTable_.remove(activeEdgesTable_.size() - 1);
+			int i = 0;
+			for (Edge e = aet; e != null; e = e.next)
+				sortBuffer_[i++] = e;
 		}
-	}
-	
-	private boolean checkAETIsSorted_() {
-		if (activeEdgesTable_ == null || activeEdgesTable_.size() == 0)
-			return true;
 		
-		Edge e0 = activeEdgesTable_.get(0);
-		if (e0 == null)
-			return false;
-		
-		for (int i = 1; i < activeEdgesTable_.size(); i++) {
-			Edge e = activeEdgesTable_.get(i);
-			if (e == null || e.x < e0.x) {
-				return false;
+		if (num == 2) {
+			if (sortBuffer_[0].x > sortBuffer_[1].x) {
+				Edge tmp = sortBuffer_[0];
+				sortBuffer_[0] = sortBuffer_[1];
+				sortBuffer_[1] = tmp;
 			}
-			e0 = e;
+		}
+		else {
+			Arrays.sort(sortBuffer_, 0, num, edgeCompare_);
+		}
+
+		aet = sortBuffer_[0]; sortBuffer_[0] = null;
+		Edge prev = aet;
+		for (int i = 1; i < num; i++) {
+			prev.next = sortBuffer_[i];
+			prev = sortBuffer_[i];
+			sortBuffer_[i] = null;
 		}
 		
-		return true;
+		prev.next = null;
+		return aet;
 	}
-	
-	private ArrayList<Edge> recycledEdges_;
-	private ArrayList<Edge> activeEdgesTable_;
-	private ArrayList<ArrayList<Edge>> ySortedEdges_;
-	public ScanCallback callback_;
+		
+	private Edge activeEdgesTable_;
+	private Edge[] ySortedEdges_;
+	private Edge[] sortBuffer_;
+	private int[] scanBuffer_;
+	int scanPtr_;
+	private ScanCallback callback_;
 	private int width_;
 	private int height_;
 	private int minY_;
 	private int maxY_;
 	private int numEdges_;
+	private int sortedNum_;
 	private boolean evenOdd_;
 }
+

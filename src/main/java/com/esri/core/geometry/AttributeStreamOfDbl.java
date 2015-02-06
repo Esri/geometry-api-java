@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2013 Esri
+ Copyright 1995-2015 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -405,14 +405,14 @@ final class AttributeStreamOfDbl extends AttributeStreamBase {
 		if (!bForward && (stride < 1 || count % stride != 0))
 			throw new IllegalArgumentException();
 
-        int excess_space = m_size - validSize;
+		int excess_space = m_size - validSize;
 
 		if (excess_space < count) {
 			int original_size = m_size;
 			resize(original_size + count - excess_space);
 		}
 
-        System.arraycopy(m_buffer, start, m_buffer, start + count, validSize
+		System.arraycopy(m_buffer, start, m_buffer, start + count, validSize
 				- start);
 
 		if (m_buffer == ((AttributeStreamOfDbl) src).m_buffer) {

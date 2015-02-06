@@ -67,22 +67,26 @@ final class RasterizedGeometry2DImpl extends RasterizedGeometry2D {
 		}
 
 		public void setColor(SimpleRasterizer rasterizer, int color) {
+			if (m_color != color)
+				rasterizer.flush();
+			
 			m_color = color;// set new color
 		}
 
 		@Override
-		public void drawScan(int y, int x, int numPxls) {
-			int x0 = x;
-			int x1 = x + numPxls;
-			if (x1 > m_width)
-				x1 = m_width;
-
-			int scanlineStart = y * m_scanlineWidth;
-			for (int xx = x0; xx < x1; xx++) {
-				m_bitmap[scanlineStart + (xx >> 4)] |= m_color << ((xx & 15) * 2);// 2
-				// bit
-				// per
-				// color
+		public void drawScan(int[] scans, int scanCount3) {
+			for (int i = 0; i < scanCount3; ) {
+				int x0 = scans[i++];
+				int x1 = scans[i++];
+				int y = scans[i++];
+	
+				int scanlineStart = y * m_scanlineWidth;
+				for (int xx = x0; xx < x1; xx++) {
+					m_bitmap[scanlineStart + (xx >> 4)] |= m_color << ((xx & 15) * 2);// 2
+					// bit
+					// per
+					// color
+			}
 			}
 		}
 	}
@@ -122,33 +126,7 @@ final class RasterizedGeometry2DImpl extends RasterizedGeometry2D {
 	}
 
 	void fillEnvelope(SimpleRasterizer rasterizer, Envelope2D envIn) {
-		/*if (!m_identity) {
-			Point2D fan[] = new Point2D[4];
-			envIn.queryCorners(fan);
-			fillConvexPolygon(rasterizer, fan, 4);
-			return;
-		}*/
-
-		Envelope2D env = new Envelope2D(0, 0, m_width, m_width);
-		if (!env.intersect(envIn))
-			return;
-
-		int x0 = (int) Math.round(env.xmin);
-		int x = (int) Math.round(env.xmax);
-
-		int xn = NumberUtils.snap(x0, 0, m_width);
-		int xm = NumberUtils.snap(x, 0, m_width);
-		if (x0 < m_width && xn < xm) {
-			int y0 = (int) Math.round(env.ymin);
-			int y1 = (int) Math.round(env.ymax);
-			y0 = NumberUtils.snap(y0, 0, m_width);
-			y1 = NumberUtils.snap(y1, 0, m_width);
-			if (y0 < m_width) {
-				for (int y = y0; y < y1; y++) {
-					m_rasterizer.callback_.drawScan(y, xn, xm - xn);
-				}
-			}
-		}
+		rasterizer.fillEnvelope(envIn);
 	}
 	
 	void strokeDrawPolyPath(SimpleRasterizer rasterizer,
@@ -253,8 +231,7 @@ final class RasterizedGeometry2DImpl extends RasterizedGeometry2D {
 			double toleranceXY, int rasterSizeBytes) {
 		RasterizedGeometry2DImpl rgImpl = new RasterizedGeometry2DImpl(geom,
 				toleranceXY, rasterSizeBytes);
-		rgImpl.init((MultiVertexGeometryImpl) geom._getImpl(), toleranceXY,
-				rasterSizeBytes);
+
 		return rgImpl;
 	}
 
@@ -267,7 +244,6 @@ final class RasterizedGeometry2DImpl extends RasterizedGeometry2D {
 			double toleranceXY, int rasterSizeBytes) {
 		RasterizedGeometry2DImpl rgImpl = new RasterizedGeometry2DImpl(geom,
 				toleranceXY, rasterSizeBytes);
-		rgImpl.init(geom, toleranceXY, rasterSizeBytes);
 		return rgImpl;
 	}
 	
@@ -360,6 +336,7 @@ final class RasterizedGeometry2DImpl extends RasterizedGeometry2D {
 		m_x0 = m_transform.xd;
 		m_y0 = m_transform.yd;
 		buildLevels();
+		//dbgSaveToBitmap("c:/temp/_dbg.bmp");
 	}
 
 	boolean tryRenderAsSmallEnvelope_(Envelope2D env) {
@@ -389,6 +366,7 @@ final class RasterizedGeometry2DImpl extends RasterizedGeometry2D {
 	}
 
 	void buildLevels() {
+		m_rasterizer.flush();
 		int iStart = 0;
 		int iStartNext = m_width * m_scanLineSize;
 		int width = m_width;

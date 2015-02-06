@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2013 Esri
+ Copyright 1995-2015 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -183,26 +183,23 @@ final class OperatorUnionCursor extends GeometryCursor {
 		}
 		
 		if (m_added_geoms > 0) {
-	        for (int dim = 0; dim <= m_max_dimension; dim++)
-	        {
-	          while (m_dim_geom_counts[dim] > 1)
-	          {
-	            ArrayList<Geometry> batch_to_union = collect_geometries_to_union(dim);
-	            boolean serial_execution = true;
-	            if (serial_execution)
-	            {
-	              if (batch_to_union.size() != 0)
-	              {
-	                Geometry geomRes = TopologicalOperations.dissolveDirty(batch_to_union, m_spatial_reference, m_progress_tracker);
-	                add_geom(dim, true, geomRes);
-	              }
-	              else
-	              {
-	                break;
-	              }
-	            }
-	          }
-	        }
+			for (int dim = 0; dim <= m_max_dimension; dim++) {
+				while (m_dim_geom_counts[dim] > 1) {
+					ArrayList<Geometry> batch_to_union = collect_geometries_to_union(dim);
+					boolean serial_execution = true;
+					if (serial_execution) {
+						if (batch_to_union.size() != 0) {
+							Geometry geomRes = TopologicalOperations
+									.dissolveDirty(batch_to_union,
+											m_spatial_reference,
+											m_progress_tracker);
+							add_geom(dim, true, geomRes);
+						} else {
+							break;
+						}
+					}
+				}
+			}
 		}
 		
 		return m_b_done;

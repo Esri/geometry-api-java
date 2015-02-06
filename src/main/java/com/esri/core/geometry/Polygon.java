@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2013 Esri
+ Copyright 1995-2015 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -158,6 +158,7 @@ public final class Polygon extends MultiPath implements Serializable {
       *Fill rule for the polygon that defines the interior of the self intersecting polygon. It affects the Simplify operation. 
       *Can be use by drawing code to pass around the fill rule of graphic path.
       *This property is not persisted in any format yet.
+      *See also Polygon.FillRule.
       */
       public void setFillRule(int rule) {
     	  m_impl.setFillRule(rule);
@@ -168,6 +169,7 @@ public final class Polygon extends MultiPath implements Serializable {
       *Changing the fill rule on the polygon that has no self intersections has no physical effect.
       *Can be use by drawing code to pass around the fill rule of graphic path.
       *This property is not persisted in any format yet.
+      *See also Polygon.FillRule.
       */
       public int getFillRule() {
     	  return m_impl.getFillRule();
