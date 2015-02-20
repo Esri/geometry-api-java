@@ -213,11 +213,11 @@ final class RasterizedGeometry2DImpl extends RasterizedGeometry2D {
 	}
 
 	int worldToPixX(double x) {
-		return (int) Math.round(x * m_dx + m_x0);
+		return (int) (x * m_dx + m_x0);
 	}
 
 	int worldToPixY(double y) {
-		return (int) Math.round(y * m_dy + m_y0);
+		return (int) (y * m_dy + m_y0);
 	}
 
 	RasterizedGeometry2DImpl(Geometry geom, double toleranceXY,
@@ -405,6 +405,9 @@ final class RasterizedGeometry2DImpl extends RasterizedGeometry2D {
 
 	@Override
 	public HitType queryPointInGeometry(double x, double y) {
+		if (!m_geomEnv.contains(x, y))
+			return HitType.Outside;
+		
 		int ix = worldToPixX(x);
 		int iy = worldToPixY(y);
 		if (ix < 0 || ix >= m_width || iy < 0 || iy >= m_width)
@@ -423,7 +426,8 @@ final class RasterizedGeometry2DImpl extends RasterizedGeometry2D {
 	@Override
 	public HitType queryEnvelopeInGeometry(Envelope2D env) {
 		if (!env.intersect(m_geomEnv))
-			return com.esri.core.geometry.RasterizedGeometry2D.HitType.Outside;
+			return HitType.Outside;
+		
 		int ixmin = worldToPixX(env.xmin);
 		int ixmax = worldToPixX(env.xmax);
 		int iymin = worldToPixY(env.ymin);
