@@ -34,7 +34,7 @@ class PairwiseIntersectorImpl {
     private double m_tolerance;
     private int m_path_index;
     private int m_element_handle;
-    private Envelope2D m_paths_query; // only used for m_b_paths == true case
+    private Envelope2D m_paths_query = new Envelope2D(); // only used for m_b_paths == true case
     private QuadTreeImpl m_quad_tree;
     private QuadTreeImpl.QuadTreeIteratorImpl m_qt_iter;
     private SegmentIteratorImpl m_seg_iter;

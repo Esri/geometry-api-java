@@ -146,7 +146,7 @@ public final class Wkid {
 		if (tol == 1e38) {
 			int old = wkid_to_old(wkid);
 			if (old != wkid)
-				tol = find_tolerance_from_wkid_helper(wkid);
+				tol = find_tolerance_from_wkid_helper(old);
 			if (tol == 1e38)
 				return 1e-10;
 		}

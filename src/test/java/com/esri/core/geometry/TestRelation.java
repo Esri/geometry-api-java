@@ -5481,4 +5481,16 @@ public class TestRelation extends TestCase {
 				null);
 		assertTrue(answer2);
 	}
+
+	@Test
+	public void testDisjointCrash() {
+		Polygon g1 = new Polygon();
+		g1.addEnvelope(Envelope2D.construct(0,  0,  10,  10), false);
+		Polygon g2 = new Polygon();
+		g2.addEnvelope(Envelope2D.construct(10,  1,  21,  21), false);
+		g1 = (Polygon)OperatorDensifyByLength.local().execute(g1, 0.1, null);
+		OperatorDisjoint.local().accelerateGeometry(g1, SpatialReference.create(4267), GeometryAccelerationDegree.enumHot);
+		boolean res = OperatorDisjoint.local().execute(g1, g2, SpatialReference.create(4267), null);
+		assertTrue(!res);
+	}	
 }

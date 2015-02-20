@@ -48,7 +48,7 @@ public class SimpleRasterizer {
 	public static interface ScanCallback {
 		/**
 		 * Rasterizer calls this method for each scan it produced
-		 * @param scan array of scans. Scans are triplets of numbers. The start X coordinate for the scan (inclusive),
+		 * @param scans array of scans. Scans are triplets of numbers. The start X coordinate for the scan (inclusive),
 		 * the end X coordinate of the scan (exclusive), the Y coordinate for the scan.
 		 * @param scanCount3 The number of initialized elements in the scans array. The scan count is scanCount3 / 3. 
 		 */

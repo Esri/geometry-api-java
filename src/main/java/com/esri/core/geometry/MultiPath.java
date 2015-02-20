@@ -653,7 +653,7 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	 * @param bReverse
 	 *            Creates reversed path.
 	 */
-	void addEnvelope(Envelope2D envSrc, boolean bReverse) {
+	public void addEnvelope(Envelope2D envSrc, boolean bReverse) {
 		m_impl.addEnvelope(envSrc, bReverse);
 	}
 
