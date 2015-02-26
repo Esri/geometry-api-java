@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2013 Esri
+ Copyright 1995-2015 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -363,5 +363,10 @@ public final class MultiPoint extends MultiVertexGeometry implements
     @Override
     public Geometry getBoundary() {
         return m_impl.getBoundary();
+    }
+    
+    @Override
+    public void replaceNaNs(int semantics, double value) {
+    	m_impl.replaceNaNs(semantics, value);
     }
 }

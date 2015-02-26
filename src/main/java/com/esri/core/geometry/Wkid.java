@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2013 Esri
+ Copyright 1995-2015 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -146,7 +146,7 @@ public final class Wkid {
 		if (tol == 1e38) {
 			int old = wkid_to_old(wkid);
 			if (old != wkid)
-				tol = find_tolerance_from_wkid_helper(wkid);
+				tol = find_tolerance_from_wkid_helper(old);
 			if (tol == 1e38)
 				return 1e-10;
 		}

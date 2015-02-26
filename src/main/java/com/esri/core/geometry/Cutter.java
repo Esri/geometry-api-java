@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2013 Esri
+ Copyright 1995-2015 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -116,7 +116,7 @@ class Cutter {
 		EditShape editShape = new EditShape();
 		int cutteeHandle = editShape.addGeometry(cuttee);
 		int cutterHandle = editShape.addGeometry(cutter);
-		CrackAndCluster.execute(editShape, tolerance, progressTracker);
+		CrackAndCluster.execute(editShape, tolerance, progressTracker, true);
 
 		int order = 0;
 		int orderIndex = editShape.createUserIndex();

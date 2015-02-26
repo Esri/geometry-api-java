@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2013 Esri
+ Copyright 1995-2015 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -345,12 +345,25 @@ class QuadTreeImpl {
 	}
 
 	/**
-	 * Returns the element at the given element_handle. \param element_handle
+	 * Returns the element at the given element_handle.
+     * \param element_handle
 	 * The handle corresponding to the element to be retrieved.
 	 */
 	int getElement(int element_handle) {
 		return getElement_(element_handle);
 	}
+
+
+    /**
+     * Returns a reference to the element extent at the given element_handle.
+     * \param element_handle
+     * The handle corresponding to the element to be retrieved.
+     */
+    Envelope2D getElementExtent(int element_handle)
+    {
+        int box_handle = getBoxHandle_(element_handle);
+        return getBoundingBox_(box_handle);
+    }
 
 	/**
 	 * Returns the height of the quad at the given quad_handle. \param

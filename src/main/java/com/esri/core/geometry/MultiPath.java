@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2013 Esri
+ Copyright 1995-2015 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -653,7 +653,7 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	 * @param bReverse
 	 *            Creates reversed path.
 	 */
-	void addEnvelope(Envelope2D envSrc, boolean bReverse) {
+	public void addEnvelope(Envelope2D envSrc, boolean bReverse) {
 		m_impl.addEnvelope(envSrc, bReverse);
 	}
 
@@ -738,4 +738,9 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 		return m_impl.getStateFlag();
 	}
 
+    @Override
+    public void replaceNaNs(int semantics, double value) {
+    	m_impl.replaceNaNs(semantics, value);
+    }
+	
 }

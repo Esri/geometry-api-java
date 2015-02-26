@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2013 Esri
+ Copyright 1995-2015 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -246,25 +246,21 @@ class SegmentIntersector {
 
 						double ptWeight;
 
-						Point2D pt;
+						Point2D pt = new Point2D();
 						if (rank1 == rank2) {// for equal ranks use weighted sum
 							Point2D pt_1 = new Point2D();
 							line_1.getCoord2D(t1, pt_1);
-							pt_1.scale(weight1);
 							Point2D pt_2 = new Point2D();
 							line_2.getCoord2D(t2, pt_2);
-							pt_2.scale(weight2);
-							pt = new Point2D();
-							pt.add(pt_1, pt_2);
 							ptWeight = weight1 + weight2;
-							pt.scale(1 / ptWeight);
+							double t = weight2 / ptWeight;
+							MathUtils.lerp(pt_1, pt_2, t, pt);
 							if (Point2D.sqrDistance(pt, pt_1)
 									+ Point2D.sqrDistance(pt, pt_2) > small_tolerance_sqr)
 								bigmove = true;
 							
 						} else {// for non-equal ranks, the higher rank wins
 							if (rank1 > rank2) {
-								pt = new Point2D();
 								line_1.getCoord2D(t1, pt);
 								ptWeight = weight1;
 								Point2D pt_2 = new Point2D();
@@ -272,7 +268,6 @@ class SegmentIntersector {
 								if (Point2D.sqrDistance(pt, pt_2) > small_tolerance_sqr)
 									bigmove = true;
 							} else {
-								pt = new Point2D();
 								line_2.getCoord2D(t2, pt);
 								ptWeight = weight2;
 								Point2D pt_1 = new Point2D();
@@ -392,17 +387,14 @@ class SegmentIntersector {
 
 				double ptWeight;
 
-				Point2D pt;
+				Point2D pt = new Point2D();
 				if (rank1 == rank2) {// for equal ranks use weighted sum
 					Point2D pt_1 = new Point2D();
 					line_1.getCoord2D(t1, pt_1);
-					pt_1.scale(weight1);
 					Point2D pt_2 = pt_intersector_point.getXY();
-					pt_2.scale(weight2);
-					pt = new Point2D();
-					pt.add(pt_1, pt_2);
 					ptWeight = weight1 + weight2;
-					pt.scale(1 / ptWeight);
+					double t = weight2 / ptWeight;
+					MathUtils.lerp(pt_1,  pt_2, t, pt);
 				} else {// for non-equal ranks, the higher rank wins
 					if (rank1 > rank2) {
 						pt = new Point2D();

@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2013 Esri
+ Copyright 1995-2015 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ class GeometryAccelerators {
 
 	private RasterizedGeometry2D m_rasterizedGeometry;
 	private QuadTreeImpl m_quad_tree;
-	private ArrayList<Envelope2D> m_path_envelopes;
+    private QuadTreeImpl m_quad_tree_for_paths;
 
 	public RasterizedGeometry2D getRasterizedGeometry() {
 		return m_rasterizedGeometry;
@@ -39,8 +39,8 @@ class GeometryAccelerators {
 		return m_quad_tree;
 	}
 
-	public ArrayList<Envelope2D> getPathEnvelopes() {
-		return m_path_envelopes;
+	public QuadTreeImpl getQuadTreeForPaths() {
+		return m_quad_tree_for_paths;
 	}
 
 	void _setRasterizedGeometry(RasterizedGeometry2D rg) {
@@ -51,9 +51,7 @@ class GeometryAccelerators {
 		m_quad_tree = quad_tree;
 	}
 
-	void _setPathEnvelopes(ArrayList<Envelope2D> pe) {
-		m_path_envelopes = pe;
-	}
+	void _setQuadTreeForPaths(QuadTreeImpl quad_tree) { m_quad_tree_for_paths = quad_tree; }
 
 	static boolean canUseRasterizedGeometry(Geometry geom) {
 		if (geom.isEmpty()
@@ -77,12 +75,13 @@ class GeometryAccelerators {
 		return true;
 	}
 
-	static boolean canUsePathEnvelopes(Geometry geom) {
-		if (geom.isEmpty()
-				|| !(geom.getType() == Geometry.Type.Polyline || geom.getType() == Geometry.Type.Polygon)) {
-			return false;
-		}
+    static boolean canUseQuadTreeForPaths(Geometry geom) {
+        if (geom.isEmpty() || !(geom.getType() == Geometry.Type.Polyline || geom.getType() == Geometry.Type.Polygon))
+            return false;
 
-		return true;
-	}
+        if (((MultiVertexGeometry) geom).getPointCount() < 20)
+            return false;
+
+        return true;
+    }
 }

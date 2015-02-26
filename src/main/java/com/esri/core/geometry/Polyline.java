@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2013 Esri
+ Copyright 1995-2015 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -46,6 +46,15 @@ public final class Polyline extends MultiPath implements Serializable {
 
 	Polyline(VertexDescription vd) {
 		m_impl = new MultiPathImpl(false, vd);
+	}
+
+	/**
+	 * Creates a polyline with one line segment.
+	 */
+	public Polyline(Point start, Point end) {
+		m_impl = new MultiPathImpl(false, start.getDescription());
+		startPath(start);
+		lineTo(end);
 	}
 
 	@Override

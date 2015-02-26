@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2013 Esri
+ Copyright 1995-2015 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@
 
 package com.esri.core.geometry;
 
-class MathUtils {
+final class MathUtils {
 	/**
 	 * The implementation of the Kahan summation algorithm. Use to get better
 	 * precision when adding a lot of values.
@@ -154,4 +154,71 @@ class MathUtils {
 	static double sqr(double v) {
 		return v * v;
 	}
+
+    /**
+    *Computes interpolation between two values, using the interpolation factor t.
+    *The interpolation formula is (end - start) * t + start.
+    *However, the computation ensures that t = 0 produces exactly start, and t = 1, produces exactly end.
+    *It also guarantees that for 0 <= t <= 1, the interpolated value v is between start and end.
+    */
+	static double lerp(double start_, double end_, double t) {
+		// When end == start, we want result to be equal to start, for all t
+		// values. At the same time, when end != start, we want the result to be
+		// equal to start for t==0 and end for t == 1.0
+		// The regular formula end_ * t + (1.0 - t) * start_, when end_ ==
+		// start_, and t at 1/3, produces value different from start
+		double v;
+		if (t <= 0.5)
+			v = start_ + (end_ - start_) * t;
+		else
+			v = end_ - (end_ - start_) * (1.0 - t);
+
+		assert (t < 0 || t > 1.0 || (v >= start_ && v <= end_) || (v <= start_ && v >= end_) || NumberUtils.isNaN(start_) || NumberUtils.isNaN(end_));
+		return v;
+	}
+
+    /**
+    *Computes interpolation between two values, using the interpolation factor t.
+    *The interpolation formula is (end - start) * t + start.
+    *However, the computation ensures that t = 0 produces exactly start, and t = 1, produces exactly end.
+    *It also guarantees that for 0 <= t <= 1, the interpolated value v is between start and end.
+    */
+	static void lerp(Point2D start_, Point2D end_, double t, Point2D result) {
+		// When end == start, we want result to be equal to start, for all t
+		// values. At the same time, when end != start, we want the result to be
+		// equal to start for t==0 and end for t == 1.0
+		// The regular formula end_ * t + (1.0 - t) * start_, when end_ ==
+		// start_, and t at 1/3, produces value different from start
+		if (t <= 0.5) {
+			result.x = start_.x + (end_.x - start_.x) * t;
+			result.y = start_.y + (end_.y - start_.y) * t;
+		}
+		else {
+			result.x = end_.x - (end_.x - start_.x) * (1.0 - t);
+			result.y = end_.y - (end_.y - start_.y) * (1.0 - t);
+		}
+
+		assert (t < 0 || t > 1.0 || (result.x >= start_.x && result.x <= end_.x) || (result.x <= start_.x && result.x >= end_.x));
+		assert (t < 0 || t > 1.0 || (result.y >= start_.y && result.y <= end_.y) || (result.y <= start_.y && result.y >= end_.y));
+	}
+
+	static void lerp(double start_x, double start_y, double end_x, double end_y, double t, Point2D result) {
+		// When end == start, we want result to be equal to start, for all t
+		// values. At the same time, when end != start, we want the result to be
+		// equal to start for t==0 and end for t == 1.0
+		// The regular formula end_ * t + (1.0 - t) * start_, when end_ ==
+		// start_, and t at 1/3, produces value different from start
+		if (t <= 0.5) {
+			result.x = start_x + (end_x - start_x) * t;
+			result.y = start_y + (end_y - start_y) * t;
+		}
+		else {
+			result.x = end_x - (end_x - start_x) * (1.0 - t);
+			result.y = end_y - (end_y - start_y) * (1.0 - t);
+		}
+
+		assert (t < 0 || t > 1.0 || (result.x >= start_x && result.x <= end_x) || (result.x <= start_x && result.x >= end_x));
+		assert (t < 0 || t > 1.0 || (result.y >= start_y && result.y <= end_y) || (result.y <= start_y && result.y >= end_y));
+	}
+	
 }

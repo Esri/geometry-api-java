@@ -1,6 +1,7 @@
 package com.esri.core.geometry;
 
 import junit.framework.TestCase;
+
 import org.junit.Test;
 
 public class TestGeodetic extends TestCase {
@@ -15,7 +16,7 @@ public class TestGeodetic extends TestCase {
 	}
 
 	@Test
-	public static void testTriangleLength() {
+	public void testTriangleLength() {
 		Point pt_0 = new Point(10, 10);
 		Point pt_1 = new Point(20, 20);
 		Point pt_2 = new Point(20, 10);
@@ -27,7 +28,7 @@ public class TestGeodetic extends TestCase {
 	}
 
 	@Test
-	public static void testRotationInvariance() {
+	public void testRotationInvariance() {
 		Point pt_0 = new Point(10, 40);
 		Point pt_1 = new Point(20, 60);
 		Point pt_2 = new Point(20, 40);
@@ -50,7 +51,7 @@ public class TestGeodetic extends TestCase {
 	}
 
 	@Test
-	public static void testLengthAccurateCR191313() {
+	public void testLengthAccurateCR191313() {
 		/*
 		 * // random_test(); OperatorFactoryLocal engine =
 		 * OperatorFactoryLocal.getInstance(); //TODO: Make this:
@@ -69,4 +70,4 @@ public class TestGeodetic extends TestCase {
 		 * assertTrue(Math.abs(length - 2738362.3249366437) < 2e-9 * length);
 		 */
 	}
-}
+	}

@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2013 Esri
+ Copyright 1995-2015 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -622,5 +622,19 @@ public final class Point extends Geometry implements Serializable {
     @Override
     public Geometry getBoundary() {
         return null;
+    }
+    
+    @Override
+    public void replaceNaNs(int semantics, double value) {
+    	addAttribute(semantics);
+    	if (isEmpty())
+    		return;
+    	
+    	int ncomps = VertexDescription.getComponentCount(semantics);
+    	for (int i = 0; i < ncomps; i++) {
+    		double v = getAttributeAsDbl(semantics, i);
+    		if (Double.isNaN(v))
+    			setAttribute(semantics, i, value);
+    	}
     }
 }

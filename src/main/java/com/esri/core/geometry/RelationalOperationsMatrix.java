@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2013 Esri
+ Copyright 1995-2015 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -26,9 +26,11 @@ package com.esri.core.geometry;
 class RelationalOperationsMatrix {
 	private TopoGraph m_topo_graph;
 	private int[] m_matrix;
+    private int[] m_max_dim;
 	private boolean[] m_perform_predicates;
 	private String m_scl;
-	private int m_predicates;
+	private int m_predicates_half_edge;
+    private int m_predicates_cluster;
 	private int m_predicate_count;
 	private int m_cluster_index_a;
 	private int m_cluster_index_b;
@@ -60,7 +62,19 @@ class RelationalOperationsMatrix {
 	// string.
 	static boolean relate(Geometry geometry_a, Geometry geometry_b,
 			SpatialReference sr, String scl, ProgressTracker progress_tracker) {
-		int relation = getPredefinedRelation_(scl, geometry_a.getDimension(),
+
+        if (scl.length() != 9)
+            throw new GeometryException("relation string length has to be 9 characters");
+
+        for (int i = 0; i < 9; i++)
+        {
+            char c = scl.charAt(i);
+
+            if (c != '*' && c != 'T' && c != 'F' && c != '0' && c != '1' && c != '2')
+                throw new GeometryException("relation string");
+        }
+
+        int relation = getPredefinedRelation_(scl, geometry_a.getDimension(),
 				geometry_b.getDimension());
 
 		if (relation != RelationalOperations.Relation.unknown)
@@ -80,6 +94,9 @@ class RelationalOperationsMatrix {
 
 		Geometry _geometryA = convertGeometry_(geometry_a, tolerance);
 		Geometry _geometryB = convertGeometry_(geometry_b, tolerance);
+
+        if (_geometryA.isEmpty() || _geometryB.isEmpty())
+            return relateEmptyGeometries_(_geometryA, _geometryB, scl);
 
 		int typeA = _geometryA.getType().value();
 		int typeB = _geometryB.getType().value();
@@ -218,7 +235,10 @@ class RelationalOperationsMatrix {
 		m_predicate_count = 0;
 		m_topo_graph = new TopoGraph();
 		m_matrix = new int[9];
+        m_max_dim = new int[9];
 		m_perform_predicates = new boolean[9];
+        m_predicates_half_edge = -1;
+        m_predicates_cluster =  -1;
 	}
 
 	// Returns true if the relation holds.
@@ -238,7 +258,7 @@ class RelationalOperationsMatrix {
 				env_a, env_b, tolerance, progress_tracker);
 
 		if (b_disjoint) {
-			relOps.areaAreaDisjointPredicates_();
+			relOps.areaAreaDisjointPredicates_(polygon_a, polygon_b);
 			bRelationKnown = true;
 		}
 
@@ -250,13 +270,13 @@ class RelationalOperationsMatrix {
 							tolerance, false);
 
 			if (relation == RelationalOperations.Relation.disjoint) {
-				relOps.areaAreaDisjointPredicates_();
+				relOps.areaAreaDisjointPredicates_(polygon_a, polygon_b);
 				bRelationKnown = true;
 			} else if (relation == RelationalOperations.Relation.contains) {
-				relOps.areaAreaContainsPredicates_();
+				relOps.areaAreaContainsPredicates_(polygon_b);
 				bRelationKnown = true;
 			} else if (relation == RelationalOperations.Relation.within) {
-				relOps.areaAreaWithinPredicates_();
+				relOps.areaAreaWithinPredicates_(polygon_a);
 				bRelationKnown = true;
 			}
 		}
@@ -274,6 +294,108 @@ class RelationalOperationsMatrix {
 		boolean bRelation = relationCompare_(relOps.m_matrix, relOps.m_scl);
 		return bRelation;
 	}
+
+    // The relation is based on the simplified-Polygon A containing Polygon B, which may be non-simple.
+    static boolean polygonContainsPolygon_(Polygon polygon_a, Polygon polygon_b, double tolerance, ProgressTracker progress_tracker)
+    {
+        assert(!polygon_a.isEmpty());
+        assert(!polygon_b.isEmpty());
+
+        RelationalOperationsMatrix relOps = new RelationalOperationsMatrix();
+        relOps.resetMatrix_();
+        relOps.setPredicates_("T*****F**");
+        relOps.setAreaAreaPredicates_();
+
+        Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D();
+        polygon_a.queryEnvelope2D(env_a);
+        polygon_b.queryEnvelope2D(env_b);
+
+        boolean bRelationKnown = false;
+        boolean b_disjoint = RelationalOperations.envelopeDisjointEnvelope_(env_a, env_b, tolerance, progress_tracker);
+
+        if (b_disjoint)
+        {
+            relOps.areaAreaDisjointPredicates_(polygon_a, polygon_b);
+            bRelationKnown = true;
+        }
+
+        if (!bRelationKnown)
+        {
+            // Quick rasterize test to see whether the the geometries are disjoint, or if one is contained in the other.
+            int relation = RelationalOperations.tryRasterizedContainsOrDisjoint_(polygon_a, polygon_b, tolerance, false);
+
+            if (relation == RelationalOperations.Relation.disjoint)
+            {
+                relOps.areaAreaDisjointPredicates_(polygon_a, polygon_b);
+                bRelationKnown = true;
+            }
+            else if (relation == RelationalOperations.Relation.contains)
+            {
+                relOps.areaAreaContainsPredicates_(polygon_b);
+                bRelationKnown = true;
+            }
+            else if (relation == RelationalOperations.Relation.within)
+            {
+                relOps.areaAreaWithinPredicates_(polygon_a);
+                bRelationKnown = true;
+            }
+        }
+
+        if (bRelationKnown)
+        {
+            boolean bContains = relationCompare_(relOps.m_matrix, relOps.m_scl);
+            return bContains;
+        }
+
+        EditShape edit_shape = new EditShape();
+        int geom_a = edit_shape.addGeometry(polygon_a);
+        int geom_b = edit_shape.addGeometry(polygon_b);
+
+        CrackAndCluster.execute(edit_shape, tolerance, progress_tracker, false);
+        Polyline boundary_b = (Polyline)edit_shape.getGeometry(geom_b).getBoundary();
+        edit_shape.filterClosePoints(0, true, true);
+        Simplificator.execute(edit_shape, geom_a, -1, false, progress_tracker);
+
+        // Make sure Polygon A has exterior
+        // If the simplified Polygon A does not have interior, then it cannot contain anything.
+        if (edit_shape.getPointCount(geom_a) == 0)
+            return false;
+
+        Simplificator.execute(edit_shape, geom_b, -1, false, progress_tracker);
+
+        relOps.setEditShape_(edit_shape, progress_tracker);
+
+        // We see if the simplified Polygon A contains the simplified Polygon B.
+
+        boolean b_empty = edit_shape.getPointCount(geom_b) == 0;
+
+        if (!b_empty)
+        {//geom_b has interior
+            relOps.computeMatrixTopoGraphHalfEdges_(geom_a, geom_b);
+            relOps.m_topo_graph.removeShape();
+            boolean bContains = relationCompare_(relOps.m_matrix, relOps.m_scl);
+
+            if (!bContains)
+                return bContains;
+        }
+
+        Polygon polygon_simple_a = (Polygon)edit_shape.getGeometry(geom_a);
+        edit_shape = new EditShape();
+        geom_a = edit_shape.addGeometry(polygon_simple_a);
+        geom_b = edit_shape.addGeometry(boundary_b);
+        relOps.setEditShape_(edit_shape, progress_tracker);
+
+        // Check no interior lines of the boundary intersect the exterior
+        relOps.m_predicate_count = 0;
+        relOps.resetMatrix_();
+        relOps.setPredicates_(b_empty ? "T*****F**" : "******F**");
+        relOps.setAreaLinePredicates_();
+
+        relOps.computeMatrixTopoGraphHalfEdges_(geom_a, geom_b);
+        relOps.m_topo_graph.removeShape();
+        boolean bContains = relationCompare_(relOps.m_matrix, relOps.m_scl);
+        return bContains;
+    }
 
 	// Returns true if the relation holds.
 	static boolean polygonRelatePolyline_(Polygon polygon_a,
@@ -293,7 +415,7 @@ class RelationalOperationsMatrix {
 				env_a, env_b, tolerance, progress_tracker);
 
 		if (b_disjoint) {
-			relOps.areaLineDisjointPredicates_(polyline_b); // passing polyline
+			relOps.areaLineDisjointPredicates_(polygon_a, polyline_b); // passing polyline
 															// to get boundary
 															// information
 			bRelationKnown = true;
@@ -307,13 +429,13 @@ class RelationalOperationsMatrix {
 							tolerance, false);
 
 			if (relation == RelationalOperations.Relation.disjoint) {
-				relOps.areaLineDisjointPredicates_(polyline_b); // passing
+				relOps.areaLineDisjointPredicates_(polygon_a, polyline_b); // passing
 																// polyline to
 																// get boundary
 																// information
 				bRelationKnown = true;
 			} else if (relation == RelationalOperations.Relation.contains) {
-				relOps.areaLineContainsPredicates_(polyline_b); // passing
+				relOps.areaLineContainsPredicates_(polygon_a, polyline_b); // passing
 																// polyline to
 																// get boundary
 																// information
@@ -341,6 +463,66 @@ class RelationalOperationsMatrix {
 		return bRelation;
 	}
 
+    static boolean polygonContainsPolyline_(Polygon polygon_a, Polyline polyline_b, double tolerance, ProgressTracker progress_tracker)
+    {
+        RelationalOperationsMatrix relOps = new RelationalOperationsMatrix();
+        relOps.resetMatrix_();
+        relOps.setPredicates_("T*****F**");
+        relOps.setAreaLinePredicates_();
+
+        Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D();
+        polygon_a.queryEnvelope2D(env_a);
+        polyline_b.queryEnvelope2D(env_b);
+
+        boolean bRelationKnown = false;
+        boolean b_disjoint = RelationalOperations.envelopeDisjointEnvelope_(env_a, env_b, tolerance, progress_tracker);
+
+        if (b_disjoint)
+        {
+            relOps.areaLineDisjointPredicates_(polygon_a, polyline_b); // passing polyline to get boundary information
+            bRelationKnown = true;
+        }
+
+        if (!bRelationKnown)
+        {
+            // Quick rasterize test to see whether the the geometries are disjoint, or if one is contained in the other.
+            int relation = RelationalOperations.tryRasterizedContainsOrDisjoint_(polygon_a, polyline_b, tolerance, false);
+
+            if (relation == RelationalOperations.Relation.disjoint)
+            {
+                relOps.areaLineDisjointPredicates_(polygon_a, polyline_b); // passing polyline to get boundary information
+                bRelationKnown = true;
+            }
+            else if (relation == RelationalOperations.Relation.contains)
+            {
+                relOps.areaLineContainsPredicates_(polygon_a, polyline_b); // passing polyline to get boundary information
+                bRelationKnown = true;
+            }
+        }
+
+        if (bRelationKnown)
+        {
+            boolean bContains = relationCompare_(relOps.m_matrix, relOps.m_scl);
+            return bContains;
+        }
+
+        EditShape edit_shape = new EditShape();
+        int geom_a = edit_shape.addGeometry(polygon_a);
+        int geom_b = edit_shape.addGeometry(polyline_b);
+        relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance, progress_tracker);
+
+        // Make sure Polygon A has exterior
+        // If the simplified Polygon A does not have interior, then it cannot contain anything.
+        if (edit_shape.getPointCount(geom_a) == 0)
+            return false;
+
+        relOps.computeMatrixTopoGraphHalfEdges_(geom_a, geom_b);
+        relOps.m_topo_graph.removeShape();
+
+        boolean bContains = relationCompare_(relOps.m_matrix, relOps.m_scl);
+        return bContains;
+    }
+
 	// Returns true if the relation holds
 	static boolean polygonRelateMultiPoint_(Polygon polygon_a,
 			MultiPoint multipoint_b, double tolerance, String scl,
@@ -359,7 +541,7 @@ class RelationalOperationsMatrix {
 				env_a, env_b, tolerance, progress_tracker);
 
 		if (b_disjoint) {
-			relOps.areaPointDisjointPredicates_();
+			relOps.areaPointDisjointPredicates_(polygon_a);
 			bRelationKnown = true;
 		}
 
@@ -371,10 +553,10 @@ class RelationalOperationsMatrix {
 							tolerance, false);
 
 			if (relation == RelationalOperations.Relation.disjoint) {
-				relOps.areaPointDisjointPredicates_();
+				relOps.areaPointDisjointPredicates_(polygon_a);
 				bRelationKnown = true;
 			} else if (relation == RelationalOperations.Relation.contains) {
-				relOps.areaPointContainsPredicates_();
+				relOps.areaPointContainsPredicates_(polygon_a);
 				bRelationKnown = true;
 			}
 		}
@@ -548,144 +730,189 @@ class RelationalOperationsMatrix {
 	// Returns true if the relation holds.
 	static boolean polygonRelatePoint_(Polygon polygon_a, Point point_b,
 			double tolerance, String scl, ProgressTracker progress_tracker) {
-		RelationalOperationsMatrix relOps = new RelationalOperationsMatrix();
-		relOps.resetMatrix_();
-		relOps.setPredicates_(scl);
-		relOps.setAreaPointPredicates_();
+        RelationalOperationsMatrix relOps = new RelationalOperationsMatrix();
+        relOps.resetMatrix_();
+        relOps.setPredicates_(scl);
+        relOps.setAreaPointPredicates_();
 
-		Envelope2D env_a = new Envelope2D();
-		polygon_a.queryEnvelope2D(env_a);
-		Point2D pt_b = point_b.getXY();
+        Envelope2D env_a = new Envelope2D();
+        polygon_a.queryEnvelope2D(env_a);
+        Point2D pt_b = point_b.getXY();
 
-		boolean bRelationKnown = false;
-		boolean b_disjoint = RelationalOperations.pointDisjointEnvelope_(pt_b,
-				env_a, tolerance, progress_tracker);
+        boolean bRelationKnown = false;
+        boolean b_disjoint = RelationalOperations.pointDisjointEnvelope_(pt_b, env_a, tolerance, progress_tracker);
 
-		if (b_disjoint) {
-			relOps.areaPointDisjointPredicates_();
-			bRelationKnown = true;
-		}
+        if (b_disjoint)
+        {
+            relOps.areaPointDisjointPredicates_(polygon_a);
+            bRelationKnown = true;
+        }
 
-		if (!bRelationKnown) {
-			PolygonUtils.PiPResult res = PolygonUtils.isPointInPolygon2D(
-					polygon_a, pt_b, tolerance); // uses accelerator
+        if (!bRelationKnown)
+        {
+            PolygonUtils.PiPResult res = PolygonUtils.isPointInPolygon2D(polygon_a, pt_b, tolerance); // uses accelerator
 
-			if (res == PolygonUtils.PiPResult.PiPInside) {
-				relOps.m_matrix[MatrixPredicate.InteriorInterior] = 0;
-				relOps.m_matrix[MatrixPredicate.BoundaryInterior] = -1;
-				relOps.m_matrix[MatrixPredicate.ExteriorInterior] = -1;
-			} else if (res == PolygonUtils.PiPResult.PiPBoundary) {
-				relOps.m_matrix[MatrixPredicate.InteriorInterior] = -1;
-				relOps.m_matrix[MatrixPredicate.BoundaryInterior] = 0;
-				relOps.m_matrix[MatrixPredicate.ExteriorInterior] = -1;
-			} else {
-				relOps.m_matrix[MatrixPredicate.InteriorInterior] = -1;
-				relOps.m_matrix[MatrixPredicate.ExteriorInterior] = 0;
-				relOps.m_matrix[MatrixPredicate.ExteriorInterior] = -1;
-			}
-		}
+            if (res == PolygonUtils.PiPResult.PiPInside)
+            {// polygon must have area
+                relOps.m_matrix[MatrixPredicate.InteriorInterior] = 0;
+                relOps.m_matrix[MatrixPredicate.InteriorExterior] = 2;
+                relOps.m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+                relOps.m_matrix[MatrixPredicate.BoundaryExterior] = 1;
+                relOps.m_matrix[MatrixPredicate.ExteriorInterior] = -1;
+            }
+            else if (res == PolygonUtils.PiPResult.PiPBoundary)
+            {
+                relOps.m_matrix[MatrixPredicate.ExteriorInterior] = -1;
 
-		boolean bRelation = relationCompare_(relOps.m_matrix, scl);
-		return bRelation;
+                double area = polygon_a.calculateArea2D();
+
+                if (area != 0)
+                {
+                    relOps.m_matrix[MatrixPredicate.InteriorInterior] = -1;
+                    relOps.m_matrix[MatrixPredicate.BoundaryInterior] = 0;
+                    relOps.m_matrix[MatrixPredicate.InteriorExterior] = 2;
+                    relOps.m_matrix[MatrixPredicate.BoundaryExterior] = 1;
+                }
+                else
+                {
+                    relOps.m_matrix[MatrixPredicate.InteriorInterior] = 0;
+                    relOps.m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+                    relOps.m_matrix[MatrixPredicate.BoundaryExterior] = -1;
+
+                    Envelope2D env = new Envelope2D();
+                    polygon_a.queryEnvelope2D(env);
+                    relOps.m_matrix[MatrixPredicate.InteriorExterior] = (env.getHeight() == 0.0 && env.getWidth() == 0.0 ? -1 : 1);
+                }
+            }
+            else
+            {
+                relOps.areaPointDisjointPredicates_(polygon_a);
+            }
+        }
+
+        boolean bRelation = relationCompare_(relOps.m_matrix, scl);
+        return bRelation;
 	}
 
 	// Returns true if the relation holds.
 	static boolean polylineRelatePoint_(Polyline polyline_a, Point point_b,
 			double tolerance, String scl, ProgressTracker progress_tracker) {
-		RelationalOperationsMatrix relOps = new RelationalOperationsMatrix();
-		relOps.resetMatrix_();
-		relOps.setPredicates_(scl);
-		relOps.setLinePointPredicates_();
+        RelationalOperationsMatrix relOps = new RelationalOperationsMatrix();
+        relOps.resetMatrix_();
+        relOps.setPredicates_(scl);
+        relOps.setLinePointPredicates_();
 
-		Envelope2D env_a = new Envelope2D();
-		polyline_a.queryEnvelope2D(env_a);
-		Point2D pt_b = point_b.getXY();
+        Envelope2D env_a = new Envelope2D();
+        polyline_a.queryEnvelope2D(env_a);
+        Point2D pt_b = point_b.getXY();
 
-		boolean bRelationKnown = false;
-		boolean b_disjoint = RelationalOperations.pointDisjointEnvelope_(pt_b,
-				env_a, tolerance, progress_tracker);
+        boolean bRelationKnown = false;
+        boolean b_disjoint = RelationalOperations.pointDisjointEnvelope_(pt_b, env_a, tolerance, progress_tracker);
 
-		if (b_disjoint) {
-			relOps.linePointDisjointPredicates_(polyline_a);
-			bRelationKnown = true;
-		}
+        if (b_disjoint)
+        {
+            relOps.linePointDisjointPredicates_(polyline_a);
+            bRelationKnown = true;
+        }
 
-		if (!bRelationKnown) {
-			MultiPoint boundary_a = null;
-			boolean b_boundary_contains_point_known = false;
-			boolean b_boundary_contains_point = false;
+        if (!bRelationKnown)
+        {
+            MultiPoint boundary_a = null;
+            boolean b_boundary_contains_point_known = false;
+            boolean b_boundary_contains_point = false;
 
-			if (relOps.m_perform_predicates[MatrixPredicate.InteriorInterior]
-					|| relOps.m_perform_predicates[MatrixPredicate.ExteriorInterior]) {
-				boolean b_intersects = RelationalOperations
-						.linearPathIntersectsPoint_(polyline_a, pt_b, tolerance);
+            if (relOps.m_perform_predicates[MatrixPredicate.InteriorInterior] || relOps.m_perform_predicates[MatrixPredicate.ExteriorInterior])
+            {
+                boolean b_intersects = RelationalOperations.linearPathIntersectsPoint_(polyline_a, pt_b, tolerance);
 
-				if (b_intersects) {
-					if (relOps.m_perform_predicates[MatrixPredicate.InteriorInterior]) {
-						boundary_a = (MultiPoint) Boundary.calculate(
-								polyline_a, progress_tracker);
-						b_boundary_contains_point = !RelationalOperations
-								.multiPointDisjointPointImpl_(boundary_a, pt_b,
-										tolerance, progress_tracker);
-						b_boundary_contains_point_known = true;
+                if (b_intersects)
+                {
+                    if (relOps.m_perform_predicates[MatrixPredicate.InteriorInterior])
+                    {
+                        boundary_a = (MultiPoint)Boundary.calculate(polyline_a, progress_tracker);
+                        b_boundary_contains_point = !RelationalOperations.multiPointDisjointPointImpl_(boundary_a, pt_b, tolerance, progress_tracker);
+                        b_boundary_contains_point_known = true;
 
-						if (b_boundary_contains_point)
-							relOps.m_matrix[MatrixPredicate.InteriorInterior] = -1;
-						else
-							relOps.m_matrix[MatrixPredicate.InteriorInterior] = 0;
-					}
+                        if (b_boundary_contains_point)
+                            relOps.m_matrix[MatrixPredicate.InteriorInterior] = -1;
+                        else
+                            relOps.m_matrix[MatrixPredicate.InteriorInterior] = 0;
+                    }
 
-					relOps.m_matrix[MatrixPredicate.ExteriorInterior] = -1;
-				} else {
-					relOps.m_matrix[MatrixPredicate.InteriorInterior] = -1;
-					relOps.m_matrix[MatrixPredicate.ExteriorInterior] = 0;
-				}
-			}
+                    relOps.m_matrix[MatrixPredicate.ExteriorInterior] = -1;
+                }
+                else
+                {
+                    relOps.m_matrix[MatrixPredicate.InteriorInterior] = -1;
+                    relOps.m_matrix[MatrixPredicate.ExteriorInterior] = 0;
+                }
+            }
 
-			if (relOps.m_perform_predicates[MatrixPredicate.BoundaryInterior]) {
-				if (boundary_a != null && boundary_a.isEmpty()) {
-					relOps.m_matrix[MatrixPredicate.BoundaryInterior] = -1;
-				} else {
-					if (!b_boundary_contains_point_known) {
-						if (boundary_a == null)
-							boundary_a = (MultiPoint) Boundary.calculate(
-									polyline_a, progress_tracker);
+            if (relOps.m_perform_predicates[MatrixPredicate.BoundaryInterior])
+            {
+                if (boundary_a != null && boundary_a.isEmpty())
+                {
+                    relOps.m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+                }
+                else
+                {
+                    if (!b_boundary_contains_point_known)
+                    {
+                        if (boundary_a == null)
+                            boundary_a = (MultiPoint)Boundary.calculate(polyline_a, progress_tracker);
 
-						b_boundary_contains_point = !RelationalOperations
-								.multiPointDisjointPointImpl_(boundary_a, pt_b,
-										tolerance, progress_tracker);
-						b_boundary_contains_point_known = true;
-					}
+                        b_boundary_contains_point = !RelationalOperations.multiPointDisjointPointImpl_(boundary_a, pt_b, tolerance, progress_tracker);
+                        b_boundary_contains_point_known = true;
+                    }
 
-					relOps.m_matrix[MatrixPredicate.BoundaryInterior] = (b_boundary_contains_point ? 0
-							: -1);
-				}
-			}
+                    relOps.m_matrix[MatrixPredicate.BoundaryInterior] = (b_boundary_contains_point ? 0 : -1);
+                }
+            }
 
-			if (relOps.m_perform_predicates[MatrixPredicate.BoundaryExterior]) {
-				if (boundary_a != null && boundary_a.isEmpty()) {
-					relOps.m_matrix[MatrixPredicate.BoundaryExterior] = -1;
-				} else {
-					if (b_boundary_contains_point_known
-							&& !b_boundary_contains_point) {
-						relOps.m_matrix[MatrixPredicate.BoundaryExterior] = 0;
-					} else {
-						if (boundary_a == null)
-							boundary_a = (MultiPoint) Boundary.calculate(
-									polyline_a, progress_tracker);
+            if (relOps.m_perform_predicates[MatrixPredicate.BoundaryExterior])
+            {
+                if (boundary_a != null && boundary_a.isEmpty())
+                {
+                    relOps.m_matrix[MatrixPredicate.BoundaryExterior] = -1;
+                }
+                else
+                {
+                    if (b_boundary_contains_point_known && !b_boundary_contains_point)
+                    {
+                        relOps.m_matrix[MatrixPredicate.BoundaryExterior] = 0;
+                    }
+                    else
+                    {
+                        if (boundary_a == null)
+                            boundary_a = (MultiPoint)Boundary.calculate(polyline_a, progress_tracker);
 
-						boolean b_boundary_equals_point = RelationalOperations
-								.multiPointEqualsPoint_(boundary_a, point_b,
-										tolerance, progress_tracker);
-						relOps.m_matrix[MatrixPredicate.BoundaryExterior] = (b_boundary_equals_point ? -1
-								: 0);
-					}
-				}
-			}
-		}
+                        boolean b_boundary_equals_point = RelationalOperations.multiPointEqualsPoint_(boundary_a, point_b, tolerance, progress_tracker);
+                        relOps.m_matrix[MatrixPredicate.BoundaryExterior] = (b_boundary_equals_point ? -1 : 0);
+                    }
+                }
+            }
 
-		boolean bRelation = relationCompare_(relOps.m_matrix, relOps.m_scl);
-		return bRelation;
+            if (relOps.m_perform_predicates[MatrixPredicate.InteriorExterior])
+            {
+                boolean b_has_length = polyline_a.calculateLength2D() != 0;
+
+                if (b_has_length)
+                {
+                    relOps.m_matrix[MatrixPredicate.InteriorExterior] = 1;
+                }
+                else
+                {
+                    // all points are interior
+                    MultiPoint interior_a = new MultiPoint(polyline_a.getDescription());
+                    interior_a.add(polyline_a, 0, polyline_a.getPointCount());
+                    boolean b_interior_equals_point = RelationalOperations.multiPointEqualsPoint_(interior_a, point_b, tolerance, progress_tracker);
+                    relOps.m_matrix[MatrixPredicate.InteriorExterior] = (b_interior_equals_point ? -1 : 0);
+                }
+            }
+        }
+
+        boolean bRelation = relationCompare_(relOps.m_matrix, relOps.m_scl);
+        return bRelation;
 	}
 
 	// Returns true if the relation holds.
@@ -811,6 +1038,85 @@ class RelationalOperationsMatrix {
 
 		return true;
 	}
+
+    static boolean relateEmptyGeometries_(Geometry geometry_a, Geometry geometry_b, String scl)
+    {
+        int[] matrix = new int[9];
+
+        if (geometry_a.isEmpty() && geometry_b.isEmpty())
+        {
+            for (int i = 0; i < 9; i++)
+                matrix[i] = -1;
+
+            return relationCompare_(matrix, scl);
+        }
+
+        boolean b_transpose = false;
+
+        Geometry g_a;
+        Geometry g_b;
+
+        if (!geometry_a.isEmpty())
+        {
+            g_a = geometry_a;
+            g_b = geometry_b;
+        }
+        else
+        {
+            g_a = geometry_b;
+            g_b = geometry_a;
+            b_transpose = true;
+        }
+
+        matrix[MatrixPredicate.InteriorInterior] = -1;
+        matrix[MatrixPredicate.InteriorBoundary] = -1;
+        matrix[MatrixPredicate.BoundaryInterior] = -1;
+        matrix[MatrixPredicate.BoundaryBoundary] = -1;
+        matrix[MatrixPredicate.ExteriorInterior] = -1;
+        matrix[MatrixPredicate.ExteriorBoundary] = -1;
+
+        matrix[MatrixPredicate.ExteriorExterior] = 2;
+
+        int type = g_a.getType().value();
+
+        if (Geometry.isMultiPath(type))
+        {
+            if (type == Geometry.GeometryType.Polygon)
+            {
+                double area = ((Polygon)g_a).calculateArea2D();
+
+                if (area != 0)
+                {
+                    matrix[MatrixPredicate.InteriorExterior] = 2;
+                    matrix[MatrixPredicate.BoundaryExterior] = 1;
+                }
+                else
+                {
+                    matrix[MatrixPredicate.BoundaryExterior] = -1;
+
+                    Envelope2D env = new Envelope2D();
+                    g_a.queryEnvelope2D(env);
+                    matrix[MatrixPredicate.InteriorExterior] = (env.getHeight() == 0.0 && env.getWidth() == 0.0 ? 0 : 1);
+                }
+            }
+            else
+            {
+                boolean b_has_length = ((Polyline)g_a).calculateLength2D() != 0;
+                matrix[MatrixPredicate.InteriorExterior] = (b_has_length ? 1 : 0);
+                matrix[MatrixPredicate.BoundaryExterior] = (Boundary.hasNonEmptyBoundary((Polyline)g_a, null) ? 0 : -1);
+            }
+        }
+        else
+        {
+            matrix[MatrixPredicate.InteriorExterior] = 0;
+            matrix[MatrixPredicate.BoundaryExterior] = -1;
+        }
+
+        if (b_transpose)
+            transposeMatrix_(matrix);
+
+        return relationCompare_(matrix, scl);
+    }
 
 	// Checks whether scl string is a predefined relation.
 	private static int getPredefinedRelation_(String scl, int dim_a, int dim_b) {
@@ -971,36 +1277,41 @@ class RelationalOperationsMatrix {
 	// the geometry and/or a boundary index of the geometry.
 	private static void markClusterEndPoints_(int geometry,
 			TopoGraph topoGraph, int clusterIndex) {
-		EditShape edit_shape = topoGraph.getShape();
+        int id = topoGraph.getGeometryID(geometry);
 
-		for (int path = edit_shape.getFirstPath(geometry); path != -1; path = edit_shape
-				.getNextPath(path)) {
-			int vertexFirst = edit_shape.getFirstVertex(path);
-			int vertexLast = edit_shape.getLastVertex(path);
-			boolean b_closed = (vertexFirst == vertexLast);
+        for (int cluster = topoGraph.getFirstCluster(); cluster != -1; cluster = topoGraph.getNextCluster(cluster))
+        {
+            int cluster_parentage = topoGraph.getClusterParentage(cluster);
 
-			int vertex = vertexFirst;
+            if ((cluster_parentage & id) == 0)
+                continue;
 
-			do {
-				int cluster = topoGraph.getClusterFromVertex(vertex);
-				int index = topoGraph
-						.getClusterUserIndex(cluster, clusterIndex);
+            int first_half_edge = topoGraph.getClusterHalfEdge(cluster);
+            if (first_half_edge == -1)
+            {
+                topoGraph.setClusterUserIndex(cluster, clusterIndex, 0);
+                continue;
+            }
 
-				if (!b_closed
-						&& (vertex == vertexFirst || vertex == vertexLast)) {
-					if (index == -1)
-						topoGraph.setClusterUserIndex(cluster, clusterIndex, 1);
-					else
-						topoGraph.setClusterUserIndex(cluster, clusterIndex,
-								index + 1);
-				} else {
-					if (index == -1)
-						topoGraph.setClusterUserIndex(cluster, clusterIndex, 0);
-				}
+            int next_half_edge = first_half_edge;
+            int index = 0;
 
-				vertex = edit_shape.getNextVertex(vertex);
-			} while (vertex != vertexFirst && vertex != -1);
-		}
+            do
+            {
+                int half_edge = next_half_edge;
+                int half_edge_parentage = topoGraph.getHalfEdgeParentage(half_edge);
+
+                if ((half_edge_parentage & id) != 0)
+                    index++;
+
+                next_half_edge = topoGraph.getHalfEdgeNext(topoGraph.getHalfEdgeTwin(half_edge));
+
+            } while (next_half_edge != first_half_edge);
+
+            topoGraph.setClusterUserIndex(cluster, clusterIndex, index);
+        }
+
+        return;
 	}
 
 	private static String getTransposeMatrix_(String scl) {
@@ -1025,21 +1336,24 @@ class RelationalOperationsMatrix {
 	// 2: 2-dimension intersection
 	private void resetMatrix_() {
 		for (int i = 0; i < 9; i++)
-			m_matrix[i] = -2;
+        {
+            m_matrix[i] = -2;
+            m_max_dim[i] = -2;
+        }
 	}
 
-	private void transposeMatrix_() {
-		int temp1 = m_matrix[1];
-		int temp2 = m_matrix[2];
-		int temp5 = m_matrix[5];
+	private static void transposeMatrix_(int[] matrix) {
+		int temp1 = matrix[1];
+		int temp2 = matrix[2];
+		int temp5 = matrix[5];
 
-		m_matrix[1] = m_matrix[3];
-		m_matrix[2] = m_matrix[6];
-		m_matrix[5] = m_matrix[7];
+		matrix[1] = matrix[3];
+		matrix[2] = matrix[6];
+		matrix[5] = matrix[7];
 
-		m_matrix[3] = temp1;
-		m_matrix[6] = temp2;
-		m_matrix[7] = temp5;
+		matrix[3] = temp1;
+		matrix[6] = temp2;
+		matrix[7] = temp5;
 	}
 
 	// Sets the relation predicates from the scl string.
@@ -1066,193 +1380,254 @@ class RelationalOperationsMatrix {
 	}
 
 	// Checks whether the predicate is known.
-	private boolean isPredicateKnown_(int predicate, int dim) {
-		assert (m_scl.charAt(predicate) != '*');
+	private boolean isPredicateKnown_(int predicate) {
+        assert(m_scl.charAt(predicate) != '*');
 
-		if (m_matrix[predicate] == -2)
-			return false;
+        if (m_matrix[predicate] == -2)
+            return false;
 
-		if (m_matrix[predicate] == -1) {
-			m_perform_predicates[predicate] = false;
-			m_predicate_count--;
-			return true;
-		}
+        if (m_matrix[predicate] == -1)
+        {
+            m_perform_predicates[predicate] = false;
+            m_predicate_count--;
+            return true;
+        }
 
-		if (m_scl.charAt(predicate) != 'T' && m_scl.charAt(predicate) != 'F') {
-			if (m_matrix[predicate] < dim) {
-				return false;
-			} else {
-				m_perform_predicates[predicate] = false;
-				m_predicate_count--;
-				return true;
-			}
-		} else {
-			m_perform_predicates[predicate] = false;
-			m_predicate_count--;
-			return true;
-		}
+        if (m_scl.charAt(predicate) != 'T' && m_scl.charAt(predicate) != 'F')
+        {
+            if (m_matrix[predicate] < m_max_dim[predicate])
+            {
+                return false;
+            }
+            else
+            {
+                m_perform_predicates[predicate] = false;
+                m_predicate_count--;
+                return true;
+            }
+        }
+        else
+        {
+            m_perform_predicates[predicate] = false;
+            m_predicate_count--;
+            return true;
+        }
 	}
 
 	// Sets the area-area predicates function.
 	private void setAreaAreaPredicates_() {
-		m_predicates = Predicates.AreaAreaPredicates;
+        m_predicates_half_edge = Predicates.AreaAreaPredicates;
 
-		// set predicates that are always true/false
-		if (m_perform_predicates[MatrixPredicate.ExteriorExterior]) {
-			m_matrix[MatrixPredicate.ExteriorExterior] = 2; // Always true
-			m_perform_predicates[MatrixPredicate.ExteriorExterior] = false;
-			m_predicate_count--;
-		}
+        m_max_dim[MatrixPredicate.InteriorInterior] = 2;
+        m_max_dim[MatrixPredicate.InteriorBoundary] = 1;
+        m_max_dim[MatrixPredicate.InteriorExterior] = 2;
+        m_max_dim[MatrixPredicate.BoundaryInterior] = 1;
+        m_max_dim[MatrixPredicate.BoundaryBoundary] = 1;
+        m_max_dim[MatrixPredicate.BoundaryExterior] = 1;
+        m_max_dim[MatrixPredicate.ExteriorInterior] = 2;
+        m_max_dim[MatrixPredicate.ExteriorBoundary] = 1;
+        m_max_dim[MatrixPredicate.ExteriorExterior] = 2;
+
+        // set predicates that are always true/false
+        if (m_perform_predicates[MatrixPredicate.ExteriorExterior])
+        {
+            m_matrix[MatrixPredicate.ExteriorExterior] = 2; // Always true
+            m_perform_predicates[MatrixPredicate.ExteriorExterior] = false;
+            m_predicate_count--;
+        }
 	}
 
 	// Sets the area-line predicate function.
 	private void setAreaLinePredicates_() {
-		m_predicates = Predicates.AreaLinePredicates;
+        m_predicates_half_edge = Predicates.AreaLinePredicates;
+        m_predicates_cluster = Predicates.AreaPointPredicates;
 
-		// set predicates that are always true/false
-		if (m_perform_predicates[MatrixPredicate.InteriorExterior]) {
-			m_matrix[MatrixPredicate.InteriorExterior] = 2; // Always true
-			m_perform_predicates[MatrixPredicate.InteriorExterior] = false;
-			m_predicate_count--;
-		}
+        m_max_dim[MatrixPredicate.InteriorInterior] = 1;
+        m_max_dim[MatrixPredicate.InteriorBoundary] = 0;
+        m_max_dim[MatrixPredicate.InteriorExterior] = 2;
+        m_max_dim[MatrixPredicate.BoundaryInterior] = 1;
+        m_max_dim[MatrixPredicate.BoundaryBoundary] = 0;
+        m_max_dim[MatrixPredicate.BoundaryExterior] = 1;
+        m_max_dim[MatrixPredicate.ExteriorInterior] = 1;
+        m_max_dim[MatrixPredicate.ExteriorBoundary] = 0;
+        m_max_dim[MatrixPredicate.ExteriorExterior] = 2;
 
-		if (m_perform_predicates[MatrixPredicate.ExteriorExterior]) {
-			m_matrix[MatrixPredicate.ExteriorExterior] = 2; // Always true
-			m_perform_predicates[MatrixPredicate.ExteriorExterior] = false;
-			m_predicate_count--;
-		}
+        if (m_perform_predicates[MatrixPredicate.ExteriorExterior])
+        {
+            m_matrix[MatrixPredicate.ExteriorExterior] = 2; // Always true
+            m_perform_predicates[MatrixPredicate.ExteriorExterior] = false;
+            m_predicate_count--;
+        }
 	}
 
 	// Sets the line-line predicates function.
 	private void setLineLinePredicates_() {
-		m_predicates = Predicates.LineLinePredicates;
+        m_predicates_half_edge = Predicates.LineLinePredicates;
+        m_predicates_cluster = Predicates.LinePointPredicates;
 
-		// set predicates that are always true/false
-		if (m_perform_predicates[MatrixPredicate.ExteriorExterior]) {
-			m_matrix[MatrixPredicate.ExteriorExterior] = 2; // Always true
-			m_perform_predicates[MatrixPredicate.ExteriorExterior] = false;
-			m_predicate_count--;
-		}
+        m_max_dim[MatrixPredicate.InteriorInterior] = 1;
+        m_max_dim[MatrixPredicate.InteriorBoundary] = 0;
+        m_max_dim[MatrixPredicate.InteriorExterior] = 1;
+        m_max_dim[MatrixPredicate.BoundaryInterior] = 0;
+        m_max_dim[MatrixPredicate.BoundaryBoundary] = 0;
+        m_max_dim[MatrixPredicate.BoundaryExterior] = 0;
+        m_max_dim[MatrixPredicate.ExteriorInterior] = 1;
+        m_max_dim[MatrixPredicate.ExteriorBoundary] = 0;
+        m_max_dim[MatrixPredicate.ExteriorExterior] = 2;
+
+        // set predicates that are always true/false
+        if (m_perform_predicates[MatrixPredicate.ExteriorExterior])
+        {
+            m_matrix[MatrixPredicate.ExteriorExterior] = 2; // Always true
+            m_perform_predicates[MatrixPredicate.ExteriorExterior] = false;
+            m_predicate_count--;
+        }
 	}
 
 	// Sets the area-point predicate function.
 	private void setAreaPointPredicates_() {
-		m_predicates = Predicates.AreaPointPredicates;
+        m_predicates_cluster = Predicates.AreaPointPredicates;
 
-		// set predicates that are always true/false
-		if (m_perform_predicates[MatrixPredicate.InteriorBoundary]) {
-			m_matrix[MatrixPredicate.InteriorBoundary] = -1; // Always false
-			m_perform_predicates[MatrixPredicate.InteriorBoundary] = false;
-			m_predicate_count--;
-		}
+        m_max_dim[MatrixPredicate.InteriorInterior] = 0;
+        m_max_dim[MatrixPredicate.InteriorBoundary] = -1;
+        m_max_dim[MatrixPredicate.InteriorExterior] = 2;
+        m_max_dim[MatrixPredicate.BoundaryInterior] = 0;
+        m_max_dim[MatrixPredicate.BoundaryBoundary] = -1;
+        m_max_dim[MatrixPredicate.BoundaryExterior] = 1;
+        m_max_dim[MatrixPredicate.ExteriorInterior] = 0;
+        m_max_dim[MatrixPredicate.ExteriorBoundary] = -1;
+        m_max_dim[MatrixPredicate.ExteriorExterior] = 2;
 
-		if (m_perform_predicates[MatrixPredicate.InteriorExterior]) {
-			m_matrix[MatrixPredicate.InteriorExterior] = 2; // Always true
-			m_perform_predicates[MatrixPredicate.InteriorExterior] = false;
-			m_predicate_count--;
-		}
+        // set predicates that are always true/false
+        if (m_perform_predicates[MatrixPredicate.InteriorBoundary])
+        {
+            m_matrix[MatrixPredicate.InteriorBoundary] = -1; // Always false
+            m_perform_predicates[MatrixPredicate.InteriorBoundary] = false;
+            m_predicate_count--;
+        }
 
-		if (m_perform_predicates[MatrixPredicate.BoundaryBoundary]) {
-			m_matrix[MatrixPredicate.BoundaryBoundary] = -1; // Always false
-			m_perform_predicates[MatrixPredicate.BoundaryBoundary] = false;
-			m_predicate_count--;
-		}
+        if (m_perform_predicates[MatrixPredicate.BoundaryBoundary])
+        {
+            m_matrix[MatrixPredicate.BoundaryBoundary] = -1; // Always false
+            m_perform_predicates[MatrixPredicate.BoundaryBoundary] = false;
+            m_predicate_count--;
+        }
 
-		if (m_perform_predicates[MatrixPredicate.BoundaryExterior]) {
-			m_matrix[MatrixPredicate.BoundaryExterior] = 1; // Always true
-			m_perform_predicates[MatrixPredicate.BoundaryExterior] = false;
-			m_predicate_count--;
-		}
+        if (m_perform_predicates[MatrixPredicate.ExteriorBoundary])
+        {
+            m_matrix[MatrixPredicate.ExteriorBoundary] = -1; // Always false
+            m_perform_predicates[MatrixPredicate.ExteriorBoundary] = false;
+            m_predicate_count--;
+        }
 
-		if (m_perform_predicates[MatrixPredicate.ExteriorBoundary]) {
-			m_matrix[MatrixPredicate.ExteriorBoundary] = -1; // Always false
-			m_perform_predicates[MatrixPredicate.ExteriorBoundary] = false;
-			m_predicate_count--;
-		}
-
-		if (m_perform_predicates[MatrixPredicate.ExteriorExterior]) {
-			m_matrix[MatrixPredicate.ExteriorExterior] = 2; // Always true
-			m_perform_predicates[MatrixPredicate.ExteriorExterior] = false;
-			m_predicate_count--;
-		}
+        if (m_perform_predicates[MatrixPredicate.ExteriorExterior])
+        {
+            m_matrix[MatrixPredicate.ExteriorExterior] = 2; // Always true
+            m_perform_predicates[MatrixPredicate.ExteriorExterior] = false;
+            m_predicate_count--;
+        }
 	}
 
 	// Sets the line-point predicates function.
 	private void setLinePointPredicates_() {
-		m_predicates = Predicates.LinePointPredicates;
+        m_predicates_cluster = Predicates.LinePointPredicates;
 
-		// set predicates that are always true/false
-		if (m_perform_predicates[MatrixPredicate.InteriorBoundary]) {
-			m_matrix[MatrixPredicate.InteriorBoundary] = -1; // Always false
-			m_perform_predicates[MatrixPredicate.InteriorBoundary] = false;
-			m_predicate_count--;
-		}
+        m_max_dim[MatrixPredicate.InteriorInterior] = 0;
+        m_max_dim[MatrixPredicate.InteriorBoundary] = -1;
+        m_max_dim[MatrixPredicate.InteriorExterior] = 1;
+        m_max_dim[MatrixPredicate.BoundaryInterior] = 0;
+        m_max_dim[MatrixPredicate.BoundaryBoundary] = -1;
+        m_max_dim[MatrixPredicate.BoundaryExterior] = 0;
+        m_max_dim[MatrixPredicate.ExteriorInterior] = 0;
+        m_max_dim[MatrixPredicate.ExteriorBoundary] = -1;
+        m_max_dim[MatrixPredicate.ExteriorExterior] = 2;
 
-		if (m_perform_predicates[MatrixPredicate.InteriorExterior]) {
-			m_matrix[MatrixPredicate.InteriorExterior] = 1; // Always true
-			m_perform_predicates[MatrixPredicate.InteriorExterior] = false;
-			m_predicate_count--;
-		}
+        // set predicates that are always true/false
+        if (m_perform_predicates[MatrixPredicate.InteriorBoundary])
+        {
+            m_matrix[MatrixPredicate.InteriorBoundary] = -1; // Always false
+            m_perform_predicates[MatrixPredicate.InteriorBoundary] = false;
+            m_predicate_count--;
+        }
 
-		if (m_perform_predicates[MatrixPredicate.BoundaryBoundary]) {
-			m_matrix[MatrixPredicate.BoundaryBoundary] = -1; // Always false
-			m_perform_predicates[MatrixPredicate.BoundaryBoundary] = false;
-			m_predicate_count--;
-		}
+        if (m_perform_predicates[MatrixPredicate.BoundaryBoundary])
+        {
+            m_matrix[MatrixPredicate.BoundaryBoundary] = -1; // Always false
+            m_perform_predicates[MatrixPredicate.BoundaryBoundary] = false;
+            m_predicate_count--;
+        }
 
-		if (m_perform_predicates[MatrixPredicate.ExteriorBoundary]) {
-			m_matrix[MatrixPredicate.ExteriorBoundary] = -1; // Always false
-			m_perform_predicates[MatrixPredicate.ExteriorBoundary] = false;
-			m_predicate_count--;
-		}
+        if (m_perform_predicates[MatrixPredicate.ExteriorBoundary])
+        {
+            m_matrix[MatrixPredicate.ExteriorBoundary] = -1; // Always false
+            m_perform_predicates[MatrixPredicate.ExteriorBoundary] = false;
+            m_predicate_count--;
+        }
 
-		if (m_perform_predicates[MatrixPredicate.ExteriorExterior]) {
-			m_matrix[MatrixPredicate.ExteriorExterior] = 2; // Always true
-			m_perform_predicates[MatrixPredicate.ExteriorExterior] = false;
-			m_predicate_count--;
-		}
+        if (m_perform_predicates[MatrixPredicate.ExteriorExterior])
+        {
+            m_matrix[MatrixPredicate.ExteriorExterior] = 2; // Always true
+            m_perform_predicates[MatrixPredicate.ExteriorExterior] = false;
+            m_predicate_count--;
+        }
 	}
 
 	// Sets the point-point predicates function.
 	private void setPointPointPredicates_() {
-		m_predicates = Predicates.PointPointPredicates;
+        m_predicates_cluster = Predicates.PointPointPredicates;
 
-		// set predicates that are always true/false
-		if (m_perform_predicates[MatrixPredicate.InteriorBoundary]) {
-			m_matrix[MatrixPredicate.InteriorBoundary] = -1; // Always false
-			m_perform_predicates[MatrixPredicate.InteriorBoundary] = false;
-			m_predicate_count--;
-		}
+        m_max_dim[MatrixPredicate.InteriorInterior] = 0;
+        m_max_dim[MatrixPredicate.InteriorBoundary] = -1;
+        m_max_dim[MatrixPredicate.InteriorExterior] = 0;
+        m_max_dim[MatrixPredicate.BoundaryInterior] = -1;
+        m_max_dim[MatrixPredicate.BoundaryBoundary] = -1;
+        m_max_dim[MatrixPredicate.BoundaryExterior] = -1;
+        m_max_dim[MatrixPredicate.ExteriorInterior] = 0;
+        m_max_dim[MatrixPredicate.ExteriorBoundary] = -1;
+        m_max_dim[MatrixPredicate.ExteriorExterior] = 2;
 
-		if (m_perform_predicates[MatrixPredicate.BoundaryInterior]) {
-			m_matrix[MatrixPredicate.BoundaryInterior] = -1; // Always false
-			m_perform_predicates[MatrixPredicate.BoundaryInterior] = false;
-			m_predicate_count--;
-		}
+        // set predicates that are always true/false
+        if (m_perform_predicates[MatrixPredicate.InteriorBoundary])
+        {
+            m_matrix[MatrixPredicate.InteriorBoundary] = -1; // Always false
+            m_perform_predicates[MatrixPredicate.InteriorBoundary] = false;
+            m_predicate_count--;
+        }
 
-		if (m_perform_predicates[MatrixPredicate.BoundaryBoundary]) {
-			m_matrix[MatrixPredicate.BoundaryBoundary] = -1; // Always false
-			m_perform_predicates[MatrixPredicate.BoundaryBoundary] = false;
-			m_predicate_count--;
-		}
+        if (m_perform_predicates[MatrixPredicate.BoundaryInterior])
+        {
+            m_matrix[MatrixPredicate.BoundaryInterior] = -1; // Always false
+            m_perform_predicates[MatrixPredicate.BoundaryInterior] = false;
+            m_predicate_count--;
+        }
 
-		if (m_perform_predicates[MatrixPredicate.BoundaryExterior]) {
-			m_matrix[MatrixPredicate.BoundaryExterior] = -1; // Always false
-			m_perform_predicates[MatrixPredicate.BoundaryExterior] = false;
-			m_predicate_count--;
-		}
+        if (m_perform_predicates[MatrixPredicate.BoundaryBoundary])
+        {
+            m_matrix[MatrixPredicate.BoundaryBoundary] = -1; // Always false
+            m_perform_predicates[MatrixPredicate.BoundaryBoundary] = false;
+            m_predicate_count--;
+        }
 
-		if (m_perform_predicates[MatrixPredicate.ExteriorBoundary]) {
-			m_matrix[MatrixPredicate.ExteriorBoundary] = -1; // Always false
-			m_perform_predicates[MatrixPredicate.ExteriorBoundary] = false;
-			m_predicate_count--;
-		}
+        if (m_perform_predicates[MatrixPredicate.BoundaryExterior])
+        {
+            m_matrix[MatrixPredicate.BoundaryExterior] = -1; // Always false
+            m_perform_predicates[MatrixPredicate.BoundaryExterior] = false;
+            m_predicate_count--;
+        }
 
-		if (m_perform_predicates[MatrixPredicate.ExteriorExterior]) {
-			m_matrix[MatrixPredicate.ExteriorExterior] = 2; // Always true
-			m_perform_predicates[MatrixPredicate.ExteriorExterior] = false;
-			m_predicate_count--;
-		}
+        if (m_perform_predicates[MatrixPredicate.ExteriorBoundary])
+        {
+            m_matrix[MatrixPredicate.ExteriorBoundary] = -1; // Always false
+            m_perform_predicates[MatrixPredicate.ExteriorBoundary] = false;
+            m_predicate_count--;
+        }
+
+        if (m_perform_predicates[MatrixPredicate.ExteriorExterior])
+        {
+            m_matrix[MatrixPredicate.ExteriorExterior] = 2; // Always true
+            m_perform_predicates[MatrixPredicate.ExteriorExterior] = false;
+            m_predicate_count--;
+        }
 	}
 
 	// Invokes the 9 relational predicates of area vs area.
@@ -1262,175 +1637,228 @@ class RelationalOperationsMatrix {
 		if (m_perform_predicates[MatrixPredicate.InteriorInterior]) {
 			interiorAreaInteriorArea_(half_edge, id_a, id_b);
 			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.InteriorInterior, 2);
+					MatrixPredicate.InteriorInterior);
 		}
 
 		if (m_perform_predicates[MatrixPredicate.InteriorBoundary]) {
 			interiorAreaBoundaryArea_(half_edge, id_a,
 					MatrixPredicate.InteriorBoundary);
 			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.InteriorBoundary, 1);
+					MatrixPredicate.InteriorBoundary);
 		}
 
 		if (m_perform_predicates[MatrixPredicate.InteriorExterior]) {
 			interiorAreaExteriorArea_(half_edge, id_a, id_b,
 					MatrixPredicate.InteriorExterior);
 			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.InteriorExterior, 2);
+					MatrixPredicate.InteriorExterior);
 		}
 
 		if (m_perform_predicates[MatrixPredicate.BoundaryInterior]) {
 			interiorAreaBoundaryArea_(half_edge, id_b,
 					MatrixPredicate.BoundaryInterior);
 			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.BoundaryInterior, 1);
+					MatrixPredicate.BoundaryInterior);
 		}
 
 		if (m_perform_predicates[MatrixPredicate.BoundaryBoundary]) {
 			boundaryAreaBoundaryArea_(half_edge, id_a, id_b);
 			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.BoundaryBoundary, 1);
+					MatrixPredicate.BoundaryBoundary);
 		}
 
 		if (m_perform_predicates[MatrixPredicate.BoundaryExterior]) {
 			boundaryAreaExteriorArea_(half_edge, id_a, id_b,
 					MatrixPredicate.BoundaryExterior);
 			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.BoundaryExterior, 1);
+					MatrixPredicate.BoundaryExterior);
 		}
 
 		if (m_perform_predicates[MatrixPredicate.ExteriorInterior]) {
 			interiorAreaExteriorArea_(half_edge, id_b, id_a,
 					MatrixPredicate.ExteriorInterior);
 			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.ExteriorInterior, 2);
+					MatrixPredicate.ExteriorInterior);
 		}
 
 		if (m_perform_predicates[MatrixPredicate.ExteriorBoundary]) {
 			boundaryAreaExteriorArea_(half_edge, id_b, id_a,
 					MatrixPredicate.ExteriorBoundary);
 			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.ExteriorBoundary, 1);
+					MatrixPredicate.ExteriorBoundary);
 		}
 
 		return bRelationKnown;
 	}
 
-	private void areaAreaDisjointPredicates_() {
-		m_matrix[MatrixPredicate.InteriorInterior] = -1;
-		m_matrix[MatrixPredicate.InteriorBoundary] = -1;
-		m_matrix[MatrixPredicate.InteriorExterior] = 2;
-		m_matrix[MatrixPredicate.BoundaryInterior] = -1;
-		m_matrix[MatrixPredicate.BoundaryBoundary] = -1;
-		m_matrix[MatrixPredicate.BoundaryExterior] = 1;
-		m_matrix[MatrixPredicate.ExteriorInterior] = 2;
-		m_matrix[MatrixPredicate.ExteriorBoundary] = 1;
+	private void areaAreaDisjointPredicates_(Polygon polygon_a, Polygon polygon_b) {
+        m_matrix[MatrixPredicate.InteriorInterior] = -1;
+        m_matrix[MatrixPredicate.InteriorBoundary] = -1;
+        m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+        m_matrix[MatrixPredicate.BoundaryBoundary] = -1;
 
-		// all other predicates should already be set by
-		// set_area_area_predicates
+        areaGeomContainsOrDisjointPredicates_(polygon_a, m_perform_predicates[MatrixPredicate.InteriorExterior] ? MatrixPredicate.InteriorExterior : -1, m_scl.charAt(MatrixPredicate.InteriorExterior), m_perform_predicates[MatrixPredicate.BoundaryExterior] ? MatrixPredicate.BoundaryExterior : -1, m_scl.charAt(MatrixPredicate.BoundaryExterior));
+        areaGeomContainsOrDisjointPredicates_(polygon_b, m_perform_predicates[MatrixPredicate.ExteriorInterior] ? MatrixPredicate.ExteriorInterior : -1, m_scl.charAt(MatrixPredicate.ExteriorInterior), m_perform_predicates[MatrixPredicate.ExteriorBoundary] ? MatrixPredicate.ExteriorBoundary : -1, m_scl.charAt(MatrixPredicate.ExteriorBoundary));
 	}
 
-	private void areaAreaContainsPredicates_() {
-		m_matrix[MatrixPredicate.InteriorInterior] = 2;
-		m_matrix[MatrixPredicate.InteriorBoundary] = 1;
-		m_matrix[MatrixPredicate.InteriorExterior] = 2;
-		m_matrix[MatrixPredicate.BoundaryInterior] = -1;
-		m_matrix[MatrixPredicate.BoundaryBoundary] = -1;
-		m_matrix[MatrixPredicate.BoundaryExterior] = 1;
-		m_matrix[MatrixPredicate.ExteriorInterior] = -1;
-		m_matrix[MatrixPredicate.ExteriorBoundary] = -1;
+    private void areaGeomContainsOrDisjointPredicates_(Polygon polygon, int matrix_interior, char c1, int matrix_boundary, char c2)
+    {
+        if (matrix_interior != -1 || matrix_boundary != -1)
+        {
+            boolean has_area = ((c1 != 'T' && c1 != 'F' && matrix_interior != -1) || (c2 != 'T' && c2 != 'F' && matrix_boundary != -1) ? polygon.calculateArea2D() != 0 : true);
 
-		// all other predicates should already be set by
-		// set_area_area_predicates
+            if (has_area)
+            {
+                if (matrix_interior != -1)
+                  m_matrix[matrix_interior] = 2;
+                if (matrix_boundary != -1)
+                  m_matrix[matrix_boundary] = 1;
+            }
+            else
+            {
+                if (matrix_boundary != -1)
+                  m_matrix[matrix_boundary] = -1;
+
+                if (matrix_interior != -1)
+                {
+                    Envelope2D env = new Envelope2D();
+                    polygon.queryEnvelope2D(env);
+                    m_matrix[matrix_interior] = (env.getHeight() == 0.0 && env.getWidth() == 0.0 ? 0 : 1);
+                }
+            }
+        }
+    }
+
+	private void areaAreaContainsPredicates_(Polygon polygon_b) {
+        m_matrix[MatrixPredicate.InteriorExterior] = 2; // im assuming its a proper contains.
+        m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+        m_matrix[MatrixPredicate.BoundaryBoundary] = -1;
+        m_matrix[MatrixPredicate.BoundaryExterior] = 1;
+        m_matrix[MatrixPredicate.ExteriorInterior] = -1;
+        m_matrix[MatrixPredicate.ExteriorBoundary] = -1;
+
+        areaGeomContainsOrDisjointPredicates_(polygon_b, m_perform_predicates[MatrixPredicate.InteriorInterior] ? MatrixPredicate.InteriorInterior : -1, m_scl.charAt(MatrixPredicate.InteriorInterior), m_perform_predicates[MatrixPredicate.InteriorBoundary] ? MatrixPredicate.InteriorBoundary : -1, m_scl.charAt(MatrixPredicate.InteriorBoundary));
+
+        // all other predicates should already be set by set_area_area_predicates
+    }
+
+	private void areaAreaWithinPredicates_(Polygon polygon_a) {
+		areaAreaContainsPredicates_(polygon_a);
+		transposeMatrix_(m_matrix);
 	}
 
-	private void areaAreaWithinPredicates_() {
-		areaAreaContainsPredicates_();
-		transposeMatrix_();
+	private void areaLineDisjointPredicates_(Polygon polygon, Polyline polyline) {
+        m_matrix[MatrixPredicate.InteriorInterior] = -1;
+        m_matrix[MatrixPredicate.InteriorBoundary] = -1;
+        m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+        m_matrix[MatrixPredicate.BoundaryBoundary] = -1;
+
+        if (m_perform_predicates[MatrixPredicate.ExteriorInterior])
+        {
+            char c = m_scl.charAt(MatrixPredicate.ExteriorInterior);
+            boolean b_has_length = (c != 'T' && c != 'F' ? polyline.calculateLength2D() != 0 : true);
+            m_matrix[MatrixPredicate.ExteriorInterior] = (b_has_length ? 1 : 0);
+        }
+
+        if (m_perform_predicates[MatrixPredicate.ExteriorBoundary])
+        {
+            boolean has_non_empty_boundary = Boundary.hasNonEmptyBoundary(polyline, null);
+            m_matrix[MatrixPredicate.ExteriorBoundary] = has_non_empty_boundary ? 0 : -1;
+        }
+
+        areaGeomContainsOrDisjointPredicates_(polygon, m_perform_predicates[MatrixPredicate.InteriorExterior] ? MatrixPredicate.InteriorExterior : -1, m_scl.charAt(MatrixPredicate.InteriorExterior), m_perform_predicates[MatrixPredicate.BoundaryExterior] ? MatrixPredicate.BoundaryExterior : -1, m_scl.charAt(MatrixPredicate.BoundaryExterior));
 	}
 
-	private void areaLineDisjointPredicates_(Polyline polyline) {
-		m_matrix[MatrixPredicate.InteriorInterior] = -1;
-		m_matrix[MatrixPredicate.InteriorBoundary] = -1;
-		m_matrix[MatrixPredicate.BoundaryInterior] = -1;
-		m_matrix[MatrixPredicate.BoundaryBoundary] = -1;
-		m_matrix[MatrixPredicate.BoundaryExterior] = 1;
-		m_matrix[MatrixPredicate.ExteriorInterior] = 1;
+	private void areaLineContainsPredicates_(Polygon polygon, Polyline polyline) {
+        if (m_perform_predicates[MatrixPredicate.InteriorInterior])
+        {
+            char c = m_scl.charAt(MatrixPredicate.InteriorInterior);
+            boolean b_has_length = (c != 'T' && c != 'F' ? polyline.calculateLength2D() != 0 : true);
+            m_matrix[MatrixPredicate.InteriorInterior] = (b_has_length ? 1 : 0);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.ExteriorBoundary]) {
-			boolean has_non_empty_boundary = Boundary.hasNonEmptyBoundary(
-					polyline, null);
-			m_matrix[MatrixPredicate.ExteriorBoundary] = (has_non_empty_boundary ? 0
-					: -1);
-		}
+        if (m_perform_predicates[MatrixPredicate.InteriorBoundary])
+        {
+            boolean has_non_empty_boundary = Boundary.hasNonEmptyBoundary(polyline, null);
+            m_matrix[MatrixPredicate.InteriorBoundary] = has_non_empty_boundary ? 0 : -1;
+        }
+
+        m_matrix[MatrixPredicate.InteriorExterior] = 2; //assume polygon has area
+        m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+        m_matrix[MatrixPredicate.BoundaryBoundary] = -1;
+        m_matrix[MatrixPredicate.BoundaryExterior] = 1; //assume polygon has area
+        m_matrix[MatrixPredicate.ExteriorInterior] = -1;
+        m_matrix[MatrixPredicate.ExteriorBoundary] = -1;
 	}
 
-	private void areaLineContainsPredicates_(Polyline polyline) {
-		m_matrix[MatrixPredicate.InteriorInterior] = 1;
+	private void areaPointDisjointPredicates_(Polygon polygon) {
+        m_matrix[MatrixPredicate.InteriorInterior] = -1;
+        m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+        m_matrix[MatrixPredicate.ExteriorInterior] = 0;
 
-		if (m_perform_predicates[MatrixPredicate.InteriorBoundary]) {
-			boolean has_non_empty_boundary = Boundary.hasNonEmptyBoundary(
-					polyline, null);
-			m_matrix[MatrixPredicate.InteriorBoundary] = (has_non_empty_boundary ? 0
-					: -1);
-		}
-
-		m_matrix[MatrixPredicate.BoundaryInterior] = -1;
-		m_matrix[MatrixPredicate.BoundaryBoundary] = -1;
-		m_matrix[MatrixPredicate.BoundaryExterior] = 1;
-		m_matrix[MatrixPredicate.ExteriorInterior] = -1;
-		m_matrix[MatrixPredicate.ExteriorBoundary] = -1;
+        areaGeomContainsOrDisjointPredicates_(polygon, m_perform_predicates[MatrixPredicate.InteriorExterior] ? MatrixPredicate.InteriorExterior : -1, m_scl.charAt(MatrixPredicate.InteriorExterior), m_perform_predicates[MatrixPredicate.BoundaryExterior] ? MatrixPredicate.BoundaryExterior : -1, m_scl.charAt(MatrixPredicate.BoundaryExterior));
 	}
 
-	private void areaPointDisjointPredicates_() {
-		m_matrix[MatrixPredicate.InteriorInterior] = -1;
-		m_matrix[MatrixPredicate.BoundaryInterior] = -1;
-		m_matrix[MatrixPredicate.ExteriorInterior] = 0;
-	}
-
-	private void areaPointContainsPredicates_() {
-		m_matrix[MatrixPredicate.InteriorInterior] = 0;
-		m_matrix[MatrixPredicate.BoundaryInterior] = -1;
-		m_matrix[MatrixPredicate.ExteriorInterior] = -1;
-	}
+	private void areaPointContainsPredicates_(Polygon polygon) {
+        m_matrix[MatrixPredicate.InteriorInterior] = 0;
+        m_matrix[MatrixPredicate.InteriorExterior] = 2; //assume polygon has area
+        m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+        m_matrix[MatrixPredicate.BoundaryExterior] = 1; //assume polygon has area
+        m_matrix[MatrixPredicate.ExteriorInterior] = -1;
+    }
 
 	private void lineLineDisjointPredicates_(Polyline polyline_a,
 			Polyline polyline_b) {
-		m_matrix[MatrixPredicate.InteriorInterior] = -1;
-		m_matrix[MatrixPredicate.InteriorBoundary] = -1;
-		m_matrix[MatrixPredicate.InteriorExterior] = 1;
-		m_matrix[MatrixPredicate.BoundaryInterior] = -1;
-		m_matrix[MatrixPredicate.BoundaryBoundary] = -1;
+        m_matrix[MatrixPredicate.InteriorInterior] = -1;
+        m_matrix[MatrixPredicate.InteriorBoundary] = -1;
+        m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+        m_matrix[MatrixPredicate.BoundaryBoundary] = -1;
 
-		if (m_perform_predicates[MatrixPredicate.BoundaryExterior]) {
-			boolean has_non_empty_boundary_a = Boundary.hasNonEmptyBoundary(
-					polyline_a, null);
-			m_matrix[MatrixPredicate.BoundaryExterior] = (has_non_empty_boundary_a ? 0
-					: -1);
-		}
+        if (m_perform_predicates[MatrixPredicate.InteriorExterior])
+        {
+            char c = m_scl.charAt(MatrixPredicate.InteriorExterior);
+            boolean b_has_length = (c != 'T' && c != 'F' ? polyline_a.calculateLength2D() != 0 : true);
+            m_matrix[MatrixPredicate.InteriorExterior] = (b_has_length ? 1 : 0);
+        }
 
-		m_matrix[MatrixPredicate.ExteriorInterior] = 1;
+        if (m_perform_predicates[MatrixPredicate.BoundaryExterior])
+        {
+            boolean has_non_empty_boundary_a = Boundary.hasNonEmptyBoundary(polyline_a, null);
+            m_matrix[MatrixPredicate.BoundaryExterior] = has_non_empty_boundary_a ? 0 : -1;
+        }
 
-		if (m_perform_predicates[MatrixPredicate.ExteriorBoundary]) {
-			boolean has_non_empty_boundary_b = Boundary.hasNonEmptyBoundary(
-					polyline_b, null);
-			m_matrix[MatrixPredicate.ExteriorBoundary] = (has_non_empty_boundary_b ? 0
-					: -1);
-		}
+        if (m_perform_predicates[MatrixPredicate.ExteriorInterior])
+        {
+            char c = m_scl.charAt(MatrixPredicate.ExteriorInterior);
+            boolean b_has_length = (c != 'T' && c != 'F' ? polyline_b.calculateLength2D() != 0 : true);
+            m_matrix[MatrixPredicate.ExteriorInterior] = (b_has_length ? 1 : 0);
+        }
+
+        if (m_perform_predicates[MatrixPredicate.ExteriorBoundary])
+        {
+            boolean has_non_empty_boundary_b = Boundary.hasNonEmptyBoundary(polyline_b, null);
+            m_matrix[MatrixPredicate.ExteriorBoundary] = has_non_empty_boundary_b ? 0 : -1;
+        }
 	}
 
 	private void linePointDisjointPredicates_(Polyline polyline) {
-		m_matrix[MatrixPredicate.InteriorInterior] = -1;
-		m_matrix[MatrixPredicate.BoundaryInterior] = -1;
+        m_matrix[MatrixPredicate.InteriorInterior] = -1;
+        m_matrix[MatrixPredicate.BoundaryInterior] = -1;
 
-		if (m_perform_predicates[MatrixPredicate.BoundaryExterior]) {
-			boolean has_non_empty_boundary = Boundary.hasNonEmptyBoundary(
-					polyline, null);
-			m_matrix[MatrixPredicate.BoundaryExterior] = (has_non_empty_boundary ? 0
-					: -1);
-		}
+        if (m_perform_predicates[MatrixPredicate.InteriorExterior])
+        {
+            char c = m_scl.charAt(MatrixPredicate.InteriorExterior);
+            boolean b_has_length = (c != 'T' && c != 'F' ? polyline.calculateLength2D() != 0 : true);
+            m_matrix[MatrixPredicate.InteriorExterior] = (b_has_length ? 1 : 0);
+        }
 
-		m_matrix[MatrixPredicate.ExteriorInterior] = 0;
+        if (m_perform_predicates[MatrixPredicate.BoundaryExterior])
+        {
+            boolean has_non_empty_boundary = Boundary.hasNonEmptyBoundary(polyline, null);
+            m_matrix[MatrixPredicate.BoundaryExterior] = (has_non_empty_boundary ? 0 : -1);
+        }
+
+        m_matrix[MatrixPredicate.ExteriorInterior] = 0;
 	}
 
 	private void pointPointDisjointPredicates_() {
@@ -1441,197 +1869,211 @@ class RelationalOperationsMatrix {
 
 	// Invokes the 9 relational predicates of area vs Line.
 	private boolean areaLinePredicates_(int half_edge, int id_a, int id_b) {
-		boolean bRelationKnown = true;
+        boolean bRelationKnown = true;
 
-		if (m_perform_predicates[MatrixPredicate.InteriorInterior]) {
-			interiorAreaInteriorLine_(half_edge, id_a, id_b);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.InteriorInterior, 1);
-		}
+        if (m_perform_predicates[MatrixPredicate.InteriorInterior])
+        {
+            interiorAreaInteriorLine_(half_edge, id_a, id_b);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.InteriorInterior);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.InteriorBoundary]) {
-			interiorAreaBoundaryLine_(half_edge, id_a, id_b, m_cluster_index_b);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.InteriorBoundary, 0);
-		}
+        if (m_perform_predicates[MatrixPredicate.InteriorBoundary])
+        {
+            interiorAreaBoundaryLine_(half_edge, id_a, id_b, m_cluster_index_b);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.InteriorBoundary);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.BoundaryInterior]) {
-			boundaryAreaInteriorLine_(half_edge, id_a, id_b, m_cluster_index_b);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.BoundaryInterior, 1);
-		}
+        if (m_perform_predicates[MatrixPredicate.InteriorExterior])
+        {
+            interiorAreaExteriorLine_(half_edge, id_a, id_b);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.InteriorExterior);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.BoundaryBoundary]) {
-			boundaryAreaBoundaryLine_(half_edge, id_a, id_b, m_cluster_index_b);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.BoundaryBoundary, 0);
-		}
+        if (m_perform_predicates[MatrixPredicate.BoundaryInterior])
+        {
+            boundaryAreaInteriorLine_(half_edge, id_a, id_b, m_cluster_index_b);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.BoundaryInterior);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.BoundaryExterior]) {
-			boundaryAreaExteriorLine_(half_edge, id_a, id_b);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.BoundaryExterior, 1);
-		}
+        if (m_perform_predicates[MatrixPredicate.BoundaryBoundary])
+        {
+            boundaryAreaBoundaryLine_(half_edge, id_a, id_b, m_cluster_index_b);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.BoundaryBoundary);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.ExteriorInterior]) {
-			exteriorAreaInteriorLine_(half_edge, id_a);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.ExteriorInterior, 1);
-		}
+        if (m_perform_predicates[MatrixPredicate.BoundaryExterior])
+        {
+            boundaryAreaExteriorLine_(half_edge, id_a, id_b);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.BoundaryExterior);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.ExteriorBoundary]) {
-			exteriorAreaBoundaryLine_(half_edge, id_a, id_b, m_cluster_index_b);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.ExteriorBoundary, 0);
-		}
+        if (m_perform_predicates[MatrixPredicate.ExteriorInterior])
+        {
+            exteriorAreaInteriorLine_(half_edge, id_a);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.ExteriorInterior);
+        }
 
-		return bRelationKnown;
+        if (m_perform_predicates[MatrixPredicate.ExteriorBoundary])
+        {
+            exteriorAreaBoundaryLine_(half_edge, id_a, id_b, m_cluster_index_b);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.ExteriorBoundary);
+        }
+
+        return bRelationKnown;
 	}
 
 	// Invokes the 9 relational predicates of Line vs Line.
 	private boolean lineLinePredicates_(int half_edge, int id_a, int id_b) {
-		boolean bRelationKnown = true;
+        boolean bRelationKnown = true;
 
-		if (m_perform_predicates[MatrixPredicate.InteriorInterior]) {
-			interiorLineInteriorLine_(half_edge, id_a, id_b, m_cluster_index_a,
-					m_cluster_index_b);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.InteriorInterior, 1);
-		}
+        if (m_perform_predicates[MatrixPredicate.InteriorInterior])
+        {
+            interiorLineInteriorLine_(half_edge, id_a, id_b, m_cluster_index_a, m_cluster_index_b);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.InteriorInterior);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.InteriorBoundary]) {
-			interiorLineBoundaryLine_(half_edge, id_a, id_b, m_cluster_index_a,
-					m_cluster_index_b, MatrixPredicate.InteriorBoundary);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.InteriorBoundary, 0);
-		}
+        if (m_perform_predicates[MatrixPredicate.InteriorBoundary])
+        {
+            interiorLineBoundaryLine_(half_edge, id_a, id_b, m_cluster_index_a, m_cluster_index_b, MatrixPredicate.InteriorBoundary);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.InteriorBoundary);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.InteriorExterior]) {
-			interiorLineExteriorLine_(half_edge, id_a, id_b,
-					MatrixPredicate.InteriorExterior);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.InteriorExterior, 1);
-		}
+        if (m_perform_predicates[MatrixPredicate.InteriorExterior])
+        {
+            interiorLineExteriorLine_(half_edge, id_a, id_b, MatrixPredicate.InteriorExterior);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.InteriorExterior);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.BoundaryInterior]) {
-			interiorLineBoundaryLine_(half_edge, id_b, id_a, m_cluster_index_b,
-					m_cluster_index_a, MatrixPredicate.BoundaryInterior);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.BoundaryInterior, 0);
-		}
+        if (m_perform_predicates[MatrixPredicate.BoundaryInterior])
+        {
+            interiorLineBoundaryLine_(half_edge, id_b, id_a, m_cluster_index_b, m_cluster_index_a, MatrixPredicate.BoundaryInterior);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.BoundaryInterior);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.BoundaryBoundary]) {
-			boundaryLineBoundaryLine_(half_edge, id_a, id_b, m_cluster_index_a,
-					m_cluster_index_b);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.BoundaryBoundary, 0);
-		}
+        if (m_perform_predicates[MatrixPredicate.BoundaryBoundary])
+        {
+            boundaryLineBoundaryLine_(half_edge, id_a, id_b, m_cluster_index_a, m_cluster_index_b);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.BoundaryBoundary);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.BoundaryExterior]) {
-			boundaryLineExteriorLine_(half_edge, id_a, id_b, m_cluster_index_a,
-					MatrixPredicate.BoundaryExterior);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.BoundaryExterior, 0);
-		}
+        if (m_perform_predicates[MatrixPredicate.BoundaryExterior])
+        {
+            boundaryLineExteriorLine_(half_edge, id_a, id_b, m_cluster_index_a, MatrixPredicate.BoundaryExterior);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.BoundaryExterior);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.ExteriorInterior]) {
-			interiorLineExteriorLine_(half_edge, id_b, id_a,
-					MatrixPredicate.ExteriorInterior);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.ExteriorInterior, 1);
-		}
+        if (m_perform_predicates[MatrixPredicate.ExteriorInterior])
+        {
+            interiorLineExteriorLine_(half_edge, id_b, id_a, MatrixPredicate.ExteriorInterior);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.ExteriorInterior);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.ExteriorBoundary]) {
-			boundaryLineExteriorLine_(half_edge, id_b, id_a, m_cluster_index_b,
-					MatrixPredicate.ExteriorBoundary);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.ExteriorBoundary, 0);
-		}
+        if (m_perform_predicates[MatrixPredicate.ExteriorBoundary])
+        {
+            boundaryLineExteriorLine_(half_edge, id_b, id_a, m_cluster_index_b, MatrixPredicate.ExteriorBoundary);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.ExteriorBoundary);
+        }
 
-		return bRelationKnown;
+        return bRelationKnown;
 	}
 
 	// Invokes the 9 relational predicates of area vs Point.
 	private boolean areaPointPredicates_(int cluster, int id_a, int id_b) {
-		boolean bRelationKnown = true;
+        boolean bRelationKnown = true;
 
-		if (m_perform_predicates[MatrixPredicate.InteriorInterior]) {
-			interiorAreaInteriorPoint_(cluster, id_a);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.InteriorInterior, 0);
-		}
+        if (m_perform_predicates[MatrixPredicate.InteriorInterior])
+        {
+            interiorAreaInteriorPoint_(cluster, id_a);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.InteriorInterior);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.BoundaryInterior]) {
-			boundaryAreaInteriorPoint_(cluster, id_a, id_b);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.BoundaryInterior, 0);
-		}
+        if (m_perform_predicates[MatrixPredicate.InteriorExterior])
+        {
+            interiorAreaExteriorPoint_(cluster, id_a);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.InteriorExterior);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.ExteriorInterior]) {
-			exteriorAreaInteriorPoint_(cluster, id_a);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.ExteriorInterior, 0);
-		}
+        if (m_perform_predicates[MatrixPredicate.BoundaryInterior])
+        {
+            boundaryAreaInteriorPoint_(cluster, id_a, id_b);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.BoundaryInterior);
+        }
 
-		return bRelationKnown;
+        if (m_perform_predicates[MatrixPredicate.BoundaryExterior])
+        {
+            boundaryAreaExteriorPoint_(cluster, id_a);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.BoundaryExterior);
+        }
+
+        if (m_perform_predicates[MatrixPredicate.ExteriorInterior])
+        {
+            exteriorAreaInteriorPoint_(cluster, id_a);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.ExteriorInterior);
+        }
+
+        return bRelationKnown;
 	}
 
 	// Invokes the 9 relational predicates of Line vs Point.
 	private boolean linePointPredicates_(int cluster, int id_a, int id_b) {
-		boolean bRelationKnown = true;
+        boolean bRelationKnown = true;
 
-		if (m_perform_predicates[MatrixPredicate.InteriorInterior]) {
-			interiorLineInteriorPoint_(cluster, id_a, id_b, m_cluster_index_a);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.InteriorInterior, 0);
-		}
+        if (m_perform_predicates[MatrixPredicate.InteriorInterior])
+        {
+            interiorLineInteriorPoint_(cluster, id_a, id_b, m_cluster_index_a);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.InteriorInterior);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.BoundaryInterior]) {
-			boundaryLineInteriorPoint_(cluster, id_a, id_b, m_cluster_index_a);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.BoundaryInterior, 0);
-		}
+        if (m_perform_predicates[MatrixPredicate.InteriorExterior])
+        {
+            interiorLineExteriorPoint_(cluster, id_a, id_b, m_cluster_index_a);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.InteriorExterior);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.BoundaryExterior]) {
-			boundaryLineExteriorPoint_(cluster, id_a, id_b, m_cluster_index_a);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.BoundaryExterior, 0);
-		}
+        if (m_perform_predicates[MatrixPredicate.BoundaryInterior])
+        {
+            boundaryLineInteriorPoint_(cluster, id_a, id_b, m_cluster_index_a);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.BoundaryInterior);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.ExteriorInterior]) {
-			exteriorLineInteriorPoint_(cluster, id_a, id_b);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.ExteriorInterior, 0);
-		}
+        if (m_perform_predicates[MatrixPredicate.BoundaryExterior])
+        {
+            boundaryLineExteriorPoint_(cluster, id_a, id_b, m_cluster_index_a);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.BoundaryExterior);
+        }
 
-		return bRelationKnown;
+        if (m_perform_predicates[MatrixPredicate.ExteriorInterior])
+        {
+            exteriorLineInteriorPoint_(cluster, id_a, id_b);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.ExteriorInterior);
+        }
+
+        return bRelationKnown;
 	}
 
 	// Invokes the 9 relational predicates of Point vs Point.
 	private boolean pointPointPredicates_(int cluster, int id_a, int id_b) {
-		boolean bRelationKnown = true;
+        boolean bRelationKnown = true;
 
-		if (m_perform_predicates[MatrixPredicate.InteriorInterior]) {
-			interiorPointInteriorPoint_(cluster, id_a, id_b);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.InteriorInterior, 0);
-		}
+        if (m_perform_predicates[MatrixPredicate.InteriorInterior])
+        {
+            interiorPointInteriorPoint_(cluster, id_a, id_b);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.InteriorInterior);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.InteriorExterior]) {
-			interiorPointExteriorPoint_(cluster, id_a, id_b,
-					MatrixPredicate.InteriorExterior);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.InteriorExterior, 0);
-		}
+        if (m_perform_predicates[MatrixPredicate.InteriorExterior])
+        {
+            interiorPointExteriorPoint_(cluster, id_a, id_b, MatrixPredicate.InteriorExterior);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.InteriorExterior);
+        }
 
-		if (m_perform_predicates[MatrixPredicate.ExteriorInterior]) {
-			interiorPointExteriorPoint_(cluster, id_b, id_a,
-					MatrixPredicate.ExteriorInterior);
-			bRelationKnown &= isPredicateKnown_(
-					MatrixPredicate.ExteriorInterior, 0);
-		}
+        if (m_perform_predicates[MatrixPredicate.ExteriorInterior])
+        {
+            interiorPointExteriorPoint_(cluster, id_b, id_a, MatrixPredicate.ExteriorInterior);
+            bRelationKnown &= isPredicateKnown_(MatrixPredicate.ExteriorInterior);
+        }
 
-		return bRelationKnown;
+        return bRelationKnown;
 	}
 
 	// Relational predicate to determine if the interior of area A intersects
@@ -1765,6 +2207,19 @@ class RelationalOperationsMatrix {
 			}
 		}
 	}
+
+    private void interiorAreaExteriorLine_(int half_edge, int id_a, int id_b)
+    {
+        if (m_matrix[MatrixPredicate.InteriorExterior] == 2)
+            return;
+
+        int half_edge_parentage = m_topo_graph.getHalfEdgeParentage(half_edge);
+
+        if ((half_edge_parentage & id_a) != 0)
+        {//half edge of polygon
+            m_matrix[MatrixPredicate.InteriorExterior] = 2;
+        }
+    }
 
 	// Relational predicate to determine if the boundary of area A intersects
 	// with the interior of Line B.
@@ -2047,6 +2502,19 @@ class RelationalOperationsMatrix {
 		}
 	}
 
+    private void interiorAreaExteriorPoint_(int cluster, int id_a)
+    {
+        if (m_matrix[MatrixPredicate.InteriorExterior] == 2)
+            return;
+
+        int cluster_parentage = m_topo_graph.getClusterParentage(cluster);
+
+        if ((cluster_parentage & id_a) != 0)
+        {
+            m_matrix[MatrixPredicate.InteriorExterior] = 2;
+        }
+    }
+
 	// Relational predicate to determine if the boundary of area A intersects
 	// with the interior of Point B.
 	private void boundaryAreaInteriorPoint_(int cluster, int id_a, int id_b) {
@@ -2059,6 +2527,19 @@ class RelationalOperationsMatrix {
 			m_matrix[MatrixPredicate.BoundaryInterior] = 0;
 		}
 	}
+
+    private void boundaryAreaExteriorPoint_(int cluster, int id_a)
+    {
+        if (m_matrix[MatrixPredicate.BoundaryExterior] == 1)
+            return;
+
+        int cluster_parentage = m_topo_graph.getClusterParentage(cluster);
+
+        if ((cluster_parentage & id_a) != 0)
+        {
+            m_matrix[MatrixPredicate.BoundaryExterior] = 1;
+        }
+    }
 
 	// Relational predicate to determine if the exterior of area A intersects
 	// with the interior of Point B.
@@ -2096,6 +2577,34 @@ class RelationalOperationsMatrix {
 			}
 		}
 	}
+
+    private void interiorLineExteriorPoint_(int cluster, int id_a, int id_b, int cluster_index_a)
+    {
+        if (m_matrix[MatrixPredicate.InteriorExterior] == 1)
+            return;
+
+        int half_edge_a = m_topo_graph.getClusterHalfEdge(cluster);
+
+        if (half_edge_a != -1)
+        {
+            m_matrix[MatrixPredicate.InteriorExterior] = 1;
+            return;
+        }
+
+        if (m_matrix[MatrixPredicate.InteriorExterior] != 0)
+        {
+            int clusterParentage = m_topo_graph.getClusterParentage(cluster);
+
+            if ((clusterParentage & id_b) == 0)
+            {
+                assert(m_topo_graph.getClusterUserIndex(cluster, cluster_index_a) % 2 == 0);
+                m_matrix[MatrixPredicate.InteriorExterior] = 0;
+                return;
+            }
+        }
+
+        return;
+    }
 
 	// Relational predicate to determine if the boundary of Line A intersects
 	// with the interior of Point B.
@@ -2189,6 +2698,27 @@ class RelationalOperationsMatrix {
 		for (int cluster = m_topo_graph.getFirstCluster(); cluster != -1; cluster = m_topo_graph
 				.getNextCluster(cluster)) {
 			int first_half_edge = m_topo_graph.getClusterHalfEdge(cluster);
+            if (first_half_edge == -1)
+            {
+                if (m_predicates_cluster != -1)
+                {
+                    // Treat cluster as an interior point
+                    switch (m_predicates_cluster)
+                    {
+                        case Predicates.AreaPointPredicates:
+                            bRelationKnown = areaPointPredicates_(cluster, id_a, id_b);
+                            break;
+                        case Predicates.LinePointPredicates:
+                            bRelationKnown = linePointPredicates_(cluster, id_a, id_b);
+                            break;
+                        default:
+                            throw GeometryException.GeometryInternalError();
+                    }
+                }
+
+                continue;
+            }
+
 			int next_half_edge = first_half_edge;
 
 			do {
@@ -2199,7 +2729,7 @@ class RelationalOperationsMatrix {
 				if (visited != 1) {
 					do {
 						// Invoke relational predicates
-						switch (m_predicates) {
+						switch (m_predicates_half_edge) {
 						case Predicates.AreaAreaPredicates:
 							bRelationKnown = areaAreaPredicates_(half_edge,
 									id_a, id_b);
@@ -2254,7 +2784,7 @@ class RelationalOperationsMatrix {
 		for (int cluster = m_topo_graph.getFirstCluster(); cluster != -1; cluster = m_topo_graph
 				.getNextCluster(cluster)) {
 			// Invoke relational predicates
-			switch (m_predicates) {
+			switch (m_predicates_cluster) {
 			case Predicates.AreaPointPredicates:
 				bRelationKnown = areaPointPredicates_(cluster, id_a, id_b);
 				break;
@@ -2290,12 +2820,13 @@ class RelationalOperationsMatrix {
 
 	private void editShapeCrackAndCluster_(EditShape shape, double tolerance,
 			ProgressTracker progress_tracker) {
-		CrackAndCluster.execute(shape, tolerance, progress_tracker);
+		CrackAndCluster.execute(shape, tolerance, progress_tracker, false); //do not filter degenerate segments.
+        shape.filterClosePoints(0, true, true);//remove degeneracies from polygon geometries.
 		for (int geometry = shape.getFirstGeometry(); geometry != -1; geometry = shape
 				.getNextGeometry(geometry)) {
 			if (shape.getGeometryType(geometry) == Geometry.Type.Polygon
 					.value())
-				Simplificator.execute(shape, geometry, -1, false);
+				Simplificator.execute(shape, geometry, -1, false, progress_tracker);
 		}
 	}
 

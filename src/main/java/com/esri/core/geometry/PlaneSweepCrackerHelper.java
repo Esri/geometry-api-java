@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2013 Esri
+ Copyright 1995-2015 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -68,7 +68,11 @@ final class PlaneSweepCrackerHelper {
 			b_cracked |= sweepImpl_();
 		}
 		
-		m_shape.removeUserIndex(m_vertex_cluster_index);
+		if (m_vertex_cluster_index != -1) {
+			m_shape.removeUserIndex(m_vertex_cluster_index);
+			m_vertex_cluster_index = -1;
+		}
+		
 		m_shape = null;
 		return m_b_cracked;
 	}
@@ -82,9 +86,17 @@ final class PlaneSweepCrackerHelper {
 		m_complications = false;
 		boolean bresult = sweepImpl_();
 		if (!m_complications) {
-			int filtered = shape.filterClosePoints(tolerance, true);
+			int filtered = shape.filterClosePoints(tolerance, true, false);
 			m_complications = filtered == 1;
+			bresult |= filtered == 1;
 		}
+		
+		if (m_vertex_cluster_index != -1) {
+			m_shape.removeUserIndex(m_vertex_cluster_index);
+			m_vertex_cluster_index = -1;
+		}
+		
+		m_shape = null;
 		return bresult;
 	}
 
@@ -758,22 +770,31 @@ final class PlaneSweepCrackerHelper {
 
 	void processSplitHelper1_(int index, int edge,
 			SegmentIntersector intersector) {
+		int clusterStart = getEdgeCluster(edge, 0);
+		Point2D ptClusterStart = new Point2D();
+		getClusterXY(clusterStart, ptClusterStart);
+		Point2D ptClusterEnd = new Point2D();
+		int clusterEnd = getEdgeCluster(edge, 1);
+		getClusterXY(clusterEnd, ptClusterEnd);
+		
 		// Collect all edges that are affected by the split and that are in the
 		// sweep structure.
 		int count = intersector.getResultSegmentCount(index);
 		Segment seg = intersector.getResultSegment(index, 0);
-		seg.getStartXY(pt_2);
-		int clusterStart = getEdgeCluster(edge, 0);
-		getClusterXY(clusterStart, pt_1);
-		if (!pt_1.isEqual(pt_2)) {
-	        int res1 = pt_1.compare(m_sweep_point);
-	        int res2 = pt_2.compare(m_sweep_point);
-	        if (res1 * res2 < 0) {
-				m_complications = true;// point is not yet have been processed
-										// but moved before the sweep point,
-										// this will require
-				// repeating the cracking step and the sweep_vertical cannot
-				// help here
+		Point2D newStart = new Point2D();
+		seg.getStartXY(newStart);
+		
+		if (!ptClusterStart.isEqual(newStart)) {
+			if (!m_complications) {
+		        int res1 = ptClusterStart.compare(m_sweep_point);
+		        int res2 = newStart.compare(m_sweep_point);
+		        if (res1 * res2 < 0) {
+					m_complications = true;// point is not yet have been processed
+											// but moved before the sweep point,
+											// this will require
+					// repeating the cracking step and the sweep_vertical cannot
+					// help here
+				}
 			}
 			
 			// This cluster's position needs to be changed
@@ -781,18 +802,37 @@ final class PlaneSweepCrackerHelper {
 			m_modified_clusters.add(clusterStart);
 		}
 
-		seg = intersector.getResultSegment(index, count - 1);
-		seg.getEndXY(pt_2);
-		int clusterEnd = getEdgeCluster(edge, 1);
-		getClusterXY(clusterEnd, pt_1);
-		if (!pt_1.isEqual(pt_2)) {
-	        int res1 = pt_1.compare(m_sweep_point);
-	        int res2 = pt_2.compare(m_sweep_point);
-	        if (res1 * res2 < 0) {			
-				m_complications = true;// point is not yet have been processed
-										// but moved before the sweep point.
+		if (!m_complications && count > 1) {
+			int dir = ptClusterStart.compare(ptClusterEnd);
+			Point2D midPoint = seg.getEndXY();
+			if (ptClusterStart.compare(midPoint) != dir
+					|| midPoint.compare(ptClusterEnd) != dir) {// split segment
+																// midpoint is
+																// above the
+																// sweep line.
+																// Therefore the
+																// part of the
+																// segment
+				m_complications = true;
+			} else {
+				if (midPoint.compare(m_sweep_point) < 0) {
+					// midpoint moved below sweepline.
+					m_complications = true;
+				}
 			}
+		}
 
+		seg = intersector.getResultSegment(index, count - 1);
+		Point2D newEnd = seg.getEndXY();
+		if (!ptClusterEnd.isEqual(newEnd)) {
+			if (!m_complications) {
+		        int res1 = ptClusterEnd.compare(m_sweep_point);
+		        int res2 = newEnd.compare(m_sweep_point);
+		        if (res1 * res2 < 0) {			
+					m_complications = true;// point is not yet have been processed
+											// but moved before the sweep point.
+				}
+			}
 			// This cluster's position needs to be changed
 			getAffectedEdges(clusterEnd, m_temp_edge_buffer);
 			m_modified_clusters.add(clusterEnd);

@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2013 Esri
+ Copyright 1995-2015 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -24,6 +24,8 @@
 package com.esri.core.geometry;
 
 import java.util.ArrayList;
+
+import com.esri.core.geometry.Geometry.GeometryType;
 
 /**
  * A helper geometry structure that can store MultiPoint, Polyline, Polygon
@@ -204,7 +206,7 @@ final class EditShape {
 		// m_path_index_list.set(index + 4, -1);//first vertex handle
 		// m_path_index_list.set(index + 5, -1);//last vertex handle
 		m_path_index_list.setField(index, 6, 0);// path flags
-		m_path_index_list.setField(index, 7, geom);// geometry handle
+		setPathGeometry_(index, geom);
 		if (pindex >= m_path_areas.size()) {
 			int sz = pindex < 16 ? 16 : (pindex * 3) / 2;
 			m_path_areas.resize(sz);
@@ -331,10 +333,25 @@ final class EditShape {
 			m_helper_point = new Point(m_vertices.getDescription());
 		return m_helper_point;
 	}
+	
+	void setFillRule(int geom, int rule) {
+	      int t = m_geometry_index_list.getField(geom, 2);
+	      t &= ~(0x8000000);
+	      t |= rule == Polygon.FillRule.enumFillRuleWinding ? 0x8000000 : 0;
+	      m_geometry_index_list.setField(geom, 2, t);//fill rule combined with geometry type
+	}
 
+    int getFillRule(int geom) {
+      int t = m_geometry_index_list.getField(geom, 2);
+      return (t & 0x8000000) != 0 ? Polygon.FillRule.enumFillRuleWinding : Polygon.FillRule.enumFillRuleOddEven;
+    }
+    
 	int addMultiPath_(MultiPath multi_path) {
 		int newgeom = createGeometry(multi_path.getType(),
 				multi_path.getDescription());
+		if (multi_path.getType() == Geometry.Type.Polygon)
+			setFillRule(newgeom, ((Polygon)multi_path).getFillRule());
+		
 		appendMultiPath_(newgeom, multi_path);
 		return newgeom;
 	}
@@ -585,6 +602,8 @@ final class EditShape {
 				: Geometry.Type.Polyline, multi_path.getDescription());
 
 		MultiPathImpl mp_impl = (MultiPathImpl) multi_path._getImpl();
+		if (multi_path.getPathSize(ipath) < 2)
+			return newgeom; //return empty geometry
 
 		// m_vertices->reserve_rounded(m_vertices->get_point_count() +
 		// multi_path.get_path_size(ipath));//ensure reallocation happens by
@@ -821,7 +840,7 @@ final class EditShape {
 
 	// Returns the type of the Geometry.
 	int getGeometryType(int geom) {
-		return m_geometry_index_list.getField(geom, 2);
+		return m_geometry_index_list.getField(geom, 2) & 0x7FFFFFFF;
 	}
 
 	// Sets value to the given user index on a geometry.
@@ -898,10 +917,13 @@ final class EditShape {
 	// 0 if no segments have been removed.
 	// When b_remove_last_vertices and the result path is < 3 for polygon or < 2
 	// for polyline, it'll be removed.
-	int filterClosePoints(double tolerance, boolean b_remove_last_vertices) {
+	int filterClosePoints(double tolerance, boolean b_remove_last_vertices, boolean only_polygons) {
 		int res = 0;
 		for (int geometry = getFirstGeometry(); geometry != -1; geometry = getNextGeometry(geometry)) {
-			if (!Geometry.isMultiPath(getGeometryType(geometry)))
+			int gt = getGeometryType(geometry);
+			if (!Geometry.isMultiPath(gt))
+				continue;
+			if (only_polygons && gt != GeometryType.Polygon)
 				continue;
 
 			boolean b_polygon = getGeometryType(geometry) == Geometry.GeometryType.Polygon;
@@ -1339,14 +1361,18 @@ final class EditShape {
 		}
 
 		int vindex = getVertexIndex(vertex);
+		if (vindex >= m_weights.size()) {
+			m_weights.resize(vindex + 1, 1.0);
+		}
+		
 		m_weights.write(vindex, weight);
 	}
 
 	double getWeight(int vertex) {
-		if (m_weights == null)
-			return 1.0;
-
 		int vindex = getVertexIndex(vertex);
+		if (m_weights == null || vindex >= m_weights.size())
+			return 1.0;
+		
 		return m_weights.read(vindex);
 	}
 
@@ -2040,8 +2066,7 @@ final class EditShape {
 			}
 			cumulative_length += segment_length;
 			double t = cumulative_length / sub_length;
-			prev_interpolated_attribute = (1.0 - t) * from_attribute + t
-					* to_attribute;
+			prev_interpolated_attribute = MathUtils.lerp(from_attribute,  to_attribute,  t);
 		}
 
 		return;
@@ -2280,5 +2305,43 @@ final class EditShape {
       }
       return false;
     }
-	
+
+    void swapGeometry(int geom1, int geom2)
+    {
+      int first_path1 = getFirstPath(geom1);
+      int first_path2 = getFirstPath(geom2);
+      int last_path1 = getLastPath(geom1);
+      int last_path2 = getLastPath(geom2);
+
+      for (int path = getFirstPath(geom1); path != -1; path = getNextPath(path))
+      {
+        setPathGeometry_(path, geom2);
+      }
+
+      for (int path = getFirstPath(geom2); path != -1; path = getNextPath(path))
+      {
+        setPathGeometry_(path, geom1);
+      }
+
+      setFirstPath_(geom1, first_path2);
+      setFirstPath_(geom2, first_path1);
+      setLastPath_(geom1, last_path2);
+      setLastPath_(geom2, last_path1);
+
+      int vc1 = getPointCount(geom1);
+      int pc1 = getPathCount(geom1);
+      int vc2 = getPointCount(geom2);
+      int pc2 = getPathCount(geom2);
+
+      setGeometryVertexCount_(geom1, vc2);
+      setGeometryVertexCount_(geom2, vc1);
+      setGeometryPathCount_(geom1, pc2);
+      setGeometryPathCount_(geom2, pc1);
+
+      int gt1 = m_geometry_index_list.getField(geom1, 2);
+      int gt2 = m_geometry_index_list.getField(geom2, 2);
+      m_geometry_index_list.setField(geom1, 2, gt2);
+      m_geometry_index_list.setField(geom2, 2, gt1);
+    }
+    
 }

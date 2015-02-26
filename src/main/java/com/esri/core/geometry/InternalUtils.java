@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2013 Esri
+ Copyright 1995-2015 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ package com.esri.core.geometry;
 
 import java.util.ArrayList;
 
-class InternalUtils {
+final class InternalUtils {
 
 	// p0 and p1 have to be on left/right boundary of fullRange2D (since this
 	// fuction can be called recursively, p0 or p1 can also be fullRange2D
@@ -243,6 +243,7 @@ class InternalUtils {
 		SegmentIteratorImpl seg_iter = multipathImpl.querySegmentIterator();
 		Envelope2D boundingbox = new Envelope2D();
 		boolean resized_extent = false;
+		
 		while (seg_iter.nextPath()) {
 			while (seg_iter.hasNextSegment()) {
 				Segment segment = seg_iter.nextSegment();
@@ -305,6 +306,48 @@ class InternalUtils {
 
 		return quad_tree_impl;
 	}
+
+    static QuadTreeImpl buildQuadTreeForPaths(MultiPathImpl multipathImpl)
+    {
+        Envelope2D extent = new Envelope2D();
+        multipathImpl.queryLooseEnvelope2D(extent);
+        if (extent.isEmpty())
+            return null;
+
+        QuadTreeImpl quad_tree_impl = new QuadTreeImpl(extent, 8);
+        int hint_index = -1;
+        Envelope2D boundingbox = new Envelope2D();
+
+        boolean resized_extent = false;
+        do
+        {
+            for (int ipath = 0, npaths = multipathImpl.getPathCount(); ipath < npaths; ipath++)
+            {
+                multipathImpl.queryPathEnvelope2D(ipath, boundingbox);
+                hint_index = quad_tree_impl.insert(ipath, boundingbox, hint_index);
+
+                if (hint_index == -1)
+                {
+                    if (resized_extent)
+                        throw GeometryException.GeometryInternalError();
+
+                    //This is usually happens because esri shape buffer contains geometry extent which is slightly different from the true extent.
+                    //Recalculate extent
+                    multipathImpl.calculateEnvelope2D(extent, false);
+                    resized_extent = true;
+                    quad_tree_impl.reset(extent, 8);
+                    break; //break the for loop
+                }
+                else
+                {
+                    resized_extent = false;
+                }
+            }
+
+        } while(resized_extent);
+
+        return quad_tree_impl;
+    }
 
 	static QuadTreeImpl buildQuadTree(MultiPointImpl multipointImpl) {
 		Envelope2D extent = new Envelope2D();
@@ -431,115 +474,94 @@ class InternalUtils {
 		return intersector;
 	}
 
-	static Envelope2DIntersectorImpl getEnvelope2DIntersectorForParts(
-			MultiPathImpl multipathImplA, MultiPathImpl multipathImplB,
-			double tolerance, boolean bExteriorOnlyA, boolean bExteriorOnlyB) {
-		int type_a = multipathImplA.getType().value();
-		int type_b = multipathImplB.getType().value();
+    static Envelope2DIntersectorImpl getEnvelope2DIntersectorForParts(
+            MultiPathImpl multipathImplA, MultiPathImpl multipathImplB,
+            double tolerance, boolean bExteriorOnlyA, boolean bExteriorOnlyB) {
+        int type_a = multipathImplA.getType().value();
+        int type_b = multipathImplB.getType().value();
 
-		Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D();
-		multipathImplA.queryLooseEnvelope2D(env_a);
-		multipathImplB.queryLooseEnvelope2D(env_b);
-		env_a.inflate(tolerance, tolerance);
-		env_b.inflate(tolerance, tolerance);
+        Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D();
+        multipathImplA.queryLooseEnvelope2D(env_a);
+        multipathImplB.queryLooseEnvelope2D(env_b);
+        env_a.inflate(tolerance, tolerance);
+        env_b.inflate(tolerance, tolerance);
 
-		Envelope2D envInter = new Envelope2D();
-		envInter.setCoords(env_a);
-		envInter.intersect(env_b);
+        Envelope2D envInter = new Envelope2D();
+        envInter.setCoords(env_a);
+        envInter.intersect(env_b);
 
-		GeometryAccelerators accel_a = multipathImplA._getAccelerators();
-		ArrayList<Envelope2D> path_envelopes_a = null;
+        Envelope2DIntersectorImpl intersector = new Envelope2DIntersectorImpl();
+        intersector.setTolerance(tolerance);
 
-		if (accel_a != null) {
-			path_envelopes_a = accel_a.getPathEnvelopes();
-		}
+        boolean b_found_red = false;
+        intersector.startRedConstruction();
+        for (int ipath_a = 0, npaths = multipathImplA.getPathCount(); ipath_a < npaths; ipath_a++) {
+            if (bExteriorOnlyA && type_a == Geometry.GeometryType.Polygon && !multipathImplA.isExteriorRing(ipath_a))
+                continue;
 
-		Envelope2DIntersectorImpl intersector = new Envelope2DIntersectorImpl();
-		intersector.setTolerance(tolerance);
+            multipathImplA.queryPathEnvelope2D(ipath_a, env_a);
 
-		boolean b_found_red = false;
-		intersector.startRedConstruction();
-		for (int ipath_a = 0; ipath_a < multipathImplA.getPathCount(); ipath_a++) {
-			if (bExteriorOnlyA && type_a == Geometry.GeometryType.Polygon
-					&& !multipathImplA.isExteriorRing(ipath_a)) {
-				continue;
-			}
+            if (!env_a.isIntersecting(envInter))
+                continue;
 
-			if (path_envelopes_a != null) {
-				Envelope2D env = path_envelopes_a.get(ipath_a);
+            b_found_red = true;
+            intersector.addRedEnvelope(ipath_a, env_a);
+        }
+        intersector.endRedConstruction();
 
-				if (!env.isIntersecting(envInter)) {
-					continue;
-				}
+        if (!b_found_red)
+            return null;
 
-				b_found_red = true;
-				intersector.addRedEnvelope(ipath_a, env);
-			} else {
-				multipathImplA.queryPathEnvelope2D(ipath_a, env_a);
+        boolean b_found_blue = false;
+        intersector.startBlueConstruction();
+        for (int ipath_b = 0, npaths = multipathImplB.getPathCount(); ipath_b < npaths; ipath_b++) {
+            if (bExteriorOnlyB && type_b == Geometry.GeometryType.Polygon && !multipathImplB.isExteriorRing(ipath_b))
+                continue;
 
-				if (!env_a.isIntersecting(envInter)) {
-					continue;
-				}
+            multipathImplB.queryPathEnvelope2D(ipath_b, env_b);
 
-				b_found_red = true;
-				Envelope2D env = new Envelope2D();
-				env.setCoords(env_a);
-				intersector.addRedEnvelope(ipath_a, env);
-			}
-		}
-		intersector.endRedConstruction();
+            if (!env_b.isIntersecting(envInter))
+                continue;
 
-		if (!b_found_red) {
-			return null;
-		}
+            b_found_blue = true;
+            intersector.addBlueEnvelope(ipath_b, env_b);
+        }
+        intersector.endBlueConstruction();
 
-		GeometryAccelerators accel_b = multipathImplB._getAccelerators();
-		ArrayList<Envelope2D> path_envelopes_b = null;
+        if (!b_found_blue)
+            return null;
 
-		if (accel_b != null) {
-			path_envelopes_b = accel_b.getPathEnvelopes();
-		}
-
-		boolean b_found_blue = false;
-		intersector.startBlueConstruction();
-		for (int ipath_b = 0; ipath_b < multipathImplB.getPathCount(); ipath_b++) {
-			if (bExteriorOnlyB && type_b == Geometry.GeometryType.Polygon
-					&& !multipathImplB.isExteriorRing(ipath_b)) {
-				continue;
-			}
-
-			if (path_envelopes_b != null) {
-				Envelope2D env = path_envelopes_b.get(ipath_b);
-
-				if (!env.isIntersecting(envInter)) {
-					continue;
-				}
-
-				b_found_blue = true;
-				intersector.addBlueEnvelope(ipath_b, env);
-			} else {
-				multipathImplB.queryPathEnvelope2D(ipath_b, env_b);
-
-				if (!env_b.isIntersecting(envInter)) {
-					continue;
-				}
-
-				b_found_blue = true;
-				Envelope2D env = new Envelope2D();
-				env.setCoords(env_b);
-				intersector.addBlueEnvelope(ipath_b, env);
-			}
-		}
-		intersector.endBlueConstruction();
-
-		if (!b_found_blue) {
-			return null;
-		}
-
-		return intersector;
-	}
+        return intersector;
+    }
 
 	static boolean isWeakSimple(MultiVertexGeometry geom, double tol) {
 		return ((MultiVertexGeometryImpl) geom._getImpl()).getIsSimple(tol) > 0;
 	}
+	
+	static QuadTree buildQuadTreeForOnePath(MultiPathImpl multipathImpl, int path) {
+		Envelope2D extent = new Envelope2D();
+		multipathImpl.queryLoosePathEnvelope2D(path, extent);
+		QuadTree quad_tree = new QuadTree(extent, 8);
+		int hint_index = -1;
+		Envelope2D boundingbox = new Envelope2D();
+		SegmentIteratorImpl seg_iter = multipathImpl.querySegmentIterator();
+
+		seg_iter.resetToPath(path);
+		if (seg_iter.nextPath()) {
+			while (seg_iter.hasNextSegment()) {
+				Segment segment = seg_iter.nextSegment();
+				int index = seg_iter.getStartPointIndex();
+				segment.queryLooseEnvelope2D(boundingbox);
+				hint_index = quad_tree.insert(index, boundingbox, hint_index);
+
+				if (hint_index == -1) {
+					throw new GeometryException("internal error");
+				}
+			}
+		}
+
+		return quad_tree;
+	}
+	
 }
+

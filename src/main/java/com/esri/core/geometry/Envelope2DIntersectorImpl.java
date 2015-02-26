@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2013 Esri
+ Copyright 1995-2015 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -43,6 +43,7 @@ class Envelope2DIntersectorImpl {
 			m_elements_red = new AttributeStreamOfInt32(0);
 			m_envelopes_red = new ArrayList<Envelope2D>(0);
 		} else {
+
 			m_elements_red.resizePreserveCapacity(0);
 			m_envelopes_red.clear();
 		}

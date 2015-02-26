@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2013 Esri
+ Copyright 1995-2015 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -972,7 +972,7 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 						* vertex1 + icomp);
 				double v2 = m_vertexAttributes[attributeIndex].readAsDbl(ncomp
 						* vertex2 + icomp);
-				outPoint.setAttribute(semantics, icomp, v1 * (1.0 - f) + v2 * f);
+				outPoint.setAttribute(semantics, icomp, MathUtils.lerp(v1,  v2,  f));
 			}
 		}
 	}
@@ -1068,6 +1068,42 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 			dst[i] = getXYZ(i);
 		}
 	}
+	
+    @Override
+    public void replaceNaNs(int semantics, double value) {
+    	addAttribute(semantics);
+    	if (isEmpty())
+    		return;
+    	
+    	boolean modified = false;
+    	int ncomps = VertexDescription.getComponentCount(semantics);
+    	for (int i = 0; i < ncomps; i++) {
+    		AttributeStreamBase streamBase = getAttributeStreamRef(semantics);
+    		if (streamBase instanceof AttributeStreamOfDbl)	{
+    			AttributeStreamOfDbl dblStream = (AttributeStreamOfDbl)streamBase;
+    			for (int ivert = 0, n = m_pointCount * ncomps; ivert < n; ivert++) {
+    				double v = dblStream.read(ivert);
+    				if (Double.isNaN(v)) {
+    					dblStream.write(ivert, value);
+    					modified = true;
+    				}
+    			}
+    		}
+    		else {
+    			for (int ivert = 0, n = m_pointCount * ncomps; ivert < n; ivert++) {
+    				double v = streamBase.readAsDbl(ivert);
+    				if (Double.isNaN(v)) {
+    					streamBase.writeAsDbl(ivert, value);
+    					modified = true;
+    				}
+    			}
+    		}
+    	}
+    	
+    	if (modified) {
+    		notifyModified(DirtyFlags.DirtyCoordinates);
+    	}
+    }
 
 	public abstract boolean _buildRasterizedGeometryAccelerator(
 			double toleranceXY, GeometryAccelerationDegree accelDegree);
