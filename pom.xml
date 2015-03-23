@@ -3,7 +3,7 @@
 
 	<groupId>com.esri.geometry</groupId>
 	<artifactId>esri-geometry-api</artifactId>
-	<version>1.2.1</version>
+	<version>1.2.2-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>Esri Geometry API for Java</name>
