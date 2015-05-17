@@ -5,6 +5,11 @@ import com.esri.core.geometry.Geometry;
 import com.esri.core.geometry.GeometryCursor;
 import com.esri.core.geometry.Polygon;
 import com.esri.core.geometry.SpatialReference;
+import com.esri.core.geometry.Operator;
+import com.esri.core.geometry.JsonCursor;
+import com.esri.core.geometry.OperatorFactoryLocal;
+import com.esri.core.geometry.OperatorExportToGeoJson;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -322,5 +327,35 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 	@Override
 	public String asJson() {
 		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public String asGeoJson() {
+		StringBuilder sb = new StringBuilder();
+
+		OperatorExportToGeoJson op = (OperatorExportToGeoJson) OperatorFactoryLocal
+				.getInstance().getOperator(Operator.Type.ExportToGeoJson);
+		JsonCursor cursor = op.execute(this.esriSR, getEsriGeometryCursor());
+
+		sb.append("{\"type\" : \"GeometryCollection\", \"geometries\" : ");
+		String shape = cursor.next();
+		if (shape == null){
+			// geometry collection with empty list of geometries
+			sb.append("[]}");
+			return sb.toString();
+		}
+
+		sb.append("[");
+		sb.append(shape);
+
+		while(true){
+			shape = cursor.next();
+			if(shape == null)
+				break;
+			sb.append(", ").append(shape);
+		}
+
+		sb.append("]}");
+		return sb.toString();
 	}
 }
