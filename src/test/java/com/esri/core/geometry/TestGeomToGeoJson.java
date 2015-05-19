@@ -27,6 +27,7 @@ import com.esri.core.geometry.ogc.OGCPoint;
 import com.esri.core.geometry.ogc.OGCMultiPoint;
 import com.esri.core.geometry.ogc.OGCLineString;
 import com.esri.core.geometry.ogc.OGCPolygon;
+import com.esri.core.geometry.ogc.OGCConcreteGeometryCollection;
 import junit.framework.TestCase;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonParser;
@@ -34,6 +35,8 @@ import org.json.JSONException;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TestGeomToGeoJson extends TestCase {
     OperatorFactoryLocal factory = OperatorFactoryLocal.getInstance();
@@ -358,4 +361,46 @@ public class TestGeomToGeoJson extends TestCase {
         assertEquals("{\"bbox\":[-180.0,-90.0,180.0,90.0]}", result);
     }
 
+    @Test
+    public void testGeometryCollection(){
+        SpatialReference sr = SpatialReference.create(4326);
+
+        StringBuilder geometrySb = new StringBuilder();
+        geometrySb.append("{\"type\" : \"GeometryCollection\", \"geometries\" : [");
+
+        OGCPoint point = new OGCPoint(new Point(1.0, 1.0), sr);
+        assertEquals("{\"x\":1,\"y\":1,\"spatialReference\":{\"wkid\":4326}}", point.asJson());
+        assertEquals("{\"type\":\"Point\",\"coordinates\":[1.0,1.0]}", point.asGeoJson());
+        geometrySb.append(point.asGeoJson()).append(", ");
+
+        OGCLineString line = new OGCLineString(new Polyline(new Point(1.0, 1.0), new Point(2.0, 2.0)), 0, sr);
+        assertEquals("{\"paths\":[[[1,1],[2,2]]],\"spatialReference\":{\"wkid\":4326}}", line.asJson());
+        assertEquals("{\"type\":\"LineString\",\"coordinates\":[[1.0,1.0],[2.0,2.0]]}", line.asGeoJson());
+        geometrySb.append(line.asGeoJson()).append(", ");
+
+        Polygon p = new Polygon();
+        p.startPath(1.0, 1.0);
+        p.lineTo(2.0, 2.0);
+        p.lineTo(3.0, 1.0);
+        p.lineTo(2.0, 0.0);
+
+        OGCPolygon polygon = new OGCPolygon(p, sr);
+        assertEquals("{\"rings\":[[[1,1],[2,2],[3,1],[2,0],[1,1]]],\"spatialReference\":{\"wkid\":4326}}",
+                polygon.asJson());
+        assertEquals("{\"type\":\"Polygon\",\"coordinates\":[[[1.0,1.0],[2.0,2.0],[3.0,1.0],[2.0,0.0],[1.0,1.0]]]}",
+                polygon.asGeoJson());
+        geometrySb.append(polygon.asGeoJson()).append("]}");
+
+        List<OGCGeometry> geoms = new ArrayList<OGCGeometry>(3);
+        geoms.add(point);geoms.add(line);geoms.add(polygon);
+        OGCConcreteGeometryCollection collection = new OGCConcreteGeometryCollection(geoms, sr);
+        assertEquals(geometrySb.toString(), collection.asGeoJson());
+    }
+
+    @Test
+    public void testEmptyGeometryCollection(){
+        SpatialReference sr = SpatialReference.create(4326);
+        OGCConcreteGeometryCollection collection = new OGCConcreteGeometryCollection(new ArrayList<OGCGeometry>(), sr);
+        assertEquals("{\"type\" : \"GeometryCollection\", \"geometries\" : []}", collection.asGeoJson());
+    }
 }
