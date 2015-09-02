@@ -24,8 +24,6 @@
 
 package com.esri.core.geometry;
 
-import com.esri.core.geometry.PeDouble;
-
 final class GeoDist {
 	private static final double PE_PI = 3.14159265358979323846264;
 	private static final double PE_PI2 = 1.57079632679489661923132;
@@ -88,7 +86,7 @@ final class GeoDist {
 		double n2 = n * n;
 
 		return a / (1.0 + n)
-				* (1.0 + n2 * (1. / 4. + n2 * (1. / 64. + n2 * (1. / 256.))))
+				* (1.0 + n2 * (1.0 / 4.0 + n2 * (1.0 / 64.0 + n2 * (1.0 / 256.))))
 				* PE_PI2;
 	}
 

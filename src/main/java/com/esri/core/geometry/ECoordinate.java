@@ -189,7 +189,7 @@ class ECoordinate {
 		if (divis.m_eps > 0.01 * fabsdivis) {// more accurate error calculation
 												// for very inaccurate divisor
 			double rr = divis.m_eps / fabsdivis;
-			e *= (1. + (1. + rr) * rr);
+			e *= (1.0 + (1.0 + rr) * rr);
 		}
 		m_value = r;
 		m_eps = e + epsCoordinate() * Math.abs(r);
@@ -226,7 +226,7 @@ class ECoordinate {
 
 		if (m_value >= 0) { // assume non-negative input
 			r = Math.sqrt(m_value);
-			if (m_value > 10. * m_eps) {
+			if (m_value > 10.0 * m_eps) {
 				dr = 0.5 * m_eps / r;
 			} else {
 				dr = (m_value > m_eps) ? r - Math.sqrt(m_value - m_eps) : Math
