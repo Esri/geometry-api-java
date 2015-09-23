@@ -339,7 +339,7 @@ public final class Point2D implements Serializable{
 		return _compareVectors(v1, v2);
 	}
 	
-	static class CompareVectors implements Comparator<Point2D> {
+	static class VectorComparator implements Comparator<Point2D> {
 		@Override
 		public int compare(Point2D v1, Point2D v2) {
 			return _compareVectors((Point2D) v1, (Point2D) v2);

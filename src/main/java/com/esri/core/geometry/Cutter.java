@@ -813,7 +813,7 @@ class Cutter {
 						tangents[2].setCoords(tangent2);
 						tangents[3].setCoords(tangent3);
 
-						Arrays.sort(tangents, new Point2D.CompareVectors());
+						Arrays.sort(tangents, new Point2D.VectorComparator());
 						// SORTARRAY(tangents, Point2D,
 						// Point2D::_CompareVectors);
 

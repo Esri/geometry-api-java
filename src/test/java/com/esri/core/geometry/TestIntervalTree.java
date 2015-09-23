@@ -1,9 +1,10 @@
 package com.esri.core.geometry;
 
-import java.util.ArrayList;
-import java.util.Random;
 import junit.framework.TestCase;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.Random;
 
 public class TestIntervalTree extends TestCase {
 	@Override
@@ -25,7 +26,7 @@ public class TestIntervalTree extends TestCase {
 	}
 
 	@Test
-	public static void testIntervalTree() {
+	public static void testIntervalTree_1() {
 		ArrayList<Envelope1D> intervals = new ArrayList<Envelope1D>(0);
 
 		Envelope1D env0 = new Envelope1D(2, 3);
