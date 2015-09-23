@@ -1041,7 +1041,7 @@ class OperatorSimplifyLocalHelper {
 				m_FreeEdges.add(edgeIndex);
 				m_AET.deleteNode(aetNode, -1);
 				recycleEdge_(m_edges.get(edgeIndex));
-				m_edges.set(edgeIndex, null);
+					m_edges.set(edgeIndex, null);
 				m_xyToNode1.write(xyindex, Treap.nullNode());
 			}
 

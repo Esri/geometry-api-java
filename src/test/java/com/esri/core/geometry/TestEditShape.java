@@ -15,7 +15,7 @@ public class TestEditShape extends TestCase {
 	}
 
 	@Test
-	public static void testEditShape() {
+	public static void testEditShape_() {
 		{
 			// std::shared_ptr<Esri_runtimecore::Geometry::Polygon> poly_base_6
 			// = std::make_shared<Esri_runtimecore::Geometry::Polygon>();

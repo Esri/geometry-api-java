@@ -1,10 +1,9 @@
 package com.esri.core.geometry;
 
-import java.util.Random;
-
 import junit.framework.TestCase;
-
 import org.junit.Test;
+
+import java.util.Random;
 
 public class TestPoint extends TestCase {
 	@Override
@@ -23,7 +22,6 @@ public class TestPoint extends TestCase {
 		assertTrue(pt.isEmpty());
 		pt.setXY(10, 2);
 		assertFalse(pt.isEmpty());
-		
 		pt.toString();
 	}
 

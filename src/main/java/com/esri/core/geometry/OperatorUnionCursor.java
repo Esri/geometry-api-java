@@ -69,7 +69,7 @@ final class OperatorUnionCursor extends GeometryCursor {
       Geom_pair back_pair() { return geometries.get(geometries.size() - 1); }
       int geom_count() { return geometries.size(); }
     }
-    
+
     ArrayList< TreeMap<Integer, Bin_type> > m_union_bins = new ArrayList< TreeMap<Integer, Bin_type> >();//for each dimension there is a list of bins sorted by level
 
 	OperatorUnionCursor(GeometryCursor inputGeoms1, SpatialReference sr,
@@ -257,7 +257,7 @@ final class OperatorUnionCursor extends GeometryCursor {
 			}
 		}
 
-		Bin_type bin = m_union_bins.get(dimension).get(level);//return null if level is abscent
+		Bin_type bin = m_union_bins.get(dimension).get(level);//return null if level is absent
 		if (bin == null) {
 			bin = new Bin_type();
 			m_union_bins.get(dimension).put(level, bin);

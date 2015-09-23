@@ -15,7 +15,7 @@ public class TestUnion extends TestCase {
 	}
 
 	@Test
-	public static void testUnion() {
+	public static void testUnion_() {
 		Point pt = new Point(10, 20);
 
 		Point pt2 = new Point();
