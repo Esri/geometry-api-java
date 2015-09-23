@@ -23,7 +23,7 @@ The project is also available as a [Maven](http://maven.apache.org/) dependency:
 <dependency>
   <groupId>com.esri.geometry</groupId>
   <artifactId>esri-geometry-api</artifactId>
-  <version>1.2</version>
+  <version>1.2.1</version>
 </dependency>
 ```
 
