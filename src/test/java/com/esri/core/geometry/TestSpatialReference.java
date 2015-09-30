@@ -3,7 +3,7 @@ package com.esri.core.geometry;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class TestSpatialReferenceImpl extends Assert {
+public class TestSpatialReference extends Assert {
     @Test
     public void equals() {
         final String wktext1 = "GEOGCS[\"GCS_WGS_1984\",DATUM[\"D_WGS_1984\",SPHEROID[\"WGS_1984\",6378137.0,298.257223563]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433]]";
