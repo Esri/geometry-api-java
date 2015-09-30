@@ -218,7 +218,7 @@ class SpatialReferenceImpl extends SpatialReference {
 			return false;
 
 		if (m_userWkid == 0) {
-			if (!m_userWkt.equals(m_userWkt))// m_userWkt cannot be null here!
+			if (!m_userWkt.equals(sr.m_userWkt))// m_userWkt cannot be null here!
 				return false;
 		}
 
