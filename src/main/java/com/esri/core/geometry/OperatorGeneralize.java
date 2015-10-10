@@ -36,7 +36,20 @@ public abstract class OperatorGeneralize extends Operator {
    * Performs the Generalize operation on a geometry set. Point and
    * multipoint geometries are left unchanged. An envelope is converted to a
    * polygon.
-   * 
+   *
+   * @param  geoms
+   *         the geometry set to generalize
+   *
+   * @param  maxDeviation
+   *         The max deviation
+   *
+   * @param  bRemoveDegenerateParts
+   *         {@code true} if degenerate parts should be removed
+   *
+   * @param  progressTracker
+   *         ProgressTracker instance that is used to cancel the lengthy operation. Can be null.
+   *
+   * @return a cursor the resulting geometry set
    */
   public abstract GeometryCursor execute(GeometryCursor geoms,
           double maxDeviation, boolean bRemoveDegenerateParts,
@@ -46,6 +59,20 @@ public abstract class OperatorGeneralize extends Operator {
    * Performs the Generalize operation on a single geometry. Point and
    * multipoint geometries are left unchanged. An envelope is converted to a
    * polygon.
+   *
+   * @param  geom
+   *         the geometry to generalize
+   *
+   * @param  maxDeviation
+   *         The max deviation
+   *
+   * @param  bRemoveDegenerateParts
+   *         {@code true} if degenerate parts should be removed
+   *
+   * @param  progressTracker
+   *         ProgressTracker instance that is used to cancel the lengthy operation. Can be null.
+   *
+   * @return the resulting geometry
    */
   public abstract Geometry execute(Geometry geom, double maxDeviation,
           boolean bRemoveDegenerateParts, ProgressTracker progressTracker);

@@ -31,9 +31,16 @@ class QuadTreeImpl {
 		 * Resets the iterator to an starting state on the Quad_tree_impl. If
 		 * the input Geometry is a Line segment, then the query will be the
 		 * segment. Otherwise the query will be the Envelope_2D bounding the
-		 * Geometry. \param query The Geometry used for the query. \param
-		 * tolerance The tolerance used for the intersection tests. \param
-		 * tolerance The tolerance used for the intersection tests.
+		 * Geometry.
+		 *
+		 * @param  query
+		 *         The Geometry used for the query.
+		 *
+		 * @param  tolerance
+		 *         The tolerance used for the intersection tests.
+		 *
+		 * @param  tolerance
+		 *         The tolerance used for the intersection tests.
 		 */
 		void resetIterator(Geometry query, double tolerance) {
 			m_quads_stack.resize(0);
@@ -65,9 +72,12 @@ class QuadTreeImpl {
 
 		/**
 		 * Resets the iterator to a starting state on the Quad_tree_impl using
-		 * the input Envelope_2D as the query. \param query The Envelope_2D used
-		 * for the query. \param tolerance The tolerance used for the
-		 * intersection tests.
+		 * the input Envelope_2D as the query.
+		 * @param  query
+		 *         The Envelope_2D used for the query.
+		 *
+		 * @param  tolerance
+		 *         The tolerance used for the intersection tests.
 		 */
 		void resetIterator(Envelope2D query, double tolerance) {
 			m_quads_stack.resize(0);
@@ -267,8 +277,13 @@ class QuadTreeImpl {
 	 * Creates a Quad_tree_impl with the root having the extent of the input
 	 * Envelope_2D, and height of the input height, where the root starts at
 	 * height 0. Note that the height cannot be larger than 16 if on a 32 bit
-	 * platform and 32 if on a 64 bit platform. \param extent The extent of the
-	 * Quad_tree_impl. \param height The max height of the Quad_tree_impl.
+	 * platform and 32 if on a 64 bit platform.
+	 *
+	 * @param  extent
+	 *         The extent of the Quad_tree_impl.
+	 *
+	 * @param  height
+	 *         The max height of the Quad_tree_impl.
 	 */
 	QuadTreeImpl(Envelope2D extent, int height) {
 		m_quad_tree_nodes = new StridedIndexTypeCollection(11);
@@ -280,9 +295,13 @@ class QuadTreeImpl {
 	}
 
 	/**
-	 * Resets the Quad_tree_impl to the given extent and height. \param extent
-	 * The extent of the Quad_tree_impl. \param height The max height of the
-	 * Quad_tree_impl.
+	 * Resets the Quad_tree_impl to the given extent and height.
+	 *
+	 * @param  extent
+	 *         The extent of the Quad_tree_impl.
+	 *
+	 * @param  height
+	 *         The max height of the Quad_tree_impl.
 	 */
 	void reset(Envelope2D extent, int height) {
 		m_quad_tree_nodes.deleteAll(false);
@@ -295,9 +314,13 @@ class QuadTreeImpl {
 	/**
 	 * Inserts the element and bounding_box into the Quad_tree_impl. Note that
 	 * this will invalidate any active iterator on the Quad_tree_impl. Returns
-	 * an int corresponding to the element and bounding_box. \param element The
-	 * element of the Geometry to be inserted. \param bounding_box The
-	 * bounding_box of the Geometry to be inserted.
+	 * an int corresponding to the element and bounding_box.
+	 *
+	 * @param  element
+	 *         The element of the Geometry to be inserted.
+	 *
+	 * @param  bounding_box
+	 *         The bounding_box of the Geometry to be inserted.
 	 */
 	int insert(int element, Envelope2D bounding_box) {
 		return insert_(element, bounding_box, 0, m_extent, m_root, false, -1);
@@ -306,12 +329,21 @@ class QuadTreeImpl {
 	/**
 	 * Inserts the element and bounding_box into the Quad_tree_impl at the given
 	 * quad_handle. Note that this will invalidate any active iterator on the
-	 * Quad_tree_impl. Returns an int corresponding to the element and
-	 * bounding_box. \param element The element of the Geometry to be inserted.
-	 * \param bounding_box The bounding_box of the Geometry to be inserted.
-	 * \param hint_index A handle used as a hint where to place the element.
-	 * This can be a handle obtained from a previous insertion and is useful on
-	 * data having strong locality such as segments of a Polygon.
+	 * Quad_tree_impl.
+	 *
+	 * @param  element
+	 *         The element of the Geometry to be inserted.
+	 *
+	 * @param  bounding_box
+	 *         The bounding_box of the Geometry to be inserted.
+	 *
+	 * @param  hint_index
+	 *         A handle used as a hint where to place the element.
+	 *         This can be a handle obtained from a previous insertion and is
+	 *         useful on data having strong locality such as segments of a
+	 *         Polygon.
+	 *
+	 * @return an int corresponding to the element and bounding_box.
 	 */
 	int insert(int element, Envelope2D bounding_box, int hint_index) {
 		int quad_handle;
@@ -330,8 +362,10 @@ class QuadTreeImpl {
 	/**
 	 * Removes the element and bounding_box at the given element_handle. Note
 	 * that this will invalidate any active iterator on the Quad_tree_impl.
-	 * \param element_handle The handle corresponding to the element and
-	 * bounding_box to be removed.
+	 *
+	 * @param  element_handle
+	 *         The handle corresponding to the element and bounding_box to be
+	 *         removed.
 	 */
 	void removeElement(int element_handle) {
 		int quad_handle = getQuad_(element_handle);
@@ -345,37 +379,43 @@ class QuadTreeImpl {
 	}
 
 	/**
-	 * Returns the element at the given element_handle.
-     * \param element_handle
-	 * The handle corresponding to the element to be retrieved.
+	 * @param  element_handle
+	 *         The handle corresponding to the element to be retrieved.
+	 *
+	 * @return the element at the given element_handle.
 	 */
 	int getElement(int element_handle) {
 		return getElement_(element_handle);
 	}
 
 
-    /**
-     * Returns a reference to the element extent at the given element_handle.
-     * \param element_handle
-     * The handle corresponding to the element to be retrieved.
-     */
-    Envelope2D getElementExtent(int element_handle)
-    {
-        int box_handle = getBoxHandle_(element_handle);
-        return getBoundingBox_(box_handle);
-    }
+	/**
+	 * Returns a reference to the element extent at the given element_handle.
+	 *
+	 * @param  element_handle
+	 *         The handle corresponding to the element to be retrieved.
+	 */
+	Envelope2D getElementExtent(int element_handle)
+	{
+		int box_handle = getBoxHandle_(element_handle);
+		return getBoundingBox_(box_handle);
+	}
 
 	/**
-	 * Returns the height of the quad at the given quad_handle. \param
-	 * quad_handle The handle corresponding to the quad.
+	 * @param  quad_handle
+	 *         The handle corresponding to the quad.
+	 *
+	 * @return the height of the quad at the given quad_handle.
 	 */
 	int getHeight(int quad_handle) {
 		return getHeight_(quad_handle);
 	}
 
 	/**
-	 * Returns the extent of the quad at the given quad_handle. \param
-	 * quad_handle The handle corresponding to the quad.
+	 * @param  quad_handle
+	 *         The handle corresponding to the quad.
+	 *
+	 * @return the extent of the quad at the given quad_handle.
 	 */
 	Envelope2D getExtent(int quad_handle) {
 		Envelope2D quad_extent = new Envelope2D();
@@ -407,23 +447,28 @@ class QuadTreeImpl {
 	}
 
 	/**
-	 * Returns the int of the quad containing the given element_handle. \param
-	 * element_handle The handle corresponding to the element.
+	 * @param  element_handle
+	 *         The handle corresponding to the element.
+	 *
+	 * @return the int of the quad containing the given element_handle.
 	 */
 	int getQuad(int element_handle) {
 		return getQuad_(element_handle);
 	}
 
 	/**
-	 * Returns the number of elements in the Quad_tree_impl.
+	 * @return the number of elements in the Quad_tree_impl.
 	 */
 	int getElementCount() {
 		return getSubTreeElementCount_(m_root);
 	}
 
 	/**
-	 * Returns the number of elements in the subtree rooted at the given
-	 * quad_handle. \param quad_handle The handle corresponding to the quad.
+	 * @param  quad_handle
+	 *         The handle corresponding to the quad.
+	 *
+	 * @return the number of elements in the subtree rooted at the given
+	 * quad_handle.
 	 */
 	int getSubTreeElementCount(int quad_handle) {
 		return getSubTreeElementCount_(quad_handle);
@@ -433,10 +478,15 @@ class QuadTreeImpl {
 	 * Gets an iterator on the Quad_tree_impl. The query will be the Envelope_2D
 	 * that bounds the input Geometry. To reuse the existing iterator on the
 	 * same Quad_tree_impl but with a new query, use the reset_iterator function
-	 * on the Quad_tree_iterator_impl. \param query The Geometry used for the
-	 * query. If the Geometry is a Line segment, then the query will be the
-	 * segment. Otherwise the query will be the Envelope_2D bounding the
-	 * Geometry. \param tolerance The tolerance used for the intersection tests.
+	 * on the Quad_tree_iterator_impl.
+	 *
+	 * @param  query
+	 *         The Geometry used for the query. If the Geometry is a Line
+	 *         segment, then the query will be the segment. Otherwise the
+	 *         query will be the Envelope_2D bounding the Geometry.
+	 *
+	 * @param  tolerance
+	 *         The tolerance used for the intersection tests.
 	 */
 	QuadTreeIteratorImpl getIterator(Geometry query, double tolerance) {
 		return new QuadTreeIteratorImpl(this, query, tolerance);
@@ -446,15 +496,23 @@ class QuadTreeImpl {
 	 * Gets an iterator on the Quad_tree_impl using the input Envelope_2D as the
 	 * query. To reuse the existing iterator on the same Quad_tree_impl but with
 	 * a new query, use the reset_iterator function on the
-	 * Quad_tree_iterator_impl. \param query The Envelope_2D used for the query.
-	 * \param tolerance The tolerance used for the intersection tests.
+	 * Quad_tree_iterator_impl.
+	 *
+	 * @param  query
+	 *         The Envelope_2D used for the query.
+	 *
+	 * @param  tolerance
+	 *         The tolerance used for the intersection tests.
+	 *
+	 * @return an iterator on the Quad_tree_impl using the input Envelope_2D as
+	 *         the query
 	 */
 	QuadTreeIteratorImpl getIterator(Envelope2D query, double tolerance) {
 		return new QuadTreeIteratorImpl(this, query, tolerance);
 	}
 
 	/**
-	 * Gets an iterator on the Quad_tree.
+	 * @return an iterator on the Quad_tree.
 	 */
 	QuadTreeIteratorImpl getIterator() {
 		return new QuadTreeIteratorImpl(this);

@@ -43,16 +43,17 @@ public class GeometryEngine {
 
 	private static OperatorFactoryLocal factory = OperatorFactoryLocal
 			.getInstance();
-
+
 	/**
 	 * Imports the MapGeometry from its JSON representation. M and Z values are
 	 * not imported from JSON representation.
 	 * 
 	 * See OperatorImportFromJson.
 	 * 
-	 * @param json
-	 *            The JSON representation of the geometry (with spatial
-	 *            reference).
+	 * @param  json
+	 *         The JSON representation of the geometry (with spatial
+	 *         reference).
+	 *
 	 * @return The MapGeometry instance containing the imported geometry and its
 	 *         spatial reference.
 	 */
@@ -67,13 +68,18 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorImportFromJson.
 	 * 
-	 * @param json
-	 *            The JSON representation of the geometry (with spatial
-	 *            reference).
+	 * @param  json
+	 *         The JSON representation of the geometry (with spatial
+	 *         reference).
+	 *
 	 * @return The MapGeometry instance containing the imported geometry and its
 	 *         spatial reference.
-	 * @throws IOException 
-	 * @throws JsonParseException 
+	 *
+	 * @throws IOException
+	 *         if an I/O error occurs.
+	 *
+	 * @throws JsonParseException
+	 *         if a parse error occurs.
 	 */
 	public static MapGeometry jsonToGeometry(String json) throws JsonParseException, IOException {
 		MapGeometry geom = OperatorImportFromJson.local().execute(Geometry.Type.Unknown, json);
@@ -87,11 +93,14 @@ public class GeometryEngine {
 	 * 
 	 * @see GeometryEngine#geometryToJson(SpatialReference spatialiReference,
 	 *      Geometry geometry)
-	 * @param wkid
-	 *            The spatial reference Well Known ID to be used for the JSON
-	 *            representation.
-	 * @param geometry
-	 *            The geometry to be exported to JSON.
+	 *
+	 * @param  wkid
+	 *         The spatial reference Well Known ID to be used for the JSON
+	 *         representation.
+	 *
+	 * @param  geometry
+	 *         The geometry to be exported to JSON.
+	 *
 	 * @return The JSON representation of the specified Geometry.
 	 */
 	public static String geometryToJson(int wkid, Geometry geometry) {
@@ -105,10 +114,12 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorExportToJson.
 	 * 
-	 * @param spatialReference
-	 *            The spatial reference of associated object.
-	 * @param geometry
-	 *            The geometry.
+	 * @param  spatialReference
+	 *         The spatial reference of associated object.
+	 *
+	 * @param  geometry
+	 *         The geometry.
+	 *
 	 * @return The JSON representation of the specified geometry.
 	 */
 	public static String geometryToJson(SpatialReference spatialReference,
@@ -134,10 +145,12 @@ public class GeometryEngine {
      * @see GeometryEngine#geometryToGeoJson(SpatialReference spatialReference,
      *      Geometry geometry)
      *
-     * @param wkid
-     *            The spatial reference Well Known ID to be used for the GeoJSON representation.
-     * @param geometry
-     *            The geometry to be exported to GeoJSON.
+     * @param  wkid
+     *         The spatial reference Well Known ID to be used for the GeoJSON representation.
+     *
+     * @param  geometry
+     *         The geometry to be exported to GeoJSON.
+     *
      * @return The GeoJSON representation of the specified geometry.
      */
     public static String geometryToGeoJson(int wkid, Geometry geometry) {
@@ -150,10 +163,12 @@ public class GeometryEngine {
      *
      *See OperatorImportFromGeoJson.
      *
-     * @param spatialReference
-     *            The spatial reference of associated object.
-     * @param geometry
-     *            The geometry.
+     * @param  spatialReference
+	 *         The spatial reference of associated object.
+     *
+     * @param  geometry
+     *         The geometry
+	 *
      * @return The GeoJSON representation of the specified geometry.
      */
     public static String geometryToGeoJson(SpatialReference spatialReference,
@@ -169,18 +184,21 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorImportFromESRIShape.
 	 * 
-	 * @param esriShapeBuffer
-	 *            The buffer containing geometry in the ESRI shape file format.
-	 * @param geometryType
-	 *            The required type of the Geometry to be imported. Use
-	 *            Geometry.Type.Unknown if the geometry type needs to be
-	 *            determined from the buffer content.
+	 * @param  esriShapeBuffer
+	 *         The buffer containing geometry in the ESRI shape file format.
+	 *
+	 * @param  geometryType
+	 *         The required type of the Geometry to be imported. Use
+	 *         Geometry.Type.Unknown if the geometry type needs to be
+	 *         determined from the buffer content.
+	 *
 	 * @return The geometry or null if the buffer contains null shape.
+	 *
 	 * @throws GeometryException
-	 *             when the geometryType is not Geometry.Type.Unknown and the
-	 *             buffer contains geometry that cannot be converted to the
-	 *             given geometryType. or the buffer is corrupt. Another
-	 *             exception possible is IllegalArgumentsException.
+	 *         when the geometryType is not Geometry.Type.Unknown and the
+	 *         buffer contains geometry that cannot be converted to the
+	 *         given geometryType. or the buffer is corrupt. Another
+	 *         exception possible is IllegalArgumentsException.
 	 */
 	public static Geometry geometryFromEsriShape(byte[] esriShapeBuffer,
 			Geometry.Type geometryType) {
@@ -199,8 +217,9 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorExportToESRIShape.
 	 * 
-	 * @param geometry
-	 *            The geometry to export. (null value is not allowed)
+	 * @param  geometry
+	 *         The geometry to export. (null value is not allowed)
+	 *
 	 * @return Array containing the exported ESRI shape file.
 	 */
 	public static byte[] geometryToEsriShape(Geometry geometry) {
@@ -216,12 +235,22 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorImportFromWkt.
 	 * 
-	 * @param wkt The string containing the geometry in WKT format.
-	 * @param importFlags Use the {@link WktImportFlags} interface.
-	 * @param geometryType The required type of the Geometry to be imported. Use Geometry.Type.Unknown if the geometry type needs to be determined from the WKT context.
+	 * @param  wkt
+	 *         The string containing the geometry in WKT format.
+	 *
+	 * @param  importFlags
+	 *         Use the {@link WktImportFlags} interface.
+	 *
+	 * @param  geometryType
+	 *         The required type of the Geometry to be imported. Use Geometry.Type.Unknown if the geometry type needs to be determined from the WKT context.
+	 *
 	 * @return The geometry.
-	 * @throws GeometryException when the geometryType is not Geometry.Type.Unknown and the WKT contains a geometry that cannot be converted to the given geometryType.
-	 * @throws IllegalArgument exception if an error is found while parsing the WKT string.
+	 *
+	 * @throws GeometryException
+	 *         when the geometryType is not Geometry.Type.Unknown and the WKT contains a geometry that cannot be converted to the given geometryType.
+	 *
+	 * @throws IllegalArgumentException
+	 *         exception if an error is found while parsing the WKT string.
 	 */
 	public static Geometry geometryFromWkt(String wkt, int importFlags,
 			Geometry.Type geometryType) {
@@ -235,12 +264,22 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorImportFromGeoJson.
 	 * 
-	 * @param geoJson The string containing the geometry in geoJson format.
-	 * @param importFlags Use the {@link GeoJsonImportFlags} interface.
-	 * @param geometryType The required type of the Geometry to be imported. Use Geometry.Type.Unknown if the geometry type needs to be determined from the geoJson context.
+	 * @param  geoJson
+	 *         The string containing the geometry in geoJson format.
+	 *
+	 * @param  importFlags
+	 *         Use the {@link GeoJsonImportFlags} interface.
+	 *
+	 * @param  geometryType
+	 *         The required type of the Geometry to be imported. Use Geometry.Type.Unknown if the geometry type needs to be determined from the geoJson context.
+	 *
 	 * @return The geometry.
-	 * @throws GeometryException when the geometryType is not Geometry.Type.Unknown and the geoJson contains a geometry that cannot be converted to the given geometryType.
-	 * @throws IllegalArgument exception if an error is found while parsing the geoJson string.
+	 *
+	 * @throws GeometryException
+	 *         when the geometryType is not Geometry.Type.Unknown and the geoJson contains a geometry that cannot be converted to the given geometryType.
+	 *
+	 * @throws IllegalArgumentException
+	 *         exception if an error is found while parsing the geoJson string.
 	 */
 	public static MapGeometry geometryFromGeoJson(String geoJson,
 			int importFlags, Geometry.Type geometryType) throws JSONException {
@@ -254,9 +293,13 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorExportToWkt.
 	 * 
-	 * @param geometry The geometry to export. (null value is not allowed)
-	 * @param exportFlags Use the {@link WktExportFlags} interface.
-	 * @return A String containing the exported geometry in WKT format.
+	 * @param  geometry
+	 *         The geometry to export. (null value is not allowed)
+	 *
+	 * @param  exportFlags
+	 *         Use the {@link WktExportFlags} interface.
+	 *
+	 * @return a String containing the exported geometry in WKT format.
 	 */
 	public static String geometryToWkt(Geometry geometry, int exportFlags) {
 		OperatorExportToWkt op = (OperatorExportToWkt) factory
@@ -270,11 +313,13 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorUnion.
 	 * 
-	 * @param geometries
-	 *            The geometries to union.
-	 * @param spatialReference
-	 *            The spatial reference of the geometries.
-	 * @return The geometry object representing the resultant union.
+	 * @param  geometries
+	 *         The geometries to union.
+	 *
+	 * @param  spatialReference
+	 *         The spatial reference of the geometries.
+	 *
+	 * @return the geometry object representing the resultant union.
 	 */
 	public static Geometry union(Geometry[] geometries,
 			SpatialReference spatialReference) {
@@ -294,13 +339,16 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorDifference.
 	 * 
-	 * @param geometry1
-	 *            The geometry being subtracted.
-	 * @param substractor
-	 *            The geometry object to subtract from.
-	 * @param spatialReference
-	 *            The spatial reference of the geometries.
-	 * @return The geometry of the differences.
+	 * @param  geometry1
+	 *         The geometry being subtracted.
+	 *
+	 * @param  substractor
+	 *         The geometry object to subtract from.
+	 *
+	 * @param  spatialReference
+	 *         The spatial reference of the geometries.
+	 *
+	 * @return the geometry of the differences.
 	 */
 	public static Geometry difference(Geometry geometry1, Geometry substractor,
 			SpatialReference spatialReference) {
@@ -316,13 +364,16 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorSymmetricDifference.
 	 * 
-	 * @param leftGeometry
-	 *            is one of the Geometry instances in the XOR operation.
-	 * @param rightGeometry
-	 *            is one of the Geometry instances in the XOR operation.
-	 * @param spatialReference
-	 *            The spatial reference of the geometries.
-	 * @return Returns the result of the symmetric difference.
+	 * @param  leftGeometry
+	 *         is one of the Geometry instances in the XOR operation.
+	 *
+	 * @param  rightGeometry
+	 *         is one of the Geometry instances in the XOR operation.
+	 *
+	 * @param  spatialReference
+	 *         The spatial reference of the geometries.
+	 *
+	 * @return the result of the symmetric difference.
 	 */
 	public static Geometry symmetricDifference(Geometry leftGeometry,
 			Geometry rightGeometry, SpatialReference spatialReference) {
@@ -338,13 +389,16 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorEquals.
 	 * 
-	 * @param geometry1
-	 *            Geometry.
-	 * @param geometry2
-	 *            Geometry.
-	 * @param spatialReference
-	 *            The spatial reference of the geometries.
-	 * @return TRUE if both geometry objects are equal.
+	 * @param  geometry1
+	 *         first geometry for equality comparison.
+	 *
+	 * @param  geometry2
+	 *         second geometry for equality comparison.
+	 *
+	 * @param  spatialReference
+	 *         The spatial reference of the geometries.
+	 *
+	 * @return {@code true} if both geometry objects are equal.
 	 */
 	public static boolean equals(Geometry geometry1, Geometry geometry2,
 			SpatialReference spatialReference) {
@@ -356,8 +410,18 @@ public class GeometryEngine {
 	}
 
 	/**
-	 * See OperatorDisjoint.
-	 * 
+	 * See {@link OperatorDisjoint}.
+	 *
+	 * @param  geometry1
+	 *         the first for comparison
+	 *
+	 * @param  geometry2
+	 *         the second for comparison
+	 *
+	 * @param  spatialReference
+	 *         of the supplied geometry
+	 *
+	 * @return {@code true} if the geometry1 is disjoint to geometry2.
 	 */
 	public static boolean disjoint(Geometry geometry1, Geometry geometry2,
 			SpatialReference spatialReference) {
@@ -374,10 +438,12 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorIntersection (also for dimension specific intersection).
 	 * 
-	 * @param inputGeometries
-	 *            An array of geometry objects.
-	 * @param geometry
-	 *            The geometry object.
+	 * @param  inputGeometries
+	 *         An array of geometry objects.
+	 *
+	 * @param  geometry
+	 *         The geometry object.
+	 *
 	 * @return Any array of geometry objects showing the intersection.
 	 */
 	static Geometry[] intersect(Geometry[] inputGeometries, Geometry geometry,
@@ -406,12 +472,15 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorIntersection.
 	 * 
-	 * @param geometry1
-	 *            The first geometry.
-	 * @param intersector
-	 *            The geometry to intersect the first geometry.
-	 * @param spatialReference
-	 *            The spatial reference of the geometries.
+	 * @param  geometry1
+	 *         The first geometry.
+	 *
+	 * @param  intersector
+	 *         The geometry to intersect the first geometry.
+	 *
+	 * @param  spatialReference
+	 *         The spatial reference of the geometries.
+	 *
 	 * @return The geometry created through intersection.
 	 */
 	public static Geometry intersect(Geometry geometry1, Geometry intersector,
@@ -428,15 +497,18 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorWithin.
 	 * 
-	 * @param geometry1
-	 *            The base geometry that is tested for within relationship to
-	 *            the other geometry.
-	 * @param geometry2
-	 *            The comparison geometry that is tested for the contains
-	 *            relationship to the other geometry.
-	 * @param spatialReference
-	 *            The spatial reference of the geometries.
-	 * @return TRUE if the first geometry is within the other geometry.
+	 * @param  geometry1
+	 *         The base geometry that is tested for within relationship to
+	 *         the other geometry.
+	 *
+	 * @param  geometry2
+	 *         The comparison geometry that is tested for the contains
+	 *         relationship to the other geometry.
+	 *
+	 * @param  spatialReference
+	 *         The spatial reference of the geometries.
+	 *
+	 * @return {@code true} if the first geometry is within the other geometry.
 	 */
 	public static boolean within(Geometry geometry1, Geometry geometry2,
 			SpatialReference spatialReference) {
@@ -452,15 +524,18 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorContains.
 	 * 
-	 * @param geometry1
-	 *            The geometry that is tested for the contains relationship to
-	 *            the other geometry..
-	 * @param geometry2
-	 *            The geometry that is tested for within relationship to the
+	 * @param  geometry1
+	 *         The geometry that is tested for the contains relationship to
+	 *         the other geometry.
+	 *
+	 * @param  geometry2
+	 *         The geometry that is tested for within relationship to the
 	 *            other geometry.
-	 * @param spatialReference
-	 *            The spatial reference of the geometries.
-	 * @return TRUE if geometry1 contains geometry2.
+	 *
+	 * @param  spatialReference
+	 *         The spatial reference of the geometries.
+	 *
+	 * @return {@code true} if geometry1 contains geometry2.
 	 */
 	public static boolean contains(Geometry geometry1, Geometry geometry2,
 			SpatialReference spatialReference) {
@@ -476,13 +551,16 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorCrosses.
 	 * 
-	 * @param geometry1
-	 *            The geometry to cross.
-	 * @param geometry2
-	 *            The geometry being crossed.
-	 * @param spatialReference
-	 *            The spatial reference of the geometries.
-	 * @return TRUE if geometry1 crosses geometry2.
+	 * @param  geometry1
+	 *         The geometry to cross.
+	 *
+	 * @param  geometry2
+	 *         The geometry being crossed.
+	 *
+	 * @param  spatialReference
+	 *         The spatial reference of the geometries.
+	 *
+	 * @return {@code true} if geometry1 crosses geometry2.
 	 */
 	public static boolean crosses(Geometry geometry1, Geometry geometry2,
 			SpatialReference spatialReference) {
@@ -498,13 +576,16 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorTouches.
 	 * 
-	 * @param geometry1
-	 *            The geometry to touch.
-	 * @param geometry2
-	 *            The geometry to be touched.
-	 * @param spatialReference
-	 *            The spatial reference of the geometries.
-	 * @return TRUE if geometry1 touches geometry2.
+	 * @param  geometry1
+	 *         The geometry to touch.
+	 *
+	 * @param  geometry2
+	 *         The geometry to be touched.
+	 *
+	 * @param  spatialReference
+	 *         The spatial reference of the geometries.
+	 *
+	 * @return {@code true} if geometry1 touches geometry2.
 	 */
 	public static boolean touches(Geometry geometry1, Geometry geometry2,
 			SpatialReference spatialReference) {
@@ -518,15 +599,18 @@ public class GeometryEngine {
 	/**
 	 * Indicates if one geometry overlaps another geometry.
 	 * 
-	 * See OperatorOverlaps.
+	 * See {@link OperatorOverlaps}.
 	 * 
-	 * @param geometry1
-	 *            The geometry to overlap.
-	 * @param geometry2
-	 *            The geometry to be overlapped.
-	 * @param spatialReference
-	 *            The spatial reference of the geometries.
-	 * @return TRUE if geometry1 overlaps geometry2.
+	 * @param  geometry1
+	 *         The geometry to overlap.
+	 *
+	 * @param  geometry2
+	 *         The geometry to be overlapped.
+	 *
+	 * @param  spatialReference
+	 *         The spatial reference of the geometries.
+	 *
+	 * @return {@code true} if geometry1 overlaps geometry2.
 	 */
 	public static boolean overlaps(Geometry geometry1, Geometry geometry2,
 			SpatialReference spatialReference) {
@@ -542,15 +626,20 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorRelate.
 	 * 
-	 * @param geometry1
-	 *            The first geometry for the relation.
-	 * @param geometry2
-	 *            The second geometry for the relation.
-	 * @param spatialReference
-	 *            The spatial reference of the geometries.
-	 * @param relation
-	 *            The DE-9IM relation.
-	 * @return TRUE if the given relation holds between geometry1 and geometry2.
+	 * @param  geometry1
+	 *         The first geometry for the relation.
+	 *
+	 * @param  geometry2
+	 *         The second geometry for the relation.
+	 *
+	 * @param  spatialReference
+	 *         The spatial reference of the geometries.
+	 *
+	 * @param  relation
+	 *         The DE-9IM relation.
+	 *
+	 * @return {@code true} if the given relation holds between geometry1 and
+	 *         geometry2.
 	 */
 	public static boolean relate(Geometry geometry1, Geometry geometry2,
 			SpatialReference spatialReference, String relation) {
@@ -566,13 +655,16 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorDistance.
 	 * 
-	 * @param geometry1
-	 *            Geometry.
-	 * @param geometry2
-	 *            Geometry.
-	 * @param spatialReference
-	 *            The spatial reference of the geometries. This parameter is not
-	 *            used and can be null.
+	 * @param  geometry1
+	 *         Geometry.
+	 *
+	 * @param  geometry2
+	 *         Geometry.
+	 *
+	 * @param  spatialReference
+	 *         The spatial reference of the geometries. This parameter is not
+	 *         used and can be null.
+	 *
 	 * @return The distance between the two geometries.
 	 */
 	public static double distance(Geometry geometry1, Geometry geometry2,
@@ -588,12 +680,15 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorClip.
 	 * 
-	 * @param geometry
-	 *            The geometry to be clipped.
-	 * @param envelope
-	 *            The envelope used to clip.
-	 * @param spatialReference
-	 *            The spatial reference of the geometries.
+	 * @param  geometry
+	 *         The geometry to be clipped.
+	 *
+	 * @param  envelope
+	 *         The envelope used to clip.
+	 *
+	 * @param  spatialReference
+	 *         The spatial reference of the geometries.
+	 *
 	 * @return The geometry created by clipping.
 	 */
 	public static Geometry clip(Geometry geometry, Envelope envelope,
@@ -621,12 +716,15 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorCut.
 	 * 
-	 * @param cuttee
-	 *            The geometry to be cut.
-	 * @param cutter
-	 *            The polyline to cut the geometry.
-	 * @param spatialReference
-	 *            The spatial reference of the geometries.
+	 * @param  cuttee
+	 *         The geometry to be cut.
+	 *
+	 * @param  cutter
+	 *         The polyline to cut the geometry.
+	 *
+	 * @param  spatialReference
+	 *         The spatial reference of the geometries.
+	 *
 	 * @return An array of geometries created from cutting.
 	 */
 	public static Geometry[] cut(Geometry cuttee, Polyline cutter,
@@ -647,7 +745,8 @@ public class GeometryEngine {
 		}
 
 		return cutsList.toArray(new Geometry[0]);
-	}
+	}
+
 	/**
 	 * Calculates a buffer polygon for each geometry at each of the 
 	 * corresponding specified distances.  It is assumed that all geometries have
@@ -656,11 +755,21 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorBuffer.
 	 * 
-	 * @param geometries An array of geometries to be buffered.
-	 * @param spatialReference The spatial reference of the geometries.
-	 * @param distances The corresponding distances for the input geometries to be buffered.
-	 * @param toUnionResults TRUE if all geometries buffered at a given distance are to be unioned into a single polygon.
-	 * @return The buffer of the geometries.
+	 * @param  geometries
+	 *         An array of geometries to be buffered.
+	 *
+	 * @param  spatialReference
+	 *         The spatial reference of the geometries.
+	 *
+	 * @param  distances
+	 *         The corresponding distances for the input geometries to be
+	 *         buffered.
+	 *
+	 * @param  toUnionResults
+	 *         TRUE if all geometries buffered at a given distance are to be
+	 *         unioned into a single polygon.
+	 *
+	 * @return the buffer of the geometries.
 	 */
 	public static Polygon[] buffer(Geometry[] geometries,
 			SpatialReference spatialReference, double[] distances,
@@ -693,17 +802,24 @@ public class GeometryEngine {
 			return buffers;
 		}
 	}
-
+
+
 	/**
 	 * Calculates a buffer polygon of the geometry as specified by the 
 	 * distance input. The buffer is implemented in the xy-plane.
 	 * 
 	 * See OperatorBuffer
 	 * 
-	 * @param geometry Geometry to be buffered.
-	 * @param spatialReference The spatial reference of the geometry.
-	 * @param distance The specified distance for buffer. Same units as the spatial reference.
-	 * @return The buffer polygon at the specified distances.
+	 * @param  geometry
+	 *         Geometry to be buffered.
+	 *
+	 * @param  spatialReference
+	 *         The spatial reference of the geometry.
+	 *
+	 * @param  distance
+	 *         The specified distance for buffer. Same units as the spatial reference.
+	 *
+	 * @return the buffer polygon at the specified distances.
 	 */
 	public static Polygon buffer(Geometry geometry,
 			SpatialReference spatialReference, double distance) {
@@ -719,22 +835,25 @@ public class GeometryEngine {
 	/**
 	 * Calculates the convex hull geometry.
 	 * 
-	 * See OperatorConvexHull.
-	 * 
-	 * @param geometry The input geometry.
-	 * @return Returns the convex hull.
-	 * 
-	 *            For a Point - returns the same point. For an Envelope -
-	 *            returns the same envelope. For a MultiPoint - If the point
-	 *            count is one, returns the same multipoint. If the point count
-	 *            is two, returns a polyline of the points. Otherwise computes
-	 *            and returns the convex hull polygon. For a Segment - returns a
-	 *            polyline consisting of the segment. For a Polyline - If
-	 *            consists of only one segment, returns the same polyline.
-	 *            Otherwise computes and returns the convex hull polygon. For a
-	 *            Polygon - If more than one path, or if the path isn't already
-	 *            convex, computes and returns the convex hull polygon.
-	 *            Otherwise returns the same polygon.
+	 * See {@link OperatorConvexHull}.
+	 *
+	 * For a Point - returns the same point. For an Envelope -
+	 * returns the same envelope. For a MultiPoint - If the point
+	 * count is one, returns the same multipoint. If the point count
+	 * is two, returns a polyline of the points. Otherwise computes
+	 * and returns the convex hull polygon. For a Segment - returns a
+	 * polyline consisting of the segment. For a Polyline - If
+	 * consists of only one segment, returns the same polyline.
+	 * Otherwise computes and returns the convex hull polygon. For a
+	 * Polygon - If more than one path, or if the path isn't already
+	 * convex, computes and returns the convex hull polygon.
+	 * Otherwise returns the same polygon.
+	 *
+	 * @param  geometry
+	 *         The input geometry.
+	 *
+	 * @return the convex hull.
+	 *
 	 */
 	public static Geometry convexHull(Geometry geometry) {
 		OperatorConvexHull op = (OperatorConvexHull) factory
@@ -747,14 +866,17 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorConvexHull
 	 * 
-	 * @param geometries
-	 *            The input geometry array.
-	 * @param b_merge
-	 *            Put true if you want the convex hull of all the geometries in
-	 *            the array combined. Put false if you want the convex hull of
-	 *            each geometry in the array individually.
-	 * @return Returns an array of convex hulls. If b_merge is true, the result
-	 *         will be a one element array consisting of the merged convex hull.
+	 * @param  geometries
+	 *         The input geometry array.
+	 *
+	 * @param  b_merge
+	 *         Put true if you want the convex hull of all the geometries in
+	 *         the array combined. Put false if you want the convex hull of
+	 *         each geometry in the array individually.
+	 *
+	 * @return an array of convex hulls. If b_merge is true, the result
+	 *         will be a one element array consisting of the merged convex
+	 *         hull.
 	 */
 	public static Geometry[] convexHull(Geometry[] geometries, boolean b_merge) {
 		OperatorConvexHull op = (OperatorConvexHull) factory
@@ -781,13 +903,21 @@ public class GeometryEngine {
 	 * Finds the coordinate of the geometry which is closest to the specified
 	 * point.
 	 *
-	 * See OperatorProximity2D.
+	 * See {@link OperatorProximity2D}.
 	 * 
-	 * @param inputPoint
-	 *            The point to find the nearest coordinate in the geometry for.
-	 * @param geometry
-	 *            The geometry to consider.
-	 * @return Proximity2DResult containing the nearest coordinate.
+	 * @param  inputPoint
+	 *         The point to find the nearest coordinate in the geometry for.
+	 *
+	 * @param  geometry
+	 *         The geometry to consider.
+	 *
+	 * @param  bTestPolygonInterior
+	 *         When true and geometry is a polygon the function will test
+	 *         if the input_point is inside of the polygon.  When false,
+	 *         the function will not check if the point is inside of the
+	 *         polygon but only determine proximity to the boundary.
+	 *
+	 * @return a Proximity2DResult containing the nearest coordinate.
 	 */
 	public static Proximity2DResult getNearestCoordinate(Geometry geometry,
 			Point inputPoint, boolean bTestPolygonInterior) {
@@ -805,11 +935,13 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorProximity2D.
 	 * 
-	 * @param inputPoint
-	 *            The point to find the nearest vertex of the geometry for.
-	 * @param geometry
-	 *            The geometry to consider.
-	 * @return Proximity2DResult containing the nearest vertex.
+	 * @param  inputPoint
+	 *         The point to find the nearest vertex of the geometry for.
+	 *
+	 * @param  geometry
+	 *         The geometry to consider.
+	 *
+	 * @return a Proximity2DResult containing the nearest vertex.
 	 */
 	public static Proximity2DResult getNearestVertex(Geometry geometry,
 			Point inputPoint) {
@@ -826,15 +958,19 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorProximity2D.
 	 * 
-	 * @param inputPoint
-	 *            The point to start from.
-	 * @param geometry
-	 *            The geometry to consider.
-	 * @param searchRadius
-	 *            The search radius.
-	 * @param maxVertexCountToReturn
-	 *            The maximum number number of vertices to return.
-	 * @return Proximity2DResult containing the array of nearest vertices.
+	 * @param  inputPoint
+	 *         The point to start from.
+	 *
+	 * @param  geometry
+	 *         The geometry to consider.
+	 *
+	 * @param  searchRadius
+	 *         The search radius.
+	 *
+	 * @param  maxVertexCountToReturn
+	 *         The maximum number number of vertices to return.
+	 *
+	 * @return a Proximity2DResult containing the array of nearest vertices.
 	 */
 	public static Proximity2DResult[] getNearestVertices(Geometry geometry,
 			Point inputPoint, double searchRadius, int maxVertexCountToReturn) {
@@ -852,11 +988,13 @@ public class GeometryEngine {
 	 *
 	 * See OperatorSimplify and See OperatorSimplifyOGC.
 	 * 
-	 * @param geometry
-	 *            The geometry to be simplified.
-	 * @param spatialReference
-	 *            The spatial reference of the geometry to be simplified.
-	 * @return The simplified geometry.
+	 * @param  geometry
+	 *         The geometry to be simplified.
+	 *
+	 * @param  spatialReference
+	 *         The spatial reference of the geometry to be simplified.
+	 *
+	 * @return the simplified geometry.
 	 */
 	public static Geometry simplify(Geometry geometry,
 			SpatialReference spatialReference) {
@@ -871,11 +1009,13 @@ public class GeometryEngine {
 	 * 
 	 * See OperatorSimplify.
 	 * 
-	 * @param geometry
-	 *            The geometry to be checked.
-	 * @param spatialReference
-	 *            The spatial reference of the geometry.
-	 * @return TRUE if the geometry is simple.
+	 * @param  geometry
+	 *         The geometry to be checked.
+	 *
+	 * @param  spatialReference
+	 *         The spatial reference of the geometry.
+	 *
+	 * @return {@code true} if the geometry is simple.
 	 */
 	static boolean isSimple(Geometry geometry, SpatialReference spatialReference) {
 		OperatorSimplify op = (OperatorSimplify) factory
@@ -883,14 +1023,20 @@ public class GeometryEngine {
 		boolean result = op.isSimpleAsFeature(geometry, spatialReference, null);
 		return result;
 	}
-
+
+
 	/**
 	 * A geodesic distance is the shortest distance between any two points on the earth's surface when the earth's
 	 * surface is approximated by a spheroid. The function returns the shortest distance between two points on the
-	 * WGS84 spheroid.    
-	 * @param ptFrom The "from" point: long, lat in degrees.
-	 * @param ptTo The "to" point: long, lat in degrees.
-	 * @return The geodesic distance between two points in meters.
+	 * WGS84 spheroid.
+	 *
+	 * @param  ptFrom
+	 *         The "from" point: long, lat in degrees.
+	 *
+	 * @param  ptTo
+	 *         The "to" point: long, lat in degrees.
+	 *
+	 * @return the geodesic distance between two points in meters.
 	 */
 	public static double geodesicDistanceOnWGS84(Point ptFrom, Point ptTo) {
 		return SpatialReferenceImpl.geodesicDistanceOnWGS84Impl(ptFrom, ptTo);

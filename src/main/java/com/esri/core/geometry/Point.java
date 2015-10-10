@@ -94,7 +94,7 @@ public final class Point extends Geometry implements Serializable {
 	}
 
 	/**
-	 * Returns XY coordinates of this point.
+	 * @return a new {@link Point2D} containing XY coordinates of this point.
 	 */
 	public final Point2D getXY() {
 		if (isEmptyImpl())
@@ -108,6 +108,9 @@ public final class Point extends Geometry implements Serializable {
 
 	/**
 	 * Returns XY coordinates of this point.
+	 *
+	 * @param  pt
+	 *         the point to apply XY coordinates to.
 	 */
 	public final void getXY(Point2D pt) {
 		if (isEmptyImpl())
@@ -118,8 +121,10 @@ public final class Point extends Geometry implements Serializable {
 	}
 	
 	/**
-	 * Sets the XY coordinates of this point. param pt The point to create the X
-	 * and Y coordinate from.
+	 * Sets the XY coordinates of this point.
+	 *
+	 * @param  pt
+	 *         The point to create the X and Y coordinate from.
 	 */
 	public final void setXY(Point2D pt) {
 		_touch();
@@ -127,7 +132,7 @@ public final class Point extends Geometry implements Serializable {
 	}
 
 	/**
-	 * Returns XYZ coordinates of the point. Z will be set to 0 if Z is missing.
+	 * @return the XYZ coordinates of the point. Z will be set to 0 if Z is missing.
 	 */
 	Point3D getXYZ() {
 		if (isEmptyImpl())
@@ -178,7 +183,7 @@ public final class Point extends Geometry implements Serializable {
 	}
 
 	/**
-	 * Returns the X coordinate of the point.
+	 * @return the X coordinate of the point.
 	 */
 	public final double getX() {
 		if (isEmptyImpl())
@@ -199,7 +204,7 @@ public final class Point extends Geometry implements Serializable {
 	}
 
 	/**
-	 * Returns the Y coordinate of this point.
+	 * @return the Y coordinate of this point.
 	 */
 	public final double getY() {
 		if (isEmptyImpl())
@@ -220,7 +225,7 @@ public final class Point extends Geometry implements Serializable {
 	}
 
 	/**
-	 * Returns the Z coordinate of this point.
+	 * @return the Z coordinate of this point.
 	 */
 	public double getZ() {
 		return getAttributeAsDbl(Semantics.Z, 0);
@@ -237,7 +242,7 @@ public final class Point extends Geometry implements Serializable {
 	}
 
 	/**
-	 * Returns the attribute M of this point.
+	 * @return the attribute M of this point.
 	 */
 	public double getM() {
 		return getAttributeAsDbl(Semantics.M, 0);
@@ -254,7 +259,7 @@ public final class Point extends Geometry implements Serializable {
 	}
 
 	/**
-	 * Returns the ID of this point.
+	 * @return the ID of this point.
 	 */
 	public int getID() {
 		return getAttributeAsInt(Semantics.ID, 0);

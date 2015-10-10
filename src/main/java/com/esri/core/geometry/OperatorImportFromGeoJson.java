@@ -26,36 +26,58 @@ package com.esri.core.geometry;
 import org.json.JSONException;
 
 public abstract class OperatorImportFromGeoJson extends Operator {
-	@Override
-	public Type getType() {
-		return Type.ImportFromGeoJson;
-	}
+    @Override
+    public Type getType() {
+        return Type.ImportFromGeoJson;
+    }
 
-	/**
-	 * Performs the ImportFromGeoJson operation.
-	 * @param import_flags Use the {@link GeoJsonImportFlags} interface.
-	 * @param type Use the {@link Geometry.Type} enum. 
-	 * @param geoJsonString The string holding the Geometry in geoJson format.
-	 * @return Returns the imported Geometry.
-	 * @throws JSONException 
-	 */
-	public abstract MapGeometry execute(int import_flags, Geometry.Type type,
-			String geoJsonString, ProgressTracker progress_tracker)
-			throws JSONException;
+    /**
+     * Performs the ImportFromGeoJson operation.
+     *
+     * @param  import_flags
+     *         Use the {@link GeoJsonImportFlags} interface.
+     *
+     * @param  type
+     *         Use the {@link Geometry.Type} enum.
+     *
+     * @param  geoJsonString
+     *         The string holding the Geometry in geoJson format.
+     *
+     * @param  progress_tracker
+     *         Allows to cancel the operation. Can be null.
+     *
+     * @return the imported Geometry.
+     *
+     * @throws JSONException
+     *          The JSON parse exception
+     */
+    public abstract MapGeometry execute(int import_flags, Geometry.Type type,
+            String geoJsonString, ProgressTracker progress_tracker)
+            throws JSONException;
 
-	/**
-	 * Performs the ImportFromGeoJson operation.
-	 * @param import_flags Use the {@link GeoJsonImportFlags} interface.
-	 * @param geoJsonString The string holding the Geometry in geoJson format.
-	 * @return Returns the imported MapOGCStructure.
-	 * @throws JSONException 
-	 */
-	public abstract MapOGCStructure executeOGC(int import_flags,
-			String geoJsonString, ProgressTracker progress_tracker)
-			throws JSONException;
+    /**
+     * Performs the ImportFromGeoJson operation.
+     *
+     * @param  import_flags
+     *         Use the {@link GeoJsonImportFlags} interface.
+     *
+     * @param  geoJsonString
+     *         The string holding the Geometry in geoJson format.
+     *
+     * @param  progress_tracker
+     *         Allows to cancel the operation. Can be null.
+     *
+     * @return the imported MapOGCStructure.
+     *
+     * @throws JSONException
+     *          The JSON parse exception
+     */
+    public abstract MapOGCStructure executeOGC(int import_flags,
+            String geoJsonString, ProgressTracker progress_tracker)
+            throws JSONException;
 
-	public static OperatorImportFromGeoJson local() {
-		return (OperatorImportFromGeoJson) OperatorFactoryLocal.getInstance()
-				.getOperator(Type.ImportFromGeoJson);
-	}
+    public static OperatorImportFromGeoJson local() {
+        return (OperatorImportFromGeoJson) OperatorFactoryLocal.getInstance()
+                .getOperator(Type.ImportFromGeoJson);
+    }
 }

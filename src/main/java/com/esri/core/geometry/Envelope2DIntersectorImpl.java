@@ -248,8 +248,10 @@ class Envelope2DIntersectorImpl {
 	}
 
 	/*
-	 * Sets the tolerance used for the intersection tests.\param tolerance The
-	 * tolerance used to determine intersection.
+	 * Sets the tolerance used for the intersection tests.
+	 *
+ 	 * @param  tolerance
+	 *         The tolerance used to determine intersection.
 	 */
 	void setTolerance(double tolerance) {
 		m_tolerance = tolerance;

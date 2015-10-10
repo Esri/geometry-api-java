@@ -31,20 +31,29 @@ import com.esri.core.geometry.Operator.Type;
  */
 public abstract class OperatorDistance extends Operator {
 
-	@Override
-	public Type getType() {
-		return Type.Distance;
-	}
+    @Override
+    public Type getType() {
+        return Type.Distance;
+    }
 
-	/**
-	 * Calculates distance between two geometries.
-	 */
-	public abstract double execute(Geometry geom1, Geometry geom2,
-			ProgressTracker progressTracker);
+    /**
+     * @param  geom1
+     *         the first geometry of the parameter pair to be operated on.
+     *
+     * @param  geom2
+     *         the second geometry of the parameter pair to be operated on.
+     *
+     * @param  progressTracker
+     *         the callback used to cancel the lengthy operation. Can be null.
+     *
+     * @return the distance between two geometries
+     */
+    public abstract double execute(Geometry geom1, Geometry geom2,
+            ProgressTracker progressTracker);
 
-	public static OperatorDistance local() {
-		return (OperatorDistance) OperatorFactoryLocal.getInstance()
-				.getOperator(Type.Distance);
-	}
+    public static OperatorDistance local() {
+        return (OperatorDistance) OperatorFactoryLocal.getInstance()
+                .getOperator(Type.Distance);
+    }
 
 }

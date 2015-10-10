@@ -44,29 +44,65 @@ public abstract class OperatorImportFromJson extends Operator {
 
 	/**
 	 * Performs the ImportFromJson operation on a number of Json Strings
-	 * 
-	 * @return Returns a MapGeometryCursor.
+	 *
+	 * @param  type
+	 *         Use the {@link Geometry.Type} enum.
+	 *
+	 * @param  jsonParserCursor
+	 *         a cursor to JsonParsers to use for import
+	 *
+	 * @return a MapGeometryCursor.
 	 */
 	abstract MapGeometryCursor execute(Geometry.Type type,
 			JsonParserCursor jsonParserCursor);
 
 	/**
-	 *Performs the ImportFromJson operation on a single Json string
-	 *@return Returns a MapGeometry.
+	 * Performs the ImportFromJson operation on a single Json string
+	 *
+	 * @param  type
+	 *         Use the {@link Geometry.Type} enum.
+	 *
+	 * @param  jsonParser
+	 *         a JSON parser to use for import
+	 *
+	 * @return a MapGeometry.
 	 */
 	public abstract MapGeometry execute(Geometry.Type type,
 			JsonParser jsonParser);
 
 	/**
-	 *Performs the ImportFromJson operation on a single Json string
-	 *@return Returns a MapGeometry.
+	 * Performs the ImportFromJson operation on a single Json string
+	 *
+	 * @param  type
+	 *         Use the {@link Geometry.Type} enum.
+	 *
+	 * @param  string
+	 *         JSON text to parse and import
+	 *
+	 * @return a MapGeometry.
+	 *
+	 * @throws JsonParseException
+	 *          the json parse exception
 	 */
 	public abstract MapGeometry execute(Geometry.Type type, String string)
 			throws JsonParseException, IOException;
 	
 	/**
 	 *Performs the ImportFromJson operation on a JSONObject
-	 *@return Returns a MapGeometry.
+	 *
+	 * @param  type
+	 *         Use the {@link Geometry.Type} enum.
+	 *
+	 * @param  jsonObject
+	 *         JSON object to import
+	 *
+	 * @return a MapGeometry.
+	 *
+	 * @throws JsonParseException
+	 *          the json parse exception
+	 *
+	 * @throws IOException
+	 *          the IO exception from import
 	 */
 	public abstract MapGeometry execute(Geometry.Type type, JSONObject jsonObject)
 			throws JSONException, IOException;	

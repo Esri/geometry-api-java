@@ -34,22 +34,48 @@ public abstract class OperatorClip extends Operator {
 		return Type.Clip;
 	}
 
-	/**
-	 * Performs the Clip operation on the geometry set.
-	 */
-	public abstract GeometryCursor execute(GeometryCursor geoms,
-			Envelope2D envelope, SpatialReference spatialRef,
-			ProgressTracker progressTracker);
+    /**
+     * Performs the Clip operation on the geometry set.
+     * @param  geoms
+     *         referencing input geometries for the clip operation
+     *
+     * @param  envelope
+     *         used to clip input geometries
+     *
+     * @param  spatialRef
+     *         the geometry spatial reference
+     *
+     * @param  progressTracker
+     *         the callback used periodically by lengthy operations
+     *
+     * @return a cursor to the geometries created by clipping.
+     */
+    public abstract GeometryCursor execute(GeometryCursor geoms,
+            Envelope2D envelope, SpatialReference spatialRef,
+            ProgressTracker progressTracker);
 
-	/**
-	 * Performs the Clip operation on a single geometry.
-	 */
-	public abstract Geometry execute(Geometry geom, Envelope2D envelope,
-			SpatialReference spatialRef, ProgressTracker progressTracker);
+    /**
+     * Performs the Clip operation on a single geometry.
+     * @param  geom
+     *         input geometry for the clip operation
+     *
+     * @param  envelope
+     *         used to clip input geometries
+     *
+     * @param  spatialRef
+     *         the geometry spatial reference
+     *
+     * @param  progressTracker
+     *         the callback used periodically by lengthy operations
+     *
+     * @return The geometry created by clipping.
+     */
+    public abstract Geometry execute(Geometry geom, Envelope2D envelope,
+            SpatialReference spatialRef, ProgressTracker progressTracker);
 
-	public static OperatorClip local() {
-		return (OperatorClip) OperatorFactoryLocal.getInstance().getOperator(
-				Type.Clip);
-	}
+    public static OperatorClip local() {
+        return (OperatorClip) OperatorFactoryLocal.getInstance().getOperator(
+                Type.Clip);
+    }
 
 }

@@ -958,9 +958,11 @@ public final class Envelope extends Geometry implements Serializable {
 	/**
 	 * Checks if this envelope contains (covers) the specified point.
 	 * 
-	 * @param p
-	 *            The Point to be tested for coverage.
-	 * @return TRUE if this envelope contains (covers) the specified point.
+	 * @param  p
+	 *         The Point to be tested for coverage.
+	 *
+	 * @return {@code true} if this envelope contains (covers) the specified
+	 *         point.
 	 */
 	public boolean contains(Point p) {
 		if (p.isEmpty())
@@ -971,9 +973,11 @@ public final class Envelope extends Geometry implements Serializable {
 	/**
 	 * Checks if this envelope contains (covers) other envelope.
 	 * 
-	 * @param env
-	 *            The envelope to be tested for coverage.
-	 * @return TRUE if this envelope contains (covers) the specified envelope.
+	 * @param  env
+	 *         The envelope to be tested for coverage.
+	 *
+	 * @return {@code true} if this envelope contains (covers) the specified
+	 *         envelope.
 	 */
 	public boolean contains(Envelope env) {
 		return m_envelope.contains(env.m_envelope);

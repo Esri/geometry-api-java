@@ -36,8 +36,10 @@ final class MathUtils {
 									// startValue)
 
 		/**
-		 * initialize to the given start value. \param startValue_ The value to
-		 * be added to the accumulated sum.
+		 * initialize to the given start value.
+		 *
+		 * @param  startValue_
+		 *         The value to be added to the accumulated sum.
 		 */
 		KahanSummator(double startValue_) {
 			startValue = startValue_;

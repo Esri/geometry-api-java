@@ -37,7 +37,7 @@ public class SegmentIterator {
 	/**
 	 * Moves the iterator to the next path. Returns the TRUE if successful.
 	 * 
-	 * @return TRUE if the next path exists.
+	 * @return {@code true} if the next path exists.
 	 */
 	public boolean nextPath() {
 		return m_impl.nextPath();
@@ -46,7 +46,7 @@ public class SegmentIterator {
 	/**
 	 * Moves the iterator to the previous path. Returns the TRUE if successful.
 	 * 
-	 * @return TRUE if the previous path exists.
+	 * @return {@code true} if the previous path exists.
 	 */
 	public boolean previousPath() {
 		return m_impl.previousPath();
@@ -72,6 +72,9 @@ public class SegmentIterator {
 	 * Resets the iterator such that a subsequent call to NextPath will set the
 	 * iterator to the given path index. A call to PreviousPath will set the
 	 * iterator to the path at pathIndex - 1.
+	 * @param  pathIndex
+	 *         where a subsequent call to {@link SegmentIterator#nextPath()}
+	 *         will set the iterator to the given index
 	 */
 	public void resetToPath(int pathIndex) {
 		m_impl.resetToPath(pathIndex);
@@ -81,8 +84,8 @@ public class SegmentIterator {
 	 * Indicates whether the iterator points to the first segment in the current
 	 * path.
 	 * 
-	 * @return TRUE if the iterator points to the first segment in the current
-	 *         path.
+	 * @return {@code true} if the iterator points to the first segment in the
+	 *         current path.
 	 */
 	public boolean isFirstSegmentInPath() {
 		return m_impl.isFirstSegmentInPath();
@@ -92,8 +95,8 @@ public class SegmentIterator {
 	 * Indicates whether the iterator points to the last segment in the current
 	 * path.
 	 * 
-	 * @return TRUE if the iterator points to the last segment in the current
-	 *         path.
+	 * @return {@code true} if the iterator points to the last segment in the
+	 *         current path.
 	 */
 	public boolean isLastSegmentInPath() {
 		return m_impl.isLastSegmentInPath();
@@ -116,12 +119,16 @@ public class SegmentIterator {
 	}
 
 	/**
-	 *Resets the iterator to a specific vertex.
-	 *The call to next_segment will return the segment that starts at the vertex.
-	 *Call to previous_segment will return the segment that starts at the previous vertex.
-	 *@param vertexIndex The vertex index to reset the iterator to.
-	 *@param pathIndex The path index to reset the iterator to. Used as a hint. If the path_index is wrong or -1, then the path_index is automatically calculated.
+	 * Resets the iterator to a specific vertex.
+	 * The call to next_segment will return the segment that starts at the vertex.
+	 * Call to previous_segment will return the segment that starts at the previous vertex.
+	 * @param  vertexIndex
+	 *         The vertex index to reset the iterator to.
 	 *
+	 * @param  pathIndex
+	 *         The path index to reset the iterator to. Used as a hint. If the
+	 *         path_index is wrong or -1, then the path_index is automatically
+	 *         calculated.
 	 */
 	public void resetToVertex(int vertexIndex, int pathIndex) {
 		m_impl.resetToVertex(vertexIndex, pathIndex);
@@ -130,7 +137,7 @@ public class SegmentIterator {
 	/**
 	 * Indicates whether a next segment exists for the path.
 	 * 
-	 * @return TRUE is the next segment exists.
+	 * @return {@code true} if the next segment exists.
 	 */
 	public boolean hasNextSegment() {
 		return m_impl.hasNextSegment();
@@ -139,7 +146,7 @@ public class SegmentIterator {
 	/**
 	 * Indicates whether a previous segment exists in the path.
 	 * 
-	 * @return TRUE if the previous segment exists.
+	 * @return {@code true} if the previous segment exists.
 	 */
 	public boolean hasPreviousSegment() {
 		return m_impl.hasPreviousSegment();
@@ -149,6 +156,8 @@ public class SegmentIterator {
 	 * Moves the iterator to the next segment and returns the segment.
 	 * 
 	 * The Segment is returned by value and is owned by the iterator.
+	 *
+	 * @return the next segment
 	 */
 	public Segment nextSegment() {
 		return m_impl.nextSegment();
@@ -158,34 +167,37 @@ public class SegmentIterator {
 	 * Moves the iterator to previous segment and returns the segment.
 	 * 
 	 * The Segment is returned by value and is owned by the iterator.
+	 *
+	 * @return the previous segment
 	 */
 	public Segment previousSegment() {
 		return m_impl.previousSegment();
 	}
 
 	/**
-	 * Returns the index of the current path.
+	 * @return the index of the current path.
 	 */
 	public int getPathIndex() {
 		return m_impl.getPathIndex();
 	}
 
 	/**
-	 * Returns the index of the start point of this segment.
+	 * @return the index of the start point of this segment.
 	 */
 	public int getStartPointIndex() {
 		return m_impl.getStartPointIndex();
 	}
 
 	/**
-	 * Returns the index of the end point of the current segment.
+	 * @return the index of the end point of the current segment.
 	 */
 	public int getEndPointIndex() {
 		return m_impl.getEndPointIndex();
 	}
 
 	/**
-	 * Returns TRUE, if the segment is the closing segment of the closed path
+	 * @return {@code true} if the segment is the closing segment of the closed
+	 *         path
 	 */
 	public boolean isClosingSegment() {
 		return m_impl.isClosingSegment();

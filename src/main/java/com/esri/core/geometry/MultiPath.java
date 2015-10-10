@@ -209,14 +209,14 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	}
 
 	/**
-	 * Returns TRUE if the multipath contains non-linear segments.
+	 * @return {@code true} if the multipath contains non-linear segments.
 	 */
 	boolean hasNonLinearSegments() {
 		return m_impl.hasNonLinearSegments();
 	}
 
 	/**
-	 * Returns total segment count in the MultiPath.
+	 * @return total segment count in the MultiPath.
 	 */
 	public int getSegmentCount() {
 		return m_impl.getSegmentCount();
@@ -225,8 +225,9 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Returns the segment count in the given multipath path.
 	 * 
-	 * @param pathIndex
-	 *            The path to determine the segment.
+	 * @param  pathIndex
+	 *         The path to determine the segment.
+	 *
 	 * @return The segment of the multipath.
 	 */
 	public int getSegmentCount(int pathIndex) {
@@ -239,11 +240,12 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Appends all paths from another multipath.
 	 * 
-	 * @param src
-	 *            The multipath to append to this multipath.
-	 * @param bReversePaths
-	 *            TRUE if the multipath is added should be added with its paths
-	 *            reversed.
+	 * @param  src
+	 *         The multipath to append to this multipath.
+	 *
+	 * @param  bReversePaths
+	 *         {@code true} if the multipath is added should be added with its
+	 *         paths reversed.
 	 */
 	public void add(MultiPath src, boolean bReversePaths) {
 		m_impl.add((MultiPathImpl) src._getImpl(), bReversePaths);
@@ -252,12 +254,14 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Copies a path from another multipath.
 	 * 
-	 * @param src
-	 *            The multipath to copy from.
-	 * @param srcPathIndex
-	 *            The index of the path in the the source MultiPath.
-	 * @param bForward
-	 *            When FALSE, the points are inserted in reverse order.
+	 * @param  src
+	 *         The multipath to copy from.
+	 *
+	 * @param  srcPathIndex
+	 *         The index of the path in the the source MultiPath.
+	 *
+	 * @param  bForward
+	 *         When FALSE, the points are inserted in reverse order.
 	 */
 	public void addPath(MultiPath src, int srcPathIndex, boolean bForward) {
 		m_impl.addPath((MultiPathImpl) src._getImpl(), srcPathIndex, bForward);
@@ -266,12 +270,14 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Adds a new path to this multipath.
 	 * 
-	 * @param points
-	 *            The array of points to add to this multipath.
-	 * @param count
-	 *            The number of points added to the mulitpath.
-	 * @param bForward
-	 *            When FALSE, the points are inserted in reverse order.
+	 * @param  points
+	 *         The array of points to add to this multipath.
+	 *
+	 * @param  count
+	 *         The number of points added to the mulitpath.
+	 *
+	 * @param  bForward
+	 *         When FALSE, the points are inserted in reverse order.
 	 */
 	void addPath(Point2D[] points, int count, boolean bForward) {
 		m_impl.addPath(points, count, bForward);
@@ -280,10 +286,11 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Adds a new segment to this multipath.
 	 * 
-	 * @param segment
-	 *            The segment to be added to this mulitpath.
-	 * @param bStartNewPath
-	 *            TRUE if a new path will be added.
+	 * @param  segment
+	 *         The segment to be added to this mulitpath.
+	 *
+	 * @param  bStartNewPath
+	 *         TRUE if a new path will be added.
 	 */
 	public void addSegment(Segment segment, boolean bStartNewPath) {
 		m_impl.addSegment(segment, bStartNewPath);
@@ -299,8 +306,8 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Reverses the order of vertices in the path.
 	 * 
-	 * @param pathIndex
-	 *            The start index of the path to reverse the order.
+	 * @param  pathIndex
+	 *         The start index of the path to reverse the order.
 	 */
 	public void reversePath(int pathIndex) {
 		m_impl.reversePath(pathIndex);
@@ -309,8 +316,8 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Removes the path at the given index.
 	 * 
-	 * @param pathIndex
-	 *            The start index to remove the path.
+	 * @param  pathIndex
+	 *         The start index to remove the path.
 	 */
 	public void removePath(int pathIndex) {
 		m_impl.removePath(pathIndex);
@@ -319,15 +326,18 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Inserts a path from another multipath.
 	 * 
-	 * @param pathIndex
-	 *            The start index of the multipath to insert.
-	 * @param src
-	 *            The multipath to insert into this multipath. Can be the same
-	 *            as the multipath being modified.
-	 * @param srcPathIndex
-	 *            The start index to insert the path into the multipath.
-	 * @param bForward
-	 *            When FALSE, the points are inserted in reverse order.
+	 * @param  pathIndex
+	 *         The start index of the multipath to insert.
+	 *
+	 * @param  src
+	 *         The multipath to insert into this multipath. Can be the same
+	 *         as the multipath being modified.
+	 *
+	 * @param  srcPathIndex
+	 *         The start index to insert the path into the multipath.
+	 *
+	 * @param  bForward
+	 *         When FALSE, the points are inserted in reverse order.
 	 */
 	public void insertPath(int pathIndex, MultiPath src, int srcPathIndex,
 			boolean bForward) {
@@ -338,16 +348,20 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Inserts a path from an array of 2D Points.
 	 * 
-	 * @param pathIndex
-	 *            The path index of the multipath to place the new path.
-	 * @param points
-	 *            The array of points defining the new path.
-	 * @param pointsOffset
-	 *            The offset into the array to start reading.
-	 * @param count
-	 *            The number of points to insert into the new path.
-	 * @param bForward
-	 *            When FALSE, the points are inserted in reverse order.
+	 * @param  pathIndex
+	 *         The path index of the multipath to place the new path.
+	 *
+	 * @param  points
+	 *         The array of points defining the new path.
+	 *
+	 * @param  pointsOffset
+	 *         The offset into the array to start reading.
+	 *
+	 * @param  count
+	 *         The number of points to insert into the new path.
+	 *
+	 * @param  bForward
+	 *         When FALSE, the points are inserted in reverse order.
 	 */
 	void insertPath(int pathIndex, Point2D[] points, int pointsOffset,
 			int count, boolean bForward) {
@@ -359,24 +373,30 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	 * vertices are connected by linear segments with each other and with the
 	 * existing vertices.
 	 * 
-	 * @param pathIndex
-	 *            The path index in this multipath to insert points to. Must
-	 *            correspond to an existing path.
-	 * @param beforePointIndex
-	 *            The point index before all other vertices to insert in the
-	 *            given path of this multipath. This value must be between 0 and
-	 *            GetPathSize(pathIndex), or -1 to insert points at the end of
-	 *            the given path.
-	 * @param src
-	 *            The source multipath.
-	 * @param srcPathIndex
-	 *            The source path index to copy points from.
-	 * @param srcPointIndexFrom
-	 *            The start point in the source path to start copying from.
-	 * @param srcPointCount
-	 *            The count of points to add.
-	 * @param bForward
-	 *            When FALSE, the points are inserted in reverse order.
+	 * @param  pathIndex
+	 *         The path index in this multipath to insert points to. Must
+	 *         correspond to an existing path.
+	 *
+	 * @param  beforePointIndex
+	 *         The point index before all other vertices to insert in the
+	 *         given path of this multipath. This value must be between 0 and
+	 *         GetPathSize(pathIndex), or -1 to insert points at the end of
+	 *         the given path.
+	 *
+	 * @param  src
+	 *         The source multipath.
+	 *
+	 * @param  srcPathIndex
+	 *         The source path index to copy points from.
+	 *
+	 * @param  srcPointIndexFrom
+	 *         The start point in the source path to start copying from.
+	 *
+	 * @param  srcPointCount
+	 *         The count of points to add.
+	 *
+	 * @param  bForward
+	 *         When FALSE, the points are inserted in reverse order.
 	 */
 	public void insertPoints(int pathIndex, int beforePointIndex,
 			MultiPath src, int srcPathIndex, int srcPointIndexFrom,
@@ -389,22 +409,27 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Inserts a part of a path from the given array.
 	 * 
-	 * @param pathIndex
-	 *            The path index in this class to insert points to. Must
-	 *            correspond to an existing path.
-	 * @param beforePointIndex
-	 *            The point index in the given path of this MultiPath before
-	 *            which the vertices need to be inserted. This value must be
-	 *            between 0 and GetPathSize(pathIndex), or -1 to insert points
-	 *            at the end of the given path.
-	 * @param src
-	 *            The source array
-	 * @param srcPointIndexFrom
-	 *            The start point in the source array to start copying from.
-	 * @param srcPointCount
-	 *            The count of points to add.
-	 * @param bForward
-	 *            When FALSE, the points are inserted in reverse order.
+	 * @param  pathIndex
+	 *         The path index in this class to insert points to. Must
+	 *         correspond to an existing path.
+	 *
+	 * @param  beforePointIndex
+	 *         The point index in the given path of this MultiPath before
+	 *         which the vertices need to be inserted. This value must be
+	 *         between 0 and GetPathSize(pathIndex), or -1 to insert points
+	 *         at the end of the given path.
+	 *
+	 * @param  src
+	 *         The source array
+	 *
+	 * @param  srcPointIndexFrom
+	 *         The start point in the source array to start copying from.
+	 *
+	 * @param  srcPointCount
+	 *         The count of points to add.
+	 *
+	 * @param  bForward
+	 *         When FALSE, the points are inserted in reverse order.
 	 */
 	void insertPoints(int pathIndex, int beforePointIndex, Point2D[] src,
 			int srcPointIndexFrom, int srcPointCount, boolean bForward) {
@@ -415,15 +440,17 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Inserts a point.
 	 * 
-	 * @param pathIndex
-	 *            The path index in this class to insert the point to. Must
-	 *            correspond to an existing path.
-	 * @param beforePointIndex
-	 *            The point index in the given path of this multipath. This
-	 *            value must be between 0 and GetPathSize(pathIndex), or -1 to
-	 *            insert the point at the end of the given path.
-	 * @param pt
-	 *            The point to be inserted.
+	 * @param  pathIndex
+	 *         The path index in this class to insert the point to. Must
+	 *         correspond to an existing path.
+	 *
+	 * @param  beforePointIndex
+	 *         The point index in the given path of this multipath. This
+	 *         value must be between 0 and GetPathSize(pathIndex), or -1 to
+	 *         insert the point at the end of the given path.
+	 *
+	 * @param  pt
+	 *         The point to be inserted.
 	 */
 	void insertPoint(int pathIndex, int beforePointIndex, Point2D pt) {
 		m_impl.insertPoint(pathIndex, beforePointIndex, pt);
@@ -432,15 +459,17 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Inserts a point.
 	 * 
-	 * @param pathIndex
-	 *            The path index in this class to insert the point to. Must
-	 *            correspond to an existing path.
-	 * @param beforePointIndex
-	 *            The point index in the given path of this multipath. This
-	 *            value must be between 0 and GetPathSize(pathIndex), or -1 to
-	 *            insert the point at the end of the given path.
-	 * @param pt
-	 *            The point to be inserted.
+	 * @param  pathIndex
+	 *         The path index in this class to insert the point to. Must
+	 *         correspond to an existing path.
+	 *
+	 * @param  beforePointIndex
+	 *         The point index in the given path of this multipath. This
+	 *         value must be between 0 and GetPathSize(pathIndex), or -1 to
+	 *         insert the point at the end of the given path.
+	 *
+	 * @param  pt
+	 *         The point to be inserted.
 	 */
 	public void insertPoint(int pathIndex, int beforePointIndex, Point pt) {
 		m_impl.insertPoint(pathIndex, beforePointIndex, pt);
@@ -449,10 +478,11 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Removes a point at a given index.
 	 * 
-	 * @param pathIndex
-	 *            The path from whom to remove the point.
-	 * @param pointIndex
-	 *            The index of the point to be removed.
+	 * @param  pathIndex
+	 *         The path from whom to remove the point.
+	 *
+	 * @param  pointIndex
+	 *         The index of the point to be removed.
 	 */
 	public void removePoint(int pathIndex, int pointIndex) {
 		m_impl.removePoint(pathIndex, pointIndex);
@@ -470,8 +500,9 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Returns the number of vertices in a path.
 	 * 
-	 * @param pathIndex
-	 *            The index of the path to return the number of vertices from.
+	 * @param  pathIndex
+	 *         The index of the path to return the number of vertices from.
+	 *
 	 * @return The number of vertices in a path.
 	 */
 	public int getPathSize(int pathIndex) {
@@ -481,8 +512,9 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Returns the start index of the path.
 	 * 
-	 * @param pathIndex
-	 *            The index of the path to return the start index from.
+	 * @param  pathIndex
+	 *         The index of the path to return the start index from.
+	 *
 	 * @return The start index of the path.
 	 * 
 	 */
@@ -493,8 +525,9 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Returns the index immediately following the last index of the path.
 	 * 
-	 * @param pathIndex
-	 *            The index of the path to return the end index from.
+	 * @param  pathIndex
+	 *         The index of the path to return the end index from.
+	 *
 	 * @return Integer index after last index of path
 	 */
 	public int getPathEnd(int pathIndex) {
@@ -504,8 +537,9 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Returns the path index from the point index. This is O(log N) operation.
 	 * 
-	 * @param pointIndex
-	 *            The index of the point.
+	 * @param  pointIndex
+	 *         The index of the point.
+	 *
 	 * @return The index of the path.
 	 */
 	public int getPathIndexFromPointIndex(int pointIndex) {
@@ -515,10 +549,11 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Starts a new path at given coordinates.
 	 * 
-	 * @param x
-	 *            The X coordinate of the start point.
-	 * @param y
-	 *            The Y coordinate of the start point.
+	 * @param  x
+	 *         The X coordinate of the start point.
+	 *
+	 * @param  y
+	 *         The Y coordinate of the start point.
 	 */
 	public void startPath(double x, double y) {
 		m_impl.startPath(x, y);
@@ -535,8 +570,8 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Starts a new path at a point.
 	 * 
-	 * @param point
-	 *            The point to start the path from.
+	 * @param  point
+	 *         The point to start the path from.
 	 */
 	public void startPath(Point point) {
 		m_impl.startPath(point);
@@ -545,10 +580,11 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Adds a line segment from the last point to the given end coordinates.
 	 * 
-	 * @param x
-	 *            The X coordinate to the end point.
-	 * @param y
-	 *            The Y coordinate to the end point.
+	 * @param  x
+	 *         The X coordinate to the end point.
+	 *
+	 * @param  y
+	 *         The Y coordinate to the end point.
 	 */
 	public void lineTo(double x, double y) {
 		m_impl.lineTo(x, y);
@@ -565,9 +601,9 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Adds a Line Segment to the given end point.
 	 * 
-	 * @param endPoint
-	 *            The end point to which the newly added line segment should
-	 *            point.
+	 * @param  endPoint
+	 *         The end point to which the newly added line segment should
+	 *         point.
 	 */
 	public void lineTo(Point endPoint) {
 		m_impl.lineTo(endPoint);
@@ -626,9 +662,10 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	 * path. The first point is not duplicated to close the path. Polygons
 	 * always have all paths closed.
 	 * 
-	 * @param pathIndex
-	 *            The index of the path to check to be closed.
-	 * @return TRUE if the given path is closed (represents a Ring).
+	 * @param  pathIndex
+	 *         The index of the path to check to be closed.
+	 *
+	 * @return {@code true} if the given path is closed (represents a Ring).
 	 */
 	public boolean isClosedPath(int pathIndex) {
 		return m_impl.isClosedPath(pathIndex);
@@ -648,10 +685,11 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Adds a rectangular closed Path to the MultiPathImpl.
 	 * 
-	 * @param envSrc
-	 *            is the source rectangle.
-	 * @param bReverse
-	 *            Creates reversed path.
+	 * @param  envSrc
+	 *         is the source rectangle.
+	 *
+	 * @param  bReverse
+	 *         Creates reversed path.
 	 */
 	public void addEnvelope(Envelope2D envSrc, boolean bReverse) {
 		m_impl.addEnvelope(envSrc, bReverse);
@@ -660,10 +698,11 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	/**
 	 * Adds a rectangular closed path to this multipath.
 	 * 
-	 * @param envSrc
-	 *            Is the envelope to add to this mulitpath.
-	 * @param bReverse
-	 *            Adds the path reversed (counter-clockwise).
+	 * @param  envSrc
+	 *         Is the envelope to add to this mulitpath.
+	 *
+	 * @param  bReverse
+	 *         Adds the path reversed (counter-clockwise).
 	 */
 	public void addEnvelope(Envelope envSrc, boolean bReverse) {
 		m_impl.addEnvelope(envSrc, bReverse);
@@ -686,8 +725,9 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	 * at the vertex. Calling PreviousSegment () will return the segment that
 	 * starts at the previous vertex.
 	 * 
-	 * @param startVertexIndex
-	 *            The start index of the SegementIterator.
+	 * @param  startVertexIndex
+	 *         The start index of the SegementIterator.
+	 *
 	 * @return The SegmentIterator for this mulitpath at the specified vertex.
 	 */
 	public SegmentIterator querySegmentIteratorAtVertex(int startVertexIndex) {

@@ -35,31 +35,57 @@ public abstract class OperatorBuffer extends Operator {
 		return Type.Buffer;
 	}
 
-	/**
-	 *Creates a buffer around the input geometries
-	 *
-	 *@param inputGeometries The geometries to buffer.
-	 *@param sr The SpatialReference of the Geometries.
-	 *@param distances The buffer distances for the Geometries. If the size of the distances array is less than the number of geometries in the inputGeometries, the last distance value is used for the rest of geometries.
-	 *@param bUnion If True, the buffered geometries will be unioned, otherwise they wont be unioned.
-	 */
+    /**
+     * Creates a buffer around the input geometries
+     *
+     * @param  inputGeometries
+     *         The geometries to buffer.
+     *
+     * @param  sr
+     *         The SpatialReference of the Geometries.
+     *
+     * @param  distances
+     *         The buffer distances for the Geometries. If the size of the
+     *         distances array is less than the number of geometries in the
+     *         inputGeometries, the last distance value is used for the rest of
+     *         geometries.
+     *
+     * @param  bUnion
+     *         If True, the buffered geometries will be unioned, otherwise they
+     *         wont be unioned.
+     *
+     * @param  progressTracker
+     *         the callback used periodically by lengthy operations
+     *
+     * @return a cursor to a collection of buffered geometries
+     */
 	public abstract GeometryCursor execute(GeometryCursor inputGeometries,
-			SpatialReference sr, double[] distances, boolean bUnion,
-			ProgressTracker progressTracker);
+                   SpatialReference sr, double[] distances, boolean bUnion,
+                   ProgressTracker progressTracker);
 
-	/**
-	 *Creates a buffer around the input geometry
-	 *
-	 *@param inputGeometry The geometry to buffer.
-	 *@param sr The SpatialReference of the Geometry.
-	 *@param distance The buffer distance for the Geometry.
-	 */
-	public abstract Geometry execute(Geometry inputGeometry,
-			SpatialReference sr, double distance,
-			ProgressTracker progressTracker);
+    /**
+     * Creates a buffer around the input geometry
+     *
+     * @param  inputGeometry
+     *         The geometry to buffer.
+     *
+     * @param  sr
+     *         The SpatialReference of the Geometry.
+     *
+     * @param  distance
+     *         The buffer distance for the Geometry.
+     *
+     * @param  progressTracker
+     *         the callback used periodically by lengthy operations
+     *
+     * @return a buffered geometry from input
+     */
+    public abstract Geometry execute(Geometry inputGeometry,
+                                     SpatialReference sr, double distance,
+                                     ProgressTracker progressTracker);
 
-	public static OperatorBuffer local() {
-		return (OperatorBuffer) OperatorFactoryLocal.getInstance().getOperator(
-				Type.Buffer);
+    public static OperatorBuffer local() {
+        return (OperatorBuffer) OperatorFactoryLocal.getInstance().getOperator(
+                Type.Buffer);
 	}
 }

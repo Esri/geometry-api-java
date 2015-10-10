@@ -36,33 +36,61 @@ public abstract class OperatorProximity2D extends Operator {
 	}
 
 	/**
-	 *Returns the nearest coordinate on the Geometry to the given input point.
-	 *@param geom The input Geometry.
-	 *@param inputPoint The query point.
-	 *@param bTestPolygonInterior When true and geom is a polygon, the function will test if the input_point is inside of the polygon. Points that are
-	 *inside of the polygon have zero distance to the polygon. When false, the function will not check if the point is inside of the polygon,
-	 *but only determine proximity to the boundary.
-	 *@param bCalculateLeftRightSide The function will calculate left/right side of polylines or polygons when the parameter is True.
-	 *\return Returns the result of proximity calculation. See Proximity_2D_result.
+	 * Returns the nearest coordinate on the Geometry to the given input point.
+	 *
+	 * @param  geom
+	 *         The input Geometry.
+	 *
+	 * @param  inputPoint
+	 *         The query point.
+	 *
+	 * @param  bTestPolygonInterior
+	 *         When true and geom is a polygon, the function will test if
+	 *         the input_point is inside of the polygon. Points that are
+	 *         inside of the polygon have zero distance to the polygon.
+	 *         When false, the function will not check if the point is
+	 *         inside of the polygon but only determine proximity to the
+	 *         boundary.
+	 *
+	 * @param  bCalculateLeftRightSide
+	 *         The function will calculate left/right side of polylines or
+	 *         polygons when the parameter is True.
+	 *
+	 * @return the result of proximity calculation. See {@link Proximity2DResult}.
 	 */
 	public abstract Proximity2DResult getNearestCoordinate(Geometry geom,
 			Point inputPoint, boolean bTestPolygonInterior,
 			boolean bCalculateLeftRightSide);
 
 	/**
-	 *Returns the nearest coordinate on the Geometry to the given input point.
-	 *@param geom The input Geometry.
-	 *@param inputPoint The query point.
-	 *@param bTestPolygonInterior When true and geom is a polygon, the function will test if the input_point is inside of the polygon. Points that are
-	 *inside of the polygon have zero distance to the polygon. When false, the function will not check if the point is inside of the polygon,
-	 *but only determine proximity to the boundary.
-	 *\return Returns the result of proximity calculation. See Proximity_2D_result.
+	 * Returns the nearest coordinate on the Geometry to the given input point.
+	 *
+	 * @param  geom
+	 *         The input Geometry.
+	 *
+	 * @param  inputPoint
+	 *         The query point.
+	 *
+	 * @param  bTestPolygonInterior
+	 *         When true and geom is a polygon, the function will test if
+	 *         the input_point is inside of the polygon. Points that are
+	 *         inside of the polygon have zero distance to the polygon. When
+	 *         false, the function will not check if the point is inside of
+	 *         the polygon, but only determine proximity to the boundary.
+	 *
+	 * @return the result of proximity calculation. See Proximity_2D_result.
 	 */
 	public abstract Proximity2DResult getNearestCoordinate(Geometry geom,
 			Point inputPoint, boolean bTestPolygonInterior);
 
 	/**
-	 * Returns the nearest vertex of the Geometry to the given input point.
+	 * @param  geom
+	 *         The input Geometry.
+	 *
+	 * @param  inputPoint
+	 *         The query point.
+	 *
+	 * @return the nearest vertex of the Geometry to the given input point.
 	 */
 	public abstract Proximity2DResult getNearestVertex(Geometry geom,
 			Point inputPoint);
@@ -71,15 +99,19 @@ public abstract class OperatorProximity2D extends Operator {
 	 * Returns vertices of the Geometry that are closer to the given point than
 	 * the given radius.
 	 * 
-	 * @param geom
-	 *            The input Geometry.
-	 * @param inputPoint
-	 *            The query point.
-	 * @param searchRadius
-	 *            The maximum distance to the query point of the vertices.
-	 * @param maxVertexCountToReturn
-	 *            The maximum vertex count to return. The function returns no
-	 *            more than this number of vertices.
+	 * @param  geom
+	 *         The input Geometry.
+	 *
+	 * @param  inputPoint
+	 *         The query point.
+	 *
+	 * @param  searchRadius
+	 *         The maximum distance to the query point of the vertices.
+	 *
+	 * @param  maxVertexCountToReturn
+	 *         The maximum vertex count to return. The function returns no
+	 *         more than this number of vertices.
+	 *
 	 * @return The array of vertices that are in the given search radius to the
 	 *         point. The array is sorted by distance to the queryPoint with the
 	 *         closest point first. When there are more than the
