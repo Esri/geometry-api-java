@@ -107,7 +107,6 @@ public class TestClip extends TestCase {
 		}
 	}
 
-	@Test
 	public static Polygon makePolygon() {
 		Polygon poly = new Polygon();
 		poly.startPath(0, 0);
@@ -117,7 +116,6 @@ public class TestClip extends TestCase {
 		return poly;
 	}
 
-	@Test
 	public static Polyline makePolyline() {
 		Polyline poly = new Polyline();
 		poly.startPath(0, 0);
@@ -185,7 +183,6 @@ public class TestClip extends TestCase {
 		// ((MultiPathImpl::SPtr)clippedPolygon._GetImpl()).SaveToTextFileDbg("c:\\temp\\test_ArcObjects_failure_CR196492.txt");
 	}
 
-	@Test
 	public static Polyline makePolylineCR() {
 		Polyline polyline = new Polyline();
 
@@ -200,7 +197,6 @@ public class TestClip extends TestCase {
 		return polyline;
 	}
 
-	@Test
 	public static MultiPoint makeMultiPoint() {
 		MultiPoint mpoint = new MultiPoint();
 
@@ -223,7 +219,6 @@ public class TestClip extends TestCase {
 		return mpoint;
 	}
 
-	@Test
 	public static Point makePoint() {
 		Point point = new Point();
 
