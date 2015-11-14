@@ -222,7 +222,7 @@ final class WktParser {
 		m_function_stack.removeLast();
 
 		if (m_start_token + 5 <= m_wkt_string.length()
-				&& m_wkt_string.regionMatches(true, m_start_token, "points", 0,
+				&& m_wkt_string.regionMatches(true, m_start_token, "point", 0,
 						5)) {
 			m_end_token = m_start_token + 5;
 			m_current_token_type = WktToken.point;
@@ -573,7 +573,8 @@ final class WktParser {
 	}
 
 	private boolean nan_() {
-		if (m_wkt_string.regionMatches(true, m_start_token, "nan", 0, 3)) {
+		if (m_start_token + 3 <= m_wkt_string.length()
+						&& m_wkt_string.regionMatches(true, m_start_token, "nan", 0, 3)) {
 			m_end_token += 3;
 			m_b_nan = true;
 			return true;
@@ -669,7 +670,8 @@ final class WktParser {
 	}
 
 	private boolean empty_() {
-		if (m_wkt_string.regionMatches(true, m_start_token, "empty", 0, 5)) {
+		if (m_start_token + 5 <= m_wkt_string.length()
+						&& m_wkt_string.regionMatches(true, m_start_token, "empty", 0, 5)) {
 			m_end_token += 5;
 			m_current_token_type = WktToken.empty;
 			return true;
