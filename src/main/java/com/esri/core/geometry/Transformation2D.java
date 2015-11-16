@@ -456,9 +456,9 @@ public final class Transformation2D {
 	 *            The tolerance value.
 	 */
 	public boolean isIdentity(double tol) {
-		Point2D pt = Point2D.construct(0., 1.);
+		Point2D pt = Point2D.construct(0.0, 1.0);
 		transform(pt, pt);
-		pt.sub(Point2D.construct(0., 1.));
+		pt.sub(Point2D.construct(0.0, 1.0));
 		if (pt.sqrLength() > tol * tol)
 			return false;
 
@@ -467,9 +467,9 @@ public final class Transformation2D {
 		if (pt.sqrLength() > tol * tol)
 			return false;
 
-		pt.setCoords(1., 0.);
+		pt.setCoords(1.0, 0.0);
 		transform(pt, pt);
-		pt.sub(Point2D.construct(1., 0));
+		pt.sub(Point2D.construct(1.0, 0));
 		return pt.sqrLength() <= tol * tol;
 	}
 
@@ -510,12 +510,12 @@ public final class Transformation2D {
 	 *            The tolerance value.
 	 */
 	public boolean isShift(double tol) {
-		Point2D pt = transformWithoutShift(Point2D.construct(0., 1.));
+		Point2D pt = transformWithoutShift(Point2D.construct(0.0, 1.0));
 		pt.y -= 1.0;
 		if (pt.sqrLength() > tol * tol)
 			return false;
 
-		pt = transformWithoutShift(Point2D.construct(1., 0.));
+		pt = transformWithoutShift(Point2D.construct(1.0, 0.0));
 		pt.x -= 1.0;
 		return pt.sqrLength() <= tol * tol;
 	}
