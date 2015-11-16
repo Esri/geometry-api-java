@@ -7,6 +7,7 @@ import org.junit.Test;
 
 public class TestWktParser extends TestCase {
 
+	@Test
 	public void testGeometryCollection() {
 		String s = "   geometrycollection    emPty ";
 		WktParser wktParser = new WktParser();
@@ -136,6 +137,7 @@ public class TestWktParser extends TestCase {
 		assertTrue(currentToken == WktParser.WktToken.not_available);
 	}
 
+	@Test
 	public void testMultiPolygon() {
 		String s = "   MultIPolYgOn    emPty ";
 		WktParser wktParser = new WktParser();
@@ -413,6 +415,7 @@ public class TestWktParser extends TestCase {
 		assertTrue(currentToken == WktParser.WktToken.not_available);
 	}
 
+	@Test
 	public void testMultiLineString() {
 		String s = "   MultiLineString    emPty ";
 		WktParser wktParser = new WktParser();
@@ -623,6 +626,7 @@ public class TestWktParser extends TestCase {
 		assertTrue(currentToken == WktParser.WktToken.not_available);
 	}
 
+	@Test
 	public void testMultiPoint() {
 		String s = "   MultipoInt    emPty ";
 		WktParser wktParser = new WktParser();
@@ -758,6 +762,7 @@ public class TestWktParser extends TestCase {
 		assertTrue(currentToken == WktParser.WktToken.not_available);
 	}
 
+	@Test
 	public void testPolygon() {
 		String s = "   Polygon    emPty ";
 		WktParser wktParser = new WktParser();
@@ -968,6 +973,7 @@ public class TestWktParser extends TestCase {
 		assertTrue(currentToken == WktParser.WktToken.not_available);
 	}
 
+	@Test
 	public void testLineString() {
 		String s = "   LineString    emPty ";
 		WktParser wktParser = new WktParser();
@@ -1022,6 +1028,7 @@ public class TestWktParser extends TestCase {
 		assertTrue(currentToken == WktParser.WktToken.not_available);
 	}
 
+	@Test
 	public void testPoint() {
 		String s = "   PoInT    emPty ";
 		WktParser wktParser = new WktParser();
