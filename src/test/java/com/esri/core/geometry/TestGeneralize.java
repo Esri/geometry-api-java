@@ -105,10 +105,15 @@ public class TestGeneralize extends TestCase {
 			int pc = ((MultiPath) geom).getPointCount();
 			assertTrue(pc == 4);
 
-			Geometry large_dev = OperatorGeneralize.local().execute(
+			Geometry large_dev1 = OperatorGeneralize.local().execute(
 					densified_geom, 40, true, null);
-			int pc1 = ((MultiPath) large_dev).getPointCount();
+			int pc1 = ((MultiPath) large_dev1).getPointCount();
 			assertTrue(pc1 == 0);
+			
+			Geometry large_dev2 = OperatorGeneralize.local().execute(
+					densified_geom, 40, false, null);
+			int pc2 = ((MultiPath) large_dev2).getPointCount();
+			assertTrue(pc2 == 3);
 		}
 	}
 }
