@@ -64,8 +64,6 @@ final class OperatorGeneralizeCursor extends GeometryCursor {
 		if (geom.isEmpty())
 			return geom;
 		MultiPath mp = (MultiPath) geom;
-		if (mp == null)
-			throw GeometryException.GeometryInternalError();
 		MultiPath dstmp = (MultiPath) geom.createInstance();
 		Line line = new Line();
 		for (int ipath = 0, npath = mp.getPathCount(); ipath < npath; ipath++) {
@@ -113,19 +111,23 @@ final class OperatorGeneralizeCursor extends GeometryCursor {
 		if (!bClosed)
 			resultStack.add(stack.get(0));
 
-		if (resultStack.size() == stack.size()) {
+		int rs_size = resultStack.size();
+		int path_size = mpsrc.getPathSize(ipath);
+		if (rs_size == path_size && rs_size == stack.size()) {
 			mpdst.addPath(mpsrc, ipath, true);
 		} else {
-			if (resultStack.size() >= 2) {
-				if (m_bRemoveDegenerateParts && resultStack.size() == 2) {
-					if (bClosed)
+			if (resultStack.size() > 0) {
+				if (m_bRemoveDegenerateParts && resultStack.size() <= 2) {
+					if (bClosed || resultStack.size() == 1)
 						return;
+
 					double d = Point2D.distance(
 							mpsrc.getXY(resultStack.get(0)),
 							mpsrc.getXY(resultStack.get(1)));
 					if (d <= m_maxDeviation)
 						return;
 				}
+
 				Point point = new Point();
 				for (int i = 0, n = resultStack.size(); i < n; i++) {
 					mpsrc.getPointByVal(resultStack.get(i), point);
@@ -136,8 +138,9 @@ final class OperatorGeneralizeCursor extends GeometryCursor {
 				}
 
 				if (bClosed) {
-					if (!m_bRemoveDegenerateParts && resultStack.size() == 2)
+					for (int i = resultStack.size(); i < 3; i++)
 						mpdst.lineTo(point);
+
 					mpdst.closePathWithLine();
 				}
 			}
