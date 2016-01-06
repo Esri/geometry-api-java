@@ -257,7 +257,7 @@ final class GeoDist {
 		/* top of the long-line loop (kind = 1) */
 
 		q_continue_looping = true;
-		while (q_continue_looping == true) {
+		while (q_continue_looping && it < 100) {
 			it = it + 1;
 
 			if (kind == 1) {
