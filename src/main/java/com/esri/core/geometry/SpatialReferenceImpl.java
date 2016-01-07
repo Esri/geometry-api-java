@@ -27,7 +27,6 @@ package com.esri.core.geometry;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
-
 import java.lang.ref.*;
 
 import com.esri.core.geometry.Envelope2D;
@@ -230,8 +229,8 @@ class SpatialReferenceImpl extends SpatialReference {
 		double e2 = 0.0066943799901413165; // ellipticity for WGS_1984
 		double rpu = Math.PI / 180.0;
 		PeDouble answer = new PeDouble();
-		GeoDist.geodesic_distance_ngs(a, e2, ptFrom.getXY().x * rpu,
-				ptFrom.getXY().y * rpu, ptTo.getXY().x * rpu, ptTo.getXY().y
+		GeoDist.geodesic_distance_ngs(a, e2, ptFrom.getX() * rpu,
+				ptFrom.getY() * rpu, ptTo.getX() * rpu, ptTo.getY()
 						* rpu, answer, null, null);
 		return answer.val;
 	}
