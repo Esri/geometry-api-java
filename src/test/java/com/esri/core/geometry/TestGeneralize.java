@@ -1,6 +1,7 @@
 package com.esri.core.geometry;
 
 import junit.framework.TestCase;
+
 import org.junit.Test;
 
 public class TestGeneralize extends TestCase {
@@ -89,5 +90,30 @@ public class TestGeneralize extends TestCase {
 		assertTrue(points.length == 2);
 		assertTrue(points[0].x == 0 && points[0].y == 0);
 		assertTrue(points[1].x == 0 && points[1].y == 10);
+	}
+
+	@Test
+	public static void testLargeDeviation() {
+		{
+			Polygon input_polygon = new Polygon();
+			input_polygon
+					.addEnvelope(Envelope2D.construct(0, 0, 20, 10), false);
+			Geometry densified_geom = OperatorDensifyByLength.local().execute(
+					input_polygon, 1, null);
+			Geometry geom = OperatorGeneralize.local().execute(densified_geom,
+					1, true, null);
+			int pc = ((MultiPath) geom).getPointCount();
+			assertTrue(pc == 4);
+
+			Geometry large_dev1 = OperatorGeneralize.local().execute(
+					densified_geom, 40, true, null);
+			int pc1 = ((MultiPath) large_dev1).getPointCount();
+			assertTrue(pc1 == 0);
+			
+			Geometry large_dev2 = OperatorGeneralize.local().execute(
+					densified_geom, 40, false, null);
+			int pc2 = ((MultiPath) large_dev2).getPointCount();
+			assertTrue(pc2 == 3);
+		}
 	}
 }
