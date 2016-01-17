@@ -14,7 +14,7 @@ import java.nio.ByteBuffer;
 
 public class OGCLineString extends OGCCurve {
 	/**
-	 * The number of Points in this LineString.
+	 * @return the number of Points in this LineString.
 	 */
 	public int numPoints() {
 		if (multiPath.isEmpty())
@@ -38,8 +38,10 @@ public class OGCLineString extends OGCCurve {
 	}
 
 	/**
-	 * Returns the specified Point N in this LineString.
-	 * @param n The 0 based index of the Point.
+	 * @param  n
+	 *         The 0 based index of the Point.
+	 *
+	 * @return the specified Point N in this LineString.
 	 */
 	public OGCPoint pointN(int n) {
 		int nn;

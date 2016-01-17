@@ -40,7 +40,13 @@ public abstract class OperatorExportToJson extends Operator {
     /**
      * Performs the ExportToJson operation
      *
-     * @return Returns a JsonCursor.
+     * @param  spatialReference
+     *         the spatial reference of the input geometry
+     *
+     * @param  geometryCursor
+     *         the cursor to geometries for export
+     *
+     * @return a JsonCursor.
      */
     public abstract JsonCursor execute(SpatialReference spatialReference,
             GeometryCursor geometryCursor);
@@ -48,7 +54,13 @@ public abstract class OperatorExportToJson extends Operator {
     /**
      * Performs the ExportToJson operation
      *
-     * @return Returns a String.
+     * @param  spatialReference
+     *         the spatial reference of the input geometry
+     *
+     * @param  geometry
+     *         the geometry to export
+     *
+     * @return a JSON String.
      */
     public abstract String execute(SpatialReference spatialReference,
             Geometry geometry);
@@ -56,7 +68,16 @@ public abstract class OperatorExportToJson extends Operator {
     /**
      * Performs the ExportToJson operation
      *
-     * @return Returns a String.
+     * @param spatialReference
+     *         the spatial reference of the input geometry
+     *
+     * @param geometry
+     *         the geometry to export
+     *
+     * @param exportProperties
+     *         the export properties
+     *
+     * @return a JSON String.
      */
     public abstract String execute(SpatialReference spatialReference,
             Geometry geometry, Map<String, Object> exportProperties);

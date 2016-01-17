@@ -49,7 +49,7 @@ public class Proximity2DResult {
 	}
 
 	/**
-	 * Returns TRUE if the Proximity2DResult is empty. This only happens if the
+	 * @return {@code true} if the Proximity2DResult is empty. This only happens if the
 	 * Geometry passed to the Proximity operator is empty.
 	 */
 	public boolean isEmpty() {
@@ -57,7 +57,7 @@ public class Proximity2DResult {
 	}
 
 	/**
-	 * Returns the closest coordinate for
+	 * @return the closest coordinate for
 	 * OperatorProximity2D.getNearestCoordinate or the vertex coordinates for
 	 * the OperatorProximity2D.getNearestVertex and
 	 * OperatorProximity2D.getNearestVertices.
@@ -70,7 +70,7 @@ public class Proximity2DResult {
 	}
 
 	/**
-	 * Returns the vertex index. For OperatorProximity2D.getNearestCoordinate
+	 * @return the vertex index. For OperatorProximity2D.getNearestCoordinate
 	 * the behavior is: When the input is a polygon or an envelope and the
 	 * bTestPolygonInterior is true, the value is zero. When the input is a
 	 * polygon or an Envelope and the bTestPolygonInterior is false, the value
@@ -87,7 +87,7 @@ public class Proximity2DResult {
 	}
 
 	/**
-	 * Returns the distance to the closest vertex or coordinate.
+	 * @return the distance to the closest vertex or coordinate.
 	 */
 	public double getDistance() {
 		if (isEmpty())
@@ -97,7 +97,7 @@ public class Proximity2DResult {
 	}
 
 	/**
-	 *Returns true if the closest coordinate is to the right of the MultiPath.
+	 * @return {@code true} if the closest coordinate is to the right of the MultiPath.
 	 */
 	public boolean isRightSide() {
 		return (m_info & (int) OperatorProximity2D.ProxResultInfo.rightSide) != 0;

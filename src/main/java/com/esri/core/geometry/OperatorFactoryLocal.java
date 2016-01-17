@@ -137,7 +137,7 @@ public class OperatorFactoryLocal extends OperatorFactory {
 
 
 	/**
-	 *Returns a reference to the singleton.
+	 * @return a reference to the singleton.
 	 */
 	public static OperatorFactoryLocal getInstance() {
 		return INSTANCE;

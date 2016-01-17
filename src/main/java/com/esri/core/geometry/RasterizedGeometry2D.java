@@ -42,11 +42,26 @@ public abstract class RasterizedGeometry2D {
 
 	/**
 	 * Test a point against the RasterizedGeometry
+	 *
+	 * @param  x
+	 *         the X coordinate of the position under test
+	 *
+	 * @param  y
+	 *         the Y coordinate of the position under test
+	 *
+	 * @return the HitType signifying if the geometry is inside, outside or on
+	 *         the border
 	 */
 	public abstract HitType queryPointInGeometry(double x, double y);
 
 	/**
 	 * Test an envelope against the RasterizedGeometry.
+	 *
+	 * @param  env
+	 *         the envelope under test
+	 *
+	 * @return the HitType signifying if the geometry is inside, outside or on
+	 *         the border
 	 */
 	public abstract HitType queryEnvelopeInGeometry(Envelope2D env);
 
@@ -54,16 +69,20 @@ public abstract class RasterizedGeometry2D {
 	 * Creates a rasterized geometry from a given Geometry.
 	 * 
 	 * @param geom
-	 *            The input geometry to rasterize. It has to be a MultiVertexGeometry instance.
+	 *        The input geometry to rasterize. It has to be a MultiVertexGeometry instance.
+	 *
 	 * @param toleranceXY
-	 *            The tolerance of the rasterization. Raster pixels that are
-	 *            closer than given tolerance to the Geometry will be set.
-	 * @param rasterSizeBytes
-	 *            The max size of the raster in bytes. The raster has size of
-	 *            rasterSize x rasterSize. Polygons are rasterized into 2 bpp
-	 *            (bits per pixel) rasters while other geometries are rasterized
-	 *            into 1 bpp rasters. 32x32 pixel raster for a polygon would
-	 *            take 256 bytes of memory
+	 *        The tolerance of the rasterization. Raster pixels that are
+	 *        closer than given tolerance to the Geometry will be set.
+	 *
+	 * @param  rasterSizeBytes
+	 *         The max size of the raster in bytes. The raster has size of
+	 *         rasterSize x rasterSize. Polygons are rasterized into 2 bpp
+	 *         (bits per pixel) rasters while other geometries are rasterized
+	 *         into 1 bpp rasters. 32x32 pixel raster for a polygon would
+	 *         take 256 bytes of memory
+	 *
+	 * @return a rasterized geometry from a given Geometry.
 	 */
 	public static RasterizedGeometry2D create(Geometry geom,
 			double toleranceXY, int rasterSizeBytes) {
@@ -109,6 +128,8 @@ public abstract class RasterizedGeometry2D {
 	/**
 	 * Checks whether the RasterizedGeometry2D accelerator can be used with the
 	 * given geometry.
+	 *
+	 * @return {@code true} if the geometry can use the accelerator
 	 */
 	static boolean canUseAccelerator(Geometry geom) {
 		if (geom.isEmpty()
@@ -119,20 +140,22 @@ public abstract class RasterizedGeometry2D {
 	}
 
 	/**
-	 * Returns the tolerance for which the rasterized Geometry has been built.
+	 * @return the tolerance for which the rasterized Geometry has been built.
 	 */
 	public abstract double getToleranceXY();
 
 	/**
-	 * Returns raster size in bytes
+	 * @return raster size in bytes
 	 */
 	public abstract int getRasterSize();
 
 	/**
 	 * Dumps the raster to a bmp file for debug purposes.
 	 * 
-	 * @param fileName
-	 * @return true if success, false otherwise.
+	 * @param  fileName
+	 *         to save debug bitmap file
+	 *
+	 * @return {@code true} if success, false otherwise.
 	 */
 	public abstract boolean dbgSaveToBitmap(String fileName);
 

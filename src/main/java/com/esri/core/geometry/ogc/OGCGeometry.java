@@ -143,7 +143,7 @@ public abstract class OGCGeometry {
 	 * For non-simple geometries, it terminates immediately when the first issue
 	 * is encountered.
 	 * 
-	 * @return True if geometry is simple and false otherwise.
+	 * @return {@code true} if geometry is simple and false otherwise.
 	 * 
 	 * Note: If isSimple is true, then isSimpleRelaxed is true too. 
 	 */
@@ -174,6 +174,9 @@ public abstract class OGCGeometry {
 	}
 	/**
 	 * Makes a simple geometry for Geodatabase.
+	 *
+	 * @param forceProcessing true if the Geometry should be simplified
+	 *                        regardless of the internal IsKnownSimple flag.
 	 * 
 	 * @return Returns simplified geometry.
 	 * 
@@ -211,8 +214,11 @@ public abstract class OGCGeometry {
 	abstract public OGCGeometry boundary();
 
 	/**
-	 * OGC equals
-	 * 
+	 * @param  another
+	 *         The {@code OGCGeometry} to compare this against
+	 *
+	 * @return {@code true} if the given OGC geometry is equivalent to this
+	 *         OGC geometry, {@code false} otherwise
 	 */
 	public boolean equals(OGCGeometry another) {
 		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
@@ -437,8 +443,8 @@ public abstract class OGCGeometry {
 	/**
 	 * Create an OGCGeometry instance from the GeometryCursor.
 	 * 
-	 * @param gc
-	 * @param sr
+	 * @param gc cursor to a geometry
+	 * @param sr spatial reference of the given geometry
 	 * @return Geometry instance created from the geometry cursor.
 	 */
 	public static OGCGeometry createFromEsriCursor(GeometryCursor gc,

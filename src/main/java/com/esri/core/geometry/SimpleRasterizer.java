@@ -62,6 +62,15 @@ public class SimpleRasterizer {
 	
 	/**
 	 * Sets up the rasterizer.
+	 *
+	 * @param  height
+	 *         of raster TODO
+	 *
+	 * @param  width
+	 *         of raster TODO
+	 *
+	 * @param  callback
+	 *         executed for each scan of raster data
 	 */
 	public void setup(int width, int height, ScanCallback callback)
 	{
@@ -96,6 +105,24 @@ public class SimpleRasterizer {
 	
 	/**
 	 * Adds edges of a triangle.
+	 *
+	 * @param  x1
+	 *         first coordinate X value
+	 *
+	 * @param  y1
+	 *         first coordinate Y value
+	 *
+	 * @param  x2
+	 *         second coordinate X value
+	 *
+	 * @param  y2
+	 *         second coordinate Y value
+	 *
+	 * @param  x3
+	 *         third coordinate X value
+	 *
+	 * @param  y3
+	 *         third coordinate Y value
 	 */
 	public final void addTriangle(double x1, double y1, double x2, double y2, double x3, double y3) {
 		addEdge(x1, y1, x2, y2);
@@ -170,11 +197,19 @@ public class SimpleRasterizer {
 	}
 	
 	/**
-	 * Add a single edge. 
-	 * @param x1
-	 * @param y1
-	 * @param x2
-	 * @param y2
+	 * Add a single edge.
+	 *
+	 * @param  x1
+	 *         first coordinate X value
+	 *
+	 * @param  y1
+	 *         first coordinate Y value
+	 *
+	 * @param  x2
+	 *         second coordinate X value
+	 *
+	 * @param  y2
+	 *         second coordinate X value
 	 */
 	public final void addEdge(double x1, double y1, double x2, double y2) {
 		if (y1 == y2)

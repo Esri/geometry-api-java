@@ -169,19 +169,19 @@ public class VertexDescription {
 	}
 
 	/**
-	 * Returns the attribute count of this description. The value is always
-	 * greater or equal to 1. The first attribute is always a POSITION.
+	 * @return the attribute count of this description. The value is always
+	 *         greater or equal to 1. The first attribute is always a POSITION.
 	 */
 	public final int getAttributeCount() {
 		return m_attributeCount;
 	}
 
 	/**
-	 * Returns the semantics of the given attribute.
-	 * 
-	 * @param attributeIndex
-	 *            The index of the attribute in the description. Max value is
-	 *            GetAttributeCount() - 1.
+	 * @param  attributeIndex
+	 *         The index of the attribute in the description. Max value is
+	 *         GetAttributeCount() - 1.
+	 *
+	 * @return the semantics of the given attribute.
 	 */
 	public final int getSemantics(int attributeIndex) {
 		if (attributeIndex < 0 || attributeIndex > m_attributeCount)
@@ -192,46 +192,48 @@ public class VertexDescription {
 
 	/**
 	 * Returns the index the given attribute in the vertex description.
-	 * 
-	 * @param semantics
-	 * @return Returns the attribute index or -1 of the attribute does not exist
+	 *
+	 * @param  semantics
+	 *         The semantics of the attribute.
+	 *
+	 * @return The attribute index or -1 of the attribute does not exist
 	 */
 	public final int getAttributeIndex(int semantics) {
 		return m_semanticsToIndexMap[semantics];
 	}
 
 	/**
-	 * Returns the interpolation type for the attribute.
-	 * 
-	 * @param semantics
-	 *            The semantics of the attribute.
+	 * @param  semantics
+	 *         The semantics of the attribute.
+	 *
+	 * @return The interpolation type for the attribute.
 	 */
 	static int getInterpolation(int semantics) {
 		return _interpolation[semantics];
 	}
 
 	/**
-	 * Returns the persistence type for the attribute.
-	 * 
-	 * @param semantics
-	 *            The semantics of the attribute.
+	 * @param  semantics
+	 *         The semantics of the attribute.
+	 *
+	 * @return the persistence type for the attribute.
 	 */
 	static int getPersistence(int semantics) {
 		return _persistence[semantics];
 	}
 
 	/**
-	 * Returns the size of the persistence type in bytes.
-	 * 
-	 * @param persistence
-	 *            The persistence type to query.
+	 * @param  persistence
+	 *         The persistence type to query.
+	 *
+	 * @return The size of the persistence type in bytes.
 	 */
 	static int getPersistenceSize(int persistence) {
 		return _persistencesize[persistence];
 	}
 
 	/**
-	 * Returns the size of the semantics in bytes.
+	 * @return The size of the semantics in bytes.
 	 */
 	static int getPersistenceSizeSemantics(int semantics) {
 		return getPersistenceSize(getPersistence(semantics))
@@ -242,61 +244,67 @@ public class VertexDescription {
 	 * Returns the number of the components of the given semantics. For example,
 	 * it returns 2 for the POSITION.
 	 * 
-	 * @param semantics
-	 *            The semantics of the attribute.
+	 * @param  semantics
+	 *         The semantics of the attribute.
+	 *
+	 * @return the number of the components of the given semantics
 	 */
 	public static int getComponentCount(int semantics) {
 		return _components[semantics];
 	}
 
 	/**
-	 * Returns True for integer persistence type.
+	 * @return {@code true} for integer persistence type.
 	 */
 	static boolean isIntegerPersistence(int persistence) {
 		return persistence < Persistence.enumInt32;
 	}
 
 	/**
-	 * Returns True for integer semantics type.
+	 * @return {@code true} for integer semantics type.
 	 */
 	static boolean isIntegerSemantics(int semantics) {
 		return isIntegerPersistence(getPersistence(semantics));
 	}
 
 	/**
-	 * Returns True if the attribute with the given name and given set exists.
-	 * 
-	 * @param semantics
-	 *            The semantics of the attribute.
+	 * @param  semantics
+	 *         The semantics of the attribute.
+	 *
+	 * @return {@code true} if the attribute with the given name and given set
+	 *         exists.
 	 */
 	public boolean hasAttribute(int semantics) {
 		return m_semanticsToIndexMap[semantics] >= 0;
 	}
 
 	/**
-	 * Returns True, if the vertex has Z attribute.
+	 * @return {@code true} if the vertex has Z attribute.
 	 */
 	public boolean hasZ() {
 		return hasAttribute(Semantics.Z);
 	}
 
 	/**
-	 * Returns True, if the vertex has M attribute.
+	 * @return {@code true} if the vertex has M attribute.
 	 */
 	public boolean hasM() {
 		return hasAttribute(Semantics.M);
 	}
 
 	/**
-	 * Returns True, if the vertex has ID attribute.
+	 * @return {@code true} if the vertex has ID attribute.
 	 */
 	public boolean hasID() {
 		return hasAttribute(Semantics.ID);
 	}
 
 	/**
-	 * Returns default value for each ordinate of the vertex attribute with
-	 * given semantics.
+	 * @param  semantics
+	 *         the semantics value to obtain default values for
+	 *
+	 * @return default value for each ordinate of the vertex attribute with
+	 *         given semantics.
 	 */
 	public static double getDefaultValue(int semantics) {
 		return _defaultValues[semantics];
@@ -307,7 +315,7 @@ public class VertexDescription {
 	}
 
 	/**
-	 * Returns the total component count.
+	 * @return the total component count.
 	 */
 	public int getTotalComponentCount() {
 		return m_total_component_count;
@@ -317,6 +325,14 @@ public class VertexDescription {
 	 * Checks if the given value is the default one. The simple equality test
 	 * with GetDefaultValue does not work due to the use of NaNs as default
 	 * value for some parameters.
+	 *
+	 * @param  semantics
+	 *         the semantics value to obtain default values for
+	 *
+	 * @param  v
+	 *         the value under test
+	 *
+	 * @return {@code true} if the given value is equal to default value
 	 */
 	public static boolean isDefaultValue(int semantics, double v) {
 		return NumberUtils.doubleToInt64Bits(_defaultValues[semantics]) == NumberUtils
@@ -346,9 +362,9 @@ public class VertexDescription {
 	}
 
 	/**
-	 * 
-	 * Returns a packed array of double representation of all ordinates of
-	 * attributes of a point, i.e.: X, Y, Z, ID, TEXTURE2D.u, TEXTURE2D.v
+	 * @return a packed array of double representation of all ordinates of
+	 *         attributes of a point, i.e.: X, Y, Z, ID, TEXTURE2D.u,
+	 *         TEXTURE2D.v
 	 */
 	double[] _getDefaultPointAttributes() {
 		return m_defaultPointAttributes;
@@ -364,6 +380,11 @@ public class VertexDescription {
 	 * Returns an offset to the first ordinate of the given attribute. This
 	 * method is used for the cases when one wants to have a packed array of
 	 * ordinates of all attributes, i.e.: X, Y, Z, ID, TEXTURE2D.u, TEXTURE2D.v
+	 *
+	 * @param  attributeIndex
+	 *         the required attribute index
+	 *
+	 * @return an offset to the first ordinate of the given attribute
 	 */
 	int _getPointAttributeOffset(int attributeIndex) {
 		return m_pointAttributeOffsets[attributeIndex];

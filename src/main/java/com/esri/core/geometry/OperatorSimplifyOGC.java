@@ -36,17 +36,34 @@ public abstract class OperatorSimplifyOGC extends Operator {
 	}
 
 	/**
-	 *Tests if the Geometry is simple for OGC specification.
-	 *@param geom The Geometry to be tested.
-	 *@param spatialRef Spatial reference to obtain the tolerance from. When null, the tolerance
-	 *will be derived individually from geometry bounds.
-	 *@param bForceTest When True, the Geometry will be tested regardless of the IsKnownSimple flag.
-	 *@param progressTracker Allows cancellation of a long operation. Can be null.
+	 * Tests if the Geometry is simple for OGC specification.
 	 *
-	 *Note: As other methods in the OperatorSimplifyOGC, this method uses tolerance from the spatial reference.
-	 *Points that are within the tolerance are considered equal.
+	 * Note: As other methods in the OperatorSimplifyOGC, this method uses
+	 * tolerance from the spatial reference.
+	 * Points that are within the tolerance are considered equal.
 	 *
-	 *When this method returns true, the OperatorSimplify.isSimpleAsFeature will return true also (this does not necessary happen the other way around). 
+	 * When this method returns true, the OperatorSimplify.isSimpleAsFeature
+	 * will return true also (this does not necessary happen the other way
+	 * around).
+	 *
+	 * @param  geom
+	 *         The Geometry to be tested.
+	 *
+	 * @param  spatialRef
+	 *         Spatial reference to obtain the tolerance from. When null, the tolerance
+	 *         will be derived individually from geometry bounds.
+	 *
+	 * @param  bForceTest
+	 *         When True, the Geometry will be tested regardless of the
+	 *         IsKnownSimple flag.
+	 *
+	 * @param  result
+	 *         The non simple result TODO
+	 *
+	 * @param  progressTracker
+	 *         Allows cancellation of a long operation. Can be null.
+	 *
+	 * @return {@code true} if the Geometry is simple according to the OGC specification.
 	 */
 	public abstract boolean isSimpleOGC(Geometry geom,
 			SpatialReference spatialRef, boolean bForceTest,
@@ -54,14 +71,25 @@ public abstract class OperatorSimplifyOGC extends Operator {
 
 	/**
 	 * Processes geometry cursor to ensure its geometries are simple for OGC specification.
-	 * @param geoms Geometries to be simplified.
-	 * @param sr Spatial reference to obtain the tolerance from. When null, the tolerance
-	 * will be derived individually for each geometry from its bounds.
-	 * @param bForceSimplify When True, the Geometry will be simplified regardless of the internal IsKnownSimple flag.
-	 * @param progressTracker Allows cancellation of a long operation. Can be null.
-	 * @return Returns a GeometryCursor of simplified geometries.
-	 * 
+	 *
 	 * The isSimpleOGC returns true after this call.
+	 *
+	 * @param  geoms
+	 *         Geometries to be simplified.
+	 *
+	 * @param  sr
+	 *         Spatial reference to obtain the tolerance from. When null, the
+	 *         tolerance will be derived individually for each geometry from
+	 *         its bounds.
+	 *
+	 * @param  bForceSimplify
+	 *         When True, the Geometry will be simplified regardless of the
+	 *         internal IsKnownSimple flag.
+	 *
+	 * @param  progressTracker
+	 *         Allows cancellation of a long operation. Can be null.
+	 *
+	 * @return a GeometryCursor of simplified geometries.
 	 */
 	public abstract GeometryCursor execute(GeometryCursor geoms,
 			SpatialReference sr, boolean bForceSimplify,
@@ -69,14 +97,25 @@ public abstract class OperatorSimplifyOGC extends Operator {
 
 	/**
 	 * Processes geometry to ensure it is simple for OGC specification.
-	 * @param geom The geometry to be simplified.
-	 * @param sr Spatial reference to obtain the tolerance from. When null, the tolerance
-	 * will be derived individually from geometry bounds.
-	 * @param bForceSimplify When True, the Geometry will be simplified regardless of the internal IsKnownSimple flag.
-	 * @param progressTracker Allows cancellation of a long operation. Can be null.
-	 * @return Returns a simple Geometry that should be visually equivalent to the input geometry.
-	 * 
+	 *
 	 * The isSimpleOGC returns true after this call.
+	 *
+	 * @param  geom
+	 *         The geometry to be simplified.
+	 *
+	 * @param  sr
+	 *         Spatial reference to obtain the tolerance from. When null, the
+	 *         tolerance will be derived individually from geometry bounds.
+	 *
+	 * @param  bForceSimplify
+	 *         When True, the Geometry will be simplified regardless of the
+	 *         internal IsKnownSimple flag.
+	 *
+	 * @param  progressTracker
+	 *         Allows cancellation of a long operation. Can be null.
+	 *
+	 * @return a simple Geometry that should be visually equivalent to the
+	 *         input geometry.
 	 */
 	public abstract Geometry execute(Geometry geom, SpatialReference sr,
 			boolean bForceSimplify, ProgressTracker progressTracker);

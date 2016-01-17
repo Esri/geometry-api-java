@@ -41,17 +41,26 @@ public abstract class MultiVertexGeometry extends Geometry implements
 	}
 	
 	/**
-	 * Returns the total vertex count in this Geometry.
+	 * @return the total vertex count in this Geometry.
 	 */
 	public abstract int getPointCount();
 
 	/**
-	 * Returns given vertex of the Geometry.
+	 * @param  index
+	 *         the position of the vertex for retrieval
+	 *
+	 * @return given vertex of the Geometry.
 	 */
 	public abstract Point getPoint(int index);// Java only
 
 	/**
 	 * Returns given vertex of the Geometry by value.
+	 *
+	 * @param  index
+	 *         the position of the vertex for retrieval
+	 *
+	 * @param  ptOut
+	 *         the Point instance to apply the vertex coordinates
 	 */
 	public void getPoint(int index, Point ptOut) {
 		getPointByVal(index, ptOut);
@@ -60,22 +69,26 @@ public abstract class MultiVertexGeometry extends Geometry implements
 	/**
 	 * Sets the vertex at given index of the Geometry.
 	 * 
-	 * @param index
-	 *            The index of the vertex being changed.
-	 * @param pointSrc
-	 *            The Point instance to set given vertex attributes from. The
-	 *            pointSrc can not be empty. <br>
-	 *            The method throws if the pointSrc is not of the Point type. <br>
-	 *            The attributes, that are present in the pointSrc and missing
-	 *            in this Geometry, will be added to the Geometry. <br>
-	 *            The vertex attributes missing in the pointSrc but present in
-	 *            the Geometry will be set to the default values (see
-	 *            VertexDescription::GetDefaultValue).
+	 * @param  index
+	 *         The index of the vertex being changed.
+	 *
+	 * @param  pointSrc
+	 *         The Point instance to set given vertex attributes from. The
+	 *         pointSrc can not be empty. <br>
+	 *         The method throws if the pointSrc is not of the Point type. <br>
+	 *         The attributes, that are present in the pointSrc and missing
+	 *         in this Geometry, will be added to the Geometry. <br>
+	 *         The vertex attributes missing in the pointSrc but present in
+	 *         the Geometry will be set to the default values (see
+	 *         VertexDescription::GetDefaultValue).
 	 */
 	public abstract void setPoint(int index, Point pointSrc);// Java only
 
 	/**
-	 * Returns XY coordinates of the given vertex of the Geometry.
+	 * @param  index
+	 *         the specified vertex position
+	 *
+	 * @return XY coordinates of the given vertex of the Geometry.
 	 */
 	public abstract Point2D getXY(int index);
 
@@ -84,12 +97,23 @@ public abstract class MultiVertexGeometry extends Geometry implements
 	/**
 	 * Sets XY coordinates of the given vertex of the Geometry. All other
 	 * attributes are unchanged.
+	 *
+	 * @param  index
+	 *         the specified vertex position
+	 *
+	 * @param  pt
+	 *         the coordinates for the given index position
 	 */
 	public abstract void setXY(int index, Point2D pt);
 
 	/**
 	 * Returns XYZ coordinates of the given vertex of the Geometry. If the
 	 * Geometry has no Z's, the default value for Z is returned (0).
+	 *
+	 * @param  index
+	 *         of the required vertex
+	 *
+	 * @return XYZ coordinates of the given vertex of the Geometry
 	 */
 	abstract Point3D getXYZ(int index);
 
@@ -97,11 +121,17 @@ public abstract class MultiVertexGeometry extends Geometry implements
 	 * Sets XYZ coordinates of the given vertex of the Geometry. If Z attribute
 	 * is not present in this Geometry, it is added. All other attributes are
 	 * unchanged.
+	 *
+	 * @param  index
+	 *         the specified vertex position
+	 *
+	 * @param  pt
+	 *         the coordinates for the given index position
 	 */
 	abstract void setXYZ(int index, Point3D pt);
 
 	/**
-	 * Returns XY coordinates as an array.
+	 * @return XY coordinates as an array.
 	 */
 	public Point2D[] getCoordinates2D() {
 		Point2D[] arr = new Point2D[getPointCount()];
@@ -110,7 +140,7 @@ public abstract class MultiVertexGeometry extends Geometry implements
 	}
 
 	/**
-	 * Returns XYZ coordinates as an array.
+	 * @return XYZ coordinates as an array.
 	 */
 	Point3D[] getCoordinates3D() {
 		Point3D[] arr = new Point3D[getPointCount()];
@@ -123,72 +153,104 @@ public abstract class MultiVertexGeometry extends Geometry implements
 	/**
 	 * Queries XY coordinates as an array. The array must be larg enough (See
 	 * GetPointCount()).
+	 *
+	 * @param  dst
+	 *         array to contain XY coordinates for this geometry
 	 */
 	public abstract void queryCoordinates(Point2D[] dst);
 
 	/**
 	 * Queries XYZ coordinates as an array. The array must be larg enough (See
 	 * GetPointCount()).
+	 *
+	 * @param  dst
+	 *         array to contain XYZ coordinates for this geometry
 	 */
 	abstract void queryCoordinates(Point3D[] dst);
 
 	/**
-	 * Returns value of the given vertex attribute as double.
+	 * @param  semantics
+	 *         The attribute semantics.
+	 *
+	 * @param  index
+	 *         is the vertex index in the Geometry.
+	 *
+	 * @param  ordinate
+	 *         is the ordinate of a vertex attribute (for example, y has
+	 *         ordinate of 1, because it is second ordinate of POSITION)
 	 * 
-	 * @param semantics
-	 *            The atribute semantics.
-	 * @param index
-	 *            is the vertex index in the Geometry.
-	 * @param ordinate
-	 *            is the ordinate of a vertex attribute (for example, y has
-	 *            ordinate of 1, because it is second ordinate of POSITION)
-	 * 
-	 *            If attribute is not present, the default value is returned.
-	 *            See VertexDescription::GetDefaultValue() method.
+	 *         If attribute is not present, the default value is returned.
+	 *         See VertexDescription::GetDefaultValue() method.
+	 *
+	 * @return
+	 *         the value of the given vertex attribute as double.
+	 *
 	 */
 	abstract double getAttributeAsDbl(int semantics, int index,
 			int ordinate);
 
 	/**
-	 * Returns value of the given vertex attribute as int.
+	 * @param  semantics
+	 *         The attribute semantics.
+	 *
+	 * @param  index
+	 *         is the vertex index in the Geometry.
+	 *
+	 * @param  ordinate
+	 *         is the ordinate of a vertex attribute (for example, y has
+	 *         ordinate of 1, because it is second ordinate of POSITION)
 	 * 
-	 * @param semantics
-	 *            The atribute semantics.
-	 * @param index
-	 *            is the vertex index in the Geometry.
-	 * @param ordinate
-	 *            is the ordinate of a vertex attribute (for example, y has
-	 *            ordinate of 1, because it is second ordinate of POSITION)
-	 * 
-	 *            If attribute is not present, the default value is returned.
-	 *            See VertexDescription::GetDefaultValue() method. Avoid using
-	 *            this method on non-integer atributes.
+	 *         If attribute is not present, the default value is returned.
+	 *         See VertexDescription::GetDefaultValue() method. Avoid using
+	 *         this method on non-integer attributes.
+	 *
+	 * @return
+	 *         the value of the given vertex attribute as int.
 	 */
 	abstract int getAttributeAsInt(int semantics, int index, int ordinate);
 
 	/**
-	 * Sets the value of given attribute at given posisiotnsis.
+	 * Sets the value of given attribute at given position.
 	 * 
-	 * @param semantics
-	 *            The atribute semantics.
-	 * @param index
-	 *            is the vertex index in the Geometry.
-	 * @param ordinate
-	 *            is the ordinate of a vertex attribute (for example, y has
-	 *            ordinate of 1, because it is seond ordinate of POSITION)
-	 * @param value
-	 *            is the value to set. as well as the number of components of
-	 *            the attribute.
+	 * @param  semantics
+	 *         The attribute semantics.
+	 *
+	 * @param  index
+	 *         is the vertex index in the Geometry.
+	 *
+	 * @param  ordinate
+	 *         is the ordinate of a vertex attribute (for example, y has
+	 *         ordinate of 1, because it is seond ordinate of POSITION)
+	 *
+	 * @param  value
+	 *         is the value to set. as well as the number of components of
+	 *         the attribute.
 	 * 
-	 *            If the attribute is not present in this Geometry, it is added.
+	 *         If the attribute is not present in this Geometry, it is added.
 	 */
 	abstract void setAttribute(int semantics, int index, int ordinate,
 			double value);
 
 	/**
-	 * Same as above, but works with ints. Avoid using this method on
-	 * non-integer atributes because some double attributes may have NaN default
-	 * values (e.g. Ms)
+	 * Same as {@link MultiVertexGeometry#setAttribute(int, int, int, double)},
+	 * but works with ints. Avoid using this method on non-integer attributes
+	 * because some double attributes may have NaN default values (e.g. Ms)
+	 *
+	 * @param  semantics
+	 *         The attribute semantics.
+	 *
+	 * @param  index
+	 *         is the vertex index in the Geometry.
+	 *
+	 * @param  ordinate
+	 *         is the ordinate of a vertex attribute (for example, y has
+	 *         ordinate of 1, because it is seond ordinate of POSITION)
+	 *
+	 * @param  value
+	 *         is the value to set. as well as the number of components of
+	 *         the attribute.
+	 *
+	 *         If the attribute is not present in this Geometry, it is added.
 	 */
 	abstract void setAttribute(int semantics, int index, int ordinate,
 			int value);
@@ -196,23 +258,30 @@ public abstract class MultiVertexGeometry extends Geometry implements
 	/**
 	 * Returns given vertex of the Geometry. The outPoint will have same
 	 * VertexDescription as this Geometry.
+	 *
+	 * @param  index
+	 *         the required vertex index in the Geometry.
+	 *
+	 * @param  outPoint
+	 *         the Point to apply values for the specified index
 	 */
 	abstract void getPointByVal(int index, Point outPoint);
 
 	/**
 	 * Sets the vertex at given index of the Geometry.
 	 * 
-	 * @param index
-	 *            The index of the vertex being changed.
-	 * @param pointSrc
-	 *            The Point instance to set given vertex attributes from. The
-	 *            pointSrc can not be empty. <br>
-	 *            The method throws if the pointSrc is not of the Point type. <br>
-	 *            The attributes, that are present in the pointSrc and missing
-	 *            in this Geometry, will be added to the Geometry. <br>
-	 *            The vertex attributes missing in the pointSrc but present in
-	 *            the Geometry will be set to the default values (see
-	 *            VertexDescription::GetDefaultValue).
+	 * @param  index
+	 *         The index of the vertex being changed.
+	 *
+	 * @param  pointSrc
+	 *         The Point instance to set given vertex attributes from. The
+	 *         pointSrc can not be empty. <br>
+	 *         The method throws if the pointSrc is not of the Point type. <br>
+	 *         The attributes, that are present in the pointSrc and missing
+	 *         in this Geometry, will be added to the Geometry. <br>
+	 *         The vertex attributes missing in the pointSrc but present in
+	 *         the Geometry will be set to the default values (see
+	 *         VertexDescription::GetDefaultValue).
 	 */
 	abstract void setPointByVal(int index, Point pointSrc);
 

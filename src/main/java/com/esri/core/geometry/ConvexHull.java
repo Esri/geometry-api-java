@@ -53,8 +53,10 @@ class ConvexHull {
 
 	/**
 	 * Adds a geometry to the current bounding geometry using an incremental
-	 * algorithm for dynamic insertion. \param geometry The geometry to add to
-	 * the bounding geometry.
+	 * algorithm for dynamic insertion.
+	 *
+	 * @param  geometry
+	 *         The geometry to add to the bounding geometry.
 	 */
 
 	void addGeometry(Geometry geometry) {
@@ -96,8 +98,10 @@ class ConvexHull {
 
 	/**
 	 * Static method to construct the convex hull of a Multi_vertex_geometry.
-	 * Returns a Polygon. \param mvg The geometry used to create the convex
-	 * hull.
+	 * Returns a Polygon.
+	 *
+	 * @param  mvg
+	 *         The geometry used to create the convex hull.
 	 */
 
 	static Polygon construct(MultiVertexGeometry mvg) {
@@ -157,10 +161,17 @@ class ConvexHull {
 	 * Static method to construct the convex hull from an array of points. The
 	 * out_convex_hull array will be populated with the subset of index
 	 * positions which contribute to the convex hull. Returns the number of
-	 * points in the convex hull. \param points The points used to create the
-	 * convex hull. \param count The number of points in the input Point2D
-	 * array. \param out_convex_hull An index array allocated by the user at
-	 * least as big as the size of the input points array.
+	 * points in the convex hull.
+	 *
+	 * @param  points
+	 *         The points used to create the convex hull.
+	 *
+	 * @param  count
+	 *         The number of points in the input Point2D array.
+	 *
+	 * @param  out_convex_hull
+	 *         An index array allocated by the user at least as big as the size
+	 *         of the input points array. TODO
 	 */
 	static int construct(Point2D[] points, int count, int[] bounding_geometry) {
 		ConvexHull convex_hull = new ConvexHull(points);
@@ -199,10 +210,14 @@ class ConvexHull {
 	}
 
 	/**
-	 * Returns true if the given path of the input MultiPath is convex. Returns
-	 * false otherwise. \param multi_path The MultiPath to check if the path is
-	 * convex. \param path_index The path of the MultiPath to check if its
-	 * convex.
+	 * @param  multi_path
+	 *         The MultiPath to check if the path is convex.
+	 *
+	 * @param  path_index
+	 *         The path of the MultiPath to check if its convex.
+	 *
+	 * @return {@code true} if the given path of the input MultiPath is convex.
+	 *         Return {@code false} otherwise.
 	 */
 	static boolean isPathConvex(MultiPath multi_path, int path_index,
 			ProgressTracker progress_tracker) {

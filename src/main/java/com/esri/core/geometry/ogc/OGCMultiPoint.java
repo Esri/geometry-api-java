@@ -45,9 +45,11 @@ public class OGCMultiPoint extends OGCGeometryCollection {
 	}
 
 	/**
-	 * 
-	 * @param mp
-	 *            MultiPoint instance will be referenced by this OGC class
+	 * @param  mp
+	 *         MultiPoint instance will be referenced by this OGC class
+	 *
+	 * @param sr
+	 *         Spatial reference for the given {@link MultiPoint}
 	 */
 	public OGCMultiPoint(MultiPoint mp, SpatialReference sr) {
 		multiPoint = mp;

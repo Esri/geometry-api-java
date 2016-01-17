@@ -57,7 +57,7 @@ public class OGCPolygon extends OGCSurface {
 	}
 
 	/**
-	 * Returns the number of interior rings in this Polygon.
+	 * @return the number of interior rings in this Polygon.
 	 */
 	public int numInteriorRing() {
 		return polygon.getPathCount() - 1;

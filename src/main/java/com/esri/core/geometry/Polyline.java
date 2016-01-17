@@ -50,6 +50,12 @@ public final class Polyline extends MultiPath implements Serializable {
 
 	/**
 	 * Creates a polyline with one line segment.
+	 *
+	 * @param  start
+	 *         point of the first path
+	 *
+	 * @param  end
+	 *         point of the first path
 	 */
 	public Polyline(Point start, Point end) {
 		m_impl = new MultiPathImpl(false, start.getDescription());
@@ -73,7 +79,7 @@ public final class Polyline extends MultiPath implements Serializable {
 	}
 
 	/**
-	 * Returns TRUE when this geometry has exactly same type, properties, and
+	 * @return {@code true} when this geometry has exactly same type, properties, and
 	 * coordinates as the other geometry.
 	 */
 	@Override
@@ -91,9 +97,8 @@ public final class Polyline extends MultiPath implements Serializable {
 	}
 
 	/**
-	 * Returns the hash code for the polyline.
+	 * @return the hash code for the polyline.
 	 */
-
 	@Override
 	public int hashCode() {
 		return m_impl.hashCode();

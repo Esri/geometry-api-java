@@ -66,11 +66,16 @@ public abstract class Operator {
 	 * a different one. If the accelerator is built for the given parameters,
 	 * the method returns immediately.
 	 * 
-	 * @param geometry
-	 *            The geometry to be accelerated
-	 * @param spatialReference
-	 *            The spatial reference of that geometry
-	 * @param accelDegree The acceleration degree for geometry.
+	 * @param  geometry
+	 *         The geometry to be accelerated
+	 *
+	 * @param  spatialReference
+	 *         The spatial reference of that geometry
+	 *
+	 * @param  accelDegree
+	 *         The acceleration degree for geometry.
+	 *
+	 * @return TODO
 	 */
 	public boolean accelerateGeometry(Geometry geometry,
 			SpatialReference spatialReference,
@@ -82,9 +87,11 @@ public abstract class Operator {
 	/**
 	 * Returns true if the geometry can be accelerated.
 	 * 
-	 * @param geometry
-	 * @return true for geometries that can be accelerated, false for geometries
-	 *         that cannot
+	 * @param  geometry
+	 *         under test
+	 *
+	 * @return {@code true} for geometries that can be accelerated, false for
+	 *         geometries that cannot
 	 */
 	public boolean canAccelerateGeometry(Geometry geometry) {
 		// Override at specific Operator level

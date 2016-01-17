@@ -137,7 +137,7 @@ final class BucketSort {
 	 * @param capacity
 	 *            - the number of elements to sort (-1 if not known). The
 	 *            bucket_count are usually equal.
-	 * @return Returns False, if the bucket sort cannot be used with the given
+	 * @return {@code false} if the bucket sort cannot be used with the given
 	 *         parameters. The method also can throw out of memory exception. In
 	 *         the later case, one should fall back to the regular sort.
 	 */
@@ -159,6 +159,7 @@ final class BucketSort {
 	}
 
 	/**
+	 * TODO
 	 * Adds new element to the bucket builder. The value must be between
 	 * min_value and max_value.
 	 * 
@@ -175,7 +176,7 @@ final class BucketSort {
 	}
 
 	/**
-	 * Returns the bucket count.
+	 * @return the bucket count.
 	 */
 	private int getBucketCount() {
 		return m_buckets.size();

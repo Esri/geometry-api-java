@@ -29,9 +29,13 @@ final class IntervalTreeImpl {
 	static final class IntervalTreeIteratorImpl {
 		/**
 		 * Resets the iterator to a starting state on the Interval_tree_impl
-		 * using the input Envelope_1D interval as the query \param query The
-		 * Envelope_1D interval used for the query. \param tolerance The
-		 * tolerance used for the intersection tests.
+		 * using the input Envelope_1D interval as the query
+		 *
+		 * @param  query
+		 *         The Envelope_1D interval used for the query.
+		 *
+		 * @param  tolerance
+		 *         The tolerance used for the intersection tests.
 		 */
 		void resetIterator(Envelope1D query, double tolerance) {
 			m_query.vmin = query.vmin - tolerance;
@@ -43,9 +47,16 @@ final class IntervalTreeImpl {
 
 		/**
 		 * Resets the iterator to a starting state on the Interval_tree_impl
-		 * using the input Envelope_1D interval as the query \param query The
-		 * Envelope_1D interval used for the query. \param tolerance The
-		 * tolerance used for the intersection tests.
+		 * using the input Envelope_1D interval as the query
+		 *
+		 * @param  query_min
+		 *         The Envelope_1D interval used for the query. TODO verify
+		 *
+		 * @param  query_max
+		 *         The Envelope_1D interval used for the query. TODO verify
+		 *
+		 * @param  tolerance
+		 *         The tolerance used for the intersection tests.
 		 */
 		void resetIterator(double query_min, double query_max, double tolerance) {
 			if (query_min > query_max)
@@ -60,9 +71,13 @@ final class IntervalTreeImpl {
 
 		/**
 		 * Resets the iterator to a starting state on the Interval_tree_impl
-		 * using the input double as the stabbing query \param query The double
-		 * used for the query. \param tolerance The tolerance used for the
-		 * intersection tests.
+		 * using the input double as the stabbing query
+		 *
+		 * @param  query
+		 *         The double used for the query.
+		 *
+		 * @param  tolerance
+		 *         The tolerance used for the intersection tests.
 		 */
 		void resetIterator(double query, double tolerance) {
 			m_query.vmin = query - tolerance;
@@ -478,8 +493,10 @@ final class IntervalTreeImpl {
 
 	/**
 	 * Inserts the interval from the given index into the Interval_tree_impl.
-	 * This operation can only be performed in the offline dynamic case. \param
-	 * index The index containing the interval to be inserted.
+	 * This operation can only be performed in the offline dynamic case.
+	 *
+	 * @param  index
+	 *         The index containing the interval to be inserted.
 	 */
 	void insert(int index) {
 		if (!m_b_offline_dynamic || !m_b_construction_ended)
@@ -521,8 +538,11 @@ final class IntervalTreeImpl {
 	}
 
 	/**
-	 * Deletes the interval from the Interval_tree_impl. \param index The index
-	 * containing the interval to be deleted from the Interval_tree_impl.
+	 * Deletes the interval from the Interval_tree_impl.
+	 *
+	 * @param  index
+	 *         the index containing the interval to be deleted from the
+	 *         Interval_tree_impl.
 	 */
 	void remove(int index) {
 		if (!m_b_offline_dynamic || !m_b_construction_ended)
@@ -637,9 +657,13 @@ final class IntervalTreeImpl {
 	 * Gets an iterator on the Interval_tree_impl using the input Envelope_1D
 	 * interval as the query. To reuse the existing iterator on the same
 	 * Interval_tree_impl but with a new query, use the reset_iterator function
-	 * on the Interval_tree_iterator_impl. \param query The Envelope_1D interval
-	 * used for the query. \param tolerance The tolerance used for the
-	 * intersection tests.
+	 * on the Interval_tree_iterator_impl.
+	 *
+	 * @param  query
+	 *         The Envelope_1D interval used for the query.
+	 *
+	 * @param  tolerance
+	 *         The tolerance used for the intersection tests.
 	 */
 	IntervalTreeIteratorImpl getIterator(Envelope1D query, double tolerance) {
 		return new IntervalTreeImpl.IntervalTreeIteratorImpl(this, query,
@@ -650,9 +674,13 @@ final class IntervalTreeImpl {
 	 * Gets an iterator on the Interval_tree_impl using the input double as the
 	 * stabbing query. To reuse the existing iterator on the same
 	 * Interval_tree_impl but with a new query, use the reset_iterator function
-	 * on the Interval_tree_iterator_impl. \param query The double used for the
-	 * stabbing query. \param tolerance The tolerance used for the intersection
-	 * tests.
+	 * on the Interval_tree_iterator_impl.
+	 *
+	 * @param  query
+	 *         The double used for the stabbing query.
+	 *
+	 * @param  tolerance
+	 *         The tolerance used for the intersection tests.
 	 */
 	IntervalTreeIteratorImpl getIterator(double query, double tolerance) {
 		return new IntervalTreeImpl.IntervalTreeIteratorImpl(this, query,

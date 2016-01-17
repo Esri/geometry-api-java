@@ -153,6 +153,11 @@ public final class Point2D implements Serializable{
 
 	/**
 	 * Compares two vertices lexicographicaly.
+	 *
+	 * @param  other
+	 *         The object to compare this {@code String} against
+	 *
+	 * @return 0 if identical TODO
 	 */
 	public int compare(Point2D other) {
 		return y < other.y ? -1 : (y > other.y ? 1 : (x < other.x ? -1
@@ -235,6 +240,9 @@ public final class Point2D implements Serializable{
 	/**
 	 * 90 degree rotation, anticlockwise. Equivalent to RotateDirect(cos(pi/2),
 	 * sin(pi/2)).
+	 *
+	 * @param  pt
+	 *         source point
 	 */
 	public void leftPerpendicular(Point2D pt) {
 		x = -pt.y;
@@ -254,6 +262,8 @@ public final class Point2D implements Serializable{
 	/**
 	 * 270 degree rotation, anticlockwise. Equivalent to
 	 * RotateDirect(-cos(pi/2), sin(-pi/2)).
+	 * @param  pt
+	 *         source point
 	 */
 	public void rightPerpendicular(Point2D pt) {
 		x = pt.y;
@@ -297,6 +307,8 @@ public final class Point2D implements Serializable{
 	* The quarters are numbered counterclockwise.
 	* Angle intervals corresponding to quarters: 1 : [0 : 90); 2 : [90 : 180);
 	* 3 : [180 : 270); 4 : [270 : 360)
+	 *
+	 * @return 1, 2, 3 or 4 corresponding to the quarter of XY plane the vector lies in
 	*/
 	public int getQuarter() { return _getQuarter(); }
 	
@@ -333,6 +345,13 @@ public final class Point2D implements Serializable{
 	 * compareVectors(V1, V2) == -1.
 	 * compareVectors(V1, V3) == -1.
 	 * compareVectors(V2, V3) == 1.
+	 *
+	 * @param  v1
+	 *         first vector under test
+	 *
+	 * @param  v2
+	 *         second vector under test
+	 *
 	 * @return Returns 1 if v1 is less than v2, 0 if equal, and 1 if greater.
 	 */
 	public static int compareVectors(Point2D v1, Point2D v2) {
@@ -415,9 +434,20 @@ public final class Point2D implements Serializable{
 	}
 
 	/**
-	 * Calculates the orientation of the triangle formed by p->q->r. Returns 1
+	 * Calculates the orientation of the triangle formed by {@literal p->q->r}. Returns 1
 	 * for counter-clockwise, -1 for clockwise, and 0 for collinear. May use
 	 * high precision arithmetics for some special degenerate cases.
+	 *
+	 * @param  p
+	 *         first point of triangle
+	 *
+	 * @param  q
+	 *         second point of triangle
+	 *
+	 * @param  r
+	 *         third point of triangle
+	 *
+	 * @return 1 for counter-clockwise, -1 for clockwise, and 0 for collinear.
 	 */
 	public static int orientationRobust(Point2D p, Point2D q, Point2D r) {
 		ECoordinate det_ec = new ECoordinate();

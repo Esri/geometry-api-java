@@ -53,7 +53,7 @@ public class MapGeometry implements Serializable {
 	}
 
 	/**
-	 * Gets the only geometry without the spatial reference from the
+	 * @return the only geometry without the spatial reference from the
 	 * MapGeometry.
 	 */
 	public Geometry getGeometry() {
@@ -82,7 +82,7 @@ public class MapGeometry implements Serializable {
 	}
 
 	/**
-	 * Gets the spatial reference for this MapGeometry.
+	 * @return the spatial reference for this MapGeometry.
 	 */
 	public SpatialReference getSpatialReference() {
 		return sr;

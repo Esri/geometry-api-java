@@ -36,13 +36,25 @@ public interface CombineOperator {
 	 * Operation on two geometries, returning a third. Examples include
 	 * Intersection, Difference, and so forth.
 	 *
-	 * @param geom1 and geom2 are the geometry instances to be operated on.
-	 * @param sr The spatial reference to get the tolerance value from.
-	 * When sr is null, the tolerance is calculated from the input geometries.
-	 * @param progressTracker ProgressTracker instance that is used to cancel the lengthy operation. Can be null.
-	 * @return Returns the result geoemtry. In some cases the returned value can point to geom1 or geom2
-	 * instance. For example, the OperatorIntersection may return geom2 when it is completely
-	 * inside of the geom1.
+	 * @param  geom1
+	 *         the first geometry of the parameter pair to be operated on.
+	 *
+	 * @param  geom2
+	 *         the second geometry of the parameter pair to be operated on.
+	 *
+	 * @param  sr
+	 *         The spatial reference to get the tolerance value from.
+	 *         When sr is null, the tolerance is calculated from the input
+	 *         geometries.
+	 *
+	 * @param  progressTracker
+	 *         ProgressTracker instance that is used to cancel the lengthy
+	 *         operation. Can be null.
+	 *
+	 * @return the result geoemtry. In some cases the returned value can point
+	 *         to geom1 or geom2 instance. For example, the
+	 *         OperatorIntersection may return geom2 when it is completely
+	 *         inside of the geom1.
 	 */
 	public Geometry execute(Geometry geom1, Geometry geom2,
 			SpatialReference sr, ProgressTracker progressTracker);

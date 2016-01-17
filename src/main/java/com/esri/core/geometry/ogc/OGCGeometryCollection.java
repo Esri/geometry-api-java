@@ -2,13 +2,15 @@ package com.esri.core.geometry.ogc;
 
 public abstract class OGCGeometryCollection extends OGCGeometry {
 	/**
-	 * Returns the number of geometries in this GeometryCollection.
+	 * @return the number of geometries in this GeometryCollection.
 	 */
 	public abstract int numGeometries();
 
 	/**
-	 * Returns the Nth geometry in this GeometryCollection.
-	 * @param n The 0 based index of the geometry.
+	 * @param  n
+	 *         The 0 based index of the geometry.
+	 *
+	 * @return the Nth geometry in this GeometryCollection.
 	 */
 	public abstract OGCGeometry geometryN(int n);
 }

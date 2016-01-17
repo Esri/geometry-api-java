@@ -34,14 +34,9 @@ public abstract class OperatorCut extends Operator {
   }
 
   /**
-   * Performs the Cut operation on a geometry. 
-   * @param bConsiderTouch Indicates whether we consider a touch event a cut. 
-   * This only applies to polylines, but it's recommended to set this variable to True. 
-   * @param cuttee The input geometry to be cut. 
-   * @param cutter The polyline that will be used to divide the cuttee into 
-   * pieces where it crosses the cutter. 
-   * @return Returns a GeometryCursor of cut geometries. 
-   * All left cuts will be grouped together in the first geometry. Right cuts and 
+   * Performs the Cut operation on a geometry.
+   *
+   * All left cuts will be grouped together in the first geometry. Right cuts and
    * coincident cuts are grouped in the second geometry, and each undefined cut along
    * with any uncut parts are output as separate geometries. If there were no cuts
    * the cursor will return no geometry. If the left or right cut does not
@@ -49,6 +44,26 @@ public abstract class OperatorCut extends Operator {
    * undefined cut will only be produced if a left cut or right cut was
    * produced and there was a part left over after cutting or a cut is
    * bounded to the left and right of the cutter.
+   *
+   * @param  bConsiderTouch
+   *         Indicates whether we consider a touch event a cut.
+   *         This only applies to polylines, but it's recommended to set this
+   *         variable to True.
+   *
+   * @param  cuttee
+   *         The input geometry to be cut.
+   *
+   * @param  cutter
+   *         The polyline that will be used to divide the cuttee into pieces
+   *         where it crosses the cutter.
+   *
+   * @param  spatialReference
+   *         The spatial reference of the input geometry
+   *
+   * @param  progressTracker
+   *         the callback used by lengthy operations
+   *
+   * @return Returns a GeometryCursor of cut geometries.
    */
   public abstract GeometryCursor execute(boolean bConsiderTouch,
           Geometry cuttee, Polyline cutter, SpatialReference spatialReference,
