@@ -190,12 +190,12 @@
 				doesn't matter. What matters is the ring orientation. Remember, clockwise implies an outer ring whereas 
 				counter-clockwise implies an inner ring.
 			</p>
-			<p>To begin each ring, we call the <code>startPath</code> method and then successsive calls to the 
+			<p>To begin each ring, we call the <code>startPath</code> method and then successive calls to the 
 				<code>lineTo</code> method. We don't need to repeat the start point as the end point. 
 			</p>
 			<div class="codeSample">
-<pre class="classMethod">public static Polygon createPolygon1() {
-
+<pre class="classMethod">public static Polygon createPolygon1() 
+{
     Polygon poly = new Polygon();
 
     <span class="codeComment">// clockwise => outer ring</span>
@@ -234,8 +234,8 @@
 				doesn't matter when the polygon is in JSON format.
 			</p>
 			<div class="codeSample">
-<pre class="import">static Polygon createPolygonFromJson() throws JsonParseException, IOException {
-    
+<pre class="import">static Polygon createPolygonFromJson() throws JsonParseException, IOException 
+{
     String jsonString = "{\"rings\":[[[0.5,0.2],[0.6,0.5],[0.2,0.9],[-0.2,0.5],[0.1,0.2],[0.2,0.3],[0.5,0.2]],"
                       + "[[0.0,0.0],[-0.5,0.5],[0.0,1.0],[0.5,1.0],[1.0,0.5],[0.5,0.0],[0.0,0.0]],"
                       + "[[0.1,0.7],[0.3,0.7],[0.3,0.4],[0.1,0.4],[0.1,0.7]]],"            
@@ -257,8 +257,8 @@
 			<p>The code shown below creates the same polygon as in the previous examples. 
 			</p>
 			<div class="codeSample">
-<pre class="import">static Polygon createPolygonFromGeoJson() throws JsonParseException, IOException {
-    
+<pre class="import">static Polygon createPolygonFromGeoJson() throws JsonParseException, IOException 
+{
     String geoJsonString = "{\"type\":\"MultiPolygon\","
                          + "\"coordinates\":[[[[0.0,0.0],[-0.5,0.5],[0.0,1.0],[0.5,1.0],[1.0,0.5],[0.5,0.0],[0.0,0.0]],"
                          + "[[0.5,0.2],[0.6,0.5],[0.2,0.9],[-0.2,0.5],[0.1,0.2],[0.2,0.3],[0.5,0.2]]],"
@@ -282,8 +282,8 @@
 				which probably would be more understandable to the reader. 
 			</p>
 			<div class="codeSample">
-<pre class="import">static Polygon createPolygonFromWKT() throws JsonParseException, IOException {
-    
+<pre class="import">static Polygon createPolygonFromWKT() throws JsonParseException, IOException 
+{
     String wktString = "MULTIPOLYGON (((0.1 0.7, 0.1 0.4, 0.3 0.4, 0.3 0.7, 0.1 0.7)),"
                      + "((0 0, 0.5 0, 1 0.5, 0.5 1, 0 1, -0.5 0.5, 0 0),"
                      + "(0.5 0.2, 0.2 0.3, 0.1 0.2, -0.2 0.5, 0.2 0.9, 0.6 0.5, 0.5 0.2)))";
@@ -291,6 +291,47 @@
     Geometry geom = OperatorImportFromWkt.local().execute(WktImportFlags.wktImportDefaults, Geometry.Type.Polygon, wktString, null);
     
     return (Polygon)geom;
+}
+</pre>
+			</div>
+			<h2>Extracting Outer Rings</h2>
+			<p>Many workflows require getting only the outer rings of a polygon.</p>
+			<p>The method <code>getAllOuterRings</code> extracts all the outer rings of a polygon. The call to 
+			<code>OperatorSimplifyOGC</code> makes sure there are no self-intersections, all outer rings are 
+			clockwise, and holes are counterclockwise. You can skip the call to <code>OperatorSimplifyOGC</code> 
+			if you trust your input polygon.
+			<div class="codeSample">
+<pre>static List&lt;Polygon&gt; getAllOuterRings(Polygon polygon)
+{
+  Polygon simplePolygon = (Polygon)OperatorSimplifyOGC.local().execute(polygon, null, true, null);
+  ArrayList&lt;Polygon&gt; rings = new ArrayList&lt;Polygon&gt;();
+  int n = simplePolygon.getPathCount();
+  for (int i = 0; i < n; i++)
+  {
+    if (simplePolygon.calculateRingArea2D(i) <= 0)
+      continue;
+    
+    Polygon ring = new Polygon();
+    ring.addPath(simplePolygon, i, true);
+    rings.add(ring);
+  }
+  
+  return rings;
+}
+</pre>
+			</div>
+			<p>The method <code>getOutermostRings</code> extracts the outermost rings, that is, 
+			only rings that are not contained inside of any hole.</p>
+			<div class="codeSample">
+<pre>static List&lt;Polygon&gt; getOutermostRings(Polygon polygon)
+{
+  List&lt;Polygon&gt; allOuterRings = getAllOuterRings(polygon);
+  GeometryCursor outerRingsCursor = new SimpleGeometryCursor(allOuterRings);
+  GeometryCursor unionCursor = OperatorUnion.local().execute(outerRingsCursor, null, null);
+  Geometry unionPoly = unionCursor.next();
+  
+  <span class="codeComment">// Holes could have been produced during the union, so rerun just in case.</span>
+  return getAllOuterRings((Polygon)unionPoly);
 }
 </pre>
 			</div>
