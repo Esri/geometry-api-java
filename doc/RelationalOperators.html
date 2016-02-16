@@ -1,0 +1,86 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+	<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Relational Operators</title>
+    <meta name="author" content="Anne2440" />
+    <link rel="stylesheet" href="GeometryDocStyle.css">
+  </head>
+	<body>
+		<h1 id="topic">Performing relational operations</h1>
+    <ul id="menu">
+      <li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
+    </ul>
+		<div id="content">
+		<p>
+		The predefined relational operations in the Geometry API are <a href="Contains.html">Contains</a>, <a href="Crosses.html">Crosses</a>, 
+		<a href="Disjoint.html">Disjoint</a>, <a href="Equals.html">Equals</a>, <a href="Intersects.html">Intersects</a>, 
+		<a href="Overlaps.html">Overlaps</a>, <a href="Touches.html">Touches</a>, and <a href="Within.html">Within</a>. 
+		There is also a <a href="Relate.html">Relate</a> operator which allows you to create custom relational operations.
+		</p>
+		<p>To see how the relational operations work, first review the definitions of dimensionality, interiors, 
+		boundaries, and exteriors for the basic geometry types.
+		</p>
+		<h3 class="myLightBlue">Dimensionality</h3>
+		<ul>
+		  <li>All point and multipoint shapes are zero dimensional.</li>
+		  <li>All polyline shapes are one dimensional.</li>
+		  <li>All polygon shapes are two dimensional.</li>
+		</ul>
+		<p>Note that the presence of z-coordinates or m-coordinates does not affect the dimensionality of the geometry.</p>
+		<h3 class="myLightBlue">Interiors, boundaries, and exteriors</h3>
+		<p>Each type of geometry has a defined interior, boundary, and exterior which are important in understanding relational operators.</p>
+		<ul>
+		  <li>Point - A point represents a single location in space. The interior of a point is the point itself, the boundary is the 
+		  empty set, and the exterior is all other points.</li><br>
+		  <li>MultiPoint - A multipoint is an ordered collection of points. The interior of a multipoint is the set of points in the collection, 
+		  the boundary is the empty set, and the exterior is the set of points that are not in the collection. </li><br>
+      <li>Point - A point represents a single location in space. The interior of a point is the point itself, the boundary is the 
+      empty set, and the exterior is all other points.</li><br>
+      <li>Polyline - A polyline is an ordered collection of paths where each path is a collection of contiguous segments. A segment has a start and an end point.<br>
+      The boundary of a polyline is the set of start and end points of each path, the interior is the set of points in the polyline that are not in the boundary, 
+      and the exterior is the set of points that are not in the boundary or the interior.<br>
+      For the polyline shown below, the set of points comprising the boundary is shown in red. The interior of the polyline is shown in black.<br>
+      <table class="noBoundaryTable">
+      <tr>
+        <td><img src="Images/RelationalOperators/RelOps1.jpg"></td>
+      </tr>
+      </table>
+      </li>
+      <li>Polygon - A polygon is defined by a collection of rings. Each ring is a collection of contiguous segments such that the start point and the end point are the same.<br>
+      The boundary of a polygon is the collection of rings by which the polygon is defined. The boundary contains one or more outer rings and zero or more inner rings. 
+      An outer ring is oriented clockwise while an inner ring is oriented counter-clockwise. Imagine walking clockwise along an outer ring. The area to your 
+      immediate right is the interior of the polygon and to your left is the exterior.
+      <table class="noBoundaryTable">
+      <tr>
+        <td><img src="Images/RelationalOperators/RelOps2.jpg"></td>
+      </tr>
+      </table>
+      <p>Similarly, if you were to walk counter-clockwise along an inner ring, the area to your immediate right is the interior of the polygon and to your left is the exterior.</p>
+      <table class="noBoundaryTable">
+      <tr>
+        <td><img src="Images/RelationalOperators/RelOps3.jpg"></td>
+      </tr>
+      </table>
+      </li>      
+		</ul>
+		<h3 class="myLightBlue">Relational operators in the Geometry API</h3>
+		<p>The predefined relational operators in Geometry are</p>
+		<ul>
+		  <li><a href="Contains.html">Contains</a> - One geometry contains another if the other geometry is a subset of it and their interiors have at least 
+		  one point in common. Contains is the inverse of Within.</li><br>
+		  <li><a href="Crosses.html">Crosses</a> - Two polylines cross if they meet at points only, and at least one of the shared points is internal to both 
+		  polylines. A polyline and polygon cross if a connected part of the polyline is partly inside and partly outside the polygon.</li><br>
+		  <li><a href="Disjoint.html">Disjoint</a> - Two geometries are disjoint if they don’t have any points in common.</li><br>
+		  <li><a href="Equals.html">Equals</a> - Two geometries are equal if they occupy the same space.</li><br>
+		  <li><a href="Intersects.html">Intersects</a> - Two geometries intersect if they share at least one point in common.</li><br>
+		  <li><a href="Overlaps.html">Overlaps</a> - Two geometries overlap if they have the same dimension, and their intersection also has the same dimension but is different from both of them.</li><br>
+		  <li><a href="Touches.html">Touches</a> - Two geometries touch if the intersection of their interiors is empty, but the intersection of the two geometries is not empty.</li><br>
+		  <li><a href="Within.html">Within</a> - One geometry is within another if it is a subset of the other geometry and their interiors have at least one point in common. Within is the inverse of Contains.</li>
+		</ul>
+		<p>You can create custom relations with the <a href="Relate.html">Relate</a> operator.</p>
+		</div>
+  </body>
+</html>

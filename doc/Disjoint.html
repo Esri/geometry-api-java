@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+	<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Disjoint</title>
+    <meta name="author" content="Anne2440" />
+    <link rel="stylesheet" href="GeometryDocStyle.css">
+  </head>
+	<body>
+		<h1 id="topic">Disjoint</h1>
+    <ul id="menu">
+    <li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorDisjoint.html">API Reference</a></li>
+      <li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
+    </ul>
+		<div id="content">
+		<p>Two geometries are disjoint if they don’t have any points in common.</p>
+      <table class="noBoundaryTable">
+      <tr>
+        <td><img src="Images/Disjoint/Disjoint1.jpg"></td>
+      </tr>
+      </table>
+      <h4 class="myLightBlue">Example 1: Is Geometry A disjoint from Geometry B?</h4>
+      <div class="codeSample">
+<pre class="import">static boolean geometryIsDisjoint(Geometry geometryA, Geometry geometryB, SpatialReference sr) 
+{
+  boolean isDisjoint = OperatorDisjoint.local().execute(geometryA, geometryB, sr, null);
+    
+  return isDisjoint;
+}
+</pre>
+    </div>
+  </body>
+</html>

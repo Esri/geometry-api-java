@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+	<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Touches</title>
+    <meta name="author" content="Anne2440" />
+    <link rel="stylesheet" href="GeometryDocStyle.css">
+  </head>
+	<body>
+		<h1 id="topic">Touches</h1>
+    <ul id="menu">
+    <li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorTouches.html">API Reference</a></li>
+      <li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
+    </ul>
+		<div id="content">
+		<p>Two geometries touch if the intersection of their interiors is empty, but the intersection of the two geometries is not empty.</p>
+      <table class="noBoundaryTable">
+      <tr>
+        <td><img src="Images/Touches/Touches1.jpg"></td>
+      </tr>
+      </table>
+      <table class="noBoundaryTable">
+      <tr>
+        <td><img src="Images/Touches/Touches2.jpg"></td>
+      </tr>
+      </table>
+      <table class="noBoundaryTable">
+      <tr>
+        <td><img src="Images/Touches/Touches3.jpg"></td>
+      </tr>
+      </table>
+      <table class="noBoundaryTable">
+      <tr>
+        <td><img src="Images/Touches/Touches4.jpg"></td>
+      </tr>
+      </table>
+      <h4 class="myLightBlue">Example 1: Does Geometry A touch Geometry B?</h4>
+      <div class="codeSample">
+<pre class="import">static boolean geometryTouches(Geometry geometryA, Geometry geometryB, SpatialReference sr) 
+{
+  boolean touches = OperatorTouches.local().execute(geometryA, geometryB, sr, null);
+    
+  return touches;
+}
+</pre>
+    </div>
+  </body>
+</html>

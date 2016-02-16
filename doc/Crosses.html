@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+	<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Crosses</title>
+    <meta name="author" content="Anne2440" />
+    <link rel="stylesheet" href="GeometryDocStyle.css">
+  </head>
+	<body>
+		<h1 id="topic">Crosses</h1>
+    <ul id="menu">
+    <li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorCrosses.html">API Reference</a></li>
+      <li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
+    </ul>
+		<div id="content">
+		<p>Two polylines cross if they meet at points only, and at least one of the shared points is internal to both polylines. 
+		A polyline and polygon cross if a connected part of the polyline is partly inside and partly outside the polygon.</p>
+      <table class="noBoundaryTable">
+      <tr>
+        <td><img src="Images/Crosses/Crosses1.jpg"></td>
+      </tr>
+      </table>
+      <table class="noBoundaryTable">
+      <tr>
+        <td><img src="Images/Crosses/Crosses2.jpg"></td>
+      </tr>
+      </table>
+      <h4 class="myLightBlue">Example 1: Does Geometry A cross Geometry B?</h4>
+      <div class="codeSample">
+<pre class="import">static boolean geometryCrosses(Geometry geometryA, Geometry geometryB, SpatialReference sr) 
+{
+  boolean crosses = OperatorCrosses.local().execute(geometryA, geometryB, sr, null);
+    
+  return crosses;
+}
+</pre>
+    </div>
+  </body>
+</html>
