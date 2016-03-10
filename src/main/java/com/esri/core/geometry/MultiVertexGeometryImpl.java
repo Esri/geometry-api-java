@@ -1110,6 +1110,9 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 
 	public abstract boolean _buildQuadTreeAccelerator(
 			GeometryAccelerationDegree d);
-	// //////////////////METHODS To REMOVE ///////////////////////
 
+	@Override
+	public String toString() {
+		return "MultiVertexGeometryImpl";
+	}	
 }
