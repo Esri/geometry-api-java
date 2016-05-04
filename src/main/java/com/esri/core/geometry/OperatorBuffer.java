@@ -58,6 +58,31 @@ public abstract class OperatorBuffer extends Operator {
 			SpatialReference sr, double distance,
 			ProgressTracker progressTracker);
 
+    /**
+    *Creates a buffer around the input geometries
+    *
+    *@param input_geometries The geometries to buffer.
+    *@param sr The Spatial_reference of the Geometries. It is used to obtain the tolerance. Can be null.
+    *@param distances The buffer distances for the Geometries. If the size of the distances array is less than the number of geometries in the input_geometries, the last distance value is used for the rest of geometries.
+    *@param max_deviation The max deviation of the result buffer from the true buffer in the units of the sr.
+    *When max_deviation is NaN or 0, it is replaced with 1e-5 * abs(distance).
+    *When max_deviation is larger than MIN = 0.5 * abs(distance), it is replaced with MIN. See below for more information.
+    *@param max_vertices_in_full_circle The maximum number of vertices in polygon produced from a buffered point. A value of 96 is used in methods that do not accept max_vertices_in_full_circle.
+    *If the value is less than MIN=12, it is set to MIN. See below for more information.
+    *@param b_union If True, the buffered geometries will be unioned, otherwise they wont be unioned.
+    *@param progress_tracker The progress tracker that allows to cancel the operation. Pass null if not needed.
+    *
+    *The max_deviation and max_vertices_in_full_circle control the quality of round joins in the buffer. That is, the precision of the buffer is max_deviation unless
+    *the number of required vertices is too large.
+    *The max_vertices_in_full_circle controls how many vertices can be in each round join in the buffer. It is approximately equal to the number of vertices in the polygon around a
+    *buffered point. It has a priority over max_deviation. The max deviation is the distance from the result polygon to a true buffer.
+    *The real deviation is calculated as the max(max_deviation, abs(distance) * (1 - cos(PI / max_vertex_in_complete_circle))).
+    *
+    *Note that max_deviation can be exceeded because geometry is generalized with 0.25 * real_deviation, also input segments closer than 0.25 * real_deviation are 
+    *snapped to a point.
+    */
+    abstract GeometryCursor execute(GeometryCursor input_geometries, SpatialReference sr, double[] distances, double max_deviation, int max_vertices_in_full_circle, boolean b_union, ProgressTracker progress_tracker);
+	
 	public static OperatorBuffer local() {
 		return (OperatorBuffer) OperatorFactoryLocal.getInstance().getOperator(
 				Type.Buffer);

@@ -59,6 +59,12 @@ public final class Envelope2D implements Serializable {
 		return env;
 	}
 
+	public static Envelope2D construct(Envelope2D other) {
+		Envelope2D env = new Envelope2D();
+		env.setCoords(other);
+		return env;
+	}
+	
 	public Envelope2D() {
 		setEmpty();
 	}
@@ -70,6 +76,10 @@ public final class Envelope2D implements Serializable {
 		ymax = _ymax;
 	}
 
+	public Envelope2D(Envelope2D other) {
+		setCoords(other);
+	}
+	
 	public void setCoords(double _x, double _y) {
 		xmin = _x;
 		ymin = _y;
@@ -144,7 +154,7 @@ public final class Envelope2D implements Serializable {
 	}
 
 	public boolean isEmpty() {
-		return NumberUtils.isNaN(xmin);
+		return NumberUtils.isNaN(xmin) || NumberUtils.isNaN(ymin) || NumberUtils.isNaN(xmax) || NumberUtils.isNaN(ymax);
 	}
 
 	public void setCoords(Envelope1D xinterval, Envelope1D yinterval) {
@@ -240,14 +250,13 @@ public final class Envelope2D implements Serializable {
 	}
 
 	/**
-   * Checks if this envelope intersects the other.
+	 * Checks if this envelope intersects the other.
 	 * @return True if this envelope intersects the other.
 	 */
 	public boolean isIntersecting(Envelope2D other) {
-		return !isEmpty()
-				&& !other.isEmpty()
-				&& ((xmin <= other.xmin) ? xmax >= other.xmin
-						: other.xmax >= xmin)
+		// No need to check if empty, this will work for empty envelopes too
+		// (IEEE math)
+		return ((xmin <= other.xmin) ? xmax >= other.xmin : other.xmax >= xmin)
 				&& // check that x projections overlap
 				((ymin <= other.ymin) ? ymax >= other.ymin : other.ymax >= ymin); // check
 																					// that
@@ -257,7 +266,7 @@ public final class Envelope2D implements Serializable {
 	}
 
 	/**
-   * Checks if this envelope intersects the other assuming neither one is empty.
+	 * Checks if this envelope intersects the other assuming neither one is empty.
 	 * @return True if this envelope intersects the other. Assumes this and
 	 * other envelopes are not empty.
 	 */
@@ -271,6 +280,23 @@ public final class Envelope2D implements Serializable {
 																					// overlap
 	}
 
+	/**
+	 * Checks if this envelope intersects the other.
+	 * @return True if this envelope intersects the other.
+	 */
+	public boolean isIntersecting(double xmin_, double ymin_, double xmax_, double ymax_) {
+		// No need to check if empty, this will work for empty geoms too (IEEE
+		// math)
+		return ((xmin <= xmin_) ? xmax >= xmin_ : xmax_ >= xmin) && // check
+																	// that x
+																	// projections
+																	// overlap
+				((ymin <= ymin_) ? ymax >= ymin_ : ymax_ >= ymin); // check that
+																	// y
+																	// projections
+																	// overlap
+	}
+	
 	/**
 	 * Intersects this envelope with the other and stores result in this
 	 * envelope.
@@ -303,15 +329,20 @@ public final class Envelope2D implements Serializable {
 	}
 
 	/**
-   * Queries a corner of the envelope.
-   * 
-   * @param index Indicates a corner of the envelope.
-   * <p> 0 => lower left or (xmin, ymin)
-   * <p> 1 => upper left or (xmin, ymax)
-   * <p> 2 => upper right or (xmax, ymax)
-   * <p> 3 => lower right or (xmax, ymin)
-	 * @return Point at a corner of the envelope. 
-   * 
+	 * Queries a corner of the envelope.
+	 * 
+	 * @param index
+	 *            Indicates a corner of the envelope.
+	 *            <p>
+	 *            0 means lower left or (xmin, ymin)
+	 *            <p>
+	 *            1 means upper left or (xmin, ymax)
+	 *            <p>
+	 *            2 means upper right or (xmax, ymax)
+	 *            <p>
+	 *            3 means lower right or (xmax, ymin)
+	 * @return Point at a corner of the envelope.
+	 * 
 	 */
 	public Point2D queryCorner(int index) {
 		switch (index) {
@@ -1081,6 +1112,62 @@ public final class Envelope2D implements Serializable {
 		return dx * dx + dy * dy;
 	}
 
+	/**
+	 * Calculates minimum squared distance from this envelope to the other.
+	 * Returns 0 for empty envelopes.
+	 */
+	public double sqrDistance(double xmin_, double ymin_, double xmax_, double ymax_)
+	{
+		double dx = 0;
+		double dy = 0;
+		double nn;
+
+		nn = xmin - xmax_;
+		if (nn > dx)
+			dx = nn;
+
+		nn = ymin - ymax_;
+		if (nn > dy)
+			dy = nn;
+
+		nn = xmin_ - xmax;
+		if (nn > dx)
+			dx = nn;
+
+		nn = ymin_ - ymax;
+		if (nn > dy)
+			dy = nn;
+
+		return dx * dx + dy * dy;
+	}
+	
+	/**
+	 *Returns squared max distance between two bounding boxes. This is furthest distance between points on the two envelopes.
+	 *
+	 *@param other The bounding box to calculate the max distance two.
+	 *@return Squared distance value.
+	 */
+	public double sqrMaxDistance(Envelope2D other) {
+		if (isEmpty() || other.isEmpty())
+			return NumberUtils.TheNaN;
+
+		double dist = 0;
+		Point2D[] points = new Point2D[4];
+		queryCorners(points);
+		Point2D[] points_o = new Point2D[4];
+		other.queryCorners(points_o);
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				double d = Point2D.sqrDistance(points[i], points_o[j]);
+				if (d > dist) {
+					dist = d;
+				}
+			}
+		}
+
+		return dist;
+	}
+	
 	/**
 	 * Calculates minimum squared distance from this envelope to the point.
 	 * Returns 0 for empty envelopes.

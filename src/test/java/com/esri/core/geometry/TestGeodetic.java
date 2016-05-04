@@ -24,7 +24,7 @@ public class TestGeodetic extends TestCase {
 		length += GeometryEngine.geodesicDistanceOnWGS84(pt_0, pt_1);
 		length += GeometryEngine.geodesicDistanceOnWGS84(pt_1, pt_2);
 		length += GeometryEngine.geodesicDistanceOnWGS84(pt_2, pt_0);
-		assertTrue(Math.abs(length - 3744719.4094597572) < 1e-13 * 3744719.4094597572);
+		assertTrue(Math.abs(length - 3744719.4094597572) < 1e-12 * 3744719.4094597572);
 	}
 
 	@Test
@@ -36,7 +36,7 @@ public class TestGeodetic extends TestCase {
 		length += GeometryEngine.geodesicDistanceOnWGS84(pt_0, pt_1);
 		length += GeometryEngine.geodesicDistanceOnWGS84(pt_1, pt_2);
 		length += GeometryEngine.geodesicDistanceOnWGS84(pt_2, pt_0);
-		assertTrue(Math.abs(length - 5409156.3896271614) < 1e-13 * 5409156.3896271614);
+		assertTrue(Math.abs(length - 5409156.3896271614) < 1e-12 * 5409156.3896271614);
 
 		for (int i = -540; i < 540; i += 5) {
 			pt_0.setXY(i + 10, 40);
@@ -46,10 +46,41 @@ public class TestGeodetic extends TestCase {
 			length += GeometryEngine.geodesicDistanceOnWGS84(pt_0, pt_1);
 			length += GeometryEngine.geodesicDistanceOnWGS84(pt_1, pt_2);
 			length += GeometryEngine.geodesicDistanceOnWGS84(pt_2, pt_0);
-			assertTrue(Math.abs(length - 5409156.3896271614) < 1e-13 * 5409156.3896271614);
+			assertTrue(Math.abs(length - 5409156.3896271614) < 1e-12 * 5409156.3896271614);
 		}
 	}
 
+	@Test
+	public void testDistanceFailure() {
+		{
+			Point p1 = new Point(-60.668485, -31.996013333333334);
+			Point p2 = new Point(119.13731666666666, 32.251583333333336);
+			double d = GeometryEngine.geodesicDistanceOnWGS84(p1, p2);
+			assertTrue(Math.abs(d - 19973410.50579736) < 1e-13 * 19973410.50579736);
+		}
+
+		{
+			Point p1 = new Point(121.27343833333333, 27.467438333333334);
+			Point p2 = new Point(-58.55804833333333, -27.035613333333334);
+			double d = GeometryEngine.geodesicDistanceOnWGS84(p1, p2);
+			assertTrue(Math.abs(d - 19954707.428360686) < 1e-13 * 19954707.428360686);
+		}
+
+		{
+			Point p1 = new Point(-53.329865, -36.08110166666667);
+			Point p2 = new Point(126.52895166666667, 35.97385);
+			double d = GeometryEngine.geodesicDistanceOnWGS84(p1, p2);
+			assertTrue(Math.abs(d - 19990586.700431127) < 1e-13 * 19990586.700431127);
+		}
+
+		{
+			Point p1 = new Point(-4.7181166667, 36.1160166667);
+			Point p2 = new Point(175.248925, -35.7606716667);
+			double d = GeometryEngine.geodesicDistanceOnWGS84(p1, p2);
+			assertTrue(Math.abs(d - 19964450.206594173) < 1e-12 * 19964450.206594173);
+		}
+	}
+	
 	@Test
 	public void testLengthAccurateCR191313() {
 		/*

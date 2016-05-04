@@ -24,10 +24,15 @@
 package com.esri.core.geometry;
 
 import java.util.ArrayList;
+
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.json.JSONException;
+import org.codehaus.jackson.JsonParseException;
+
+import java.io.IOException;
 
 final class JsonParserReader extends JsonReader {
 
@@ -38,33 +43,33 @@ final class JsonParserReader extends JsonReader {
 	}
 
 	@Override
-	JsonToken nextToken() throws Exception {
+	JsonToken nextToken() throws JSONException, JsonParseException, IOException {
 		JsonToken token = m_jsonParser.nextToken();
 		return token;
 	}
 
 	@Override
-	JsonToken currentToken() throws Exception {
+	JsonToken currentToken() throws JSONException, JsonParseException, IOException {
 		return m_jsonParser.getCurrentToken();
 	}
 
 	@Override
-	void skipChildren() throws Exception {
+	void skipChildren() throws JSONException, JsonParseException, IOException {
 		m_jsonParser.skipChildren();
 	}
 
 	@Override
-	String currentString() throws Exception {
+	String currentString() throws JSONException, JsonParseException, IOException {
 		return m_jsonParser.getText();
 	}
 
 	@Override
-	double currentDoubleValue() throws Exception {
+	double currentDoubleValue() throws JSONException, JsonParseException, IOException {
 		return m_jsonParser.getValueAsDouble();
 	}
 
 	@Override
-	int currentIntValue() throws Exception {
+	int currentIntValue() throws JSONException, JsonParseException, IOException {
 		return m_jsonParser.getValueAsInt();
 	}
 }

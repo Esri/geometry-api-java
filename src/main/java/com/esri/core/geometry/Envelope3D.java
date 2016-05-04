@@ -47,20 +47,23 @@ public final class Envelope3D implements Serializable{
 
 	public static Envelope3D construct(double _xmin, double _ymin,
 			double _zmin, double _xmax, double _ymax, double _zmax) {
-		Envelope3D env = new Envelope3D();
-		env.xmin = _xmin;
-		env.ymin = _ymin;
-		env.zmin = _zmin;
-		env.xmax = _xmax;
-		env.ymax = _ymax;
-		env.zmax = _zmax;
+		Envelope3D env = new Envelope3D(_xmin, _ymin, _zmin, _xmax, _ymax, _zmax);
 		return env;
+	}
+
+	public Envelope3D(double _xmin, double _ymin, double _zmin, double _xmax, double _ymax, double _zmax) {
+		setCoords(_xmin, _ymin, _zmin, _xmax, _ymax, _zmax);
 	}
 
 	public Envelope3D() {
 
 	}
 
+	public Envelope3D(Envelope3D other) {
+		setCoords(other);
+	}
+
+	
 	public void setInfinite() {
 		xmin = NumberUtils.negativeInf();
 		xmax = NumberUtils.positiveInf();
@@ -72,7 +75,11 @@ public final class Envelope3D implements Serializable{
 
 	public void setEmpty() {
 		xmin = NumberUtils.NaN();
+		ymin = NumberUtils.NaN();
 		zmin = NumberUtils.NaN();
+		xmax = 0;
+		ymax = 0;
+		zmax = 0;
 	}
 
 	public boolean isEmpty() {
@@ -99,6 +106,7 @@ public final class Envelope3D implements Serializable{
 		xmax = _xmax;
 		ymax = _ymax;
 		zmax = _zmax;
+		normalize();
 	}
 
 	public void setCoords(double _x, double _y, double _z) {
@@ -118,6 +126,24 @@ public final class Envelope3D implements Serializable{
 		ymax = ymin + height;
 		zmin = center.z - depth * 0.5;
 		zmax = zmin + depth;
+		normalize();
+	}
+
+	public void setCoords(Envelope3D envSrc) {
+
+		setCoords(envSrc.xmin, envSrc.ymin, envSrc.zmin, envSrc.xmax, envSrc.ymax, envSrc.zmax);
+	}
+
+	public double getWidth() {
+		return xmax - xmin;
+	}
+
+	public double getHeight() {
+		return ymax - ymin;
+	}
+
+	public double getDepth() {
+		return zmax - zmin;
 	}
 
 	public void move(Point3D vector) {
@@ -127,6 +153,24 @@ public final class Envelope3D implements Serializable{
 		xmax += vector.x;
 		ymax += vector.y;
 		zmax += vector.z;
+	}
+
+	public void normalize() {
+		if (isEmpty())
+			return;
+
+		double min = Math.min(xmin, xmax);
+		double max = Math.max(xmin, xmax);
+		xmin = min;
+		xmax = max;
+		min = Math.min(ymin, ymax);
+		max = Math.max(ymin, ymax);
+		ymin = min;
+		ymax = max;
+		min = Math.min(zmin, zmax);
+		max = Math.max(zmin, zmax);
+		zmin = min;
+		zmax = max;
 	}
 
 	public void copyTo(Envelope2D env) {
@@ -187,6 +231,93 @@ public final class Envelope3D implements Serializable{
 			double z2) {
 		merge(x1, y1, z1);
 		merge(x2, y2, z2);
+	}
+
+	public void inflate(double dx, double dy, double dz) {
+		if (isEmpty())
+			return;
+		xmin -= dx;
+		xmax += dx;
+		ymin -= dy;
+		ymax += dy;
+		zmin -= dz;
+		zmax += dz;
+		if (xmin > xmax || ymin > ymax || zmin > zmax)
+			setEmpty();
+	}
+
+	/**
+	 * Checks if this envelope intersects the other.
+	 *
+	 * @return True if this envelope intersects the other.
+	 */
+	public boolean isIntersecting(Envelope3D other) {
+		return !isEmpty() && !other.isEmpty() && ((xmin <= other.xmin) ? xmax >= other.xmin : other.xmax >= xmin) && // check that x projections overlap
+			((ymin <= other.ymin) ? ymax >= other.ymin : other.ymax >= ymin) && // check that y projections overlap
+			((zmin <= other.zmin) ? zmax >= other.zmin : other.zmax >= zmin); // check that z projections overlap
+	}
+
+	/**
+	 * Intersects this envelope with the other and stores result in this
+	 * envelope.
+	 *
+	 * @return True if this envelope intersects the other, otherwise sets this
+	 * envelope to empty state and returns False.
+	 */
+	public boolean intersect(Envelope3D other) {
+		if (isEmpty() || other.isEmpty())
+			return false;
+
+		if (other.xmin > xmin)
+			xmin = other.xmin;
+
+		if (other.xmax < xmax)
+			xmax = other.xmax;
+
+		if (other.ymin > ymin)
+			ymin = other.ymin;
+
+		if (other.ymax < ymax)
+			ymax = other.ymax;
+
+		if (other.zmin > zmin)
+			zmin = other.zmin;
+
+		if (other.zmax < zmax)
+			zmax = other.zmax;
+
+		boolean bIntersecting = xmin <= xmax && ymin <= ymax && zmin <= zmax;
+
+		if (!bIntersecting)
+			setEmpty();
+
+		return bIntersecting;
+	}
+
+	/**
+	 * Returns True if the envelope contains the other envelope (boundary
+	 * inclusive).
+	 */
+	public boolean contains(Envelope3D other) {// Note: Will return False, if either envelope is empty.
+		return other.xmin >= xmin && other.xmax <= xmax && other.ymin >= ymin && other.ymax <= ymax && other.zmin >= zmin && other.zmax <= zmax;
+	}
+
+	@Override
+	public boolean equals(Object _other) {
+		if (_other == this)
+			return true;
+
+		if (!(_other instanceof Envelope3D))
+			return false;
+
+		Envelope3D other = (Envelope3D) _other;
+		if (isEmpty() && other.isEmpty())
+			return true;
+
+		if (xmin != other.xmin || ymin != other.ymin || zmin != other.zmin || xmax != other.xmax || ymax != other.ymax || zmax != other.zmax)
+			return false;
+
+		return true;
 	}
 
 	public void construct(Envelope1D xinterval, Envelope1D yinterval,

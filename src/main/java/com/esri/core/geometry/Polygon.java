@@ -30,7 +30,7 @@ import java.io.Serializable;
 /**
  * A polygon is a collection of one or many interior or exterior rings.
  */
-public final class Polygon extends MultiPath implements Serializable {
+public class Polygon extends MultiPath implements Serializable {
 
 	private static final long serialVersionUID = 2L;// TODO:remove as we use
 													// writeReplace and
@@ -43,7 +43,7 @@ public final class Polygon extends MultiPath implements Serializable {
 		m_impl = new MultiPathImpl(true);
 	}
 
-	Polygon(VertexDescription vd) {
+	public Polygon(VertexDescription vd) {
 		m_impl = new MultiPathImpl(true, vd);
 	}
 

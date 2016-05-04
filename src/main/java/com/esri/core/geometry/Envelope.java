@@ -32,8 +32,9 @@ import com.esri.core.geometry.VertexDescription.Semantics;
 /**
  * An envelope is an axis-aligned rectangle.
  */
-public final class Envelope extends Geometry implements Serializable {
-	private static final long serialVersionUID = 2L;
+public class Envelope extends Geometry implements Serializable {
+	//We are using writeReplace instead.
+	//private static final long serialVersionUID = 2L;
 
 	Envelope2D m_envelope = new Envelope2D();
 
@@ -58,20 +59,20 @@ public final class Envelope extends Geometry implements Serializable {
 		_setFromPoint(center, width, height);
 	}
 
-	Envelope(Envelope2D env2D) {
+	public Envelope(Envelope2D env2D) {
 		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();
 		m_envelope.setCoords(env2D);
 		m_envelope.normalize();
 	}
 
-	Envelope(VertexDescription vd) {
+	public Envelope(VertexDescription vd) {
 		if (vd == null)
 			throw new IllegalArgumentException();
 		m_description = vd;
 		m_envelope.setEmpty();
 	}
 
-	Envelope(VertexDescription vd, Envelope2D env2D) {
+	public Envelope(VertexDescription vd, Envelope2D env2D) {
 		if (vd == null)
 			throw new IllegalArgumentException();
 		m_description = vd;
@@ -215,16 +216,16 @@ public final class Envelope extends Geometry implements Serializable {
 		return m_envelope.getCenterY();
 	}
 
-  /**
+	/**
 	 * The x and y-coordinates of the center of the envelope.
 	 * 
 	 * @return A point whose x and y-coordinates are that of the center of the envelope.
 	 */
-	Point2D getCenterXY() {
+	public Point2D getCenterXY() {
 		return m_envelope.getCenter();
 	}
 
-	void getCenter(Point point_out) {
+	public void getCenter(Point point_out) {
 		point_out.assignVertexDescription(m_description);
 		if (isEmpty()) {
 			point_out.setEmpty();
@@ -244,7 +245,7 @@ public final class Envelope extends Geometry implements Serializable {
 		point_out.setXY(m_envelope.getCenter());
 	}
 
-	void merge(Point2D pt) {
+	public void merge(Point2D pt) {
 		_touch();
 		m_envelope.merge(pt);
 	}
@@ -341,7 +342,7 @@ public final class Envelope extends Geometry implements Serializable {
 		}
 	}
 
-	void merge(Envelope2D other) {
+	public void merge(Envelope2D other) {
 		_touch();
 		m_envelope.merge(other);
 	}
@@ -415,7 +416,7 @@ public final class Envelope extends Geometry implements Serializable {
 		{
 			envDst._ensureAttributes();
 			System.arraycopy(m_attributes, 0, envDst.m_attributes, 0,
-					(m_description._getTotalComponents() - 2) * 2);
+					(m_description.getTotalComponentCount() - 2) * 2);
 		}
 	}
 
@@ -493,7 +494,7 @@ public final class Envelope extends Geometry implements Serializable {
 		}
 	}
 
-	void queryCoordinates(Point2D[] dst) {
+	public void queryCoordinates(Point2D[] dst) {
 		if (dst == null || dst.length < 4 || m_envelope.isEmpty())
 			throw new IllegalArgumentException();
 
@@ -573,7 +574,7 @@ public final class Envelope extends Geometry implements Serializable {
 		}
 	}
 
-	void queryCorner(int index, Point2D ptDst) {
+	public void queryCorner(int index, Point2D ptDst) {
 		Point2D p = m_envelope.queryCorner(index);
 		ptDst.setCoords(p.x, p.y);
 	}
@@ -645,8 +646,8 @@ public final class Envelope extends Geometry implements Serializable {
 
 	void _ensureAttributes() {
 		_touch();
-		if (m_attributes == null && m_description._getTotalComponents() > 2) {
-			m_attributes = new double[(m_description._getTotalComponents() - 2) * 2];
+		if (m_attributes == null && m_description.getTotalComponentCount() > 2) {
+			m_attributes = new double[(m_description.getTotalComponentCount() - 2) * 2];
 			int offset0 = _getEndPointOffset(m_description, 0);
 			int offset1 = _getEndPointOffset(m_description, 1);
 			
@@ -672,10 +673,10 @@ public final class Envelope extends Geometry implements Serializable {
 			return;
 		}
 		
-		if (newDescription._getTotalComponents() > 2) {
+		if (newDescription.getTotalComponentCount() > 2) {
 			int[] mapping = VertexDescriptionDesignerImpl.mapAttributes(newDescription, m_description);
 			
-			double[] newAttributes = new double[(newDescription._getTotalComponents() - 2) * 2];
+			double[] newAttributes = new double[(newDescription.getTotalComponentCount() - 2) * 2];
 			
 			int old_offset0 = _getEndPointOffset(m_description, 0);
 			int old_offset1 = _getEndPointOffset(m_description, 1);
@@ -793,10 +794,10 @@ public final class Envelope extends Geometry implements Serializable {
 	}
 
 	static int _getEndPointOffset(VertexDescription vd, int endPoint) {
-		return endPoint * (vd._getTotalComponents() - 2);
+		return endPoint * (vd.getTotalComponentCount() - 2);
 	}
 
-	boolean isIntersecting(Envelope2D other) {
+	public boolean isIntersecting(Envelope2D other) {
 		return m_envelope.isIntersecting(other);
 	}
 
@@ -875,7 +876,7 @@ public final class Envelope extends Geometry implements Serializable {
 	 * 
 	 * @return The center point of the envelope.
 	 */
-	Point2D getCenter2D() {
+	public Point2D getCenter2D() {
 		return m_envelope.getCenter();
 	}
 
@@ -1005,7 +1006,7 @@ public final class Envelope extends Geometry implements Serializable {
 		if (!this.m_envelope.equals(other.m_envelope))
 			return false;
 
-		for (int i = 0, n = (m_description._getTotalComponents() - 2) * 2; i < n; i++)
+		for (int i = 0, n = (m_description.getTotalComponentCount() - 2) * 2; i < n; i++)
 			if (m_attributes[i] != other.m_attributes[i])
 				return false;
 
@@ -1022,7 +1023,7 @@ public final class Envelope extends Geometry implements Serializable {
 		int hashCode = m_description.hashCode();
 		hashCode = NumberUtils.hash(hashCode, m_envelope.hashCode());
 		if (!isEmpty() && m_attributes != null) {
-			for (int i = 0, n = (m_description._getTotalComponents() - 2) * 2; i < n; i++) {
+			for (int i = 0, n = (m_description.getTotalComponentCount() - 2) * 2; i < n; i++) {
 				hashCode = NumberUtils.hash(hashCode, m_attributes[i]);
 			}
 		}

@@ -3,7 +3,7 @@
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
  Unless required by applicable law or agreed to in writing, software
  distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,29 +23,28 @@
 package com.esri.core.geometry;
 
 class OperatorExportToGeoJsonLocal extends OperatorExportToGeoJson {
-    @Override
-    public JsonCursor execute(SpatialReference spatialReference, GeometryCursor geometryCursor) {
-        return new OperatorExportToGeoJsonCursor(false, spatialReference, geometryCursor);
-    }
+	@Override
+	public JsonCursor execute(SpatialReference spatialReference, GeometryCursor geometryCursor) {
+		return new OperatorExportToGeoJsonCursor(GeoJsonExportFlags.geoJsonExportDefaults, spatialReference, geometryCursor);
+	}
 
-    @Override
-    public String execute(SpatialReference spatialReference, Geometry geometry) {
-        SimpleGeometryCursor gc = new SimpleGeometryCursor(geometry);
-        JsonCursor cursor = new OperatorExportToGeoJsonCursor(false, spatialReference, gc);
-        return cursor.next();
-    }
+	@Override
+	public String execute(SpatialReference spatialReference, Geometry geometry) {
+		return OperatorExportToGeoJsonCursor.exportToGeoJson(GeoJsonExportFlags.geoJsonExportDefaults, geometry, spatialReference);
+	}
 
-    @Override
-    public String execute(int exportFlags, SpatialReference spatialReference, Geometry geometry) {
-        SimpleGeometryCursor gc = new SimpleGeometryCursor(geometry);
-        JsonCursor cursor = new OperatorExportToGeoJsonCursor(exportFlags == GeoJsonExportFlags.geoJsonExportPreferMultiGeometry, spatialReference, gc);
-        return cursor.next();
-    }
-    
-    @Override
-    public String execute(Geometry geometry) {
-        SimpleGeometryCursor gc = new SimpleGeometryCursor(geometry);
-        JsonCursor cursor = new OperatorExportToGeoJsonCursor(gc);
-        return cursor.next();
-    }
+	@Override
+	public String execute(int exportFlags, SpatialReference spatialReference, Geometry geometry) {
+		return OperatorExportToGeoJsonCursor.exportToGeoJson(exportFlags, geometry, spatialReference);
+	}
+
+	@Override
+	public String execute(Geometry geometry) {
+		return OperatorExportToGeoJsonCursor.exportToGeoJson(GeoJsonExportFlags.geoJsonExportSkipCRS, geometry, null);
+	}
+
+	@Override
+	public String exportSpatialReference(int export_flags, SpatialReference spatial_reference) {
+		return OperatorExportToGeoJsonCursor.exportSpatialReference(export_flags, spatial_reference);
+	}
 }

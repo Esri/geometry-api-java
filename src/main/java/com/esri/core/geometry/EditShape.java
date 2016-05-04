@@ -1865,6 +1865,14 @@ final class EditShape {
 		return m_vertex_index_list.getField(currentVertex, 1);
 	}
 
+	int getPrevVertex(int currentVertex, int dir) {
+		return dir > 0 ? m_vertex_index_list.getField(currentVertex, 1) : m_vertex_index_list.getField(currentVertex, 2);
+	}
+
+	int getNextVertex(int currentVertex, int dir) {
+		return dir > 0 ? m_vertex_index_list.getField(currentVertex, 2) : m_vertex_index_list.getField(currentVertex, 1);
+	}
+	
 	// Returns a path the vertex belongs to.
 	int getPathFromVertex(int vertex) {
 		return m_vertex_index_list.getField(vertex, 3);

@@ -37,18 +37,17 @@ public class TestSerialization extends TestCase {
 
 		}
 
-		// try
-		// {
-		// FileOutputStream streamOut = new FileOutputStream(m_thisDirectory +
-		// "savedPoint.txt");
-		// ObjectOutputStream oo = new ObjectOutputStream(streamOut);
-		// Point pt = new Point(10, 40);
-		// oo.writeObject(pt);
-		// }
-		// catch(Exception ex)
-		// {
-		// fail("Point serialization failure");
-		// }
+		 //try
+		 //{
+		 //FileOutputStream streamOut = new FileOutputStream("c:/temp/savedPoint1.txt");
+		 //ObjectOutputStream oo = new ObjectOutputStream(streamOut);
+		 //Point pt = new Point(10, 40, 2);
+		 //oo.writeObject(pt);
+		 //}
+		 //catch(Exception ex)
+		 //{
+		 //fail("Point serialization failure");
+		 //}
 
 		try {
 			InputStream s = TestSerialization.class
@@ -59,6 +58,17 @@ public class TestSerialization extends TestCase {
 		} catch (Exception ex) {
 			fail("Point serialization failure");
 		}
+
+		try {
+			InputStream s = TestSerialization.class
+					.getResourceAsStream("savedPoint1.txt");
+			ObjectInputStream ii = new ObjectInputStream(s);
+			Point ptRes = (Point) ii.readObject();
+			assertTrue(ptRes.getX() == 10 && ptRes.getY() == 40 && ptRes.getZ() == 2);
+		} catch (Exception ex) {
+			fail("Point serialization failure");
+		}
+
 	}
 
 	@Test
@@ -98,26 +108,34 @@ public class TestSerialization extends TestCase {
 			fail("Polygon serialization failure");
 		}
 
-		// try
-		// {
-		// FileOutputStream streamOut = new FileOutputStream(m_thisDirectory +
-		// "savedPolygon.txt");
-		// ObjectOutputStream oo = new ObjectOutputStream(streamOut);
-		// Polygon pt = new Polygon();
-		// pt.startPath(10, 10);
-		// pt.lineTo(100, 100);
-		// pt.lineTo(200, 100);
-		// pt = (Polygon)GeometryEngine.simplify(pt, null);
-		// oo.writeObject(pt);
-		// }
-		// catch(Exception ex)
-		// {
-		// fail("Polygon serialization failure");
-		// }
+		 //try
+		 //{
+		 //FileOutputStream streamOut = new FileOutputStream("c:/temp/savedPolygon1.txt");
+		 //ObjectOutputStream oo = new ObjectOutputStream(streamOut);
+		 //Polygon pt = new Polygon();
+		 //pt.startPath(10, 10);
+		 //pt.lineTo(100, 100);
+		 //pt.lineTo(200, 100);
+		 //pt = (Polygon)GeometryEngine.simplify(pt, null);
+		 //oo.writeObject(pt);
+		 //}
+		 //catch(Exception ex)
+		 //{
+		 //fail("Polygon serialization failure");
+		 //}
 
 		try {
 			InputStream s = TestSerialization.class
 					.getResourceAsStream("savedPolygon.txt");
+			ObjectInputStream ii = new ObjectInputStream(s);
+			Polygon ptRes = (Polygon) ii.readObject();
+			assertTrue(ptRes != null);
+		} catch (Exception ex) {
+			fail("Polygon serialization failure");
+		}
+		try {
+			InputStream s = TestSerialization.class
+					.getResourceAsStream("savedPolygon1.txt");
 			ObjectInputStream ii = new ObjectInputStream(s);
 			Polygon ptRes = (Polygon) ii.readObject();
 			assertTrue(ptRes != null);
@@ -145,25 +163,33 @@ public class TestSerialization extends TestCase {
 			fail("Polyline serialization failure");
 		}
 
-		// try
-		// {
-		// FileOutputStream streamOut = new FileOutputStream(m_thisDirectory +
-		// "savedPolyline.txt");
-		// ObjectOutputStream oo = new ObjectOutputStream(streamOut);
-		// Polyline pt = new Polyline();
-		// pt.startPath(10, 10);
-		// pt.lineTo(100, 100);
-		// pt.lineTo(200, 100);
-		// oo.writeObject(pt);
-		// }
-		// catch(Exception ex)
-		// {
-		// fail("Polyline serialization failure");
-		// }
+		 //try
+		 //{
+		 //FileOutputStream streamOut = new FileOutputStream("c:/temp/savedPolyline1.txt");
+		 //ObjectOutputStream oo = new ObjectOutputStream(streamOut);
+		 //Polyline pt = new Polyline();
+		 //pt.startPath(10, 10);
+		 //pt.lineTo(100, 100);
+		 //pt.lineTo(200, 100);
+		 //oo.writeObject(pt);
+		 //}
+		 //catch(Exception ex)
+		 //{
+		 //fail("Polyline serialization failure");
+		 //}
 
 		try {
 			InputStream s = TestSerialization.class
 					.getResourceAsStream("savedPolyline.txt");
+			ObjectInputStream ii = new ObjectInputStream(s);
+			Polyline ptRes = (Polyline) ii.readObject();
+			assertTrue(ptRes != null);
+		} catch (Exception ex) {
+			fail("Polyline serialization failure");
+		}
+		try {
+			InputStream s = TestSerialization.class
+					.getResourceAsStream("savedPolyline1.txt");
 			ObjectInputStream ii = new ObjectInputStream(s);
 			Polyline ptRes = (Polyline) ii.readObject();
 			assertTrue(ptRes != null);
@@ -188,22 +214,30 @@ public class TestSerialization extends TestCase {
 			fail("Envelope serialization failure");
 		}
 
-		// try
-		// {
-		// FileOutputStream streamOut = new FileOutputStream(m_thisDirectory +
-		// "savedEnvelope.txt");
-		// ObjectOutputStream oo = new ObjectOutputStream(streamOut);
-		// Envelope pt = new Envelope(10, 10, 400, 300);
-		// oo.writeObject(pt);
-		// }
-		// catch(Exception ex)
-		// {
-		// fail("Envelope serialization failure");
-		// }
+		 //try
+		 //{
+		 //FileOutputStream streamOut = new FileOutputStream("c:/temp/savedEnvelope1.txt");
+		 //ObjectOutputStream oo = new ObjectOutputStream(streamOut);
+		 //Envelope pt = new Envelope(10, 10, 400, 300);
+		 //oo.writeObject(pt);
+		 //}
+		 //catch(Exception ex)
+		 //{
+		 //fail("Envelope serialization failure");
+		 //}
 
 		try {
 			InputStream s = TestSerialization.class
 					.getResourceAsStream("savedEnvelope.txt");
+			ObjectInputStream ii = new ObjectInputStream(s);
+			Envelope ptRes = (Envelope) ii.readObject();
+			assertTrue(ptRes.getXMax() == 400);
+		} catch (Exception ex) {
+			fail("Envelope serialization failure");
+		}
+		try {
+			InputStream s = TestSerialization.class
+					.getResourceAsStream("savedEnvelope1.txt");
 			ObjectInputStream ii = new ObjectInputStream(s);
 			Envelope ptRes = (Envelope) ii.readObject();
 			assertTrue(ptRes.getXMax() == 400);
@@ -230,24 +264,32 @@ public class TestSerialization extends TestCase {
 			fail("MultiPoint serialization failure");
 		}
 
-		// try
-		// {
-		// FileOutputStream streamOut = new FileOutputStream(m_thisDirectory +
-		// "savedMultiPoint.txt");
-		// ObjectOutputStream oo = new ObjectOutputStream(streamOut);
-		// MultiPoint pt = new MultiPoint();
-		// pt.add(10, 30);
-		// pt.add(120, 40);
-		// oo.writeObject(pt);
-		// }
-		// catch(Exception ex)
-		// {
-		// fail("MultiPoint serialization failure");
-		// }
+		 //try
+		 //{
+		 //FileOutputStream streamOut = new FileOutputStream("c:/temp/savedMultiPoint1.txt");
+		 //ObjectOutputStream oo = new ObjectOutputStream(streamOut);
+		 //MultiPoint pt = new MultiPoint();
+		 //pt.add(10, 30);
+		 //pt.add(120, 40);
+		 //oo.writeObject(pt);
+		 //}
+		 //catch(Exception ex)
+		 //{
+		 //fail("MultiPoint serialization failure");
+		 //}
 
 		try {
 			InputStream s = TestSerialization.class
 					.getResourceAsStream("savedMultiPoint.txt");
+			ObjectInputStream ii = new ObjectInputStream(s);
+			MultiPoint ptRes = (MultiPoint) ii.readObject();
+			assertTrue(ptRes.getPoint(1).getY() == 40);
+		} catch (Exception ex) {
+			fail("MultiPoint serialization failure");
+		}
+		try {
+			InputStream s = TestSerialization.class
+					.getResourceAsStream("savedMultiPoint1.txt");
 			ObjectInputStream ii = new ObjectInputStream(s);
 			MultiPoint ptRes = (MultiPoint) ii.readObject();
 			assertTrue(ptRes.getPoint(1).getY() == 40);

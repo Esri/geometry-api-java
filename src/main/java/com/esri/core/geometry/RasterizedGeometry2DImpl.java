@@ -138,14 +138,16 @@ final class RasterizedGeometry2DImpl extends RasterizedGeometry2D {
 
 		SegmentIteratorImpl segIter = polyPath.querySegmentIterator();
 		double strokeHalfWidth = m_transform.transform(tol) + 1.5;
-		double shortSegment = 0.5;
+		double shortSegment = 0.25;
 		Point2D vec = new Point2D();
 		Point2D vecA = new Point2D();
 		Point2D vecB = new Point2D();
 
-		// TODO check this Java workaroung
 		Point2D ptStart = new Point2D();
 		Point2D ptEnd = new Point2D();
+		Point2D prev_start = new Point2D();
+		Point2D prev_end = new Point2D();
+		double[] helper_xy_10_elm = new double[10];
 		Envelope2D segEnv = new Envelope2D();
 		Point2D ptOld = new Point2D();
 		while (segIter.nextPath()) {
@@ -155,18 +157,22 @@ final class RasterizedGeometry2DImpl extends RasterizedGeometry2D {
 			while (segIter.hasNextSegment()) {
 				Segment seg = segIter.nextSegment();
 				ptStart.x = seg.getStartX();
-				ptStart.y = seg.getStartY();// Point2D ptStart =
-				// seg.getStartXY();
+				ptStart.y = seg.getStartY();
 				ptEnd.x = seg.getEndX();
-				ptEnd.y = seg.getEndY();// Point2D ptEnd = seg.getEndXY();
+				ptEnd.y = seg.getEndY();
 				segEnv.setEmpty();
 				segEnv.merge(ptStart.x, ptStart.y);
 				segEnv.mergeNE(ptEnd.x, ptEnd.y);
 				if (!m_geomEnv.isIntersectingNE(segEnv)) {
 					if (hasFan) {
-						fillConvexPolygon(rasterizer, fan, 4);
+						rasterizer.startAddingEdges();
+						rasterizer.addSegmentStroke(prev_start.x, prev_start.y,
+								prev_end.x, prev_end.y, strokeHalfWidth, false,
+								helper_xy_10_elm);
+						rasterizer.renderEdges(SimpleRasterizer.EVEN_ODD);
 						hasFan = false;
 					}
+
 					first = true;
 					continue;
 				}
@@ -181,34 +187,25 @@ final class RasterizedGeometry2DImpl extends RasterizedGeometry2D {
 					ptStart.setCoords(ptOld);
 				}
 
-				vec.sub(ptEnd, ptStart);
-				double len = vec.length();
-				boolean bShort = len < shortSegment;
-				if (len == 0) {
-					vec.setCoords(1.0, 0);
-					len = 1.0;
-					continue;
-				}
+				prev_start.setCoords(ptStart);
+				prev_end.setCoords(ptEnd);
 
-				if (!bShort)
-					ptOld.setCoords(ptEnd);
-
-				vec.scale(strokeHalfWidth / len);
-				vecA.setCoords(-vec.y, vec.x);
-				vecB.setCoords(vec.y, -vec.x);
-				ptStart.sub(vec);
-				ptEnd.add(vec);
-				fan[0].add(ptStart, vecA);
-				fan[1].add(ptStart, vecB);
-				fan[2].add(ptEnd, vecB);
-				fan[3].add(ptEnd, vecA);
-				if (!bShort)
-					fillConvexPolygon(rasterizer, fan, 4);
-				else
-					hasFan = true;
+				rasterizer.startAddingEdges();
+				hasFan = !rasterizer.addSegmentStroke(prev_start.x,
+						prev_start.y, prev_end.x, prev_end.y, strokeHalfWidth,
+						true, helper_xy_10_elm);
+				rasterizer.renderEdges(SimpleRasterizer.EVEN_ODD);
+				if (!hasFan)
+					ptOld.setCoords(prev_end);
 			}
-			if (hasFan)
-				fillConvexPolygon(rasterizer, fan, 4);
+
+			if (hasFan) {
+				rasterizer.startAddingEdges();
+				hasFan = !rasterizer.addSegmentStroke(prev_start.x,
+						prev_start.y, prev_end.x, prev_end.y, strokeHalfWidth,
+						false, helper_xy_10_elm);
+				rasterizer.renderEdges(SimpleRasterizer.EVEN_ODD);
+			}
 		}
 	}
 

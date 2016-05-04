@@ -242,6 +242,7 @@ public class GeometryEngine {
 	 * @throws GeometryException when the geometryType is not Geometry.Type.Unknown and the geoJson contains a geometry that cannot be converted to the given geometryType.
 	 * @throws IllegalArgument exception if an error is found while parsing the geoJson string.
 	 */
+	@Deprecated
 	public static MapGeometry geometryFromGeoJson(String geoJson,
 			int importFlags, Geometry.Type geometryType) throws JSONException {
 		OperatorImportFromGeoJson op = (OperatorImportFromGeoJson) factory

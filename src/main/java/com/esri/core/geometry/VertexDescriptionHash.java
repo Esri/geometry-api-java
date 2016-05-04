@@ -25,9 +25,11 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.VertexDescription.Semantics;
+
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A hash object singleton that stores all VertexDescription instances via
@@ -35,75 +37,45 @@ import java.util.Map;
  * VertexDescription instances to prevent duplicates.
  */
 final class VertexDescriptionHash {
-	Map<Integer, WeakReference<VertexDescription>> map = new HashMap<Integer, WeakReference<VertexDescription>>();
+	HashMap<Integer, VertexDescription> m_map = new HashMap<Integer, VertexDescription>();
 
-	private static VertexDescription m_vd2D;
-
-	private static VertexDescription m_vd3D;
+	private static VertexDescription m_vd2D = new VertexDescription(1);
+	private static VertexDescription m_vd3D = new VertexDescription(3);
 
 	private static final VertexDescriptionHash INSTANCE = new VertexDescriptionHash();
 
 	private VertexDescriptionHash() {
-		VertexDescriptionDesignerImpl vdd2D = new VertexDescriptionDesignerImpl();
-		add(vdd2D);
-		VertexDescriptionDesignerImpl vdd3D = new VertexDescriptionDesignerImpl();
-		vdd3D.addAttribute(Semantics.Z);
-		add(vdd3D);
+		m_map.put(1, m_vd2D);
+		m_map.put(3, m_vd3D);
 	}
 
 	public static VertexDescriptionHash getInstance() {
 		return INSTANCE;
 	}
 
-	public VertexDescription getVD2D() {
+	public final VertexDescription getVD2D() {
 		return m_vd2D;
 	}
 
-	public VertexDescription getVD3D() {
+	public final VertexDescription getVD3D() {
 		return m_vd3D;
 	}
 
-	synchronized public VertexDescription add(VertexDescriptionDesignerImpl vdd) {
-		// Firstly quick test for 2D/3D descriptors.
-		int h = vdd.hashCode();
+	public final VertexDescription FindOrAdd(int bitSet) {
+		if (bitSet == 1)
+			return m_vd2D;
+		if (bitSet == 3)
+			return m_vd3D;
 
-		if ((m_vd2D != null) && m_vd2D.hashCode() == h) {
-			if (vdd.isDesignerFor(m_vd2D))
-				return m_vd2D;
-		}
-
-		if ((m_vd3D != null) && (m_vd3D.hashCode() == h)) {
-			if (vdd.isDesignerFor(m_vd3D))
-				return m_vd3D;
-		}
-
-		// Now search in the hash.
-
-		VertexDescription vd = null;
-		if (map.containsKey(h)) {
-			WeakReference<VertexDescription> vdweak = map.get(h);
-			vd = vdweak.get();
-			if (vd == null) // GC'd VertexDescription
-				map.remove(h);
-		}
-
-		if (vd == null) { // either not in map to begin with, or has been GC'd
-			vd = vdd._createInternal();
-
-			if (vd.getAttributeCount() == 1) {
-				m_vd2D = vd;
-			} else if ((vd.getAttributeCount() == 2)
-					&& (vd.getSemantics(1) == Semantics.Z)) {
-				m_vd3D = vd;
-			} else {
-				WeakReference<VertexDescription> vdweak = new WeakReference<VertexDescription>(
-						vd);
-
-				map.put(h, vdweak);
+		synchronized (this) {
+			VertexDescription vd = m_map.get(bitSet);
+			if (vd == null) {
+				vd = new VertexDescription(bitSet);
+				m_map.put(bitSet, vd);
 			}
 
+			return vd;
 		}
-
-		return vd;
 	}
+
 }

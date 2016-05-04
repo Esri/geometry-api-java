@@ -27,6 +27,18 @@ class ECoordinate {
 	private double m_value;
 	private double m_eps;
 
+	ECoordinate() {
+		set(0.0, 0.0);
+	}
+
+	ECoordinate(double v) {
+		set(v);
+	}
+
+	ECoordinate(ECoordinate v) {
+		set(v);
+	}
+
 	double epsCoordinate() {
 		return NumberUtils.doubleEps();
 	}
@@ -160,7 +172,7 @@ class ECoordinate {
 	}
 
 	void mul(ECoordinate v_1, ECoordinate v_2) {
-		double r = Math.abs(v_1.m_value) * Math.abs(v_2.m_value);
+		double r = v_1.m_value * v_2.m_value;
 		m_eps = v_1.m_eps * Math.abs(v_2.m_value) + v_2.m_eps
 				* Math.abs(v_1.m_value) + v_1.m_eps * v_2.m_eps
 				+ epsCoordinate() * Math.abs(r);

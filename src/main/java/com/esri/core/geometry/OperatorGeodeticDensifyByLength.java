@@ -42,7 +42,7 @@ abstract class OperatorGeodeticDensifyByLength extends Operator {
 	 * @param maxSegmentLengthMeters The maximum segment length (in meters) allowed. Must be a positive value.
 	 * @param sr The SpatialReference of the Geometry.
 	 * @param curveType The interpretation of a line connecting two points.
-	 * @return Returns the densified geometries (It does nothing to geometries with dim < 1, but simply passes them along).
+	 * @return Returns the densified geometries (It does nothing to geometries with dim less than 1, but simply passes them along).
 	 *
 	 * Note the behavior is not determined for any geodetic curve segments that connect two poles, or for loxodrome segments that connect to any pole.
 	 */

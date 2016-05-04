@@ -180,9 +180,8 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 		m_accelerators = null;
 	}
 
-	// Checked vs. Jan 11, 2011
 	@Override
-	void getPointByVal(int index, Point dst) {
+	public void getPointByVal(int index, Point dst) {
 		if (index < 0 || index >= m_pointCount)
 			// TODO
 			throw new GeometryException("index out of bounds");
@@ -212,9 +211,8 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 		}
 	}
 
-	// Checked vs. Jan 11, 2011
 	@Override
-	protected void setPointByVal(int index, Point src) {
+	public void setPointByVal(int index, Point src) {
 		if (index < 0 || index >= m_pointCount)
 			throw new GeometryException("index out of bounds");
 
@@ -1110,6 +1108,9 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 
 	public abstract boolean _buildQuadTreeAccelerator(
 			GeometryAccelerationDegree d);
-	// //////////////////METHODS To REMOVE ///////////////////////
 
+	@Override
+	public String toString() {
+		return "MultiVertexGeometryImpl";
+	}	
 }

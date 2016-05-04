@@ -45,12 +45,20 @@ public final class Envelope1D implements Serializable {
 		setCoords(_vmin, _vmax);
 	}
 
+	public Envelope1D(Envelope1D other) {
+		setCoords(other);
+	}
+	
 	public void setCoords(double _vmin, double _vmax) {
 		vmin = _vmin;
 		vmax = _vmax;
 		normalize();
 	}
 
+	public void setCoords(Envelope1D other) {
+		setCoords(other.vmin, other.vmax);
+	}
+	
 	public void normalize() {
 		if (NumberUtils.isNaN(vmin))
 			return;
@@ -71,7 +79,7 @@ public final class Envelope1D implements Serializable {
 	}
 
 	public boolean isEmpty() {
-		return NumberUtils.isNaN(vmin);
+		return NumberUtils.isNaN(vmin) || NumberUtils.isNaN(vmax);
 	}
 
 	public void setInfinite() {

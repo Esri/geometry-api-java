@@ -12,6 +12,7 @@ import org.json.JSONException;
 
 import com.esri.core.geometry.Envelope;
 import com.esri.core.geometry.Envelope1D;
+import com.esri.core.geometry.GeoJsonExportFlags;
 import com.esri.core.geometry.Geometry;
 import com.esri.core.geometry.GeometryCursor;
 import com.esri.core.geometry.GeometryCursorAppend;
@@ -19,6 +20,7 @@ import com.esri.core.geometry.GeometryEngine;
 import com.esri.core.geometry.MapGeometry;
 import com.esri.core.geometry.MapOGCStructure;
 import com.esri.core.geometry.MultiPoint;
+import com.esri.core.geometry.NumberUtils;
 import com.esri.core.geometry.OGCStructure;
 import com.esri.core.geometry.Operator;
 import com.esri.core.geometry.OperatorBuffer;
@@ -93,7 +95,12 @@ public abstract class OGCGeometry {
 	public String asGeoJson() {
 		OperatorExportToGeoJson op = (OperatorExportToGeoJson) OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.ExportToGeoJson);
-		return op.execute(getEsriGeometry());
+		return op.execute(esriSR, getEsriGeometry());
+	}
+
+	String asGeoJsonImpl(int export_flags) {
+		OperatorExportToGeoJson op = (OperatorExportToGeoJson) OperatorFactoryLocal.getInstance().getOperator(Operator.Type.ExportToGeoJson);
+		return op.execute(export_flags, esriSR, getEsriGeometry());
 	}
 	
 	/**
@@ -489,7 +496,7 @@ public abstract class OGCGeometry {
 	}
 
 	public static OGCGeometry fromJson(String string)
-			throws JsonParseException, IOException {
+			throws Exception {
 		JsonFactory factory = new JsonFactory();
 		JsonParser jsonParserPt = factory.createJsonParser(string);
 		jsonParserPt.nextToken();
@@ -498,7 +505,8 @@ public abstract class OGCGeometry {
 				mapGeom.getSpatialReference());
 	}
 
-	public static OGCGeometry fromGeoJson(String string) throws JSONException {
+	public static OGCGeometry fromGeoJson(String string)
+			throws Exception {
 		OperatorImportFromGeoJson op = (OperatorImportFromGeoJson) OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.ImportFromGeoJson);
 		MapOGCStructure mapOGCStructure = op.executeOGC(0, string, null);
@@ -678,5 +686,52 @@ public abstract class OGCGeometry {
 		}
 		return String
 				.format("%s: %s", this.getClass().getSimpleName(), snippet);
+	}
+	
+	@Override
+	public boolean equals(Object other)	{
+		if (other == null)
+			return false;
+
+		if (other == this)
+			return true;
+
+		if (other.getClass() != getClass())
+			return false;
+		
+		OGCGeometry another = (OGCGeometry)other;
+		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
+		com.esri.core.geometry.Geometry geom2 = another.getEsriGeometry();
+		
+		if (geom1 == null) {
+			if (geom2 != null)
+				return false;
+		}
+		else if (!geom1.equals(geom2)) {
+			return false;
+		}
+		
+		if (esriSR == another.esriSR) {
+			return true;
+		}
+			
+		if (esriSR != null && another.esriSR != null) {
+			return esriSR.equals(another.esriSR);
+		}
+			
+		return false;
+	}
+	
+	@Override
+	public int hashCode() {
+		int hash = 1;
+		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
+		if (geom1 != null)
+			hash = geom1.hashCode();
+		
+		if (esriSR != null)
+			hash = NumberUtils.hashCombine(hash, esriSR.hashCode());
+		
+		return hash;
 	}
 }

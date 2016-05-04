@@ -222,7 +222,7 @@ final class WktParser {
 		m_function_stack.removeLast();
 
 		if (m_start_token + 5 <= m_wkt_string.length()
-				&& m_wkt_string.regionMatches(true, m_start_token, "points", 0,
+				&& m_wkt_string.regionMatches(true, m_start_token, "point", 0,
 						5)) {
 			m_end_token = m_start_token + 5;
 			m_current_token_type = WktToken.point;

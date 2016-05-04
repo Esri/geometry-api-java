@@ -25,8 +25,10 @@
 package com.esri.core.geometry;
 
 /**
- * The affine transformation class for 2D. <br>
- * Vector is a row: <code>
+ * The affine transformation class for 2D.
+ * 
+ * Vector is a row: 
+ * <code>
  * <br>           |m11 m12 0|
  * <br>| x y 1| * |m21 m22 0| = |m11 * x + m21 * y + m31   m12 * x + m22 * y + m32   1|
  * <br>           |m31 m32 1|
@@ -456,9 +458,9 @@ public final class Transformation2D {
 	 *            The tolerance value.
 	 */
 	public boolean isIdentity(double tol) {
-		Point2D pt = Point2D.construct(0.0, 1.0);
+		Point2D pt = Point2D.construct(0., 1.);
 		transform(pt, pt);
-		pt.sub(Point2D.construct(0.0, 1.0));
+		pt.sub(Point2D.construct(0., 1.));
 		if (pt.sqrLength() > tol * tol)
 			return false;
 
@@ -469,7 +471,7 @@ public final class Transformation2D {
 
 		pt.setCoords(1.0, 0.0);
 		transform(pt, pt);
-		pt.sub(Point2D.construct(1.0, 0));
+		pt.sub(Point2D.construct(1.0, 0.0));
 		return pt.sqrLength() <= tol * tol;
 	}
 

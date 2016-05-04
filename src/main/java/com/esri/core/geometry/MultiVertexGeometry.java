@@ -197,7 +197,7 @@ public abstract class MultiVertexGeometry extends Geometry implements
 	 * Returns given vertex of the Geometry. The outPoint will have same
 	 * VertexDescription as this Geometry.
 	 */
-	abstract void getPointByVal(int index, Point outPoint);
+	public abstract void getPointByVal(int index, Point outPoint);
 
 	/**
 	 * Sets the vertex at given index of the Geometry.
@@ -214,6 +214,6 @@ public abstract class MultiVertexGeometry extends Geometry implements
 	 *            the Geometry will be set to the default values (see
 	 *            VertexDescription::GetDefaultValue).
 	 */
-	abstract void setPointByVal(int index, Point pointSrc);
+	public abstract void setPointByVal(int index, Point pointSrc);
 
 }

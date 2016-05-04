@@ -3,13 +3,11 @@ package com.esri.core.geometry.ogc;
 import com.esri.core.geometry.Envelope;
 import com.esri.core.geometry.Geometry;
 import com.esri.core.geometry.GeometryCursor;
+import com.esri.core.geometry.NumberUtils;
 import com.esri.core.geometry.Polygon;
 import com.esri.core.geometry.SpatialReference;
-import com.esri.core.geometry.Operator;
-import com.esri.core.geometry.JsonCursor;
-import com.esri.core.geometry.OperatorFactoryLocal;
+import com.esri.core.geometry.GeoJsonExportFlags;
 import com.esri.core.geometry.OperatorExportToGeoJson;
-
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -150,6 +148,40 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 		}
 
 		return wkbBuffer;
+	}
+
+	@Override
+	public String asGeoJson() {
+		return asGeoJsonImpl(GeoJsonExportFlags.geoJsonExportDefaults);
+	}
+
+	@Override
+	String asGeoJsonImpl(int export_flags) {
+		StringBuilder sb = new StringBuilder();
+
+		sb.append("{\"type\":\"GeometryCollection\",\"geometries\":");
+
+		sb.append("[");
+		for (int i = 0, n = numGeometries(); i < n; i++) {
+			if (i > 0)
+				sb.append(",");
+
+			if (geometryN(i) != null)
+				sb.append(geometryN(i).asGeoJsonImpl(GeoJsonExportFlags.geoJsonExportSkipCRS));
+		}
+
+		sb.append("],\"crs\":");
+
+		if (esriSR != null) {
+			String crs_value = OperatorExportToGeoJson.local().exportSpatialReference(0, esriSR);
+			sb.append(crs_value);
+		} else {
+			sb.append("\"null\"");
+		}
+
+		sb.append("}");
+
+		return sb.toString();
 	}
 
 	@Override
@@ -319,8 +351,7 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 	}
 
 	@Override
-	public OGCGeometry convertToMulti()
-	{
+	public OGCGeometry convertToMulti() {
 		return this;
 	}
 
@@ -330,32 +361,44 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 	}
 
 	@Override
-	public String asGeoJson() {
-		StringBuilder sb = new StringBuilder();
+	public boolean equals(Object other)	{
+		if (other == null)
+			return false;
 
-		OperatorExportToGeoJson op = (OperatorExportToGeoJson) OperatorFactoryLocal
-				.getInstance().getOperator(Operator.Type.ExportToGeoJson);
-		JsonCursor cursor = op.execute(this.esriSR, getEsriGeometryCursor());
+		if (other == this)
+			return true;
 
-		sb.append("{\"type\" : \"GeometryCollection\", \"geometries\" : ");
-		String shape = cursor.next();
-		if (shape == null){
-			// geometry collection with empty list of geometries
-			sb.append("[]}");
-			return sb.toString();
+		if (other.getClass() != getClass())
+			return false;
+		
+		OGCConcreteGeometryCollection another = (OGCConcreteGeometryCollection)other;
+		if (geometries != null) {		
+			if (!geometries.equals(another.geometries))
+				return false;
 		}
-
-		sb.append("[");
-		sb.append(shape);
-
-		while(true){
-			shape = cursor.next();
-			if(shape == null)
-				break;
-			sb.append(", ").append(shape);
+		else if (another.geometries != null)
+			return false;
+		
+		if (esriSR == another.esriSR) {
+			return true;
 		}
+			
+		if (esriSR != null && another.esriSR != null) {
+			return esriSR.equals(another.esriSR);
+		}
+			
+		return false;
+	}
 
-		sb.append("]}");
-		return sb.toString();
+	@Override
+	public int hashCode() {
+		int hash = 1;
+		if (geometries != null)
+			hash = geometries.hashCode();
+		
+		if (esriSR != null)
+			hash = NumberUtils.hashCombine(hash, esriSR.hashCode());
+		
+		return hash;
 	}
 }
