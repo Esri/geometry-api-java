@@ -24,7 +24,7 @@ public class TestGeodetic extends TestCase {
 		length += GeometryEngine.geodesicDistanceOnWGS84(pt_0, pt_1);
 		length += GeometryEngine.geodesicDistanceOnWGS84(pt_1, pt_2);
 		length += GeometryEngine.geodesicDistanceOnWGS84(pt_2, pt_0);
-		assertTrue(Math.abs(length - 3744719.4094597572) < 1e-13 * 3744719.4094597572);
+		assertTrue(Math.abs(length - 3744719.4094597572) < 1e-12 * 3744719.4094597572);
 	}
 
 	@Test
@@ -36,7 +36,7 @@ public class TestGeodetic extends TestCase {
 		length += GeometryEngine.geodesicDistanceOnWGS84(pt_0, pt_1);
 		length += GeometryEngine.geodesicDistanceOnWGS84(pt_1, pt_2);
 		length += GeometryEngine.geodesicDistanceOnWGS84(pt_2, pt_0);
-		assertTrue(Math.abs(length - 5409156.3896271614) < 1e-13 * 5409156.3896271614);
+		assertTrue(Math.abs(length - 5409156.3896271614) < 1e-12 * 5409156.3896271614);
 
 		for (int i = -540; i < 540; i += 5) {
 			pt_0.setXY(i + 10, 40);
@@ -46,7 +46,7 @@ public class TestGeodetic extends TestCase {
 			length += GeometryEngine.geodesicDistanceOnWGS84(pt_0, pt_1);
 			length += GeometryEngine.geodesicDistanceOnWGS84(pt_1, pt_2);
 			length += GeometryEngine.geodesicDistanceOnWGS84(pt_2, pt_0);
-			assertTrue(Math.abs(length - 5409156.3896271614) < 1e-13 * 5409156.3896271614);
+			assertTrue(Math.abs(length - 5409156.3896271614) < 1e-12 * 5409156.3896271614);
 		}
 	}
 

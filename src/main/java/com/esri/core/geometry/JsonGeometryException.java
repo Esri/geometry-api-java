@@ -23,16 +23,18 @@
  */
 package com.esri.core.geometry;
 
-public interface GeoJsonImportFlags {
-	public static final int geoJsonImportDefaults = 0;
-	@Deprecated static final int geoJsonImportNonTrusted = 2;
+/**
+ * A runtime exception raised when a JSON related exception occurs.
+ */
+public class JsonGeometryException extends GeometryException {
+
 	/**
-	 * If set, the import will skip CRS.
+	 * Constructs a Json Geometry Exception with the given error string/message.
+	 *
+	 * @param str
+	 *            - The error string.
 	 */
-	public static final int geoJsonImportSkipCRS = 8;
-	/**
-	 * If set, and the geojson does not have a spatial reference, the result geometry will not have one too, otherwise
-	 * it'll assume WGS84.
-	 */
-	public static final int geoJsonImportNoWGS84Default = 16;	
+	public JsonGeometryException(String str) {
+		super(str);
+	}
 }

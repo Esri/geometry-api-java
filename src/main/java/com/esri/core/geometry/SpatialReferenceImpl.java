@@ -24,6 +24,7 @@
 
 package com.esri.core.geometry;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
@@ -235,4 +236,71 @@ class SpatialReferenceImpl extends SpatialReference {
 		return answer.val;
 	}
 
+	public String getAuthority() {
+		int latestWKID = getLatestID();
+		if (latestWKID <= 0)
+			return new String("");
+
+		return getAuthority_(latestWKID);
+	}
+
+	private String getAuthority_(int latestWKID) {
+		String authority;
+
+		if (latestWKID >= 1024 && latestWKID <= 32767) {
+
+			int index = Arrays.binarySearch(m_esri_codes, latestWKID);
+
+			if (index >= 0)
+				authority = new String("ESRI");
+			else
+				authority = new String("EPSG");
+		} else {
+			authority = new String("ESRI");
+		}
+
+		return authority;
+	}
+
+	private static final int[] m_esri_codes = { 
+			2181, // ED_1950_Turkey_9
+			2182, // ED_1950_Turkey_10
+			2183, // ED_1950_Turkey_11
+			2184, // ED_1950_Turkey_12
+			2185, // ED_1950_Turkey_13
+			2186, // ED_1950_Turkey_14
+			2187, // ED_1950_Turkey_15
+			4305, // GCS_Voirol_Unifie_1960
+			4812, // GCS_Voirol_Unifie_1960_Paris
+			20002, // Pulkovo_1995_GK_Zone_2
+			20003, // Pulkovo_1995_GK_Zone_3
+			20062, // Pulkovo_1995_GK_Zone_2N
+			20063, // Pulkovo_1995_GK_Zone_3N
+			24721, // La_Canoa_UTM_Zone_21N
+			26761, // NAD_1927_StatePlane_Hawaii_1_FIPS_5101
+			26762, // NAD_1927_StatePlane_Hawaii_2_FIPS_5102
+			26763, // NAD_1927_StatePlane_Hawaii_3_FIPS_5103
+			26764, // NAD_1927_StatePlane_Hawaii_4_FIPS_5104
+			26765, // NAD_1927_StatePlane_Hawaii_5_FIPS_5105
+			26788, // NAD_1927_StatePlane_Michigan_North_FIPS_2111
+			26789, // NAD_1927_StatePlane_Michigan_Central_FIPS_2112
+			26790, // NAD_1927_StatePlane_Michigan_South_FIPS_2113
+			30591, // Nord_Algerie
+			30592, // Sud_Algerie
+			31491, // Germany_Zone_1
+			31492, // Germany_Zone_2
+			31493, // Germany_Zone_3
+			31494, // Germany_Zone_4
+			31495, // Germany_Zone_5
+			32059, // NAD_1927_StatePlane_Puerto_Rico_FIPS_5201
+			32060, // NAD_1927_StatePlane_Virgin_Islands_St_Croix_FIPS_5202
+	};
+	
+	@Override
+	public int hashCode() {
+		if (m_userWkid != 0)
+			return NumberUtils.hash(m_userWkid);
+
+		return m_userWkt.hashCode();
+	}	
 }

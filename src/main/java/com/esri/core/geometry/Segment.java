@@ -25,16 +25,13 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.VertexDescription.Semantics;
+
 import java.io.Serializable;
 
 /**
  * A base class for segments. Presently only Line segments are supported.
  */
 public abstract class Segment extends Geometry implements Serializable {
-
-	// UPDATED PORT TO MATCH NATIVE AS OF JAN 30 2011
-	private static final long serialVersionUID = 1L;
-
 	double m_xStart;
 
 	double m_yStart;
@@ -49,11 +46,11 @@ public abstract class Segment extends Geometry implements Serializable {
 	/**
 	 * Returns XY coordinates of the start point.
 	 */
-	Point2D getStartXY() {
+	public Point2D getStartXY() {
 		return Point2D.construct(m_xStart, m_yStart);
 	}
 
-	void getStartXY(Point2D pt) {
+	public void getStartXY(Point2D pt) {
 		pt.x = m_xStart;
 		pt.y = m_yStart;
 	}
@@ -61,29 +58,29 @@ public abstract class Segment extends Geometry implements Serializable {
 	/**
 	 * Sets the XY coordinates of the start point.
 	 */
-	void setStartXY(Point2D pt) {
+	public void setStartXY(Point2D pt) {
 		_setXY(0, pt);
 	}
 
-	void setStartXY(double x, double y) {
+	public void setStartXY(double x, double y) {
 		_setXY(0, Point2D.construct(x, y));
 	}
 
 	/**
 	 * Returns XYZ coordinates of the start point. Z if 0 if Z is missing.
 	 */
-	Point3D getStartXYZ() {
+	public Point3D getStartXYZ() {
 		return _getXYZ(0);
 	}
 
 	/**
 	 * Sets the XYZ coordinates of the start point.
 	 */
-	void setStartXYZ(Point3D pt) {
+	public void setStartXYZ(Point3D pt) {
 		_setXYZ(0, pt);
 	}
 
-	void setStartXYZ(double x, double y, double z) {
+	public void setStartXYZ(double x, double y, double z) {
 		_setXYZ(0, Point3D.construct(x, y, z));
 	}
 
@@ -193,11 +190,11 @@ public abstract class Segment extends Geometry implements Serializable {
 	 * 
 	 * @return The XY coordinates of the end point.
 	 */
-	Point2D getEndXY() {
+	public Point2D getEndXY() {
 		return Point2D.construct(m_xEnd, m_yEnd);
 	}
 
-	void getEndXY(Point2D pt) {
+	public void getEndXY(Point2D pt) {
 		pt.x = m_xEnd;
 		pt.y = m_yEnd;
 	}
@@ -208,11 +205,11 @@ public abstract class Segment extends Geometry implements Serializable {
 	 * @param pt
 	 *            The end point of the segment.
 	 */
-	void setEndXY(Point2D pt) {
+	public void setEndXY(Point2D pt) {
 		_setXY(1, pt);
 	}
 
-	void setEndXY(double x, double y) {
+	public void setEndXY(double x, double y) {
 		_setXY(1, Point2D.construct(x, y));
 	}
 
@@ -221,18 +218,18 @@ public abstract class Segment extends Geometry implements Serializable {
 	 * 
 	 * @return The XYZ coordinates of the end point.
 	 */
-	Point3D getEndXYZ() {
+	public Point3D getEndXYZ() {
 		return _getXYZ(1);
 	}
 
 	/**
 	 * Sets the XYZ coordinates of the end point.
 	 */
-	void setEndXYZ(Point3D pt) {
+	public void setEndXYZ(Point3D pt) {
 		_setXYZ(1, pt);
 	}
 
-	void setEndXYZ(double x, double y, double z) {
+	public void setEndXYZ(double x, double y, double z) {
 		_setXYZ(1, Point3D.construct(x, y, z));
 	}
 
@@ -358,7 +355,7 @@ public abstract class Segment extends Geometry implements Serializable {
 	 * Returns TRUE if this segment intersects with the other segment with the
 	 * given tolerance.
 	 */
-	boolean isIntersecting(Segment other, double tolerance) {
+	public boolean isIntersecting(Segment other, double tolerance) {
 		return _isIntersecting(other, tolerance, false) != 0;
 	}
 
@@ -366,7 +363,7 @@ public abstract class Segment extends Geometry implements Serializable {
 	 * Returns TRUE if the point and segment intersect (not disjoint) for the
 	 * given tolerance.
 	 */
-	boolean isIntersecting(Point2D pt, double tolerance) {
+	public boolean isIntersecting(Point2D pt, double tolerance) {
 		return _isIntersectingPoint(pt, tolerance, false);
 	}
 
@@ -485,7 +482,7 @@ public abstract class Segment extends Geometry implements Serializable {
 		
 		int[] mapping = VertexDescriptionDesignerImpl.mapAttributes(newDescription, m_description);
 		
-		double[] newAttributes = new double[(newDescription._getTotalComponents() - 2) * 2];
+		double[] newAttributes = new double[(newDescription.getTotalComponentCount() - 2) * 2];
 		
 		int old_offset0 = _getEndPointOffset(m_description, 0);
 		int old_offset1 = _getEndPointOffset(m_description, 1);
@@ -583,7 +580,7 @@ public abstract class Segment extends Geometry implements Serializable {
 		int attributeIndex = m_description.getAttributeIndex(semantics);
 		if (attributeIndex >= 0) {
 			if (m_attributes != null)
-				_resizeAttributes(m_description._getTotalComponents() - 2);
+				_resizeAttributes(m_description.getTotalComponentCount() - 2);
 
 			return m_attributes[_getEndPointOffset(m_description, endPoint)
 					+ m_description._getPointAttributeOffset(attributeIndex)
@@ -626,7 +623,7 @@ public abstract class Segment extends Geometry implements Serializable {
 		}
 
 		if (m_attributes == null)
-			_resizeAttributes(m_description._getTotalComponents() - 2);
+			_resizeAttributes(m_description.getTotalComponentCount() - 2);
 
 		m_attributes[_getEndPointOffset(m_description, endPoint)
 				+ m_description._getPointAttributeOffset(attributeIndex) - 2
@@ -645,9 +642,9 @@ public abstract class Segment extends Geometry implements Serializable {
 
 		Segment segDst = (Segment) dst;
 		segDst.m_description = m_description;
-		segDst._resizeAttributes(m_description._getTotalComponents() - 2);
+		segDst._resizeAttributes(m_description.getTotalComponentCount() - 2);
 		_attributeCopy(m_attributes, 0, segDst.m_attributes, 0,
-				(m_description._getTotalComponents() - 2) * 2);
+				(m_description.getTotalComponentCount() - 2) * 2);
 		segDst.m_xStart = m_xStart;
 		segDst.m_yStart = m_yStart;
 		segDst.m_xEnd = m_xEnd;
@@ -691,7 +688,7 @@ public abstract class Segment extends Geometry implements Serializable {
 		if (m_xStart != other.m_xStart || m_xEnd != other.m_xEnd
 				|| m_yStart != other.m_yStart || m_yEnd != other.m_yEnd)
 			return false;
-		for (int i = 0; i < (m_description._getTotalComponents() - 2) * 2; i++)
+		for (int i = 0; i < (m_description.getTotalComponentCount() - 2) * 2; i++)
 			if (m_attributes[i] != other.m_attributes[i])
 				return false;
 
@@ -711,10 +708,6 @@ public abstract class Segment extends Geometry implements Serializable {
 
 	void reverse() {
 		_reverseImpl();
-		// because java doesn't support passing value types
-		// by reference numberutils swap won't work
-		// NumberUtils.swap(m_xStart, m_xEnd);
-		// NumberUtils.swap(m_yStart, m_yEnd);
 		double origxStart = m_xStart;
 		double origxEnd = m_xEnd;
 		m_xStart = origxEnd;
@@ -778,14 +771,14 @@ public abstract class Segment extends Geometry implements Serializable {
 	abstract double _calculateArea2DHelper(double xorg, double yorg);
 
 	static int _getEndPointOffset(VertexDescription vd, int endPoint) {
-		return endPoint * (vd._getTotalComponents() - 2);
+		return endPoint * (vd.getTotalComponentCount() - 2);
 	}
 
 	/**
 	 * Returns the coordinate of the point on this segment for the given
 	 * parameter value.
 	 */
-	Point2D getCoord2D(double t) {
+	public Point2D getCoord2D(double t) {
 		Point2D pt = new Point2D();
 		getCoord2D(t, pt);
 		return pt;
@@ -801,7 +794,7 @@ public abstract class Segment extends Geometry implements Serializable {
 	 * @param dst
 	 *            the coordinate where result will be placed.
 	 */
-	abstract void getCoord2D(double t, Point2D dst);
+	public abstract void getCoord2D(double t, Point2D dst);
 
 	/**
 	 * Finds a closest coordinate on this segment.
@@ -817,7 +810,7 @@ public abstract class Segment extends Geometry implements Serializable {
 	 *         obtain the 2D coordinate on the segment from t. To find the
 	 *         distance, call (inputPoint.sub(seg.getCoord2D(t))).length();
 	 */
-	abstract double getClosestCoordinate(Point2D inputPoint,
+	public abstract double getClosestCoordinate(Point2D inputPoint,
 			boolean bExtrapolate);
 
 	/**
@@ -887,7 +880,7 @@ public abstract class Segment extends Geometry implements Serializable {
 	 * Returns subsegment between parameters t1 and t2. The attributes are
 	 * interpolated along the length of the curve.
 	 */
-	abstract Segment cut(double t1, double t2);
+	public abstract Segment cut(double t1, double t2);
 
 	/**
 	 * Calculates the subsegment between parameters t1 and t2, and stores the
@@ -927,8 +920,8 @@ public abstract class Segment extends Geometry implements Serializable {
 
 	abstract double lengthToT(double len);
 
-	double distance(/* const */Segment otherSegment,
-			boolean bSegmentsKnownDisjoint) /* const */
+	public double distance(/* const */Segment otherSegment,
+			boolean bSegmentsKnownDisjoint)
 	{
 		// if the segments are not known to be disjoint, and
 		// the segments are found to touch in any way, then return 0.0

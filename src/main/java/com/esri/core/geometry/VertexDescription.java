@@ -25,6 +25,8 @@
 
 package com.esri.core.geometry;
 
+import java.util.Arrays;
+
 /**
  * Describes the vertex format of a Geometry.
  * 
@@ -40,67 +42,39 @@ package com.esri.core.geometry;
  * table. You may look the vertices of a Geometry as if they are stored in a
  * database table, and the VertexDescription defines the fields of the table.
  */
-public class VertexDescription {
+public final class VertexDescription {
+	/**
+	 * Describes the attribute and, in case of predefined attributes, provides a
+	 * hint of the attribute use.
+	 */
+	public interface Semantics {
+		static final int POSITION = 0; // xy coordinates of a point (2D
+												// vector of double, linear
+												// interpolation)
 
-	private double[] m_defaultPointAttributes;
-	private int[] m_pointAttributeOffsets;
-	int m_attributeCount;
-	int m_total_component_count;
+		static final int Z = 1; // z coordinates of a point (double,
+										// linear interpolation)
 
-	int[] m_semantics;
+		static final int M = 2; // m attribute (double, linear
+										// interpolation)
 
-	int[] m_semanticsToIndexMap;
+		static final int ID = 3; // id (int, no interpolation)
 
-	int m_hash;
+		static final int NORMAL = 4; // xyz coordinates of normal vector
+											// (float, angular interpolation)
 
-	static double[] _defaultValues = { 0, 0, NumberUtils.NaN(), 0, 0, 0, 0, 0,
-			0 };
+		static final int TEXTURE1D = 5; // u coordinates of texture
+												// (float, linear interpolation)
 
-	static int[] _interpolation = { Interpolation.LINEAR, Interpolation.LINEAR,
-			Interpolation.LINEAR, Interpolation.NONE, Interpolation.ANGULAR,
-			Interpolation.LINEAR, Interpolation.LINEAR, Interpolation.LINEAR,
-			Interpolation.NONE,
-	};
+		static final int TEXTURE2D = 6; // uv coordinates of texture
+												// (float, linear interpolation)
 
-	static int[] _persistence = { Persistence.enumDouble,
-			Persistence.enumDouble, Persistence.enumDouble,
-			Persistence.enumInt32, Persistence.enumFloat,
-			Persistence.enumFloat, Persistence.enumFloat,
-			Persistence.enumFloat, Persistence.enumInt32,
-	};
+		static final int TEXTURE3D = 7; // uvw coordinates of texture
+												// (float, linear interpolation)
 
-	static int[] _persistencesize = { 4, 8, 4, 8, 1, 2 };
+		static final int ID2 = 8; // two component ID
 
-	static int[] _components = { 2, 1, 1, 1, 3, 1, 2, 3, 2, };
-
-	VertexDescription() {
-		m_attributeCount = 0;
-		m_total_component_count = 0;
-
-	}
-
-	VertexDescription(int hashValue, VertexDescription other) {
-		m_attributeCount = other.m_attributeCount;
-		m_total_component_count = other.m_total_component_count;
-		m_semantics = other.m_semantics.clone();
-		m_semanticsToIndexMap = other.m_semanticsToIndexMap.clone();
-		m_hash = other.m_hash;
-
-		// Prepare default values for the Point geometry.
-		m_pointAttributeOffsets = new int[getAttributeCount()];
-		int offset = 0;
-		for (int i = 0; i < getAttributeCount(); i++) {
-			m_pointAttributeOffsets[i] = offset;
-			offset += getComponentCount(m_semantics[i]);
-		}
-		m_total_component_count = offset;
-		m_defaultPointAttributes = new double[offset];
-		for (int i = 0; i < getAttributeCount(); i++) {
-			int components = getComponentCount(getSemantics(i));
-			double dv = getDefaultValue(getSemantics(i));
-			for (int icomp = 0; icomp < components; icomp++)
-				m_defaultPointAttributes[m_pointAttributeOffsets[i] + icomp] = dv;
-		}
+		static final int MAXSEMANTICS = 8; // the max semantics value
 	}
 
 	/**
@@ -135,40 +109,6 @@ public class VertexDescription {
 	};
 
 	/**
-	 * Describes the attribute and, in case of predefined attributes, provides a
-	 * hint of the attribute use.
-	 */
-	public interface Semantics {
-		static final int POSITION = 0; // xy coordinates of a point (2D
-												// vector of double, linear
-												// interpolation)
-
-		static final int Z = 1; // z coordinates of a point (double,
-										// linear interpolation)
-
-		static final int M = 2; // m attribute (double, linear
-										// interpolation)
-
-		static final int ID = 3; // id (int, no interpolation)
-
-		static final int NORMAL = 4; // xyz coordinates of normal vector
-											// (float, angular interpolation)
-
-		static final int TEXTURE1D = 5; // u coordinates of texture
-												// (float, linear interpolation)
-
-		static final int TEXTURE2D = 6; // uv coordinates of texture
-												// (float, linear interpolation)
-
-		static final int TEXTURE3D = 7; // uvw coordinates of texture
-												// (float, linear interpolation)
-
-		static final int ID2 = 8; // two component ID
-
-		static final int MAXSEMANTICS = 10; // the max semantics value
-	}
-
-	/**
 	 * Returns the attribute count of this description. The value is always
 	 * greater or equal to 1. The first attribute is always a POSITION.
 	 */
@@ -181,13 +121,10 @@ public class VertexDescription {
 	 * 
 	 * @param attributeIndex
 	 *            The index of the attribute in the description. Max value is
-	 *            GetAttributeCount() - 1.
+	 *            getAttributeCount() - 1.
 	 */
 	public final int getSemantics(int attributeIndex) {
-		if (attributeIndex < 0 || attributeIndex > m_attributeCount)
-			throw new IllegalArgumentException();
-
-		return m_semantics[attributeIndex];
+		return m_indexToSemantics[attributeIndex];
 	}
 
 	/**
@@ -250,47 +187,46 @@ public class VertexDescription {
 	}
 
 	/**
-	 * Returns True for integer persistence type.
-	 */
-	static boolean isIntegerPersistence(int persistence) {
-		return persistence < Persistence.enumInt32;
-	}
-
-	/**
-	 * Returns True for integer semantics type.
-	 */
-	static boolean isIntegerSemantics(int semantics) {
-		return isIntegerPersistence(getPersistence(semantics));
-	}
-
-	/**
 	 * Returns True if the attribute with the given name and given set exists.
 	 * 
 	 * @param semantics
 	 *            The semantics of the attribute.
 	 */
 	public boolean hasAttribute(int semantics) {
-		return m_semanticsToIndexMap[semantics] >= 0;
+		return (m_semanticsBitArray & (1 << semantics)) != 0;
+	}
+
+	/**
+	 * Returns True if this vertex description includes all attributes from the
+	 * src.
+	 *
+	 * @param src
+	 *            The Vertex_description to compare with.
+	 * @return The function returns false, only when this description does not
+	 *         have some of the attribute that src has.
+	 */
+	public final boolean hasAttributesFrom(VertexDescription src) {
+		return (m_semanticsBitArray & src.m_semanticsBitArray) == src.m_semanticsBitArray;
 	}
 
 	/**
 	 * Returns True, if the vertex has Z attribute.
 	 */
-	public boolean hasZ() {
+	public final boolean hasZ() {
 		return hasAttribute(Semantics.Z);
 	}
 
 	/**
 	 * Returns True, if the vertex has M attribute.
 	 */
-	public boolean hasM() {
+	public final boolean hasM() {
 		return hasAttribute(Semantics.M);
 	}
 
 	/**
 	 * Returns True, if the vertex has ID attribute.
 	 */
-	public boolean hasID() {
+	public final boolean hasID() {
 		return hasAttribute(Semantics.ID);
 	}
 
@@ -302,15 +238,15 @@ public class VertexDescription {
 		return _defaultValues[semantics];
 	}
 
-	int getPointAttributeOffset_(int attribute_index) {
-		return m_pointAttributeOffsets[attribute_index];
+	int getPointAttributeOffset_(int attributeIndex) {
+		return m_pointAttributeOffsets[attributeIndex];
 	}
 
 	/**
 	 * Returns the total component count.
 	 */
 	public int getTotalComponentCount() {
-		return m_total_component_count;
+		return m_totalComponentCount;
 	}
 
 	/**
@@ -323,26 +259,17 @@ public class VertexDescription {
 				.doubleToInt64Bits(v);
 	}
 
-	static int getPersistenceFromInt(int size) {
-		if (size == 4)
-			return Persistence.enumInt32;
-		else if (size == 8)
-			return Persistence.enumInt64;
-		else
-			throw new IllegalArgumentException();
+	static boolean isIntegerPersistence(int persistence) {
+		return persistence >= Persistence.enumInt32;
 	}
 
+	static boolean isIntegerSemantics(int semantics) {
+		return isIntegerPersistence(getPersistence(semantics));
+	}
+	
 	@Override
 	public boolean equals(Object _other) {
 		return (Object) this == _other;
-	}
-
-	int calculateHashImpl() {
-		int v = NumberUtils.hash(m_semantics[0]);
-		for (int i = 1; i < m_attributeCount; i++)
-			v = NumberUtils.hash(v, m_semantics[i]);
-
-		return v; // if attribute size is 1, it returns 0
 	}
 
 	/**
@@ -373,19 +300,81 @@ public class VertexDescription {
 		return m_pointAttributeOffsets[getAttributeIndex(semantics)];
 	}
 
-	int _getTotalComponents() {
-		return m_defaultPointAttributes.length;
-	}
-
 	@Override
 	public int hashCode() {
 		return m_hash;
 	}
 
 	int _getSemanticsImpl(int attributeIndex) {
-		return m_semantics[attributeIndex];
+		return m_indexToSemantics[attributeIndex];
 	}
 
-	// TODO: clone, equald, hashcode - whats really needed?
+	VertexDescription(int bitMask) {
+		m_semanticsBitArray = bitMask;
+		m_attributeCount = 0;
+		m_totalComponentCount = 0;
+		m_semanticsToIndexMap = new int[Semantics.MAXSEMANTICS + 1];
+		Arrays.fill(m_semanticsToIndexMap, -1);
+		for (int i = 0, flag = 1, n = Semantics.MAXSEMANTICS + 1; i < n; i++) {
+			if ((bitMask & flag) != 0) {
+				m_semanticsToIndexMap[i] = m_attributeCount;
+				m_attributeCount++;
+				int comps = getComponentCount(i);
+				m_totalComponentCount += comps;
+			}
 
+			flag <<= 1;
+		}
+
+		m_indexToSemantics = new int[m_attributeCount];
+		for (int i = 0, n = Semantics.MAXSEMANTICS + 1; i < n; i++) {
+			int attrib = m_semanticsToIndexMap[i];
+			if (attrib >= 0)
+				m_indexToSemantics[attrib] = i;
+		}
+
+		m_defaultPointAttributes = new double[m_totalComponentCount];
+		m_pointAttributeOffsets = new int[m_attributeCount];
+		int offset = 0;
+		for (int i = 0, n = m_attributeCount; i < n; i++) {
+			int semantics = getSemantics(i);
+			int comps = getComponentCount(semantics);
+			double v = getDefaultValue(semantics);
+			m_pointAttributeOffsets[i] = offset;
+			for (int icomp = 0; icomp < comps; icomp++) {
+				m_defaultPointAttributes[offset] = v;
+				offset++;
+			}
+		}
+
+		m_hash = NumberUtils.hash(m_semanticsBitArray);
+	}
+
+	private int m_attributeCount;
+	int m_semanticsBitArray; //the main component
+	private int m_totalComponentCount;
+	private int m_hash;
+
+	private int[] m_semanticsToIndexMap;
+	private int[] m_indexToSemantics;
+	private int[] m_pointAttributeOffsets;
+	private double[] m_defaultPointAttributes;
+
+	static final double[] _defaultValues = { 0, 0, NumberUtils.NaN(), 0, 0, 0,
+			0, 0, 0 };
+
+	static final int[] _interpolation = { Interpolation.LINEAR,
+			Interpolation.LINEAR, Interpolation.LINEAR, Interpolation.NONE,
+			Interpolation.ANGULAR, Interpolation.LINEAR, Interpolation.LINEAR,
+			Interpolation.LINEAR, Interpolation.NONE, };
+
+	static final int[] _persistence = { Persistence.enumDouble,
+			Persistence.enumDouble, Persistence.enumDouble,
+			Persistence.enumInt32, Persistence.enumFloat,
+			Persistence.enumFloat, Persistence.enumFloat,
+			Persistence.enumFloat, Persistence.enumInt32, };
+
+	static final int[] _persistencesize = { 4, 8, 4, 8, 1, 2 };
+
+	static final int[] _components = { 2, 1, 1, 1, 3, 1, 2, 3, 2, };
 }

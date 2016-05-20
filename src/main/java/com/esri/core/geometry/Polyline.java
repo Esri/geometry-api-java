@@ -31,7 +31,7 @@ import java.io.Serializable;
  * A polyline is a collection of one or many paths.
  * 
  */
-public final class Polyline extends MultiPath implements Serializable {
+public class Polyline extends MultiPath implements Serializable {
 
 	private static final long serialVersionUID = 2L;// TODO:remove as we use
 													// writeReplace and
@@ -44,7 +44,7 @@ public final class Polyline extends MultiPath implements Serializable {
 		m_impl = new MultiPathImpl(false);
 	}
 
-	Polyline(VertexDescription vd) {
+	public Polyline(VertexDescription vd) {
 		m_impl = new MultiPathImpl(false, vd);
 	}
 

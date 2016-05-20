@@ -35,10 +35,6 @@ import java.io.Serializable;
  * objects that define a spatial location and and associated geometric shape.
  */
 public abstract class Geometry implements Serializable {
-	// Note: We use writeReplace with GeometrySerializer. This field is
-	// irrelevant. Need to be removed after final.
-	private static final long serialVersionUID = 2L;
-
 	VertexDescription m_description;
 	volatile int m_touchFlag;
 
@@ -117,6 +113,18 @@ public abstract class Geometry implements Serializable {
 		Type(int val) {
 			enumValue = val;
 		}
+		
+		static public Geometry.Type intToType(int geometryType)
+		{
+			Geometry.Type[] v = Geometry.Type.values();
+            for(int i = 0; i < v.length; i++)
+            {
+                if(v[i].value() == geometryType)
+                    return v[i];
+            }
+            
+            throw new IllegalArgumentException();		
+        }
 	}
 
 	/**
@@ -153,7 +161,7 @@ public abstract class Geometry implements Serializable {
 	 * Assigns the new VertexDescription by adding or dropping attributes. The
 	 * Geometry will have the src description as a result.
 	 */
-	void assignVertexDescription(VertexDescription src) {
+	public void assignVertexDescription(VertexDescription src) {
 		_touch();
 		if (src == m_description)
 			return;
@@ -161,14 +169,14 @@ public abstract class Geometry implements Serializable {
 		_assignVertexDescriptionImpl(src);
 	}
 	
-	 protected abstract void _assignVertexDescriptionImpl(VertexDescription src);
+	protected abstract void _assignVertexDescriptionImpl(VertexDescription src);
 
 	/**
 	 * Merges the new VertexDescription by adding missing attributes from the
 	 * src. The Geometry will have a union of the current and the src
 	 * descriptions.
 	 */
-	void mergeVertexDescription(VertexDescription src) {
+	public void mergeVertexDescription(VertexDescription src) {
 		_touch();
 		if (src == m_description)
 			return;
@@ -566,7 +574,27 @@ public abstract class Geometry implements Serializable {
 	}
 
 	Object writeReplace() throws ObjectStreamException {
-		GeometrySerializer geomSerializer = new GeometrySerializer();
+		Type gt = getType();
+		if (gt == Geometry.Type.Point)
+		{
+			PtSrlzr pt = new PtSrlzr();
+			pt.setGeometryByValue((Point)this);
+			return pt;
+		}
+		else if (gt == Geometry.Type.Envelope)
+		{
+			EnvSrlzr e = new EnvSrlzr();
+			e.setGeometryByValue((Envelope)this);
+			return e;
+		}
+		else if (gt == Geometry.Type.Line)
+		{
+			LnSrlzr ln = new LnSrlzr();
+			ln.setGeometryByValue((Line)this);
+			return ln;
+		}
+		
+		GenericGeometrySerializer geomSerializer = new GenericGeometrySerializer();
 		geomSerializer.setGeometryByValue(this);
 		return geomSerializer;
 	}

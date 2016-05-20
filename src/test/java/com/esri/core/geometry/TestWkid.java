@@ -19,6 +19,7 @@ public class TestWkid extends TestCase {
 		assertTrue(Math.abs(tol84 - 1e-8) < 1e-8 * 1e-8);
 	}
 
+
 	@Test
 	public void test_80() {
 		SpatialReference sr = SpatialReference.create(3857);

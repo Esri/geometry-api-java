@@ -24,10 +24,15 @@
 package com.esri.core.geometry;
 
 import java.util.ArrayList;
+
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.json.JSONException;
+import org.codehaus.jackson.JsonParseException;
+
+import java.io.IOException;
 
 
 final class JsonValueReader extends JsonReader {
@@ -108,7 +113,7 @@ final class JsonValueReader extends JsonReader {
 	}
 
 	@Override
-	JsonToken nextToken() throws Exception {
+	JsonToken nextToken() throws JSONException, JsonParseException {
 		if (m_parentStack.isEmpty()) {
 			m_currentToken = JsonToken.NOT_AVAILABLE;
 			return m_currentToken;
@@ -170,12 +175,12 @@ final class JsonValueReader extends JsonReader {
 	}
 
 	@Override
-	JsonToken currentToken() throws Exception {
+	JsonToken currentToken() throws JSONException, JsonParseException, IOException {
 		return m_currentToken;
 	}
 
 	@Override
-	void skipChildren() throws Exception {
+	void skipChildren() throws JSONException, JsonParseException, IOException {
 		assert (!m_parentStack.isEmpty());
 
 		if (m_currentToken != JsonToken.START_OBJECT && m_currentToken != JsonToken.START_ARRAY) {
@@ -196,7 +201,7 @@ final class JsonValueReader extends JsonReader {
 	}
 
 	@Override
-	String currentString() throws Exception {
+	String currentString() throws JSONException, JsonParseException, IOException {
 		if (m_currentToken == JsonToken.FIELD_NAME) {
 			return m_objIters.get(m_objIters.size() - 1).getCurrentKey();
 		}
@@ -209,7 +214,7 @@ final class JsonValueReader extends JsonReader {
 	}
 
 	@Override
-	double currentDoubleValue() throws Exception {
+	double currentDoubleValue() throws JSONException, JsonParseException, IOException {
 		if (m_currentToken != JsonToken.VALUE_NUMBER_FLOAT && m_currentToken != JsonToken.VALUE_NUMBER_INT) {
 			throw new GeometryException("invalid call");
 		}
@@ -218,7 +223,7 @@ final class JsonValueReader extends JsonReader {
 	}
 
 	@Override
-	int currentIntValue() throws Exception {
+	int currentIntValue() throws JSONException, JsonParseException, IOException {
 		if (m_currentToken != JsonToken.VALUE_NUMBER_INT) {
 			throw new GeometryException("invalid call");
 		}

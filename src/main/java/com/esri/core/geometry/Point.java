@@ -33,10 +33,9 @@ import java.io.Serializable;
  * location in a two-dimensional XY-Plane. In case of Geographic Coordinate
  * Systems, the X coordinate is the longitude and the Y is the latitude.
  */
-public final class Point extends Geometry implements Serializable {
-	private static final long serialVersionUID = 2L;// TODO:remove as we use
-													// writeReplace and
-													// GeometrySerializer
+public class Point extends Geometry implements Serializable {
+	//We are using writeReplace instead.
+	//private static final long serialVersionUID = 2L;
 
 	double[] m_attributes; // use doubles to store everything (long are bitcast)
 
@@ -47,7 +46,7 @@ public final class Point extends Geometry implements Serializable {
 		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();
 	}
 
-	Point(VertexDescription vd) {
+	public Point(VertexDescription vd) {
 		if (vd == null)
 			throw new IllegalArgumentException();
 		m_description = vd;
@@ -129,7 +128,7 @@ public final class Point extends Geometry implements Serializable {
 	/**
 	 * Returns XYZ coordinates of the point. Z will be set to 0 if Z is missing.
 	 */
-	Point3D getXYZ() {
+	public Point3D getXYZ() {
 		if (isEmptyImpl())
 			throw new GeometryException(
 					"This operation should not be performed on an empty geometry.");
@@ -151,7 +150,7 @@ public final class Point extends Geometry implements Serializable {
 	 * @param pt
 	 *            The point to create the XYZ coordinate from.
 	 */
-	void setXYZ(Point3D pt) {
+	public void setXYZ(Point3D pt) {
 		_touch();
 		boolean bHasZ = hasAttribute(Semantics.Z);
 		if (!bHasZ && !VertexDescription.isDefaultValue(Semantics.Z, pt.z)) {// add
@@ -388,7 +387,7 @@ public final class Point extends Geometry implements Serializable {
 		
 		int[] mapping = VertexDescriptionDesignerImpl.mapAttributes(newDescription, m_description);
 		
-		double[] newAttributes = new double[newDescription._getTotalComponents()];
+		double[] newAttributes = new double[newDescription.getTotalComponentCount()];
 		
 		int j = 0;
 		for (int i = 0, n = newDescription.getAttributeCount(); i < n; i++) {
@@ -424,9 +423,9 @@ public final class Point extends Geometry implements Serializable {
 	 * Sets the Point to a default, non-empty state.
 	 */
 	void _setToDefault() {
-		resizeAttributes(m_description._getTotalComponents());
+		resizeAttributes(m_description.getTotalComponentCount());
 		Point.attributeCopy(m_description._getDefaultPointAttributes(),
-				m_attributes, m_description._getTotalComponents());
+				m_attributes, m_description.getTotalComponentCount());
 		m_attributes[0] = NumberUtils.NaN();
 		m_attributes[1] = NumberUtils.NaN();
 	}
@@ -465,9 +464,9 @@ public final class Point extends Geometry implements Serializable {
 			pointDst.assignVertexDescription(m_description);
 		} else {
 			pointDst.assignVertexDescription(m_description);
-			pointDst.resizeAttributes(m_description._getTotalComponents());
+			pointDst.resizeAttributes(m_description.getTotalComponentCount());
 			attributeCopy(m_attributes, pointDst.m_attributes,
-					m_description._getTotalComponents());
+					m_description.getTotalComponentCount());
 		}
 	}
 
@@ -595,7 +594,7 @@ public final class Point extends Geometry implements Serializable {
 			else
 				return false;
 
-		for (int i = 0, n = m_description._getTotalComponents(); i < n; i++)
+		for (int i = 0, n = m_description.getTotalComponentCount(); i < n; i++)
 			if (m_attributes[i] != otherPt.m_attributes[i])
 				return false;
 
@@ -610,7 +609,7 @@ public final class Point extends Geometry implements Serializable {
 	public int hashCode() {
 		int hashCode = m_description.hashCode();
 		if (!isEmptyImpl()) {
-			for (int i = 0, n = m_description._getTotalComponents(); i < n; i++) {
+			for (int i = 0, n = m_description.getTotalComponentCount(); i < n; i++) {
 				long bits = Double.doubleToLongBits(m_attributes[i]);
 				int hc = (int) (bits ^ (bits >>> 32));
 				hashCode = NumberUtils.hash(hashCode, hc);

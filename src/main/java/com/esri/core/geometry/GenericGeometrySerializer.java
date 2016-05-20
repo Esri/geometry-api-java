@@ -27,51 +27,37 @@ import java.io.InvalidObjectException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
 
-//Left here for backward compatibility. Use GenericGeometrySerializer instead
-@Deprecated
-final class GeometrySerializer implements Serializable {
+//This is a writeReplace class for MultiPoint, Polyline, and Polygon
+public class GenericGeometrySerializer implements Serializable {
 	private static final long serialVersionUID = 1L;
-
-	static class BaseGeometryData implements Serializable {
-		Geometry.Type geometryType;
-		byte[] esriShape = null;
-	}
-
-	static class MultiVertexData extends BaseGeometryData {
-		int simpleFlag = 0;
-		double tolerance = 0;
-	}
-
-	static class MultiPathData extends MultiVertexData {
-		boolean[] ogcFlags = null;
-	}
-
-	BaseGeometryData geometryData;
-
-	Object readResolve() throws ObjectStreamException {
+	int geometryType;
+	byte[] esriShape = null;
+	int simpleFlag = 0;
+	double tolerance = 0;
+	boolean[] ogcFlags = null;
+	
+	public Object readResolve() throws ObjectStreamException {
 		Geometry geometry = null;
 		try {
 			geometry = GeometryEngine.geometryFromEsriShape(
-					geometryData.esriShape, geometryData.geometryType);
-			if (Geometry.isMultiVertex(geometry.getType().value())) {
-				MultiVertexData mvd = (MultiVertexData) geometryData;
+					esriShape, Geometry.Type.intToType(geometryType));
+			
+			if (Geometry.isMultiVertex(geometryType)) {
 				MultiVertexGeometryImpl mvImpl = (MultiVertexGeometryImpl) geometry
 						._getImpl();
 				if (!geometry.isEmpty()
-						&& Geometry.isMultiPath(geometry.getType().value())) {
-					MultiPathData mpd = (MultiPathData) geometryData;
+						&& Geometry.isMultiPath(geometryType)) {
 					MultiPathImpl mpImpl = (MultiPathImpl) geometry._getImpl();
 					AttributeStreamOfInt8 pathFlags = mpImpl
 							.getPathFlagsStreamRef();
 					for (int i = 0, n = mpImpl.getPathCount(); i < n; i++) {
-						if (mpd.ogcFlags[i])
+						if (ogcFlags[i])
 							pathFlags.setBits(i,
 									(byte) PathFlags.enumOGCStartPolygon);
 					}
 				}
-				mvImpl.setIsSimple(mvd.simpleFlag, mvd.tolerance, false);
+				mvImpl.setIsSimple(simpleFlag, tolerance, false);
 			}
-
 		} catch (Exception ex) {
 			throw new InvalidObjectException("Cannot read geometry from stream");
 		}
@@ -81,32 +67,22 @@ final class GeometrySerializer implements Serializable {
 	public void setGeometryByValue(Geometry geometry)
 			throws ObjectStreamException {
 		try {
-			if (Geometry.isMultiPath(geometry.getType().value())) {
-				geometryData = new MultiPathData();
-			} else if (Geometry.isMultiVertex(geometry.getType().value())) {
-				geometryData = new MultiVertexData();
-			} else {
-				geometryData = new BaseGeometryData();
-			}
-			geometryData.esriShape = GeometryEngine
+			esriShape = GeometryEngine
 					.geometryToEsriShape(geometry);
-			geometryData.geometryType = geometry.getType();
-			if (Geometry.isMultiVertex(geometryData.geometryType.value())) {
-				MultiVertexData mvd = (MultiVertexData) geometryData;
+			geometryType = geometry.getType().value();
+			if (Geometry.isMultiVertex(geometryType)) {
 				MultiVertexGeometryImpl mvImpl = (MultiVertexGeometryImpl) geometry
 						._getImpl();
-				mvd.tolerance = mvImpl.m_simpleTolerance;
-				mvd.simpleFlag = mvImpl.getIsSimple(0);
+				tolerance = mvImpl.m_simpleTolerance;
+				simpleFlag = mvImpl.getIsSimple(0);
 				if (!geometry.isEmpty()
-						&& Geometry.isMultiPath(geometryData.geometryType
-								.value())) {
-					MultiPathData mpd = (MultiPathData) geometryData;
+						&& Geometry.isMultiPath(geometryType)) {
 					MultiPathImpl mpImpl = (MultiPathImpl) geometry._getImpl();
-					mpd.ogcFlags = new boolean[mpImpl.getPathCount()];
+					ogcFlags = new boolean[mpImpl.getPathCount()];
 					AttributeStreamOfInt8 pathFlags = mpImpl
 							.getPathFlagsStreamRef();
 					for (int i = 0, n = mpImpl.getPathCount(); i < n; i++) {
-						mpd.ogcFlags[i] = (pathFlags.read(i) & (byte) PathFlags.enumOGCStartPolygon) != 0;
+						ogcFlags[i] = (pathFlags.read(i) & (byte) PathFlags.enumOGCStartPolygon) != 0;
 					}
 				}
 

@@ -32,7 +32,7 @@ import java.io.Serializable;
  * information where the order and individual identity of each point is not an
  * essential characteristic of the point set.
  */
-public final class MultiPoint extends MultiVertexGeometry implements
+public class MultiPoint extends MultiVertexGeometry implements
 		Serializable {
 
 	private static final long serialVersionUID = 2L;
@@ -122,6 +122,15 @@ public final class MultiPoint extends MultiVertexGeometry implements
 		m_impl.add(x, y);
 	}
 
+	/**
+	 * Adds a point with the specified X, Y coordinates to this multipoint.
+	 * 
+	 * @param pt the point to add
+	 */
+	public void add(Point2D pt) {
+		m_impl.add(pt.x, pt.y);
+	}
+	
 	/**
 	 * Adds a 3DPoint with the specified X, Y, Z coordinates to this multipoint.
 	 * 
@@ -265,7 +274,7 @@ public final class MultiPoint extends MultiVertexGeometry implements
 	}
 
 	@Override
-	void assignVertexDescription(VertexDescription src) {
+	public void assignVertexDescription(VertexDescription src) {
 		m_impl.assignVertexDescription(src);
 	}
 
@@ -280,7 +289,7 @@ public final class MultiPoint extends MultiVertexGeometry implements
 	}
 
 	@Override
-	void mergeVertexDescription(VertexDescription src) {
+	public void mergeVertexDescription(VertexDescription src) {
 		m_impl.mergeVertexDescription(src);
 	}
 
@@ -346,12 +355,12 @@ public final class MultiPoint extends MultiVertexGeometry implements
 	}
 
 	@Override
-	void getPointByVal(int index, Point outPoint) {
+	public void getPointByVal(int index, Point outPoint) {
 		m_impl.getPointByVal(index, outPoint);
 	}
 
 	@Override
-	void setPointByVal(int index, Point pointSrc) {
+	public void setPointByVal(int index, Point pointSrc) {
 		m_impl.setPointByVal(index, pointSrc);
 	}
 

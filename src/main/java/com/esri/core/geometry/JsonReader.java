@@ -24,24 +24,28 @@
 package com.esri.core.geometry;
 
 import java.util.ArrayList;
+
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.json.JSONException;
+import org.codehaus.jackson.JsonParseException;
 
+import java.io.IOException;
 
 abstract class JsonReader {
 
-	abstract JsonToken nextToken() throws Exception;
+	abstract JsonToken nextToken() throws JSONException, JsonParseException, IOException;
 
-	abstract JsonToken currentToken() throws Exception;
+	abstract JsonToken currentToken() throws JSONException, JsonParseException, IOException;
 
-	abstract void skipChildren() throws Exception;
+	abstract void skipChildren() throws JSONException, JsonParseException, IOException;
 
-	abstract String currentString() throws Exception;
+	abstract String currentString() throws JSONException, JsonParseException, IOException;
 
-	abstract double currentDoubleValue() throws Exception;
+	abstract double currentDoubleValue() throws JSONException, JsonParseException, IOException;
 
-	abstract int currentIntValue() throws Exception;
+	abstract int currentIntValue() throws JSONException, JsonParseException, IOException;
 }
 

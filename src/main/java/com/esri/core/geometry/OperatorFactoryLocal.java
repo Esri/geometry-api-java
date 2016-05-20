@@ -25,9 +25,11 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.Operator.Type;
+
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.Reader;
@@ -35,7 +37,9 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.util.HashMap;
+
 import org.codehaus.jackson.JsonFactory;
+import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.JsonParser;
 
 /**
@@ -209,6 +213,20 @@ public class OperatorFactoryLocal extends OperatorFactory {
 		return mapGeom;
 	}
 
+	public static MapGeometry loadGeometryFromJSONStringDbg(String json) {
+		if (json == null) {
+			throw new IllegalArgumentException();
+		}
+
+		MapGeometry mapGeom = null;
+		try {
+			mapGeom = OperatorImportFromJson.local().execute(Geometry.Type.Unknown, json);
+		} catch (Exception e) {
+			throw new IllegalArgumentException(e.toString());
+		}
+		return mapGeom;
+	}
+	
 	public static Geometry loadGeometryFromEsriShapeDbg(String file_name) {
 		if (file_name == null) {
 			throw new IllegalArgumentException();

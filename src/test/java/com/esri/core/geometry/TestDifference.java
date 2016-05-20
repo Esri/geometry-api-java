@@ -1,6 +1,10 @@
 package com.esri.core.geometry;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import junit.framework.TestCase;
+
 import org.junit.Test;
 
 public class TestDifference extends TestCase {

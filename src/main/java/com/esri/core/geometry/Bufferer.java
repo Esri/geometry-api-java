@@ -24,13 +24,32 @@
 package com.esri.core.geometry;
 
 import java.util.ArrayList;
+import java.util.List;
 
 class Bufferer {
+	Bufferer() {
+		m_buffer_commands = new ArrayList<BufferCommand>(128);
+		m_progress_tracker = null;
+		m_tolerance = 0;
+		m_small_tolerance = 0;
+		m_filter_tolerance = 0;
+		m_distance = 0;
+		m_original_geom_type = Geometry.GeometryType.Unknown;
+		m_abs_distance_reversed = 0;
+		m_abs_distance = 0;
+		m_densify_dist = -1;
+		m_dA = -1;
+		m_b_output_loops = true;
+		m_bfilter = true;
+		m_old_circle_template_size = 0;
+	}
+
+	
 	/**
 	 * Result is always a polygon. For non positive distance and non-areas
 	 * returns an empty polygon. For points returns circles.
 	 */
-	static Geometry buffer(Geometry geometry, double distance,
+	Geometry buffer(Geometry geometry, double distance,
 			SpatialReference sr, double densify_dist,
 			int max_vertex_in_complete_circle, ProgressTracker progress_tracker) {
 		if (geometry == null)
@@ -47,34 +66,36 @@ class Bufferer {
 		if (distance > 0)
 			env2D.inflate(distance, distance);
 
-		Bufferer bufferer = new Bufferer(progress_tracker);
-		bufferer.m_spatialReference = sr;
-		bufferer.m_geometry = geometry;
-		bufferer.m_tolerance = InternalUtils.calculateToleranceFromGeometry(sr,
+		m_progress_tracker = progress_tracker;
+
+		m_original_geom_type = geometry.getType().value();
+		m_geometry = geometry;
+		m_tolerance = InternalUtils.calculateToleranceFromGeometry(sr,
 				env2D, true);// conservative to have same effect as simplify
-		bufferer.m_small_tolerance = InternalUtils
+		m_small_tolerance = InternalUtils
 				.calculateToleranceFromGeometry(null, env2D, true);// conservative
 																	// to have
 																	// same
 																	// effect as
 																	// simplify
-		bufferer.m_distance = distance;
-		bufferer.m_original_geom_type = geometry.getType().value();
+
 		if (max_vertex_in_complete_circle <= 0) {
 			max_vertex_in_complete_circle = 96;// 96 is the value used by SG.
 												// This is the number of
 												// vertices in the full circle.
 		}
-
-		bufferer.m_abs_distance = Math.abs(bufferer.m_distance);
-		bufferer.m_abs_distance_reversed = bufferer.m_abs_distance != 0 ? 1.0 / bufferer.m_abs_distance
+		
+		m_spatialReference = sr;
+		m_distance = distance;
+		m_abs_distance = Math.abs(m_distance);
+		m_abs_distance_reversed = m_abs_distance != 0 ? 1.0 / m_abs_distance
 				: 0;
 
 		if (NumberUtils.isNaN(densify_dist) || densify_dist == 0) {
-			densify_dist = bufferer.m_abs_distance * 1e-5;
+			densify_dist = m_abs_distance * 1e-5;
 		} else {
-			if (densify_dist > bufferer.m_abs_distance * 0.5)
-				densify_dist = bufferer.m_abs_distance * 0.5;// do not allow too
+			if (densify_dist > m_abs_distance * 0.5)
+				densify_dist = m_abs_distance * 0.5;// do not allow too
 																// large densify
 																// distance (the
 																// value will be
@@ -85,6 +106,7 @@ class Bufferer {
 		if (max_vertex_in_complete_circle < 12)
 			max_vertex_in_complete_circle = 12;
 
+		
 		double max_dd = Math.abs(distance)
 				* (1 - Math.cos(Math.PI / max_vertex_in_complete_circle));
 
@@ -105,13 +127,26 @@ class Bufferer {
 			}
 		}
 
-		bufferer.m_densify_dist = densify_dist;
-		bufferer.m_max_vertex_in_complete_circle = max_vertex_in_complete_circle;
+		m_densify_dist = densify_dist;
+		m_max_vertex_in_complete_circle = max_vertex_in_complete_circle;
 		// when filtering close points we do not want the filter to distort
 		// generated buffer too much.
-		bufferer.m_filter_tolerance = Math.min(bufferer.m_small_tolerance,
+		m_filter_tolerance = Math.min(m_small_tolerance,
 				densify_dist * 0.25);
-		return bufferer.buffer_();
+		
+		
+		m_circle_template_size = calcN_();
+		if (m_circle_template_size != m_old_circle_template_size) {
+			// we have an optimization for this method to be called several
+			// times. Here we detected too many changes and need to regenerate
+			// the data.
+			m_circle_template.clear();
+			m_old_circle_template_size = m_circle_template_size;
+		}
+
+		Geometry result_geom = buffer_();
+		m_geometry = null;
+		return result_geom;		
 	}
 
 	private Geometry m_geometry;
@@ -120,8 +155,6 @@ class Bufferer {
 		private interface Flags {
 			static final int enum_line = 1;
 			static final int enum_arc = 2;
-			static final int enum_dummy = 4;
-			static final int enum_concave_dip = 8;
 			static final int enum_connection = enum_arc | enum_line;
 		}
 
@@ -175,22 +208,22 @@ class Bufferer {
 	private double m_dA;
 	private boolean m_b_output_loops;
 	private boolean m_bfilter;
-	private ArrayList<Point2D> m_circle_template;
+	private ArrayList<Point2D> m_circle_template = new ArrayList<Point2D>(0);
 	private ArrayList<Point2D> m_left_stack;
 	private ArrayList<Point2D> m_middle_stack;
 	private Line m_helper_line_1;
 	private Line m_helper_line_2;
 	private Point2D[] m_helper_array;
 	private int m_progress_counter;
+	private int m_circle_template_size;
+	private int m_old_circle_template_size;
 
 	private void generateCircleTemplate_() {
-		if (m_circle_template == null) {
-			m_circle_template = new ArrayList<Point2D>(0);
-		} else if (!m_circle_template.isEmpty()) {
+		if (!m_circle_template.isEmpty()) {
 			return;
 		}
 
-		int N = calcN_(4);
+		int N = m_circle_template_size;
 
 		assert (N >= 4);
 		int real_size = (N + 3) / 4;
@@ -218,6 +251,7 @@ class Bufferer {
 
 	private static final class GeometryCursorForMultiPoint extends
 			GeometryCursor {
+		private Bufferer m_parent; 
 		private int m_index;
 		private Geometry m_buffered_polygon;
 		private MultiPoint m_mp;
@@ -229,10 +263,11 @@ class Bufferer {
 		private int m_max_vertex_in_complete_circle;
 		private ProgressTracker m_progress_tracker;
 
-		GeometryCursorForMultiPoint(MultiPoint mp, double distance,
+		GeometryCursorForMultiPoint(Bufferer parent, MultiPoint mp, double distance,
 				SpatialReference sr, double densify_dist,
 				int max_vertex_in_complete_circle,
 				ProgressTracker progress_tracker) {
+			m_parent = parent;
 			m_index = 0;
 			m_mp = mp;
 			m_x = 0;
@@ -263,7 +298,7 @@ class Bufferer {
 				m_x = point.getX();
 				m_y = point.getY();
 
-				m_buffered_polygon = Bufferer.buffer(point, m_distance,
+				m_buffered_polygon = m_parent.buffer(point, m_distance,
 						m_spatialReference, m_densify_dist,
 						m_max_vertex_in_complete_circle, m_progress_tracker);
 				b_first = true;
@@ -295,64 +330,113 @@ class Bufferer {
 		}
 	}
 
+	private static final class GlueingCursorForPolyline extends GeometryCursor {
+		private Polyline m_polyline;
+		private int m_current_path_index;
+
+		GlueingCursorForPolyline(Polyline polyline) {
+			m_polyline = polyline;
+			m_current_path_index = 0;
+		}
+
+		@Override
+		public Geometry next() {
+			if (m_polyline == null)
+				return null;
+
+			MultiPathImpl mp = (MultiPathImpl) m_polyline._getImpl();
+			int npaths = mp.getPathCount();
+			if (m_current_path_index < npaths) {
+				int ind = m_current_path_index;
+				m_current_path_index++;
+				if (!mp.isClosedPathInXYPlane(ind)) {
+					// connect paths that follow one another as an optimization
+					// for buffering (helps when one polyline is split into many
+					// segments).
+					Point2D prev_end = mp.getXY(mp.getPathEnd(ind) - 1);
+					while (m_current_path_index < mp.getPathCount()) {
+						Point2D start = mp.getXY(mp
+								.getPathStart(m_current_path_index));
+						if (mp.isClosedPathInXYPlane(m_current_path_index))
+							break;
+						if (start != prev_end)
+							break;
+
+						prev_end = mp
+								.getXY(mp.getPathEnd(m_current_path_index) - 1);
+						m_current_path_index++;
+					}
+				}
+
+				if (ind == 0
+						&& m_current_path_index == m_polyline.getPathCount()) {
+					Polyline pol = m_polyline;
+					m_polyline = null;
+					return pol;
+				}
+
+				Polyline tmp_polyline = new Polyline(
+						m_polyline.getDescription());
+				tmp_polyline.addPath(m_polyline, ind, true);
+				for (int i = ind + 1; i < m_current_path_index; i++) {
+					tmp_polyline.addSegmentsFromPath(m_polyline, i, 0,
+							mp.getSegmentCount(i), false);
+				}
+
+				if (false) {
+					OperatorFactoryLocal.saveGeometryToEsriShapeDbg(
+							"c:/temp/_geom.bin", tmp_polyline);
+				}
+
+				if (m_current_path_index == m_polyline.getPathCount())
+					m_polyline = null;
+
+				return tmp_polyline;
+			} else {
+				return null;
+			}
+		}
+
+		@Override
+		public int getGeometryID() {
+			return 0;
+		}
+	}
+	
 	private static final class GeometryCursorForPolyline extends GeometryCursor {
 		private Bufferer m_bufferer;
+		GeometryCursor m_geoms;
+		Geometry m_geometry;
 		private int m_index;
 		private boolean m_bfilter;
 
-		GeometryCursorForPolyline(Bufferer bufferer, boolean bfilter) {
+		GeometryCursorForPolyline(Bufferer bufferer, GeometryCursor geoms,
+				boolean bfilter) {
 			m_bufferer = bufferer;
+			m_geoms = geoms;
 			m_index = 0;
 			m_bfilter = bfilter;
 		}
 
 		@Override
 		public Geometry next() {
-			MultiPathImpl mp = (MultiPathImpl) (m_bufferer.m_geometry
-					._getImpl());
+			if (m_geometry == null) {
+				m_index = 0;
+				m_geometry = m_geoms.next();
+				if (m_geometry == null)
+					return null;
+			}
+
+			MultiPath mp = (MultiPath) (m_geometry);
 			if (m_index < mp.getPathCount()) {
 				int ind = m_index;
 				m_index++;
-				if (!mp.isClosedPathInXYPlane(ind)) {
-					Point2D prev_end = mp.getXY(mp.getPathEnd(ind) - 1);
-					while (m_index < mp.getPathCount()) {
-						Point2D start = mp.getXY(mp.getPathStart(m_index));
-						if (mp.isClosedPathInXYPlane(m_index))
-							break;
-						if (start != prev_end)
-							break;
-
-						prev_end = mp.getXY(mp.getPathEnd(m_index) - 1);
-						m_index++;
-					}
-				}
-
-				if (m_index - ind == 1)
-					return m_bufferer.bufferPolylinePath_(
-							(Polyline) (m_bufferer.m_geometry), ind, m_bfilter);
-				else {
-					Polyline tmp_polyline = new Polyline(
-							m_bufferer.m_geometry.getDescription());
-					tmp_polyline.addPath((Polyline) (m_bufferer.m_geometry),
-							ind, true);
-					for (int i = ind + 1; i < m_index; i++) {
-						((MultiPathImpl) tmp_polyline._getImpl())
-								.addSegmentsFromPath(
-										(MultiPathImpl) m_bufferer.m_geometry
-												._getImpl(), i, 0, mp
-												.getSegmentCount(i), false);
-					}
-					// Operator_factory_local::SaveJSONToTextFileDbg("c:/temp/buffer_ppp.txt",
-					// tmp_polyline, nullptr);
-					Polygon res = m_bufferer.bufferPolylinePath_(tmp_polyline,
-							0, m_bfilter);
-					// Operator_factory_local::SaveJSONToTextFileDbg("c:/temp/buffer_ppp_res.txt",
-					// *res, nullptr);
-					return res;
-				}
+				return m_bufferer.bufferPolylinePath_((Polyline) m_geometry,
+						ind, m_bfilter);
 			}
 
-			return null;
+			m_geometry = null;
+			return next();
 		}
 
 		@Override
@@ -402,22 +486,6 @@ class Bufferer {
 		public int getGeometryID() {
 			return 0;
 		}
-	}
-
-	private Bufferer(ProgressTracker progress_tracker) {
-		m_buffer_commands = new ArrayList<BufferCommand>(0);
-		m_progress_tracker = progress_tracker;
-		m_tolerance = 0;
-		m_small_tolerance = 0;
-		m_filter_tolerance = 0;
-		m_distance = 0;
-		m_original_geom_type = Geometry.GeometryType.Unknown;
-		m_abs_distance_reversed = 0;
-		m_abs_distance = 0;
-		m_densify_dist = -1;
-		m_dA = -1;
-		m_b_output_loops = true;
-		m_bfilter = true;
 	}
 
 	private Geometry buffer_() {
@@ -485,13 +553,15 @@ class Bufferer {
 		}
 
 		assert (m_distance > 0);
-		m_geometry = preparePolyline_((Polyline) (m_geometry));
+		Polyline poly = (Polyline)m_geometry; m_geometry = null;
 
-		GeometryCursorForPolyline cursor = new GeometryCursorForPolyline(this,
-				m_bfilter);
-		GeometryCursor union_cursor = ((OperatorUnion) OperatorFactoryLocal
-				.getInstance().getOperator(Operator.Type.Union)).execute(
-				cursor, m_spatialReference, m_progress_tracker);
+		GeometryCursor glueing_cursor = new GlueingCursorForPolyline(poly);//glues paths together if they connect at one point
+		poly = null;
+		GeometryCursor generalized_paths = OperatorGeneralize.local().execute(glueing_cursor, m_densify_dist * 0.25, false, m_progress_tracker);
+		GeometryCursor simple_paths = OperatorSimplifyOGC.local().execute(generalized_paths, null, true, m_progress_tracker);//make a planar graph.
+		generalized_paths = null;
+		GeometryCursor path_buffering_cursor = new GeometryCursorForPolyline(this, simple_paths, m_bfilter); simple_paths = null;
+		GeometryCursor union_cursor = OperatorUnion.local().execute(path_buffering_cursor, m_spatialReference, m_progress_tracker);//(int)Operator_union::Options::enum_disable_edge_dissolver
 		Geometry result = union_cursor.next();
 		return result;
 	}
@@ -742,7 +812,7 @@ class Bufferer {
 
 	private Geometry bufferMultiPoint_() {
 		assert (m_distance > 0);
-		GeometryCursorForMultiPoint mpCursor = new GeometryCursorForMultiPoint(
+		GeometryCursorForMultiPoint mpCursor = new GeometryCursorForMultiPoint(this,
 				(MultiPoint) (m_geometry), m_distance, m_spatialReference,
 				m_densify_dist, m_max_vertex_in_complete_circle,
 				m_progress_tracker);
@@ -861,8 +931,6 @@ class Bufferer {
 		}
 
 		Polyline result_polyline = new Polyline(polyline.getDescription());
-		// result_polyline.reserve((m_circle_template.size() / 10 + 4) *
-		// mp_impl.getPathSize(ipath));
 
 		MultiPathImpl result_mp = (MultiPathImpl) result_polyline._getImpl();
 		boolean b_closed = mp_impl.isClosedPathInXYPlane(ipath);
@@ -877,8 +945,6 @@ class Bufferer {
 					(MultiPathImpl) input_multi_path._getImpl(), ipath, 0,
 					input_multi_path.getSegmentCount(ipath), false);
 			bufferClosedPath_(tmpPoly, 0, result_mp, bfilter, 1);
-			// Operator_factory_local::SaveJSONToTextFileDbg("c:/temp/buffer_prepare.txt",
-			// *result_polyline, nullptr);
 		}
 
 		return bufferCleanup_(result_polyline, false);
@@ -902,7 +968,9 @@ class Bufferer {
 		return resultPolygon;
 	}
 
-	private int calcN_(int minN) {
+	private int calcN_() {
+		//this method should be called only once m_circle_template_size is set then;
+		final int minN = 4;
 		if (m_densify_dist == 0)
 			return m_max_vertex_in_complete_circle;
 
@@ -998,7 +1066,7 @@ class Bufferer {
 				ipath, true);
 		edit_shape.filterClosePoints(m_filter_tolerance, false, false);
 		if (edit_shape.getPointCount(geom) < 2) {// Got degenerate output.
-													// Wither bail out or
+													// Either bail out or
 													// produce a circle.
 			if (dir < 0)
 				return 1;// negative direction produces nothing.
@@ -1023,7 +1091,7 @@ class Bufferer {
 
 		if (bfilter) {
 			// try removing the noise that does not contribute to the buffer.
-			int res_filter = filterPath_(edit_shape, geom, dir, true);
+			int res_filter = filterPath_(edit_shape, geom, dir, true, m_abs_distance, m_filter_tolerance, m_densify_dist);
 			assert (res_filter == 1);
 			// Operator_factory_local::SaveJSONToTextFileDbg("c:/temp/buffer_filter.txt",
 			// *edit_shape.get_geometry(geom), nullptr);
@@ -1216,228 +1284,484 @@ class Bufferer {
 		return istart;
 	}
 
-	private boolean isGap_(Point2D pt_before, Point2D pt_current,
-			Point2D pt_after) {
-		Point2D v_gap = new Point2D();
-		v_gap.sub(pt_after, pt_before);
-		double gap_length = v_gap.length();
-		double sqr_delta = m_abs_distance * m_abs_distance - gap_length
-				* gap_length * 0.25;
-		if (sqr_delta > 0) {
-			double delta = Math.sqrt(sqr_delta);
-			v_gap.normalize();
-			v_gap.rightPerpendicular();
-			Point2D p = new Point2D();
-			p.sub(pt_current, pt_before);
-			double d = p.dotProduct(v_gap);
-			if (d + delta >= m_abs_distance) {
-				return true;
+	private static void protectExtremeVertices_(EditShape edit_shape,
+			int protection_index, int geom, int path) {
+		// detect very narrow corners and preserve them. We cannot reliably
+		// delete these.
+		int vprev = -1;
+		Point2D pt_prev = new Point2D();
+		pt_prev.setNaN();
+		Point2D pt = new Point2D();
+		pt.setNaN();
+		Point2D v_before = new Point2D();
+		v_before.setNaN();
+		Point2D pt_next = new Point2D();
+		Point2D v_after = new Point2D();
+		for (int i = 0, n = edit_shape.getPathSize(path), v = edit_shape
+				.getFirstVertex(path); i < n; ++i) {
+			if (vprev == -1) {
+				edit_shape.getXY(v, pt);
+
+				vprev = edit_shape.getPrevVertex(v);
+				if (vprev != -1) {
+					edit_shape.getXY(vprev, pt_prev);
+					v_before.sub(pt, pt_prev);
+					v_before.normalize();
+				}
 			}
+
+			int vnext = edit_shape.getNextVertex(v);
+			if (vnext == -1)
+				break;
+
+			edit_shape.getXY(vnext, pt_next);
+			v_after.sub(pt_next, pt);
+			v_after.normalize();
+
+			if (vprev != -1) {
+				double d = v_after.dotProduct(v_before);
+				if (d < -0.99
+						&& Math.abs(v_after.crossProduct(v_before)) < 1e-7) {
+					edit_shape.setUserIndex(v, protection_index, 1);
+				}
+			}
+
+			vprev = v;
+			v = vnext;
+			pt_prev.setCoords(pt);
+			pt.setCoords(pt_next);
+			v_before.setCoords(v_after);
 		}
-
-		return false;
 	}
+	
+	static private int filterPath_(EditShape edit_shape, int geom, int dir,
+			boolean closed, double abs_distance, double filter_tolerance,
+			double densify_distance) {
+		int path = edit_shape.getFirstPath(geom);
 
-	private int filterPath_(EditShape edit_shape, int geom, int dir,
-			boolean closed) {
-		// **********************!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		// return 1;
+		int concave_index = -1;
+		int fixed_vertices_index = edit_shape.createUserIndex();
+		protectExtremeVertices_(edit_shape, fixed_vertices_index, geom, path);
 
-		boolean bConvex = true;
-		for (int pass = 0; pass < 1; pass++) {
-			boolean b_filtered = false;
-			int ipath = edit_shape.getFirstPath(geom);
-			int isize = edit_shape.getPathSize(ipath);
-			if (isize == 0)
-				return 0;
-
-			int ncount = isize;
-			if (isize < 3)
+		for (int iter = 0; iter < 100; ++iter) {
+			int isize = edit_shape.getPathSize(path);
+			if (isize == 0) {
+				edit_shape.removeUserIndex(fixed_vertices_index);
+				;
 				return 1;
+			}
 
-			if (closed && !edit_shape.isClosedPath(ipath))// the path is closed
+			int ivert = edit_shape.getFirstVertex(path);
+			int nvertices = edit_shape.getPathSize(path);
+			if (nvertices < 3) {
+				edit_shape.removeUserIndex(fixed_vertices_index);
+				;
+				return 1;
+			}
+
+			if (closed && !edit_shape.isClosedPath(path))// the path is closed
 															// only virtually
 			{
-				ncount = isize - 1;
+				nvertices -= 1;
 			}
 
-			assert (dir == 1 || dir == -1);
-			int ivert = edit_shape.getFirstVertex(ipath);
-			if (!closed)
-				edit_shape.getNextVertex(ivert);
-
-			int iprev = dir > 0 ? edit_shape.getPrevVertex(ivert) : edit_shape
-					.getNextVertex(ivert);
-			int inext = dir > 0 ? edit_shape.getNextVertex(ivert) : edit_shape
-					.getPrevVertex(ivert);
-			int ibefore = iprev;
-			boolean reload = true;
-			Point2D pt_current = new Point2D(), pt_after = new Point2D(), pt_before = new Point2D(), pt_before_before = new Point2D(), pt_middle = new Point2D(), pt_gap_last = new Point2D(
-					0, 0);
-			Point2D v_after = new Point2D(), v_before = new Point2D(), v_gap = new Point2D();
-			Point2D temp = new Point2D();
-			double abs_d = m_abs_distance;
-			// When the path is open we cannot process the first and the last
-			// vertices, so we process size - 2.
-			// When the path is closed, we can process all vertices.
-			int iter_count = closed ? ncount : isize - 2;
-			int gap_counter = 0;
-			for (int iter = 0; iter < iter_count;) {
-				edit_shape.getXY(inext, pt_after);
-
-				if (reload) {
-					edit_shape.getXY(ivert, pt_current);
-					edit_shape.getXY(iprev, pt_before);
-					ibefore = iprev;
-				}
-
-				v_before.sub(pt_current, pt_before);
-				v_before.normalize();
-
-				v_after.sub(pt_after, pt_current);
-				v_after.normalize();
-
-				if (ibefore == inext) {
-					break;
-				}
-
-				double cross = v_before.crossProduct(v_after);
-				double dot = v_before.dotProduct(v_after);
-				boolean bDoJoin = cross < 0 || (dot < 0 && cross == 0);
-				boolean b_write = true;
-				if (!bDoJoin) {
-					if (isGap_(pt_before, pt_current, pt_after)) {
-						pt_gap_last.setCoords(pt_after);
-						b_write = false;
-						++gap_counter;
-						b_filtered = true;
-					}
-
-					bConvex = false;
-				}
-
-				if (b_write) {
-					if (gap_counter > 0) {
-						for (;;) {// re-test back
-							int ibefore_before = dir > 0 ? edit_shape
-									.getPrevVertex(ibefore) : edit_shape
-									.getNextVertex(ibefore);
-							if (ibefore_before == ivert)
-								break;
-
-							edit_shape.getXY(ibefore_before, pt_before_before);
-							if (isGap_(pt_before_before, pt_before, pt_gap_last)) {
-								pt_before.setCoords(pt_before_before);
-								ibefore = ibefore_before;
-								b_write = false;
-								++gap_counter;
-								continue;
-							} else {
-								if (ibefore_before != inext
-										&& isGap_(pt_before_before, pt_before,
-												pt_after)
-										&& isGap_(pt_before_before, pt_current,
-												pt_after)) {// now the current
-															// point is a part
-															// of the gap also.
-															// We retest it.
-									pt_before.setCoords(pt_before_before);
-									ibefore = ibefore_before;
-									b_write = false;
-									++gap_counter;
-								}
-							}
+			double abs_d = abs_distance;
+			final int nfilter = 64;
+			boolean filtered = false;
+			int filtered_in_pass = 0;
+			boolean go_back = false;
+			for (int i = 0; i < nvertices && ivert != -1; i++) {
+				int filtered_now = 0;
+				int v = ivert; // filter == 0
+				for (int filter = 1, n = (int) Math.min(nfilter, nvertices - i); filter < n; filter++) {
+					v = edit_shape.getNextVertex(v, dir);
+					if (filter > 1) {
+						int num = clipFilter_(edit_shape,
+								fixed_vertices_index, ivert, v, dir,
+								abs_distance, densify_distance, nfilter);
+						if (num == -1)
 							break;
-						}
+
+						filtered |= num > 0;
+						filtered_now += num;
+						nvertices -= num;
 					}
-
-					if (!b_write)
-						continue;// retest forward
-
-					if (gap_counter > 0) {
-						// remove all but one gap vertices.
-						int p = dir > 0 ? edit_shape.getPrevVertex(iprev)
-								: edit_shape.getNextVertex(iprev);
-						for (int i = 1; i < gap_counter; i++) {
-							int pp = dir > 0 ? edit_shape.getPrevVertex(p)
-									: edit_shape.getNextVertex(p);
-							edit_shape.removeVertex(p, true);
-							p = pp;
-						}
-
-						v_gap.sub(pt_current, pt_before);
-						double gap_length = v_gap.length();
-						double sqr_delta = abs_d * abs_d - gap_length
-								* gap_length * 0.25;
-						double delta = Math.sqrt(sqr_delta);
-						if (abs_d - delta > m_densify_dist * 0.5) {
-							pt_middle.add(pt_before, pt_current);
-							pt_middle.scale(0.5);
-							v_gap.normalize();
-							v_gap.rightPerpendicular();
-							temp.setCoords(v_gap);
-							temp.scale(abs_d - delta);
-							pt_middle.add(temp);
-							edit_shape.setXY(iprev, pt_middle);
-						} else {
-							// the gap is too short to be considered. Can close
-							// it with the straight segment;
-							edit_shape.removeVertex(iprev, true);
-						}
-
-						gap_counter = 0;
-					}
-
-					pt_before.setCoords(pt_current);
-					ibefore = ivert;
 				}
 
-				pt_current.setCoords(pt_after);
-				iprev = ivert;
-				ivert = inext;
-				// reload = false;
-				inext = dir > 0 ? edit_shape.getNextVertex(ivert) : edit_shape
-						.getPrevVertex(ivert);
-				iter++;
-				reload = false;
-			}
+				filtered_in_pass += filtered_now;
 
-			if (gap_counter > 0) {
-				int p = dir > 0 ? edit_shape.getPrevVertex(iprev) : edit_shape
-						.getNextVertex(iprev);
-				for (int i = 1; i < gap_counter; i++) {
-					int pp = dir > 0 ? edit_shape.getPrevVertex(p) : edit_shape
-							.getNextVertex(p);
-					edit_shape.removeVertex(p, true);
-					p = pp;
+				go_back = filtered_now > 0;
+
+				if (go_back) {
+					int prev = edit_shape.getPrevVertex(ivert, dir);
+					if (prev != -1) {
+						ivert = prev;
+						nvertices++;
+						continue;
+					}
 				}
 
-				pt_middle.add(pt_before, pt_current);
-				pt_middle.scale(0.5);
-
-				v_gap.sub(pt_current, pt_before);
-				double gap_length = v_gap.length();
-				double sqr_delta = abs_d * abs_d - gap_length * gap_length
-						* 0.25;
-				assert (sqr_delta > 0);
-				double delta = Math.sqrt(sqr_delta);
-				v_gap.normalize();
-				v_gap.rightPerpendicular();
-				temp.setCoords(v_gap);
-				temp.scale(abs_d - delta);
-				pt_middle.add(temp);
-				edit_shape.setXY(iprev, pt_middle);
+				ivert = edit_shape.getNextVertex(ivert, dir);
 			}
 
-			edit_shape.filterClosePoints(m_filter_tolerance, false, false);
-
-			if (!b_filtered)
+			if (filtered_in_pass == 0)
 				break;
 		}
+
+		edit_shape.removeUserIndex(fixed_vertices_index);
+		edit_shape.filterClosePoints(filter_tolerance, false, false);
 
 		return 1;
 	}
 
+	// This function clips out segments connecting from_vertiex to to_vertiex if
+	// they do not contribute to the buffer.
+	private static int clipFilter_(EditShape edit_shape,
+			int fixed_vertices_index, int from_vertex, int to_vertex, int dir,
+			double abs_distance, double densify_distance, final int max_filter) {
+		// Note: vertices marked with fixed_vertices_index cannot be deleted.
+
+		Point2D pt1 = edit_shape.getXY(from_vertex);
+		Point2D pt2 = edit_shape.getXY(to_vertex);
+		if (pt1.equals(pt2))
+			return -1;
+
+		double densify_distance_delta = densify_distance * 0.25;// distance by
+																// which we can
+																// move the
+																// point closer
+																// to the chord
+																// (introducing
+																// an error into
+																// the buffer).
+		double erase_distance_delta = densify_distance * 0.25;// distance when
+																// we can erase
+																// the point
+																// (introducing
+																// an error into
+																// the buffer).
+		// This function goal is to modify or remove vertices between
+		// from_vertex and to_vertex in such a way that the result would not
+		// affect buffer to the left of the
+		// chain.
+		Point2D v_gap = new Point2D();
+		v_gap.sub(pt2, pt1);
+		double gap_length = v_gap.length();
+		double h2_4 = gap_length * gap_length * 0.25;
+		double sqr_center_to_chord = abs_distance * abs_distance - h2_4; // squared
+																			// distance
+																			// from
+																			// the
+																			// chord
+																			// to
+																			// the
+																			// circle
+																			// center
+		if (sqr_center_to_chord <= h2_4)
+			return -1;// center to chord distance is less than half gap, that
+						// means the gap is too wide for useful filtering (maybe
+						// this).
+
+		double center_to_chord = Math.sqrt(sqr_center_to_chord); // distance
+																	// from
+																	// circle
+																	// center to
+																	// the
+																	// chord.
+
+		v_gap.normalize();
+		Point2D v_gap_norm = new Point2D(v_gap);
+		v_gap_norm.rightPerpendicular();
+		double chord_to_corner = h2_4 / center_to_chord; // cos(a) =
+															// center_to_chord /
+															// distance;
+															// chord_to_corner =
+															// distance / cos(a)
+															// -
+															// center_to_chord;
+		boolean can_erase_corner_point = chord_to_corner <= erase_distance_delta;
+		Point2D chord_midpoint = new Point2D();
+		MathUtils.lerp(pt2, pt1, 0.5, chord_midpoint);
+		Point2D corner = new Point2D(v_gap_norm);
+		double corrected_chord_to_corner = chord_to_corner
+				- densify_distance_delta;// using slightly smaller than needed
+											// distance let us filter more.
+		corner.scaleAdd(Math.max(0.0, corrected_chord_to_corner),
+				chord_midpoint);
+		// corner = (p1 + p2) * 0.5 + v_gap_norm * chord_to_corner;
+
+		Point2D center = new Point2D(v_gap_norm);
+		center.negate();
+		center.scaleAdd(center_to_chord, chord_midpoint);
+
+		double allowed_distance = abs_distance - erase_distance_delta;
+		double sqr_allowed_distance = MathUtils.sqr(allowed_distance);
+		double sqr_large_distance = sqr_allowed_distance * (1.9 * 1.9);
+
+		Point2D co_p1 = new Point2D();
+		co_p1.sub(corner, pt1);
+		Point2D co_p2 = new Point2D();
+		co_p2.sub(corner, pt2);
+
+		boolean large_distance = false;// set to true when distance
+		int cnt = 0;
+		char[] locations = new char[64];
+		{
+			// check all vertices in the gap verifying that the gap can be
+			// clipped.
+			//
+
+			Point2D pt = new Point2D();
+			// firstly remove any duplicate vertices in the end.
+			for (int v = edit_shape.getPrevVertex(to_vertex, dir); v != from_vertex;) {
+				if (edit_shape.getUserIndex(v, fixed_vertices_index) == 1)
+					return -1;// this range contains protected vertex
+
+				edit_shape.getXY(v, pt);
+				if (pt.equals(pt2)) {
+					int v1 = edit_shape.getPrevVertex(v, dir);
+					edit_shape.removeVertex(v, false);
+					v = v1;
+					continue;
+				} else {
+					break;
+				}
+			}
+
+			Point2D prev_prev_pt = new Point2D();
+			prev_prev_pt.setNaN();
+			Point2D prev_pt = new Point2D();
+			prev_pt.setCoords(pt1);
+			locations[cnt++] = 1;
+			int prev_v = from_vertex;
+			Point2D dummyPt = new Point2D();
+			for (int v = edit_shape.getNextVertex(from_vertex, dir); v != to_vertex;) {
+				if (edit_shape.getUserIndex(v, fixed_vertices_index) == 1)
+					return -1;// this range contains protected vertex
+
+				edit_shape.getXY(v, pt);
+				if (pt.equals(prev_pt)) {
+					int v1 = edit_shape.getNextVertex(v, dir);
+					edit_shape.removeVertex(v, false);
+					v = v1;
+					continue;
+				}
+
+				locations[cnt++] = 0;
+
+				Point2D v1 = new Point2D();
+				v1.sub(pt, pt1);
+				if (v1.dotProduct(v_gap_norm) < 0)// we are crossing on the
+													// wrong site of the chord.
+													// Just bail out earlier.
+													// Maybe we could continue
+													// clipping though here, but
+													// it seems to be
+													// unnecessary complicated.
+					return 0;
+
+				if (Point2D.sqrDistance(pt, pt1) > sqr_large_distance
+						|| Point2D.sqrDistance(pt, pt2) > sqr_large_distance)
+					large_distance = true; // too far from points, may
+											// contribute to the outline (in
+											// case of a large loop)
+
+				char next_location = 0;
+
+				dummyPt.sub(pt, pt1);
+				double cs1 = dummyPt.crossProduct(co_p1);
+				if (cs1 >= 0) {
+					next_location = 1;
+				}
+
+				dummyPt.sub(pt, pt2);
+				double cs2 = dummyPt.crossProduct(co_p2);
+				if (cs2 <= 0) {
+					next_location |= 2;
+				}
+
+				if (next_location == 0)
+					return 0;
+
+				locations[cnt - 1] = next_location;
+				prev_prev_pt.setCoords(prev_pt);
+				prev_pt.setCoords(pt);
+				prev_v = v;
+				v = edit_shape.getNextVertex(v, dir);
+			}
+
+			if (cnt == 1)
+				return 0;
+
+			assert (!pt2.equals(prev_pt));
+			locations[cnt++] = 2;
+		}
+
+		boolean can_clip_all = true;
+		// we can remove all points and replace them with a single corner point
+		// if we are moving from location 1 via location 3 to location 2
+		for (int i = 1, k = 0; i < cnt; i++) {
+			if (locations[i] != locations[i - 1]) {
+				k++;
+				can_clip_all = k < 3
+						&& ((k == 1 && locations[i] == 3) || (k == 2 && locations[i] == 2));
+				if (!can_clip_all)
+					return 0;
+			}
+		}
+
+		if (cnt > 2 && can_clip_all && (cnt == 3 || !large_distance)) {
+			int clip_count = 0;
+			int v = edit_shape.getNextVertex(from_vertex, dir);
+			if (!can_erase_corner_point) {
+				edit_shape.setXY(v, corner);
+				v = edit_shape.getNextVertex(v, dir);
+			}
+
+			// we can remove all vertices between from and to, because they
+			// don't contribute
+			while (v != to_vertex) {
+				int v1 = edit_shape.getNextVertex(v, dir);
+				edit_shape.removeVertex(v, false);
+				v = v1;
+				++clip_count;
+			}
+
+			return clip_count;
+		}
+
+		if (cnt == 3) {
+			boolean case1 = (locations[0] == 1 && locations[1] == 2 && locations[2] == 2);
+			boolean case2 = (locations[0] == 1 && locations[1] == 1 && locations[2] == 2);
+			if (case1 || case2) {
+				// special case, when we cannot clip, but we can move the point
+				Point2D p1 = edit_shape.getXY(from_vertex);
+				int v = edit_shape.getNextVertex(from_vertex, dir);
+				Point2D p2 = edit_shape.getXY(v);
+				Point2D p3 = edit_shape.getXY(edit_shape.getNextVertex(v, dir));
+				if (case2) {
+					Point2D temp = p1;
+					p1 = p3;
+					p3 = temp;
+				}
+
+				Point2D vec = new Point2D();
+				vec.sub(p1, p2);
+				p3.sub(p2);
+				double veclen = vec.length();
+				double w = p3.length();
+				double wcosa = vec.dotProduct(p3) / veclen;
+				double wsina = Math.abs(p3.crossProduct(vec) / veclen);
+				double z = 2 * abs_distance - wsina;
+				if (z < 0)
+					return 0;
+
+				double x = wcosa + Math.sqrt(wsina * z);
+				if (x > veclen)
+					return 0;
+
+				Point2D hvec = new Point2D();
+				hvec.scaleAdd(-x / veclen, vec, p3); // hvec = p3 - vec * (x /
+														// veclen);
+				double h = hvec.length();
+				double y = -(h * h * veclen) / (2 * hvec.dotProduct(vec));
+
+				double t = (x - y) / veclen;
+				MathUtils.lerp(p2, p1, t, p2);
+				edit_shape.setXY(v, p2);
+				return 0;
+			}
+		}
+
+		if (large_distance && cnt > 3) {
+			// we are processing more than 3 points and there are some points
+			// further than the
+			return 0;
+		}
+
+		int v_prev = -1;
+		Point2D pt_prev = new Point2D();
+		int v_cur = from_vertex;
+		Point2D pt_cur = new Point2D(pt1);
+		int cur_location = 1;
+		int prev_location = -1; // 1 - semiplane to the right of [f,c]. 3 -
+								// semiplane to the right of [c,t], 2 - both
+								// above fc and ct, 0 - cannot clip, -1 -
+								// unknown
+		int v_next = v_cur;
+		int clip_count = 0;
+		cnt = 1;
+		while (v_next != to_vertex) {
+			v_next = edit_shape.getNextVertex(v_next, dir);
+			int next_location = locations[cnt++];
+			if (next_location == 0) {
+				if (v_next == to_vertex)
+					break;
+
+				continue;
+			}
+
+			Point2D pt_next = edit_shape.getXY(v_next);
+
+			if (prev_location != -1) {
+				int common_location = (prev_location & cur_location & next_location);
+				if ((common_location & 3) != 0) {
+					// prev and next are on the same semiplane as the current we
+					// can safely remove the current point.
+					edit_shape.removeVertex(v_cur, true);
+					clip_count++;// do not change prev point.
+					v_cur = v_next;
+					pt_cur.setCoords(pt_next);
+					cur_location = next_location;
+					continue;
+				}
+
+				if (cur_location == 3 && prev_location != 0
+						&& next_location != 0) {
+					assert ((prev_location & next_location) == 0);// going from
+																	// one semi
+																	// plane to
+																	// another
+																	// via the
+																	// mid.
+					pt_cur.setCoords(corner);
+					if (can_erase_corner_point || pt_cur.equals(pt_prev)) {// this
+																			// point
+																			// can
+																			// be
+																			// removed
+						edit_shape.removeVertex(v_cur, true);
+						clip_count++;// do not change prev point.
+						v_cur = v_next;
+						pt_cur.setCoords(pt_next);
+						cur_location = next_location;
+						continue;
+					} else {
+						edit_shape.setXY(v_cur, pt_cur); // snap to the corner
+					}
+				} else {
+					if (next_location == 0
+							&& cur_location != 0
+							|| next_location != 0
+							&& cur_location == 0
+							|| ((next_location | cur_location) == 3
+									&& next_location != 3 && cur_location != 3)) {
+						// clip
+					}
+				}
+			}
+
+			prev_location = cur_location;
+			v_prev = v_cur;
+			pt_prev.setCoords(pt_cur);
+			v_cur = v_next;
+			cur_location = next_location;
+			pt_cur.setCoords(pt_next);
+		}
+
+		return clip_count;
+	}
+	
 	private boolean isDegeneratePath_(MultiPathImpl mp_impl, int ipath) {
 		if (mp_impl.getPathSize(ipath) == 1)
 			return true;
@@ -1510,7 +1834,7 @@ class Bufferer {
 		// avoid unnecessary memory allocation for the circle template. Just do
 		// the point here.
 
-		int N = calcN_(4);
+		int N = m_circle_template_size;
 		int real_size = (N + 3) / 4;
 		double dA = (Math.PI * 0.5) / real_size;
 		// result_mp.reserve(real_size * 4);
@@ -1590,5 +1914,4 @@ class Bufferer {
 		((MultiPathImpl) poly._getImpl())._updateOGCFlags();
 		return poly;
 	}
-
 }

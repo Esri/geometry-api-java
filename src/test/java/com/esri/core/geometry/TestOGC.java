@@ -14,7 +14,6 @@ import com.esri.core.geometry.ogc.OGCPolygon;
 import com.esri.core.geometry.ogc.OGCConcreteGeometryCollection;
 
 import org.codehaus.jackson.JsonParseException;
-import org.json.JSONException;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -40,6 +39,8 @@ public class TestOGC extends TestCase {
 		assertTrue(p.Y() == 2);
 		assertTrue(g.equals(OGCGeometry.fromText("POINT(1 2)")));
 		assertTrue(!g.equals(OGCGeometry.fromText("POINT(1 3)")));
+		assertTrue(g.equals((Object)OGCGeometry.fromText("POINT(1 2)")));
+		assertTrue(!g.equals((Object)OGCGeometry.fromText("POINT(1 3)")));
 		OGCGeometry buf = g.buffer(10);
 		assertTrue(buf.geometryType().equals("Polygon"));
 		OGCPolygon poly = (OGCPolygon) buf.envelope();
@@ -48,7 +49,7 @@ public class TestOGC extends TestCase {
 	}
 
 	@Test
-	public void testPolygon() {
+	public void testPolygon() throws Exception {
 		OGCGeometry g = OGCGeometry
 				.fromText("POLYGON((-10 -10, 10 -10, 10 10, -10 10, -10 -10), (-5 -5, -5 5, 5 5, 5 -5, -5 -5))");
 		assertTrue(g.geometryType().equals("Polygon"));
@@ -64,14 +65,26 @@ public class TestOGC extends TestCase {
 		b = lsi.equals(OGCGeometry
 				.fromText("LINESTRING(-5 -5, -5 5, 5 5, 5 -5, -5 -5)"));
 		assertTrue(b);
+		b = lsi.equals((Object)OGCGeometry
+				.fromText("LINESTRING(-5 -5, -5 5, 5 5, 5 -5, -5 -5)"));
 		assertTrue(!lsi.equals(ls));
 		OGCMultiCurve boundary = p.boundary();
 		String s = boundary.asText();
 		assertTrue(s.equals("MULTILINESTRING ((-10 -10, 10 -10, 10 10, -10 10, -10 -10), (-5 -5, -5 5, 5 5, 5 -5, -5 -5))"));
+
+		{
+	    	OGCGeometry g2 = OGCGeometry.fromGeoJson("{\"type\": \"Polygon\", \"coordinates\": [[[1.00000001,1.00000001], [4.00000001,1.00000001], [4.00000001,4.00000001], [1.00000001,4.00000001]]]}");
+	    	OGCGeometry.fromGeoJson("{\"type\": \"LineString\", \"coordinates\": [[1.00000001,1.00000001], [7.00000001,8.00000001]]}").intersects(g2);
+	    	OGCGeometry.fromGeoJson("{\"type\": \"LineString\", \"coordinates\": [[2.449,4.865], [7.00000001,8.00000001]]}").intersects(g2);
+			
+	    	OGCGeometry g3 = OGCGeometry.fromGeoJson("{\"type\": \"Polygon\", \"coordinates\": [[[1.00000001,1.00000001], [4.00000001,1.00000001], [4.00000001,4.00000001], [1.00000001,4.00000001]]]}");
+	    	boolean bb = g2.equals((Object)g3);
+	    	assertTrue(bb);
+		}
 	}
 
 	@Test
-	public void testGeometryCollection() throws JSONException {
+	public void testGeometryCollection() throws Exception {
 		OGCGeometry g = OGCGeometry
 				.fromText("GEOMETRYCOLLECTION(POLYGON EMPTY, POINT(1 1), LINESTRING EMPTY, MULTIPOLYGON EMPTY, MULTILINESTRING EMPTY)");
 		assertTrue(g.geometryType().equals("GeometryCollection"));
@@ -139,6 +152,10 @@ public class TestOGC extends TestCase {
 		wktString = g.asText();
 		assertTrue(wktString
 				.equals("GEOMETRYCOLLECTION (POLYGON EMPTY, POINT (1 1), GEOMETRYCOLLECTION EMPTY, LINESTRING EMPTY, GEOMETRYCOLLECTION (POLYGON EMPTY, POINT (1 1), LINESTRING EMPTY, MULTIPOLYGON EMPTY, MULTILINESTRING EMPTY, MULTIPOINT EMPTY), MULTIPOLYGON EMPTY, MULTILINESTRING EMPTY)"));
+		
+		assertTrue(g.equals((Object)OGCGeometry.fromText(wktString)));
+		
+		assertTrue(g.hashCode() == OGCGeometry.fromText(wktString).hashCode());
 
 	}
 
@@ -768,7 +785,7 @@ public class TestOGC extends TestCase {
 	}
 
 	@Test
-	public void testIsectTriaJson1() throws JsonParseException, IOException {
+	public void testIsectTriaJson1() throws Exception {
 		String json1 = "{\"rings\":[[[1, 0], [3, 0], [1, 2], [1, 0]]], \"spatialReference\":{\"wkid\":4326}}";
 		String json2 = "{\"rings\":[[[0, 1], [2, 1], [0, 3], [0, 1]]], \"spatialReference\":{\"wkid\":4326}}";
 		OGCGeometry g0 = OGCGeometry.fromJson(json1);
@@ -868,7 +885,7 @@ public class TestOGC extends TestCase {
 	}
 	
 	@Test
-	public void testPolylineSimplifyIssueGithub52() throws JsonParseException, IOException {
+	public void testPolylineSimplifyIssueGithub52() throws Exception {
 		String json = "{\"paths\":[[[2,0],[4,3],[5,1],[3.25,1.875],[1,3]]],\"spatialReference\":{\"wkid\":4326}}";
 		{
 			OGCGeometry g = OGCGeometry.fromJson(json);

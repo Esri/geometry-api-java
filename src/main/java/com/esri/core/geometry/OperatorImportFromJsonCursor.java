@@ -271,7 +271,6 @@ class OperatorImportFromJsonCursor extends MapGeometryCursor {
 			mp = new MapGeometry(geometry, spatial_reference);
 
 		} catch (Exception e) {
-			e.printStackTrace();
 			return null;
 		}
 

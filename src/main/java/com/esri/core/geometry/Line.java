@@ -35,10 +35,6 @@ import java.io.Serializable;
  */
 public final class Line extends Segment implements Serializable {
 
-	private static final long serialVersionUID = 2L;// TODO:remove as we use
-													// writeReplace and
-													// GeometrySerializer
-
 	@Override
 	public Geometry.Type getType() {
 		return Type.Line;
@@ -92,7 +88,7 @@ public final class Line extends Segment implements Serializable {
 		m_description = vd;
 	}
 
-	Line(double x1, double y1, double x2, double y2) {
+	public Line(double x1, double y1, double x2, double y2) {
 		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();
 		setStartXY(x1, y1);
 		setEndXY(x2, y2);
@@ -199,7 +195,7 @@ public final class Line extends Segment implements Serializable {
 	}
 
 	@Override
-	void getCoord2D(double t, Point2D pt) {
+	public void getCoord2D(double t, Point2D pt) {
 		// We want:
 		// 1. When t == 0, get exactly Start
 		// 2. When t == 1, get exactly End
@@ -209,7 +205,7 @@ public final class Line extends Segment implements Serializable {
 	}
 
 	@Override
-	Segment cut(double t1, double t2) {
+	public Segment cut(double t1, double t2) {
 		SegmentBuffer segmentBuffer = new SegmentBuffer();
 		cut(t1, t2, segmentBuffer);
 		return segmentBuffer.get();
@@ -270,7 +266,7 @@ public final class Line extends Segment implements Serializable {
 	}
 
 	@Override
-	double getClosestCoordinate(Point2D inputPt, boolean bExtrapolate) {
+	public double getClosestCoordinate(Point2D inputPt, boolean bExtrapolate) {
 		double vx = m_xEnd - m_xStart;
 		double vy = m_yEnd - m_yStart;
 		double v2 = vx * vx + vy * vy;
@@ -390,7 +386,7 @@ public final class Line extends Segment implements Serializable {
 	 * given tolerance.
 	 */
 	@Override
-	boolean isIntersecting(Point2D pt, double tolerance) {
+	public boolean isIntersecting(Point2D pt, double tolerance) {
 		return _isIntersectingPoint(pt, tolerance, false);
 	}
 

@@ -43,7 +43,7 @@ abstract class OperatorShapePreservingDensify extends Operator {
 	 * @param maxLengthMeters The maximum segment length allowed. Must be a positive value to be used. Pass zero or NaN to disable densification by length.
 	 * @param maxDeviationMeters The maximum deviation. Must be a positive value to be used. Pass zero or NaN to disable densification by deviation.
 	 * @param reserved Must be 0 or NaN. Reserved for future use. Throws and exception if not NaN or 0.
-	 * @return Returns the densified geometries (It does nothing to geometries with dim < 1, but simply passes them along).
+	 * @return Returns the densified geometries (It does nothing to geometries with dim less than 1, but simply passes them along).
 	 *
 	 * The operation always starts from the lowest point on the segment, thus guaranteeing that topologically equal segments are always densified exactly the same.
 	 */
@@ -58,7 +58,7 @@ abstract class OperatorShapePreservingDensify extends Operator {
 	 * @param maxLengthMeters The maximum segment length allowed. Must be a positive value to be used. Pass zero or NaN to disable densification by length.
 	 * @param maxDeviationMeters The maximum deviation. Must be a positive value to be used. Pass zero or NaN to disable densification by deviation.
 	 * @param reserved Must be 0 or NaN. Reserved for future use. Throws and exception if not NaN or 0.
-	 * @return Returns the densified geometries (It does nothing to geometries with dim < 1, but simply passes them along).
+	 * @return Returns the densified geometries (It does nothing to geometries with dim less than 1, but simply passes them along).
 	 *
 	 * The operation always starts from the lowest point on the segment, thus guaranteeing that topologically equal segments are always densified exactly the same.
 	 */

@@ -33,14 +33,14 @@ final class JsonStringWriter extends JsonWriter {
 
 	@Override
 	void startObject() {
-		next_(Action.addContainer);
+		next_(Action.addObject);
 		m_jsonString.append('{');
 		m_functionStack.add(State.objectStart);
 	}
 
 	@Override
 	void startArray() {
-		next_(Action.addContainer);
+		next_(Action.addArray);
 		m_jsonString.append('[');
 		m_functionStack.add(State.arrayStart);
 	}
@@ -55,6 +55,12 @@ final class JsonStringWriter extends JsonWriter {
 	void endArray() {
 		next_(Action.popArray);
 		m_jsonString.append(']');
+	}
+
+	@Override
+	void addFieldName(String fieldName) {
+		next_(Action.addKey);
+		appendQuote_(fieldName);
 	}
 
 	@Override
@@ -90,11 +96,11 @@ final class JsonStringWriter extends JsonWriter {
 	}
 
 	@Override
-	void addPairDoubleF(String fieldName, double v, int decimals) {
+	void addPairDouble(String fieldName, double v, int precision, boolean bFixedPoint) {
 		next_(Action.addPair);
 		appendQuote_(fieldName);
 		m_jsonString.append(":");
-		addValueDoubleF_(v, decimals);
+		addValueDouble_(v, precision, bFixedPoint);
 	}
 
 	@Override
@@ -123,13 +129,13 @@ final class JsonStringWriter extends JsonWriter {
 
 	@Override
 	void addValueObject() {
-		next_(Action.addContainer);
+		next_(Action.addObject);
 		addValueObject_();
 	}
 
 	@Override
 	void addValueArray() {
-		next_(Action.addContainer);
+		next_(Action.addArray);
 		addValueArray_();
 	}
 
@@ -146,9 +152,9 @@ final class JsonStringWriter extends JsonWriter {
 	}
 
 	@Override
-	void addValueDoubleF(double v, int decimals) {
+	void addValueDouble(double v, int precision, boolean bFixedPoint) {
 		next_(Action.addTerminal);
-		addValueDoubleF_(v, decimals);
+		addValueDouble_(v, precision, bFixedPoint);
 	}
 
 	@Override
@@ -202,13 +208,16 @@ final class JsonStringWriter extends JsonWriter {
 		StringUtils.appendDouble(v, 17, m_jsonString);
 	}
 
-	private void addValueDoubleF_(double v, int decimals) {
+	private void addValueDouble_(double v, int precision, boolean bFixedPoint) {
 		if (NumberUtils.isNaN(v)) {
 			addValueNull_();
 			return;
 		}
 
-		StringUtils.appendDoubleF(v, decimals, m_jsonString);
+		if (bFixedPoint)
+			StringUtils.appendDoubleF(v, precision, m_jsonString);
+		else
+			StringUtils.appendDouble(v, precision, m_jsonString);
 	}
 
 	private void addValueInt_(int v) {
@@ -247,6 +256,9 @@ final class JsonStringWriter extends JsonWriter {
 		case State.elementEnd:
 			elementEnd_(action);
 			break;
+		case State.fieldNameEnd:
+			fieldNameEnd_(action);
+			break;
 		default:
 			throw new GeometryException("internal error");
 		}
@@ -259,7 +271,7 @@ final class JsonStringWriter extends JsonWriter {
 	}
 
 	private void start_(int action) {
-		if (action == Action.addContainer) {
+		if ((action & Action.addContainer) != 0) {
 			m_functionStack.removeLast();
 		} else {
 			throw new GeometryException("invalid call");
@@ -267,18 +279,25 @@ final class JsonStringWriter extends JsonWriter {
 	}
 
 	private void objectStart_(int action) {
+		if (action != Action.popObject && action != Action.addPair && action != Action.addKey)
+			throw new GeometryException("invalid call");
+
 		m_functionStack.removeLast();
 
 		if (action == Action.addPair) {
 			m_functionStack.add(State.pairEnd);
-		} else if (action != Action.popObject) {
-			throw new GeometryException("invalid call");
+		} else if (action == Action.addKey) {
+			m_functionStack.add(State.pairEnd);
+			m_functionStack.add(State.fieldNameEnd);
 		}
 	}
 
 	private void pairEnd_(int action) {
 		if (action == Action.addPair) {
 			m_jsonString.append(',');
+		} else if (action == Action.addKey) {
+			m_jsonString.append(',');
+			m_functionStack.add(State.fieldNameEnd);
 		} else if (action == Action.popObject) {
 			m_functionStack.removeLast();
 		} else {
@@ -287,12 +306,13 @@ final class JsonStringWriter extends JsonWriter {
 	}
 
 	private void arrayStart_(int action) {
+		if ((action & Action.addValue) == 0 && action != Action.popArray)
+			throw new GeometryException("invalid call");
+
 		m_functionStack.removeLast();
 
 		if ((action & Action.addValue) != 0) {
 			m_functionStack.add(State.elementEnd);
-		} else if (action != Action.popArray) {
-			throw new GeometryException("invalid call");
 		}
 	}
 
@@ -304,6 +324,14 @@ final class JsonStringWriter extends JsonWriter {
 		} else {
 			throw new GeometryException("invalid call");
 		}
+	}
+
+	private void fieldNameEnd_(int action) {
+		if ((action & Action.addValue) == 0)
+			throw new GeometryException("invalid call");
+
+		m_functionStack.removeLast();
+		m_jsonString.append(':');
 	}
 
 	private void appendQuote_(String string) {

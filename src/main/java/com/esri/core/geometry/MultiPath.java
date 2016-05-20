@@ -39,12 +39,12 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	}
 
 	@Override
-	void assignVertexDescription(VertexDescription src) {
+	public void assignVertexDescription(VertexDescription src) {
 		m_impl.assignVertexDescription(src);
 	}
 
 	@Override
-	void mergeVertexDescription(VertexDescription src) {
+	public void mergeVertexDescription(VertexDescription src) {
 		m_impl.mergeVertexDescription(src);
 	}
 
@@ -275,6 +275,41 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	 */
 	void addPath(Point2D[] points, int count, boolean bForward) {
 		m_impl.addPath(points, count, bForward);
+	}
+
+	/**
+	 * Adds segments from a source multipath to this MultiPath.
+	 *
+	 * @param src
+	 *            The source MultiPath to add segments from.
+	 * @param srcPathIndex
+	 *            The index of the path in the the source MultiPath.
+	 * @param srcSegmentFrom
+	 *            The index of first segment in the path to start adding from.
+	 *            The value has to be between 0 and
+	 *            src.getSegmentCount(srcPathIndex) - 1.
+	 * @param srcSegmentCount
+	 *            The number of segments to add. If 0, the function does
+	 *            nothing.
+	 * @param bStartNewPath
+	 *            When true, a new path is added and segments are added to it.
+	 *            Otherwise the segments are added to the last path of this
+	 *            MultiPath.
+	 *
+	 *            If bStartNewPath false, the first point of the first source
+	 *            segment is not added. This is done to ensure proper connection
+	 *            to existing segments. When the source path is closed, and the
+	 *            closing segment is among those to be added, it is added also
+	 *            as a closing segment, not as a real segment. Use add_segment
+	 *            instead if you do not like that behavior.
+	 *
+	 *            This MultiPath obtains all missing attributes from the src
+	 *            MultiPath.
+	 */
+	public void addSegmentsFromPath(MultiPath src, int srcPathIndex,
+			int srcSegmentFrom, int srcSegmentCount, boolean bStartNewPath) {
+		m_impl.addSegmentsFromPath((MultiPathImpl) src._getImpl(),
+				srcPathIndex, srcSegmentFrom, srcSegmentCount, bStartNewPath);
 	}
 
 	/**
@@ -724,12 +759,12 @@ public abstract class MultiPath extends MultiVertexGeometry implements
 	}
 
 	@Override
-	void getPointByVal(int index, Point outPoint) {
+	public void getPointByVal(int index, Point outPoint) {
 		m_impl.getPointByVal(index, outPoint);
 	}
 
 	@Override
-	void setPointByVal(int index, Point point) {
+	public void setPointByVal(int index, Point point) {
 		m_impl.setPointByVal(index, point);
 	}
 

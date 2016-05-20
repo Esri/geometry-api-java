@@ -1923,18 +1923,27 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 		if (pathCount != pathCountOther)
 			return false;
 
-		if (m_paths != null
+		if (pathCount > 0 && m_paths != null
 				&& !m_paths.equals(otherMultiPath.m_paths, 0, pathCount + 1))
 			return false;
-		
+
 		if (m_fill_rule != otherMultiPath.m_fill_rule)
 			return false;
 
-		if (m_pathFlags != null
-				&& !m_pathFlags
-						.equals(otherMultiPath.m_pathFlags, 0, pathCount))
-			return false;
-
+		{
+			// Note: OGC flags do not participate in the equals operation by
+			// design.
+			// Because for the polygon pathFlags will have all enum_closed set,
+			// we do not need to compare this stream. Only for polyline.
+			// Polyline does not have OGC flags set.
+			if (!m_bPolygon) {
+				if (m_pathFlags != null
+						&& !m_pathFlags.equals(otherMultiPath.m_pathFlags, 0,
+								pathCount))
+					return false;
+			}
+		}
+	      
 		return super.equals(other);
 	}
 
@@ -2101,7 +2110,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 			_updateRingAreas2D();
 
 			int pathCount = getPathCount();
-			if (m_pathFlags == null || m_pathFlags.size() < pathCount)
+			if (pathCount > 0 && (m_pathFlags == null || m_pathFlags.size() < pathCount))
 				m_pathFlags = (AttributeStreamOfInt8) AttributeStreamBase
 						.createByteStream(pathCount + 1);
 

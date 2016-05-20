@@ -1,7 +1,10 @@
 package com.esri.core.geometry;
 
+import java.io.IOException;
+
 import junit.framework.TestCase;
 
+import org.codehaus.jackson.JsonParseException;
 import org.junit.Test;
 
 import com.esri.core.geometry.Geometry.GeometryAccelerationDegree;
@@ -5481,7 +5484,7 @@ public class TestRelation extends TestCase {
 				null);
 		assertTrue(answer2);
 	}
-
+	
 	@Test
 	public void testDisjointCrash() {
 		Polygon g1 = new Polygon();
@@ -5492,5 +5495,14 @@ public class TestRelation extends TestCase {
 		OperatorDisjoint.local().accelerateGeometry(g1, SpatialReference.create(4267), GeometryAccelerationDegree.enumHot);
 		boolean res = OperatorDisjoint.local().execute(g1, g2, SpatialReference.create(4267), null);
 		assertTrue(!res);
-	}	
+	}
+	
+	@Test
+	public void testDisjointFail() throws JsonParseException, IOException {
+		MapGeometry geometry1 = OperatorImportFromJson.local().execute(Geometry.Type.Unknown, "{\"paths\":[[[3,3],[3,3]]],\"spatialReference\":{\"wkid\":4326}}");
+		MapGeometry geometry2 = OperatorImportFromJson.local().execute(Geometry.Type.Unknown, "{\"rings\":[[[2,2],[2,4],[4,4],[4,2],[2,2]]],\"spatialReference\":{\"wkid\":4326}}");
+		OperatorDisjoint.local().accelerateGeometry(geometry1.getGeometry(), geometry1.getSpatialReference(), GeometryAccelerationDegree.enumMedium);
+		boolean res = OperatorDisjoint.local().execute(geometry1.getGeometry(), geometry2.getGeometry(), geometry1.getSpatialReference(), null);
+		assertTrue(!res);
+	}
 }

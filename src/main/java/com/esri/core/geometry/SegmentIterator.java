@@ -25,7 +25,17 @@
 package com.esri.core.geometry;
 
 /**
- * This class provides functionality to iterate over multipath segments.
+ * This class provides functionality to iterate over MultiPath segments.
+ * 
+ * Example:
+ * <pre><code>
+ * SegmentIterator iterator = polygon.querySegmentIterator();
+ * while (iterator.nextPath()) {
+ *   while (iterator.hasNextSegment()) {
+ *     Segment segment = iterator.nextSegment();
+ *   }
+ * }
+ * </code></pre>
  */
 public class SegmentIterator {
 	private SegmentIteratorImpl m_impl;

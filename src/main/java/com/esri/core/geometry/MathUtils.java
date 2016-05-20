@@ -136,10 +136,20 @@ final class MathUtils {
 	}
 
 	/**
+	 * Rounds towards zero.
+	 */
+	static double truncate(double v) {
+		if (v >= 0)
+			return Math.floor(v);
+		else
+			return -Math.floor(-v);
+	}
+	
+	/**
 	 * C fmod function.
 	 */
 	static double FMod(double x, double y) {
-		return x - Math.floor(x / y) * y;
+		return x - truncate(x / y) * y;
 	}
 
 
@@ -184,22 +194,26 @@ final class MathUtils {
     *It also guarantees that for 0 <= t <= 1, the interpolated value v is between start and end.
     */
 	static void lerp(Point2D start_, Point2D end_, double t, Point2D result) {
+		assert(start_ != result);
 		// When end == start, we want result to be equal to start, for all t
 		// values. At the same time, when end != start, we want the result to be
 		// equal to start for t==0 and end for t == 1.0
 		// The regular formula end_ * t + (1.0 - t) * start_, when end_ ==
 		// start_, and t at 1/3, produces value different from start
+		double rx, ry;
 		if (t <= 0.5) {
-			result.x = start_.x + (end_.x - start_.x) * t;
-			result.y = start_.y + (end_.y - start_.y) * t;
+			rx = start_.x + (end_.x - start_.x) * t;
+			ry = start_.y + (end_.y - start_.y) * t;
 		}
 		else {
-			result.x = end_.x - (end_.x - start_.x) * (1.0 - t);
-			result.y = end_.y - (end_.y - start_.y) * (1.0 - t);
+			rx = end_.x - (end_.x - start_.x) * (1.0 - t);
+			ry = end_.y - (end_.y - start_.y) * (1.0 - t);
 		}
 
-		assert (t < 0 || t > 1.0 || (result.x >= start_.x && result.x <= end_.x) || (result.x <= start_.x && result.x >= end_.x));
-		assert (t < 0 || t > 1.0 || (result.y >= start_.y && result.y <= end_.y) || (result.y <= start_.y && result.y >= end_.y));
+		assert (t < 0 || t > 1.0 || (rx >= start_.x && rx <= end_.x) || (rx <= start_.x && rx >= end_.x));
+		assert (t < 0 || t > 1.0 || (ry >= start_.y && ry <= end_.y) || (ry <= start_.y && ry >= end_.y));
+		result.x = rx;
+		result.y = ry;
 	}
 
 	static void lerp(double start_x, double start_y, double end_x, double end_y, double t, Point2D result) {

@@ -68,6 +68,12 @@ public class NumberUtils {
 		return Double.NaN;
 	}
 
+	//combines two hash values
+	public static int hashCombine(int hash1, int hash2) {
+		return (hash1 * 31 + hash2) & 0x7FFFFFFF;
+	}
+	
+	//makes a hash out of an int
 	static int hash(int n) {
 		int hash = 5381;
 		hash = ((hash << 5) + hash) + (n & 0xFF); /* hash * 33 + c */
@@ -78,12 +84,14 @@ public class NumberUtils {
 		return hash;
 	}
 
+	//	//makes a hash out of an double
 	static int hash(double d) {
 		long bits = Double.doubleToLongBits(d);
 		int hc = (int) (bits ^ (bits >>> 32));
 		return hash(hc);
 	}
 
+	//adds an int to a hash value
 	static int hash(int hashIn, int n) {
 		int hash = ((hashIn << 5) + hashIn) + (n & 0xFF); /* hash * 33 + c */
 		hash = ((hash << 5) + hash) + ((n >> 8) & 0xFF);
@@ -93,6 +101,7 @@ public class NumberUtils {
 		return hash;
 	}
 
+	//adds a double to a hash value
 	static int hash(int hash, double d) {
 		long bits = Double.doubleToLongBits(d);
 		int hc = (int) (bits ^ (bits >>> 32));
