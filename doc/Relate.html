@@ -9,240 +9,241 @@
     <link rel="stylesheet" href="GeometryDocStyle.css">
   </head>
 	<body>
-		<h1 id="topic">Relate</h1>
-    <ul id="menu">
-      <li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorRelate.html">API Reference</a></li>
-      <li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
-    </ul>
+
+
 		<div id="content">
-		<p>The Relate operator allows you to create custom relational operations using a Dimensionally Extended Nine-Intersection Model, DE-9IM, formatted string.</p>
-		<p>
-		All of the predefined relational operations can be defined (Contains, Crosses, Disjoint, Equals, Intersects, Overlaps, Touches, and Within) 
-		using <code>OperatorRelate</code>, but it offers much more. A review of the predefined relational operations can be found at 
-		<a href="RelationalOperators.html">Performing relational operations</a>.
-		</p>
-		<p>
-		An explanation of DE-9IM and examples are given below. More information about DE-9IM can be found at 
-		<a href="https://en.wikipedia.org/wiki/DE-9IM">https://en.wikipedia.org/wiki/DE-9IM</a> 
-		or by downloading the OGC specification “OpenGIS Simple Features Specification For SQL Revision 1.1” from 
-		<a href=http://www.opengis.org>http://www.opengis.org</a>.
-		</p>
-		<p>
-		For any geometry A, let I(A) be the interior of A, B(A) be the boundary of A, and E(A) be the exterior of A. For any set, x, of geometries, let dim(x) be the maximum 
-		dimension (-1, 0, 1, or 2) of the geometries in x where -1 is the dimension of the empty set. A DE-9IM has the following form:
-		</p>
-		<table class="noBoundaryTable">
-		  <tr>
-		    <td><img src="Images/Relate/Relate0.jpg"></td>
-		  </tr>
-		</table>
-		<p>For example, consider two overlapping polygons and the associated DE-9IM.</p>
-		<table style="border:none;">
-		<tr>
-		<td style="border:none;"><img src="Images/Relate/Relate1.jpg"></td>
-		</tr>
-		</table>
-		<table class="noBoundaryTable">
-      <tr>
-        <td><img src="Images/Relate/Relate2.jpg"></td>
-      </tr>
-    </table>
-    <p>
-    The intersection of the interiors, I(A) &#8898; I(B), is a polygon which has dimension 2. 
-    The intersection of the interior of A and the boundary of B, I(A) &#8898; B(B), is a line 
-    which has dimension 1 and so forth.
-    </p>
-    <p>
-    A pattern matrix represents all acceptable values for the DE-9IM of a spatial relationship 
-    predicate on two geometries. The possible pattern values for any cell such that x is the 
-    intersection set are {T, F, *, 0, 1, 2} where
-    </p>
-    <ul>
-      <li>T &rArr; dim(x) &isin; {0, 1, 2}, i.e. x is not empty</li>
-      <li>F &rArr; dim(x) = -1, i.e. x is empty</li>
-      <li>* &rArr; dim(x) &isin; {-1, 0, 1, 2}, i.e. don't care</li>
-      <li>0 &rArr; dim(x) = 0</li>
-      <li>1 &rArr; dim(x) = 1</li>
-      <li>2 &rArr; dim(x) = 2</li>
-    </ul>
-    <p>
-    The pattern matrix can be represented as a string of nine characters listed row by row from left to right.  
-    For example, the pattern matrix given above for overlapping polygons can be represented by the string “212101212”. 
-    The string representing two geometries, not necessarily polygons, that overlap is “T*T***T**”. 
-    </p>
-    <p>The <code>OperatorRelate.execute</code> function has the following signature:</p>
-    <table style="background-color:rgb(216,216,216);width:100%;">
-    <tr>
-    <td style="font-size:16px;">
-    <code>boolean execute(Geometry g1, Geometry g2, SpatialReference sr, String relateString, ProgressTracker progressTracker)</code>
-    </td>
-    </tr>
-    </table>
-    <p>where <code>relateString</code> is a string representation of a pattern matrix.</p>
-    <p>If the spatial relationship between the two geometries corresponds to the values as represented in the string, then 
-    the Relate operator returns true. Otherwise, the Relate operator returns false.</p>
-    <p>In the following examples the blue geometry is Geometry A, and the red geometry is Geometry B.</p>
-    <h4 class="myLightBlue">Example 1: Does Geometry A contain Geometry B?</h4>
-    <p>Recall that Geometry A contains Geometry B if:</p>
-    <ul>
-      <li>Geometry B is a subset of Geometry A and</li>
-      <li>their interiors have at least one point in common</li>
-    </ul>
-    <p>
-    Clearly, for Geometry A to contain Geometry B the set, I(A) &#8898; I(B), representing the intersection of the 
-    interiors must not be empty. Also, if no part of B is outside of A, then the intersection of the exterior of A 
-    with the interior of B and the boundary of B should be empty. In other words, E(A) &#8898; I(B) must be empty, 
-    and E(A) &#8898; B(B) must be empty. There are no other requirements so the rest of the cells are filled with *. 
-    </p>
-    <table class="noBoundaryTable">
-      <tr>
-        <td><img src="Images/Relate/Relate3.jpg"></td>
-      </tr>
-    </table>
-    <p>The string that you pass to the Relate operator is “T*****FF*”.</p>
-    <h4 class="myLightBlue">Example 2: Does Geometry A <i>completely</i> contain Geometry B?</h4>
-		<p>The power of the GeometryEngine.Relate method is that you can create custom relationships. 
-		Suppose you want to know if A completely contains B.</p>
-		<table class="noBoundaryTable">
-		  <tr>
-			  <td><img src="Images/Relate/Relate4.jpg"></td>
-		  </tr>
-		</table>
-		<p>As before, B must be a subset of the interior of A so, I(A) &#8898; I(B)) must not be  empty, 
-		E(A) &#8898; I(B) must be  empty, and E(A) &#8898; B(B) must be empty (or T*****FF*).</p>
-		<p>
-		Now there is the extra requirement that Geometry A completely contains Geometry B. 
-		This means that the boundary of A must not intersect the interior or the boundary of B. 
-		In other words, the intersection of the boundary of A with the interior of B and the 
-		boundary of B must be empty or B(A) &#8898; I(B) must be empty and B(A) &#8898; B(B) must be empty. 
-		We add two more entries to the DE-9IM matrix giving:
-		</p>
-		<table class="noBoundaryTable">
-      <tr>
-        <td><img src="Images/Relate/Relate5.jpg"></td>
-      </tr>
-    </table>
-    <p>The string that you pass to the Relate operator is now “T**FF*FF*”.</p>
-		<h4 class="myLightBlue">Example 3: Does Geometry A touch Geometry B?</h4>
-		<p>
-		Recall that two geometries, A and B, touch if the intersection of their interiors is empty, 
-		but the intersection of A and B is not empty. The first requirement is that the intersection 
-		of their interiors, I(A) &#8898; I(B), is empty. Given the first requirement, what does it mean 
-		to say that the intersection of A and B is not empty? It means that one of the following must be true:
-		</p>
-		<ul>
-		<li>boundary of A intersect interior of B is not empty</li>
-		<li>interior of A intersect boundary of B is not empty</li>
-		<li>boundary of A intersect boundary of B is not empty</li>
-		</ul>
-		<p class="myLightBlue"><em>Case 1: Boundary of A intersect interior of B is not empty</em></p>
-		<p>The DE-9IM matrix for this case is</p>
-		<table class="noBoundaryTable">
-      <tr>
-        <td><img src="Images/Relate/Relate6.jpg"></td>
-      </tr>
-    </table>
-    <p>The string that you pass to the Relate operator is “F**T*****”.</p>
-    <p>
-    What geometry types does this case apply to? The boundary of A is not empty, so we know that A is not a point 
-    or a multipoint. Therefore, A is a polygon or a polyline. B cannot be a polygon because then the interiors 
-    would intersect. If A is a polygon, then B must be a point or multipoint. If A is a polyline, then B must 
-    be a point, multipoint, or polyline. 
-    </p>
-    <table class="noBoundaryTable">
-      <tr>
-        <td><img src="Images/Relate/Relate7.jpg"></td>
-      </tr>
-    </table>
-    <table class="noBoundaryTable">
-      <tr>
-        <td><img src="Images/Relate/Relate8.jpg"></td>
-      </tr>
-    </table>
-    <p class="myLightBlue"><em>Case 2: Interior of A intersect boundary of B is not empty</em></p>
-    <p>The DE-9IM matrix for this case is</p>
-    <table class="noBoundaryTable">
-      <tr>
-        <td><img src="Images/Relate/Relate9.jpg"></td>
-      </tr>
-    </table>
-    <p>The string that you pass to the GeometryEngine.Relate method is “FT*******”.</p>
-    <p>Case 2 is the inverse of Case 1. B is a polygon or polyline. If B is a polygon, then A is a point or 
-    multipoint. If B is a polyline, then A is a point, multipoint, or a polyline.</p>
-    <p class="myLightBlue"><em>Case 3: Boundary of A intersect boundary of B is not empty</em></p>
-    <p>The DE-9IM matrix for this case is</p>
-    <table class="noBoundaryTable">
-      <tr>
-        <td><img src="Images/Relate/Relate10.jpg"></td>
-      </tr>
-    </table>
-    <p>The string that you pass to the Relate operator is “F***T****”.</p>
-    <p>What geometry types does this case apply to? Neither A nor B has an empty boundary, 
-    so both A and B must be a polygon or a polyline.</p>
-     <table class="noBoundaryTable">
-      <tr>
-        <td><img src="Images/Relate/Relate11.jpg"></td>
-      </tr>
-    </table>
-    <p>
-    The relate string for “Touches” is “F**T*****” or “FT*******” or “F***T****”. Which string you use 
-    depends on the geometry types. For example, to find out if Point A touches Polygon B, you pass the 
-    string “FT*******” to the Relate operator. 
-    </p>
-    <h4 class="myLightBlue">Example 4: Polygon A touches Polygon B at points only</h4>
-    <p>
-    From Example 3, you know that the relate string for Polygon A touches Polygon B is “F***T****”. 
-    Now you are specifying that not only do their boundaries intersect, they intersect at points only. 
-    In other words, the dim(B(A) &#8898; B(B)) = 1.
-    </p> 
-    <table class="noBoundaryTable">
-      <tr>
-        <td><img src="Images/Relate/Relate12.jpg"></td>
-      </tr>
-    </table>
-    <p>The DE-9IM matrix for this case is</p>
-    <table class="noBoundaryTable">
-      <tr>
-        <td><img src="Images/Relate/Relate13.jpg"></td>
-      </tr>
-    </table>
-    <p>The string that you pass to the Relate operator is “F***1****”.</p>
-		<h4 class="myLightBlue">Example 5: Polyline A is disjoint from Multipoint B</h4>
-		<p>In this example, you want to know if Geometry A and Geometry B are disjoint but only if A is a 
-		polyline and B is a multipoint.</p>
-		<table class="noBoundaryTable">
-      <tr>
-        <td><img src="Images/Relate/Relate14.jpg"></td>
-      </tr>
-    </table>
-    <p>Clearly, the interiors and boundaries must not intersect. This is the matrix so far. </p>
-    <table class="noBoundaryTable">
-      <tr>
-        <td><img src="Images/Relate/Relate15.jpg"></td>
-      </tr>
-    </table>
-    <p>Notice that the intersection of the interior of A and the exterior of B is equal to A. 
-    In other words, I(A) &#8898; E(B) = A and dim(A) = 1. You can fill in another cell of the matrix.</p>
-    <table class="noBoundaryTable">
-      <tr>
-        <td><img src="Images/Relate/Relate16.jpg"></td>
-      </tr>
-    </table>
-    <p>The intersection of the boundary of A and the exterior of B is equal to the boundary of A or B(A) &#8898; E(B) = B(A). 
-    The boundary of A is the set of endpoints of the polyline so dim(B(A)) = 0. Another cell gets filled in.</p>
-    <table class="noBoundaryTable">
-      <tr>
-        <td><img src="Images/Relate/Relate17.jpg"></td>
-      </tr>
-    </table>
-		<p>Looking at the last row in the matrix, you see that E(A) &#8898; I(B) = B, E(A) &#8898; B(B) is the empty set, and E(A) &#8898; E(B) is everything except A and B.</p>
-		<p>The completed DE-9IM matrix is</p>
-		<table class="noBoundaryTable">
-      <tr>
-        <td><img src="Images/Relate/Relate18.jpg"></td>
-      </tr>
-    </table>
+			<ul id="menu">
+	      <li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorRelate.html">API Reference</a></li>
+	      <li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
+	    </ul>
+				<h1 id="topic">Relate</h1>
+				<p>The Relate operator allows you to create custom relational operations using a Dimensionally Extended Nine-Intersection Model, DE-9IM, formatted string.</p>
+				<p>
+				All of the predefined relational operations can be defined (Contains, Crosses, Disjoint, Equals, Intersects, Overlaps, Touches, and Within)
+				using <code>OperatorRelate</code>, but it offers much more. A review of the predefined relational operations can be found at
+				<a href="RelationalOperators.html">Performing relational operations</a>.
+				</p>
+				<p>
+				An explanation of DE-9IM and examples are given below. More information about DE-9IM can be found at
+				<a href="https://en.wikipedia.org/wiki/DE-9IM">https://en.wikipedia.org/wiki/DE-9IM</a>
+				or by downloading the OGC specification “OpenGIS Simple Features Specification For SQL Revision 1.1” from
+				<a href=http://www.opengis.org>http://www.opengis.org</a>.
+				</p>
+				<p>
+				For any geometry A, let I(A) be the interior of A, B(A) be the boundary of A, and E(A) be the exterior of A. For any set, x, of geometries, let dim(x) be the maximum
+				dimension (-1, 0, 1, or 2) of the geometries in x where -1 is the dimension of the empty set. A DE-9IM has the following form:
+				</p>
+				<table class="noBoundaryTable">
+				  <tr>
+				    <td><img src="Images/Relate/Relate0.jpg" class="fullImg"></td>
+				  </tr>
+				</table>
+				<p>For example, consider two overlapping polygons and the associated DE-9IM.</p>
+				<table style="border:none;">
+				<tr>
+				<td style="border:none;"><img src="Images/Relate/Relate1.jpg" class="fullImg"></td>
+				</tr>
+				</table>
+				<table class="noBoundaryTable">
+		      <tr>
+		        <td><img src="Images/Relate/Relate2.jpg" class="fullImg"></td>
+		      </tr>
+		    </table>
+		    <p>
+		    The intersection of the interiors, I(A) &#8898; I(B), is a polygon which has dimension 2.
+		    The intersection of the interior of A and the boundary of B, I(A) &#8898; B(B), is a line
+		    which has dimension 1 and so forth.
+		    </p>
+		    <p>
+		    A pattern matrix represents all acceptable values for the DE-9IM of a spatial relationship
+		    predicate on two geometries. The possible pattern values for any cell such that x is the
+		    intersection set are {T, F, *, 0, 1, 2} where
+		    </p>
+		    <ul>
+		      <li>T &rArr; dim(x) &isin; {0, 1, 2}, i.e. x is not empty</li>
+		      <li>F &rArr; dim(x) = -1, i.e. x is empty</li>
+		      <li>* &rArr; dim(x) &isin; {-1, 0, 1, 2}, i.e. don't care</li>
+		      <li>0 &rArr; dim(x) = 0</li>
+		      <li>1 &rArr; dim(x) = 1</li>
+		      <li>2 &rArr; dim(x) = 2</li>
+	    </ul>
+	    <p>
+	    The pattern matrix can be represented as a string of nine characters listed row by row from left to right.
+	    For example, the pattern matrix given above for overlapping polygons can be represented by the string “212101212”.
+	    The string representing two geometries, not necessarily polygons, that overlap is “T*T***T**”.
+	    </p>
+	    <p>The <code>OperatorRelate.execute</code> function has the following signature:</p>
+	    <table style="background-color:rgb(216,216,216);width:100%;">
+	    <tr>
+	    <td style="font-size:16px;">
+	    <code>boolean execute(Geometry g1, Geometry g2, SpatialReference sr, String relateString, ProgressTracker progressTracker)</code>
+	    </td>
+	    </tr>
+	    </table>
+	    <p>where <code>relateString</code> is a string representation of a pattern matrix.</p>
+	    <p>If the spatial relationship between the two geometries corresponds to the values as represented in the string, then
+	    the Relate operator returns true. Otherwise, the Relate operator returns false.</p>
+	    <p>In the following examples the blue geometry is Geometry A, and the red geometry is Geometry B.</p>
+	    <h4 class="myLightBlue">Example 1: Does Geometry A contain Geometry B?</h4>
+	    <p>Recall that Geometry A contains Geometry B if:</p>
+	    <ul>
+	      <li>Geometry B is a subset of Geometry A and</li>
+	      <li>their interiors have at least one point in common</li>
+	    </ul>
+	    <p>
+	    Clearly, for Geometry A to contain Geometry B the set, I(A) &#8898; I(B), representing the intersection of the
+	    interiors must not be empty. Also, if no part of B is outside of A, then the intersection of the exterior of A
+	    with the interior of B and the boundary of B should be empty. In other words, E(A) &#8898; I(B) must be empty,
+	    and E(A) &#8898; B(B) must be empty. There are no other requirements so the rest of the cells are filled with *.
+	    </p>
+	    <table class="noBoundaryTable">
+	      <tr>
+	        <td><img src="Images/Relate/Relate3.jpg" class="fullImg"></td>
+	      </tr>
+	    </table>
+	    <p>The string that you pass to the Relate operator is “T*****FF*”.</p>
+	    <h4 class="myLightBlue">Example 2: Does Geometry A <i>completely</i> contain Geometry B?</h4>
+			<p>The power of the GeometryEngine.Relate method is that you can create custom relationships.
+			Suppose you want to know if A completely contains B.</p>
+			<table class="noBoundaryTable">
+			  <tr>
+				  <td><img src="Images/Relate/Relate4.jpg" class="fullImg"></td>
+			  </tr>
+			</table>
+			<p>As before, B must be a subset of the interior of A so, I(A) &#8898; I(B)) must not be  empty,
+			E(A) &#8898; I(B) must be  empty, and E(A) &#8898; B(B) must be empty (or T*****FF*).</p>
+			<p>
+			Now there is the extra requirement that Geometry A completely contains Geometry B.
+			This means that the boundary of A must not intersect the interior or the boundary of B.
+			In other words, the intersection of the boundary of A with the interior of B and the
+			boundary of B must be empty or B(A) &#8898; I(B) must be empty and B(A) &#8898; B(B) must be empty.
+			We add two more entries to the DE-9IM matrix giving:
+			</p>
+			<table class="noBoundaryTable">
+	      <tr>
+	        <td><img src="Images/Relate/Relate5.jpg" class="fullImg"></td>
+	      </tr>
+	    </table>
+	    <p>The string that you pass to the Relate operator is now “T**FF*FF*”.</p>
+			<h4 class="myLightBlue">Example 3: Does Geometry A touch Geometry B?</h4>
+			<p>
+			Recall that two geometries, A and B, touch if the intersection of their interiors is empty,
+			but the intersection of A and B is not empty. The first requirement is that the intersection
+			of their interiors, I(A) &#8898; I(B), is empty. Given the first requirement, what does it mean
+			to say that the intersection of A and B is not empty? It means that one of the following must be true:
+			</p>
+			<ul>
+			<li>boundary of A intersect interior of B is not empty</li>
+			<li>interior of A intersect boundary of B is not empty</li>
+			<li>boundary of A intersect boundary of B is not empty</li>
+			</ul>
+			<p class="myLightBlue"><em>Case 1: Boundary of A intersect interior of B is not empty</em></p>
+			<p>The DE-9IM matrix for this case is</p>
+			<table class="noBoundaryTable">
+	      <tr>
+	        <td><img src="Images/Relate/Relate6.jpg" class="fullImg"></td>
+	      </tr>
+	    </table>
+	    <p>The string that you pass to the Relate operator is “F**T*****”.</p>
+	    <p>
+	    What geometry types does this case apply to? The boundary of A is not empty, so we know that A is not a point
+	    or a multipoint. Therefore, A is a polygon or a polyline. B cannot be a polygon because then the interiors
+	    would intersect. If A is a polygon, then B must be a point or multipoint. If A is a polyline, then B must
+	    be a point, multipoint, or polyline.
+	    </p>
+	    <table class="noBoundaryTable">
+	      <tr>
+	        <td><img src="Images/Relate/Relate7.jpg" class="fullImg"></td>
+	      </tr>
+	    </table>
+	    <table class="noBoundaryTable">
+	      <tr>
+	        <td><img src="Images/Relate/Relate8.jpg" class="fullImg"></td>
+	      </tr>
+	    </table>
+	    <p class="myLightBlue"><em>Case 2: Interior of A intersect boundary of B is not empty</em></p>
+	    <p>The DE-9IM matrix for this case is</p>
+	    <table class="noBoundaryTable">
+	      <tr>
+	        <td><img src="Images/Relate/Relate9.jpg" class="fullImg"></td>
+	      </tr>
+	    </table>
+	    <p>The string that you pass to the GeometryEngine.Relate method is “FT*******”.</p>
+	    <p>Case 2 is the inverse of Case 1. B is a polygon or polyline. If B is a polygon, then A is a point or
+	    multipoint. If B is a polyline, then A is a point, multipoint, or a polyline.</p>
+	    <p class="myLightBlue"><em>Case 3: Boundary of A intersect boundary of B is not empty</em></p>
+	    <p>The DE-9IM matrix for this case is</p>
+	    <table class="noBoundaryTable">
+	      <tr>
+	        <td><img src="Images/Relate/Relate10.jpg" class="fullImg"></td>
+	      </tr>
+	    </table>
+	    <p>The string that you pass to the Relate operator is “F***T****”.</p>
+	    <p>What geometry types does this case apply to? Neither A nor B has an empty boundary,
+	    so both A and B must be a polygon or a polyline.</p>
+	     <table class="noBoundaryTable">
+	      <tr>
+	        <td><img src="Images/Relate/Relate11.jpg" class="fullImg"></td>
+	      </tr>
+	    </table>
+	    <p>
+	    The relate string for “Touches” is “F**T*****” or “FT*******” or “F***T****”. Which string you use
+	    depends on the geometry types. For example, to find out if Point A touches Polygon B, you pass the
+	    string “FT*******” to the Relate operator.
+	    </p>
+	    <h4 class="myLightBlue">Example 4: Polygon A touches Polygon B at points only</h4>
+	    <p>
+	    From Example 3, you know that the relate string for Polygon A touches Polygon B is “F***T****”.
+	    Now you are specifying that not only do their boundaries intersect, they intersect at points only.
+	    In other words, the dim(B(A) &#8898; B(B)) = 1.
+	    </p>
+	    <table class="noBoundaryTable">
+	      <tr>
+	        <td><img src="Images/Relate/Relate12.jpg" class="fullImg"></td>
+	      </tr>
+	    </table>
+	    <p>The DE-9IM matrix for this case is</p>
+	    <table class="noBoundaryTable">
+	      <tr>
+	        <td><img src="Images/Relate/Relate13.jpg" class="fullImg"></td>
+	      </tr>
+	    </table>
+	    <p>The string that you pass to the Relate operator is “F***1****”.</p>
+			<h4 class="myLightBlue">Example 5: Polyline A is disjoint from Multipoint B</h4>
+			<p>In this example, you want to know if Geometry A and Geometry B are disjoint but only if A is a
+			polyline and B is a multipoint.</p>
+			<table class="noBoundaryTable">
+	      <tr>
+	        <td><img src="Images/Relate/Relate14.jpg" class="fullImg"></td>
+	      </tr>
+	    </table>
+	    <p>Clearly, the interiors and boundaries must not intersect. This is the matrix so far. </p>
+	    <table class="noBoundaryTable">
+	      <tr>
+	        <td><img src="Images/Relate/Relate15.jpg" class="fullImg"></td>
+	      </tr>
+	    </table>
+	    <p>Notice that the intersection of the interior of A and the exterior of B is equal to A.
+	    In other words, I(A) &#8898; E(B) = A and dim(A) = 1. You can fill in another cell of the matrix.</p>
+	    <table class="noBoundaryTable">
+	      <tr>
+	        <td><img src="Images/Relate/Relate16.jpg" class="fullImg"></td>
+	      </tr>
+	    </table>
+	    <p>The intersection of the boundary of A and the exterior of B is equal to the boundary of A or B(A) &#8898; E(B) = B(A).
+	    The boundary of A is the set of endpoints of the polyline so dim(B(A)) = 0. Another cell gets filled in.</p>
+	    <table class="noBoundaryTable">
+	      <tr>
+	        <td><img src="Images/Relate/Relate17.jpg" class="fullImg"></td>
+	      </tr>
+	    </table>
+			<p>Looking at the last row in the matrix, you see that E(A) &#8898; I(B) = B, E(A) &#8898; B(B) is the empty set, and E(A) &#8898; E(B) is everything except A and B.</p>
+			<p>The completed DE-9IM matrix is</p>
+			<table class="noBoundaryTable">
+	      <tr>
+	        <td><img src="Images/Relate/Relate18.jpg" class="fullImg"></td>
+	      </tr>
+	    </table>
 		</div>
 	</body>
 </html>
-

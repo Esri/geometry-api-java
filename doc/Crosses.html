@@ -6,36 +6,37 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>Crosses</title>
     <meta name="author" content="Anne2440" />
+		<meta name="author" content="Aish8740" />
     <link rel="stylesheet" href="GeometryDocStyle.css">
   </head>
 	<body>
-		<h1 id="topic">Crosses</h1>
-    <ul id="menu">
-    <li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorCrosses.html">API Reference</a></li>
-      <li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
-    </ul>
 		<div id="content">
-		<p>Two polylines cross if they meet at points only, and at least one of the shared points is internal to both polylines. 
-		A polyline and polygon cross if a connected part of the polyline is partly inside and partly outside the polygon.</p>
+			<ul id="menu">
+	    <li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorCrosses.html">API Reference</a></li>
+	      <li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
+	    </ul>
+			<h1 id="topic">Crosses</h1>
+			<p>Two polylines cross if they meet at (a) point/s only, and at least one of the shared points is internal to both polylines.
+				A polyline and polygon cross if a connected part of the polyline is partly inside and partly outside the polygon.</p>
       <table class="noBoundaryTable">
       <tr>
-        <td><img src="Images/Crosses/Crosses1.jpg"></td>
+        <td><img src="Images/Crosses/Crosses1.jpg" class="fullImg"></td>
       </tr>
       </table>
+
       <table class="noBoundaryTable">
       <tr>
-        <td><img src="Images/Crosses/Crosses2.jpg"></td>
+        <td><img src="Images/Crosses/Crosses2.jpg" class="fullImg"></td>
       </tr>
       </table>
-      <h4 class="myLightBlue">Example 1: Does Geometry A cross Geometry B?</h4>
+			<h4 class="myLightBlue">Example 1: Does Geometry A cross Geometry B?</h4>
       <div class="codeSample">
-<pre class="import">static boolean geometryCrosses(Geometry geometryA, Geometry geometryB, SpatialReference sr) 
+<pre class="import">static boolean geometryCrosses(Geometry geometryA, Geometry geometryB, SpatialReference sr)
 {
-  boolean crosses = OperatorCrosses.local().execute(geometryA, geometryB, sr, null);
-    
-  return crosses;
+	boolean crosses = OperatorCrosses.local().execute(geometryA, geometryB, sr, null);
+	return crosses;
 }
-</pre>
+		</pre>
     </div>
   </body>
 </html>

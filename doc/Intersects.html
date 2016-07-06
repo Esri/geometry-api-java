@@ -9,24 +9,24 @@
     <link rel="stylesheet" href="GeometryDocStyle.css">
   </head>
 	<body>
-		<h1 id="topic">Intersects</h1>
-    <ul id="menu">
-    <li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorIntersects.html">API Reference</a></li>
-      <li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
-    </ul>
 		<div id="content">
-		<p>Two geometries intersect if they share at least one point in common. Intersects is the inverse of Disjoint.</p>
+			<ul id="menu">
+	    <li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorIntersects.html">API Reference</a></li>
+	      <li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
+	    </ul>
+			<h1 id="topic">Intersects</h1>
+			<p>Two geometries intersect if they share at least one point in common. Intersects is the inverse of Disjoint.</p>
       <table class="noBoundaryTable">
       <tr>
-        <td><img src="Images/Intersects/Intersects1.jpg"></td>
+        <td><img src="Images/Intersects/Intersects1.jpg" class="fullImg"></td>
       </tr>
       </table>
       <h4 class="myLightBlue">Example 1: Does Geometry A intersect Geometry B?</h4>
       <div class="codeSample">
-<pre class="import">static boolean geometryIntersects(Geometry geometryA, Geometry geometryB, SpatialReference sr) 
+<pre class="import">static boolean geometryIntersects(Geometry geometryA, Geometry geometryB, SpatialReference sr)
 {
   boolean intersects = OperatorIntersects.local().execute(geometryA, geometryB, sr, null);
-    
+
   return intersects;
 }
 </pre>
