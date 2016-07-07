@@ -9,12 +9,14 @@
     <link rel="stylesheet" href="GeometryDocStyle.css">
   </head>
 	<body>
-		<div id="content">
+		<div id="header">
+			<h1 id="topic">Contains</h1>
 			<ul id="menu">
 	    <li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorContains.html">API Reference</a></li>
 	      <li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
 	    </ul>
-			<h1 id="topic">Contains</h1>
+		</div>
+		<div id="content">
 			<p>One geometry contains another if the other geometry is a subset of it and their interiors have at least one point in common. Contains is the inverse of Within.</p>
       <p>In the following pictures Geometry A is blue, and Geometry B is red.</p>
       <table class="noBoundaryTable">
@@ -42,7 +44,6 @@
 <pre class="import">static boolean geometryContains(Geometry geometryA, Geometry geometryB, SpatialReference sr)
 {
   boolean contains = OperatorContains.local().execute(geometryA, geometryB, sr, null);
-
   return contains;
 }
 </pre>

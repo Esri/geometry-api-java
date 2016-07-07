@@ -23,7 +23,7 @@ td
 
 img
 {
-  padding:10px;  height: 78%; width: 90%;
+  padding:10px;  height: 84%; width: auto;
 }
 .fullImg{
   width: auto;
@@ -170,11 +170,17 @@ span.lastImg
 #topic
 {
   position: relative;
+  float: left;
   margin: 0;
   border: 0;
   padding: 0;
 }
-
+#header{
+  margin: 50px;
+}
+/*#reference {
+  position: absolute;
+}*/
 #menu
 {
   position: relative;
@@ -188,7 +194,7 @@ span.lastImg
 #content
 {
   clear:both;
-  margin: 70px auto;
+  margin: 70px;
   position: relative;
   max-width: 1400px;
   padding-left: 24px;
