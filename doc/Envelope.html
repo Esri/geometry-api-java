@@ -70,7 +70,7 @@ public void createEnvelope(){
 </pre>
 		</div>
 		<h3>Getting an envelope for a given geometry</h3>
-		<p>We can query the envelope that are bound by a given geometry using the <code> queryEnvelope(Envelope e)</code> method of the geometry's class.</p>
+		<p>We can query the envelope that is bound by a given geometry using the <code> queryEnvelope(Envelope e)</code> method of the geometry's class.</p>
 		<img src="Images/Envelope/Envelope4.jpg" style="float:left">
 		<div class="codeSample" style="float: right">
 			<pre>
@@ -82,7 +82,7 @@ public void createEnvelope(){
 				poly.lineTo(-117.193298, 34.055725);
 				Envelope env = new Envelope();
 				poly.queryEnvelope(env);
-				<span class="codeComment">/* Now env contain the surrounding envelope for the specified polygon.
+				<span class="codeComment">/* Now env contains the surrounding envelope for the specified polygon.
 				*/</span>
 			}</pre>
 		</div>
