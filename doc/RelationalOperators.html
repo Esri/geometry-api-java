@@ -12,16 +12,16 @@
 		<div id="header">
 			<h1 id="topic">Performing Relational Operations</h1>
 			<ul id="menu">
-				<li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
+				<li><a href="https://github.com/Esri/geometry-api-java/wiki/" target="_blank">Wiki Home</a></li>
 			</ul>
 
 		</div>
 		<div id="content">
 
-			<p>The predefined relational operations in the Geometry API are <a href="Contains.html">Contains</a>, <a href="Crosses.html">Crosses</a>,
-			<a href="Disjoint.html">Disjoint</a>, <a href="Equals.html">Equals</a>, <a href="Intersects.html">Intersects</a>,
-			<a href="Overlaps.html">Overlaps</a>, <a href="Touches.html">Touches</a>, and <a href="Within.html">Within</a>.
-			There is also a <a href="Relate.html">Relate</a> operator which allows you to create custom relational operations.
+			<p>The predefined relational operations in the Geometry API are <a href="Contains.html" target="_blank">Contains</a>, <a href="Crosses.html" target="_blank">Crosses</a>,
+			<a href="Disjoint.html" target="_blank">Disjoint</a>, <a href="Equals.html" target="_blank">Equals</a>, <a href="Intersects.html" target="_blank">Intersects</a>,
+			<a href="Overlaps.html" target="_blank">Overlaps</a>, <a href="Touches.html" target="_blank">Touches</a>, and <a href="Within.html" target="_blank">Within</a>.
+			There is also a <a href="Relate.html" target="_blank">Relate</a> operator which allows you to create custom relational operations.
 			</p>
 			<p>To see how the relational operations work, first review the definitions of dimensionality, interiors,
 			boundaries, and exteriors for the basic geometry types.
@@ -40,8 +40,6 @@
 			  empty set, and the exterior is all other points.</li><br>
 			  <li>MultiPoint - A multipoint is an ordered collection of points. The interior of a multipoint is the set of points in the collection,
 			  the boundary is the empty set, and the exterior is the set of points that are not in the collection. </li><br>
-	      <li>Point - A point represents a single location in space. The interior of a point is the point itself, the boundary is the
-	      empty set, and the exterior is all other points.</li><br>
 	      <li>Polyline - A polyline is an ordered collection of paths where each path is a collection of contiguous segments. A segment has a start and an end point.<br>
 	      The boundary of a polyline is the set of start and end points of each path, the interior is the set of points in the polyline that are not in the boundary,
 	      and the exterior is the set of points that are not in the boundary or the interior.<br>
@@ -72,18 +70,18 @@
 		<h3 class="myLightBlue">Relational operators in the Geometry API</h3>
 		<p>The predefined relational operators in Geometry are</p>
 		<ul>
-		  <li><a href="Contains.html">Contains</a> - One geometry contains another if the other geometry is a subset of it and their interiors have at least
+		  <li><a href="Contains.html" target="_blank">Contains</a> - One geometry contains another if the other geometry is a subset of it and their interiors have at least
 		  one point in common. Contains is the inverse of Within.</li><br>
-		  <li><a href="Crosses.html">Crosses</a> - Two polylines cross if they meet at points only, and at least one of the shared points is internal to both
+		  <li><a href="Crosses.html" target="_blank">Crosses</a> - Two polylines cross if they meet at points only, and at least one of the shared points is internal to both
 		  polylines. A polyline and polygon cross if a connected part of the polyline is partly inside and partly outside the polygon.</li><br>
-		  <li><a href="Disjoint.html">Disjoint</a> - Two geometries are disjoint if they don’t have any points in common.</li><br>
-		  <li><a href="Equals.html">Equals</a> - Two geometries are equal if they occupy the same space.</li><br>
-		  <li><a href="Intersects.html">Intersects</a> - Two geometries intersect if they share at least one point in common.</li><br>
-		  <li><a href="Overlaps.html">Overlaps</a> - Two geometries overlap if they have the same dimension, and their intersection also has the same dimension but is different from both of them.</li><br>
-		  <li><a href="Touches.html">Touches</a> - Two geometries touch if the intersection of their interiors is empty, but the intersection of the two geometries is not empty.</li><br>
-		  <li><a href="Within.html">Within</a> - One geometry is within another if it is a subset of the other geometry and their interiors have at least one point in common. Within is the inverse of Contains.</li>
+		  <li><a href="Disjoint.html" target="_blank">Disjoint</a> - Two geometries are disjoint if they don’t have any points in common.</li><br>
+		  <li><a href="Equals.html" target="_blank">Equals</a> - Two geometries are equal if they occupy the same space.</li><br>
+		  <li><a href="Intersects.html" target="_blank">Intersects</a> - Two geometries intersect if they share at least one point in common.</li><br>
+		  <li><a href="Overlaps.html" target="_blank">Overlaps</a> - Two geometries overlap if they have the same dimension, and their intersection also has the same dimension but is different from both of them.</li><br>
+		  <li><a href="Touches.html" target="_blank">Touches</a> - Two geometries touch if the intersection of their interiors is empty, but the intersection of the two geometries is not empty.</li><br>
+		  <li><a href="Within.html" target="_blank">Within</a> - One geometry is within another if it is a subset of the other geometry and their interiors have at least one point in common. Within is the inverse of Contains.</li>
 		</ul>
-		<p>You can create custom relations with the <a href="Relate.html">Relate</a> operator.</p>
+		<p>You can create custom relations with the <a href="Relate.html" target="_blank">Relate</a> operator.</p>
 		</div>
   </body>
 </html>

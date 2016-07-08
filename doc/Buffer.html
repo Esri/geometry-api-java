@@ -12,8 +12,8 @@
 		<div id="header">
 			<h1 id="topic">Buffer</h1>
 			<ul id="menu">
-				<li id="reference"><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorBuffer.html">API Reference</a></li>
-				<li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
+				<li id="reference"><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorBuffer.html" target="_blank">API Reference</a></li>
+				<li><a href="https://github.com/Esri/geometry-api-java/wiki/" target="_blank">Wiki Home</a></li>
 			</ul>
 		</div>
 		<div id="content">
@@ -186,7 +186,7 @@ public class BufferApp_1 {
 				</tr>
 				<tr>
 					<td>Input Geometry</td>
-					<td>Buffer Polygon (distance = 0.5)</td>
+					<td>Buffer Polygon <br>(distance = 0.5)</td>
 					<td>Both</td>
 				</tr>
 				<tr>
@@ -196,7 +196,7 @@ public class BufferApp_1 {
 				</tr>
 				<tr>
 					<td>Input Geometry</td>
-					<td>Buffer Polygon (distance = 0.1)</td>
+					<td>Buffer Polygon <br>(distance = 0.1)</td>
 					<td>Both</td>
 				</tr>
 				<tr>
@@ -206,7 +206,7 @@ public class BufferApp_1 {
 				</tr>
 				<tr>
 					<td>Input Geometry</td>
-					<td>Buffer Polygon (distance = -0.09)</td>
+					<td>Buffer Polygon <br>(distance = -0.09)</td>
 					<td>Both</td>
 				</tr>
 			</table>
@@ -235,19 +235,12 @@ public class BufferApp_1 {
 				cursor contains each of the buffer polygons as an individual geometry.
 			</p>
 			<h3>Example</h3>
-
-			<div class="image400">
-				<p>Consider the polylines shown below representing a portion of downtown Denver streets.</p>
-				<img src="Images/Buffer/Buffer12.jpg">
-			</div>
-
-			<div class="image400" id="middle">
-				<p>We would like a buffer of 120 meters around the closed polyline</p>
-				<img src="Images/Buffer/Buffer12_1.jpg"></div>
-
-			<div class="image400">
-				<p>and a buffer of 50 meters around the remaining polylines.</p>
-				<img src="Images/Buffer/Buffer12_2.jpg"></div>
+			<p>Consider the polylines shown below representing a portion of downtown Denver streets.</p>
+			<div class="image400"><img src="Images/Buffer/Buffer12.jpg"></div>
+			<p>We would like a buffer of 120 meters around the closed polyline</p>
+			<div class="image400" id="middle"><img src="Images/Buffer/Buffer12_1.jpg"></div>
+			<p>and a buffer of 50 meters around the remaining polylines.</p>
+			<div class="image400"><img src="Images/Buffer/Buffer12_2.jpg"></div>
 			<br />
 			<p>We can accomplish our task with the program given below. It creates the five polylines and a geometry cursor that is used as input to the Buffer
 				operator. The first polyline is buffered by a distance of 120 meters and the remaining polylines by 50 meters.

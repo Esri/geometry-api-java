@@ -13,8 +13,8 @@
 		<div id="header">
 			<h1 id="topic">Crosses</h1>
 			<ul id="menu">
-			<li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorCrosses.html">API Reference</a></li>
-				<li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
+			<li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorCrosses.html" target="_blank">API Reference</a></li>
+				<li><a href="https://github.com/Esri/geometry-api-java/wiki/" target="_blank">Wiki Home</a></li>
 			</ul>
 		</div>
 		<div id="content">
@@ -33,12 +33,14 @@
       </table>
 			<h4 class="myLightBlue">Example 1: Does Geometry A cross Geometry B?</h4>
       <div class="codeSample">
-<pre class="import">static boolean geometryCrosses(Geometry geometryA, Geometry geometryB, SpatialReference sr)
-{
-	boolean crosses = OperatorCrosses.local().execute(geometryA, geometryB, sr, null);
-	return crosses;
-}
-		</pre>
+			<pre class="import">
+	static boolean geometryCrosses(Geometry geometryA, Geometry geometryB, SpatialReference sr)
+	{
+		boolean crosses = OperatorCrosses.local().execute(geometryA, geometryB, sr, null);
+		return crosses;
+	}
+
+			</pre>
     </div>
   </body>
 </html>
