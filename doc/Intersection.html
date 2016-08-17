@@ -25,16 +25,17 @@
 			</p>
 			<h3>Dimension of output geometries</h3>
 			<p>The desired dimension of the output geometries can be specified through the <code>mask</code>
-				parameter. The dimension mask only pertains to output. Basically, it is 1 for points/multipoints,
-				2 for polylines, 4 for polygons. If we want a combination, add the mask values. For example, if we want to
-				get out points and polylines, the mask is 3.  If we want points, polylines and polygons, the mask is 7.
+				parameter. The dimension mask only pertains to output. Basically, it is 1 (001 in binary) for points/multipoints,
+				2 (010 in binary) for polylines, 4 (100 in binary) for polygons. If we want a combination, add the mask values. For example, if we want to
+				get out points and polylines, the mask is 3 (011 in binary where 001 is for points and 010 is for polylines).  If we want points, polylines and polygons, the mask is 7
+				(111 in binary where 001 is for points, 010 is for polylines and 100 is for polygons).
 			</p>
 			<p>We will get an empty geometry if the intersection for a particular dimension is empty. For example, if the
-				mask is 7 but there are no polygon intersections, we will get the point intersections, the polyline
+				mask is 7 (111 in binary) but there are no polygon intersections, we will get the point intersections, the polyline
 				intersections and an empty polygon.
 			</p>
 			<p>For the best performance, use the appropriate mask. If we really only want polylines, set the dimension
-				mask equal to 2, not 7.  Setting the dimension mask equal to -1 implies that the returned geometry will
+				mask equal to 2 (010 in binary), not 7 (111 in binary).  Setting the dimension mask equal to -1 implies that the returned geometry will
 				be the lowest dimension of the intersecting pair. For example, if the intersector is a polygon and the
 				input geometry is a polygon, the returned geometry will be a polygon. If another input geometry is a polyline,
 				the returned geometry will be a polyline. If other dimensions are not important, a dimension mask with

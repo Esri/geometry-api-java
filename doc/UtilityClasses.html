@@ -1,0 +1,151 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title>Utility Classes</title>
+		<meta name="author" content="Aish8740" />
+		<link rel="stylesheet" href="GeometryDocStyle.css">
+		<!-- Date: 2016-08-12 -->
+	</head>
+	<body>
+		<div id="header">
+      <ul id="menu">
+        <li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/SegmentIterator.html" target="_blank">API Reference</a></li>
+        <li><a href="https://github.com/Esri/geometry-api-java/wiki/" target="_blank">Wiki Home</a></li>
+      </ul>
+			<h1 id="topic">Utility Classes</h1><br>
+      <h3 style="font-style: italic;">Segment Iterator</h3>
+		</div>
+		<div id="content">
+      <p>
+        Segment Iterator class provides you with the functionality to iterate over the segments in a MultiPath. A MultiPath is the base class for polygons and polylines
+        (Paths that are made of line segments).
+      </p>
+      <p>
+        In order to use the <code>SegmentIterator</code> over a MultiPath say a Polygon, you need to iterate over each Path first followed by iterating over each Segment.
+      </p>
+			<p><strong>Note:</strong> This class shouldn't be used to modify any attributes of the Segments in a Polygon/Polyline since it creates a copy of the given Polygon/Polyline.
+			SegmentIterator can be used to do certain calculations or to traverse over the entire polygon. In order to make any changes to the Segments, you would need to create a
+			separate copy of the segment using the <code>segment.copy() </code>method.</p>
+      <div class="codeSample">
+<pre>
+package geometryapp;
+
+import com.esri.core.geometry.Polygon;
+import com.esri.core.geometry.SegmentIterator;
+<span class="codeComment">
+  /*
+  * This program is created to learn and leverage from
+  * the basic functionality of the SegmentIterator class.
+  * For this program we create a polygon and using the SegmentIterator,
+  * we modify some features of the Polygon and it's segments.
+  */
+</span>
+  public class UtilityApp{
+<span class="codeComment">
+  /*
+  * Polygon consisting of two paths, with 4 and 5 segments respectively
+  */
+</span>
+  Polygon poly = new Polygon();
+  poly.startPath(10, 1);
+  poly.lineTo(15, 20);
+  poly.lineTo(30, 14);
+  poly.lineTo(60, 144);
+
+  poly.startPath(20, 13);
+  poly.lineTo(150, 120);
+  poly.lineTo(300, 414);
+  poly.lineTo(610, 14);
+  poly.lineTo(6210, 140);
+<span class="codeComment">
+  /*
+  * For traversing each Segment for the Polygon, we use the SegmentIterator Class
+  */
+</span>
+ SegmentIterator iterator = poly.querySegmentIterator();
+  while (iterator.nextPath()) {                   <span class="codeComment">// Iterates over each path</span>
+   while (iterator.hasNextSegment()) {           <span class="codeComment">// Iterates over each segment</span>
+    Segment segment = iterator.nextSegment();  <span class="codeComment">// Extracts the segment if there is a segment</span>
+    System.out.println(segment);
+   }
+ }
+
+ iterator.resetToFirstPath(); <span class="codeComment">//Resets iterator to the first Path</span>
+ while (iterator.nextPath()) {
+  while (iterator.hasNextSegment()) {
+  Segment segment = iterator.nextSegment();
+  if(iterator.isFirstSegmentInPath())  <span class="codeComment">//If segment is the starting segment of the path, returns true</span>
+    System.out.println("Starting Segment "+ segment);
+  else if(iterator.isLastSegmentInPath()) <span class="codeComment">//If segment is the starting segment of the path, returns true</span>
+    System.out.println("Ending Segment "+ segment);
+  }
+}
+
+ double perimeter = 0;
+ iterator.resetToPath(1); <span class="codeComment">//Resets the iterator to the specified path index</span>
+ while(iterator.nextPath()) {
+  while(iterator.hasNextSegment()) {
+   Segment segment = iterator.nextSegment();
+   perimeter += segment.calculateLength2D(); <span class=""></span>
+  }
+ }
+ System.out.println("Perimeter of 2nd Path in the Polygon: "+perimeter);
+
+ <span class="codeComment">
+/*
+* For x=300, this will return all Y-coordinates for the intersecting points and 0.0 for those which don't intersect
+*/
+ </span>
+ iterator.resetToPath(1);
+ while(iterator.nextPath()) {
+  while(iterator.hasNextSegment()) {
+   Segment segment = iterator.nextSegment();
+   double[] result = new double[1];
+   segment.intersectionWithAxis2D(false, 300, result, null);
+	 System.out.println(segment);
+   System.out.println(Arrays.toString(result)); <span class="codeComment">//returns the Y-coordinate of the point intersecting with x=300</span>
+  }
+ }
+</pre>
+</div>
+<p>Following are the output for each of the print statements:</p>
+<div class="codeSample">
+<pre>
+<p>Iterating over entire polygon:</p>
+	Line: [10.0, 1.0, 15.0, 20.0]
+	Line: [15.0, 20.0, 30.0, 14.0]
+	Line: [30.0, 14.0, 60.0, 144.0]
+	Line: [60.0, 144.0, 10.0, 1.0]
+	Line: [20.0, 13.0, 150.0, 120.0]
+	Line: [150.0, 120.0, 300.0, 414.0]
+	Line: [300.0, 414.0, 610.0, 14.0]
+	Line: [610.0, 14.0, 6210.0, 140.0]
+	Line: [6210.0, 140.0, 20.0, 13.0]
+<p>Iterating over the entire polygon and getting start and end of each path:</p>
+	Starting Segment Line: [10.0, 1.0, 15.0, 20.0]
+	Ending Segment Line: [60.0, 144.0, 10.0, 1.0]
+	Starting Segment Line: [20.0, 13.0, 150.0, 120.0]
+	Ending Segment Line: [6210.0, 140.0, 20.0, 13.0]
+<p>Calculating the perimeter for 2nd Path in the Polygon:</p>
+	Perimeter of 2nd Path in the Polygon: 12797.209401619448
+<p>Intersection with the Y axis:</p>
+	Line: [20.0, 13.0, 150.0, 120.0]
+	[0.0]
+	Line: [150.0, 120.0, 300.0, 414.0]
+	[414.0]
+	Line: [300.0, 414.0, 610.0, 14.0]
+	[414.0]
+	Line: [610.0, 14.0, 6210.0, 140.0]
+	[0.0]
+	Line: [6210.0, 140.0, 20.0, 13.0]
+	[18.74474959612278]
+</pre></div>
+			<p>There are several different ways to play around with the Segment Iterator and the above mentioned examples should give you a fair understanding of how the Segment Iterator
+				works</p>
+
+		</div>
+	</body>
+</html>

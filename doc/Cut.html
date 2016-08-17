@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title>Cut</title>
+		<meta name="author" content="Aish8740" />
+		<link rel="stylesheet" href="GeometryDocStyle.css">
+		<!-- Date: 2013-07-02 -->
+	</head>
+	<body>
+		<div id="header">
+			<h1 id="topic">Cut</h1>
+			<ul id="menu">
+				<li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorCut.html" target="_blank">API Reference</a></li>
+				<li><a href="https://github.com/Esri/geometry-api-java/wiki/" target="_blank">Wiki Home</a></li>
+			</ul>
+		</div>
+		<div id="content">
+      <p>The <strong>cut</strong> operator performs the cut operation on a geometry. <br> A cut splits the target polyline or polygon where
+        it is crossed by the cutter polyline.</p>
+      <div = class="codeSample">
+        <pre>
+<span class="codeComment">//This creates an instance of the cut operator.</span>
+OperatorCut opCut = OperatorCut.local();
+<span class="codeComment">
+/*
+* considerTouch: True/False indicates whether we consider a touch event a cut
+* cuttee: Input Geometry to be cut
+* cutter: Polyline which will divide the cuttee into pieces where it crosses the cutter.
+* Returns a Geometry cursor of the cut geometries.
+*/</span>
+GeometryCursor cursor = opCut.execute(considerTouch, cuttee, cutter, spatialReference, null);
+        </pre>
+      </div>
+		</div>
+	</body>
+</html>
