@@ -41,50 +41,50 @@
 		<div class="codeSample">
 <pre class="import">
 public void createEnvelope(){
-	<span class="codeComment">
-	/* One way to create an envelope is to specify the <strong>center point,
-	*  height and width of the envelope</strong> i.e. the region it is supposed to cover
-  	*/</span>
-	Point center = new Point(0, 0);
-	double width = 20;
-	double height = 20;
-	Envelope env = new Envelope(center, width, height);
-	<span class="codeComment">
-	/* Another way to create an envelope is to specify <strong>the X and Y extents</strong>.
-	*  xmin: Minimum X-coordinate, ymin: Minimum Y-coordinate,
-	*  xmax: Maximum X-coordinate and ymax: Maximum Y-coordinate
-  	*/</span>
-	Envelope env1 = new Envelope(0, 0, 30.5, 30.5);
-	<span class="codeComment">
-	/* In order to create an envelope <strong>surrounding a point</strong>,
-	*  we specify the Point and its coordinates are used to set the extent of the envelope
-  	*/</span>
-	Envelope env2 = new Envelope(new Point(3.5, 4.4));
-	<span class="codeComment">
-	/* Loading an envelope using a <strong>JSON String </strong></b>
-	  */</span>
-	MapGeometry mg = OperatorFactoryLocal.LoadGeometryFromJSONStringDbg(
-		"{\"hasZ\":true,\"hasM\":true,\"xmin\":0,\"ymin\":0,\"zmin\":0,\"mmin\":null,\"xmax\":1,\"ymax\":1,\"zmax\":1,\"mmax\":null}");
-	Envelope e = (Envelope) mg.getGeometry();
+<span class="codeComment">
+ /* One way to create an envelope is to specify the <strong>center point,
+ *  height and width of the envelope</strong> i.e. the region it is supposed to cover
+ */</span>
+ Point center = new Point(0, 0);
+ double width = 20;
+ double height = 20;
+ Envelope env = new Envelope(center, width, height);
+ <span class="codeComment">
+ /* Another way to create an envelope is to specify <strong>the X and Y extents</strong>.
+ *  xmin: Minimum X-coordinate, ymin: Minimum Y-coordinate,
+ *  xmax: Maximum X-coordinate and ymax: Maximum Y-coordinate
+ */</span>
+ Envelope env1 = new Envelope(0, 0, 30.5, 30.5);
+ <span class="codeComment">
+ /* In order to create an envelope <strong>surrounding a point</strong>,
+ *  we specify the Point and its coordinates are used to set the extent of the envelope
+ */</span>
+ Envelope env2 = new Envelope(new Point(3.5, 4.4));
+ <span class="codeComment">
+ /* Loading an envelope using a <strong>JSON String </strong></b>
+ */</span>
+ MapGeometry mg = OperatorFactoryLocal.LoadGeometryFromJSONStringDbg(
+ "{\"hasZ\":true,\"hasM\":true,\"xmin\":0,\"ymin\":0,\"zmin\":0,\"mmin\":null,\"xmax\":1,\"ymax\":1,\"zmax\":1,\"mmax\":null}");
+ Envelope e = (Envelope) mg.getGeometry();
 }
 </pre>
 		</div>
 		<h3>Getting an envelope for a given geometry</h3>
 		<p>We can query the envelope that is bound by a given geometry using the <code> queryEnvelope(Envelope e)</code> method of the geometry's class.</p>
 		<img src="Images/Envelope/Envelope4.jpg" style="float:left">
-		<div class="codeSample" style="float: right">
-			<pre>
-			public void getGeometry(){
-				Polygon poly = new Polygon();
-				poly.startPath(-117.192322, 34.057129);
-				poly.lineTo(-117.191406, 34.057129);
-				poly.lineTo(-117.192871, 34.055298);
-				poly.lineTo(-117.193298, 34.055725);
-				Envelope env = new Envelope();
-				poly.queryEnvelope(env);
-				<span class="codeComment">/* Now env contains the surrounding envelope for the specified polygon.
-				*/</span>
-			}</pre>
+		<div class="codeSample" style="float: right;">
+<pre>
+public void getGeometry(){
+ Polygon poly = new Polygon();
+ poly.startPath(-117.192322, 34.057129);
+ poly.lineTo(-117.191406, 34.057129);
+ poly.lineTo(-117.192871, 34.055298);
+ poly.lineTo(-117.193298, 34.055725);
+ Envelope env = new Envelope();
+ poly.queryEnvelope(env);
+ <span class="codeComment">/* Now env contains the surrounding envelope for the specified polygon.
+ */</span>
+}</pre>
 		</div>
 	</div>
 	</body>

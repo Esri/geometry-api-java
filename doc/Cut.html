@@ -18,8 +18,19 @@
 			</ul>
 		</div>
 		<div id="content">
-      <p>The <strong>cut</strong> operator performs the cut operation on a geometry. <br> A cut splits the target polyline or polygon where
-        it is crossed by the cutter polyline.</p>
+      <p>The <code>OperatorCut</code> performs the cut operation on a given geometry. <br>It splits the target polyline or polygon where
+        the polygon/polyline is crossed by the cutter polyline.</p>
+
+        <p>Using the cut operator (also known as Cut Tool in ArcMap), we can cut a polygon/polyline using a cutter polyline.</p>
+        <p> Here is an example where we were able to divide the map of United States into three broad categories -
+          West, Central and East for further analysis of population change:</p>
+          <table>
+            <tr>
+              <td><img src="Images/Cut/Cut2.jpg"></td>
+              <td><img src="Images/Cut/Cut1.jpg"></td>
+            </tr>
+          </table>
+<p>Here is how we use <code>OperatorCut</code> in a simple Java Program:</p>
       <div = class="codeSample">
         <pre>
 <span class="codeComment">//This creates an instance of the cut operator.</span>
@@ -34,6 +45,11 @@ OperatorCut opCut = OperatorCut.local();
 GeometryCursor cursor = opCut.execute(considerTouch, cuttee, cutter, spatialReference, null);
         </pre>
       </div>
+      <p>The cut operation returns a Geometry Cursor of cut geometries. </p>
+      <p>All left cuts will be grouped together in the first geometry. Right cuts and coincident cuts are grouped
+      in the second geometry. Each undefined cut along with any uncut parts are output as separate geometries. If there were no cuts, the cursor will return no geometry. If the left
+    or right cut does not exist, the returned geometry will be empty for this type of cut.</p>
+    <p>An undefined cut will only be produced if a left or right cut was produced and there was a part left over after cutting or a cut is bounded to the left and right of the cutter.</p>
 		</div>
 	</body>
 </html>
