@@ -38,11 +38,17 @@ OperatorCut opCut = OperatorCut.local();
 <span class="codeComment">
 /*
 * considerTouch: True/False indicates whether we consider a touch event a cut
-* cuttee: Input Geometry to be cut
+* cuttee: Input Geometry to be cut (Polygon/Polyline)
 * cutter: Polyline which will divide the cuttee into pieces where it crosses the cutter.
 * Returns a Geometry cursor of the cut geometries.
 */</span>
 GeometryCursor cursor = opCut.execute(considerTouch, cuttee, cutter, spatialReference, null);
+<span class="codeComment">
+/*
+* For retrieving the resultant Polygon(s) from the GeometryCurson we use,
+*/</span>
+Polygon cut = (Polygon) cursor.next();
+
         </pre>
       </div>
       <p>The cut operation returns a Geometry Cursor of cut geometries. </p>
