@@ -9,105 +9,107 @@
 		<link rel="stylesheet" href="GeometryDocStyle.css">
 	</head>
 	<body>
-		<h1 id="topic">Buffer</h1>
-		<ul id="menu">
-			<li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorBuffer.html">API Reference</a></li>
-			<li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
-		</ul>
+		<div id="header">
+			<h1 id="topic">Buffer</h1>
+			<ul id="menu">
+				<li id="reference"><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorBuffer.html" target="_blank">API Reference</a></li>
+				<li><a href="https://github.com/Esri/geometry-api-java/wiki/" target="_blank">Wiki Home</a></li>
+			</ul>
+		</div>
 		<div id="content">
-		<p>The Buffer operator creates a buffer polygon around the input geometry at a specified distance. If the input 
-			geometry is a polygon and a negative distance is specified, then the buffer polygon could be inside the input 
-			geometry. The specified distance is in the units of the associated spatial reference. </p>  
-		<p>Let's look at a couple of simple examples for different geometry types. In the following images, the blue 
-			geometry is the input geometry and the green geometry is a possible buffer polygon.</p>		
-		<table style="border:none;">
-			<tr><th style="border:none;text-align:left;text-indent:5%"><h3>Point</h3></th></tr>
-			<tr>
-				<td style="border:none;width:20%;">&nbsp;</td>
-				<td><img src="Images/Buffer/Buffer9.jpg"></td>
-				<td><img src="Images/Buffer/Buffer10.jpg"></td>
-				<td><img src="Images/Buffer/Buffer9_10.jpg"></td>
-				<td style="border:none;width:20%;">&nbsp;</td>
-			</tr>
-			<tr>
-				<td style="border:none;">&nbsp;</td>
-				<td>Input Geometry</td>
-				<td>Buffer Polygon</td>
-				<td>Both</td>
-				<td style="border:none;">&nbsp;</td>
-			</tr>
-			<tr><td colspan="5" style="border:none;">&nbsp;</td></tr>
-			<tr><th style="border:none;text-align:left;text-indent:5%"><h3>Polyline</h3></th></tr>
-			<tr>
-				<td style="border:none;width:20%;">&nbsp;</td>
-				<td><img src="Images/Buffer/Buffer6.jpg"></td>
-				<td><img src="Images/Buffer/Buffer7.jpg"></td>
-				<td><img src="Images/Buffer/Buffer6_7.jpg"></td>
-				<td style="border:none;width:20%;">&nbsp;</td>
-			</tr>
-			<tr>
-				<td style="border:none;width:20%;">&nbsp;</td>
-				<td>Input Geometry</td>
-				<td>Buffer Polygon</td>
-				<td>Both</td>
-				<td style="border:none;width:20%;">&nbsp;</td>
-			</tr>
-			<tr><td colspan="5" style="border:none;">&nbsp;</td></tr>
-			<tr><th style="border:none;text-align:left;text-indent:5%"><h3>Polygon</h3></th></tr>
-			<tr>
-				<td style="border:none;width:20%;">&nbsp;</td>
-				<td><img src="Images/Buffer/Buffer4.jpg"></td>
-				<td><img src="Images/Buffer/Buffer5.jpg"></td>
-				<td><img src="Images/Buffer/Buffer4_5.jpg"></td>
-				<td style="border:none;width:20%;">&nbsp;</td>
-			</tr>
-			<tr>
-				<td style="border:none;width:20%;">&nbsp;</td>
-				<td>Input Geometry</td>
-				<td>Buffer Polygon</td>
-				<td>Both</td>
-				<td style="border:none;width:20%;">&nbsp;</td>
-			</tr>
-			<tr><td colspan="5" style="border:none;">&nbsp;</td></tr>
-			<tr>
-				<td colspan="5" style="border:none;text-align:left;">
-					<p>We can create buffers from much more complicated geometries too. 
-						For example, consider the input geometry shown below which represents Indonesia. 
-						This multipart polygon has 137 parts and 9,164 vertices.
-					</p>
-				</td>
-			</tr>
-			<tr>
-				<td style="border:none;width:20%;">&nbsp;</td>
-				<td><img src="Images/Buffer/Indonesia1.jpg"></td>
-				<td><img src="Images/Buffer/Indonesia1_1.jpg"></td>
-				<td><img src="Images/Buffer/Indonesia1_2.jpg"></td>
-				<td style="border:none;width:20%;">&nbsp;</td>
-			</tr>
-			<tr>
-				<td style="border:none;width:20%;">&nbsp;</td>
-				<td>Input Geometry</td>
-				<td>Buffer Polygon</td>
-				<td>Both</td>
-				<td style="border:none;width:20%;">&nbsp;</td>
-			</tr>
-		</table>
-		<br />
-		<p>We can also buffer more than one geometry and input more than one distance parameter in a single execution by using cursors. We will get to that later.</p>
-		<p>For now, we will look at some code to generate a buffer from a single input geometry.</p>
-		
-		<h2>Buffering a single geometry</h2>
-		<p>To buffer a single geometry, we use one of the <code>execute</code> methods of the <code>OperatorBuffer</code> class.<br>
-			<pre class="codeSnippet">public abstract Geometry execute(Geometry inputGeometry, SpatialReference sr, double distance, ProgressTracker progressTracker);</pre>
-		</p>
-		<p>To call the <code class="codeInText">execute</code> method, create a local instance of the Buffer operator.</p>
-		<p>
-			<pre class="codeSnippet">Geometry outputGeometry = OperatorBuffer.local().execute(inputGeometry, sr, distance, null);</pre>
-		</p>
-		<h3>Example</h3>
-		<p>The program given below creates a polygon that is then used as input to the Buffer operator. The spatial 
-			reference is GCS_WGS_1984 so the distance units are degrees.</p>	
-		<div class="codeSample">
+			<p>The Buffer operator creates a buffer polygon around the input geometry at a specified distance. If the input
+				geometry is a polygon and a negative distance is specified, then the buffer polygon could be inside the input
+				geometry. The specified distance is in the units of the associated spatial reference. </p>
+			<p>Let's look at a couple of simple examples for different geometry types. In the following images, the blue
+				geometry is the input geometry and the green geometry is a possible buffer polygon.</p>
+			<table style="border:none;">
+				<tr><th style="border:none;text-align:left;text-indent:5%"><h3>Point</h3></th></tr>
+				<tr>
+					<td style="border:none;width:20%;">&nbsp;</td>
+					<td><img src="Images/Buffer/Buffer9.jpg" class="fullImg"></td>
+					<td><img src="Images/Buffer/Buffer10.jpg"></td>
+					<td><img src="Images/Buffer/Buffer9_10.jpg"></td>
+					<td style="border:none;width:20%;">&nbsp;</td>
+				</tr>
+				<tr>
+					<td style="border:none;">&nbsp;</td>
+					<td>Input Geometry</td>
+					<td>Buffer Polygon</td>
+					<td>Both</td>
+					<td style="border:none;">&nbsp;</td>
+				</tr>
+				<tr><td colspan="5" style="border:none;">&nbsp;</td></tr>
+				<tr><th style="border:none;text-align:left;text-indent:5%"><h3>Polyline</h3></th></tr>
+				<tr>
+					<td style="border:none;width:20%;">&nbsp;</td>
+					<td><img src="Images/Buffer/Buffer6.jpg"></td>
+					<td><img src="Images/Buffer/Buffer7.jpg"></td>
+					<td><img src="Images/Buffer/Buffer6_7.jpg"></td>
+					<td style="border:none;width:20%;">&nbsp;</td>
+				</tr>
+				<tr>
+					<td style="border:none;width:20%;">&nbsp;</td>
+					<td>Input Geometry</td>
+					<td>Buffer Polygon</td>
+					<td>Both</td>
+					<td style="border:none;width:20%;">&nbsp;</td>
+				</tr>
+				<tr><td colspan="5" style="border:none;">&nbsp;</td></tr>
+				<tr><th style="border:none;text-align:left;text-indent:5%"><h3>Polygon</h3></th></tr>
+				<tr>
+					<td style="border:none;width:20%;">&nbsp;</td>
+					<td><img src="Images/Buffer/Buffer4.jpg"></td>
+					<td><img src="Images/Buffer/Buffer5.jpg"></td>
+					<td><img src="Images/Buffer/Buffer4_5.jpg"></td>
+					<td style="border:none;width:20%;">&nbsp;</td>
+				</tr>
+				<tr>
+					<td style="border:none;width:20%;">&nbsp;</td>
+					<td>Input Geometry</td>
+					<td>Buffer Polygon</td>
+					<td>Both</td>
+					<td style="border:none;width:20%;">&nbsp;</td>
+				</tr>
+				<tr><td colspan="5" style="border:none;">&nbsp;</td></tr>
+				<tr>
+					<td colspan="5" style="border:none;text-align:left;">
+						<p>We can create buffers from much more complicated geometries too.
+							For example, consider the input geometry shown below which represents Indonesia.
+							This multipart polygon has 137 parts and 9,164 vertices.
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<td style="border:none;width:20%;">&nbsp;</td>
+					<td><img src="Images/Buffer/Indonesia1.jpg"></td>
+					<td><img src="Images/Buffer/Indonesia1_1.jpg"></td>
+					<td><img src="Images/Buffer/Indonesia1_2.jpg"></td>
+					<td style="border:none;width:20%;">&nbsp;</td>
+				</tr>
+				<tr>
+					<td style="border:none;width:20%;">&nbsp;</td>
+					<td>Input Geometry</td>
+					<td>Buffer Polygon</td>
+					<td>Both</td>
+					<td style="border:none;width:20%;">&nbsp;</td>
+				</tr>
+			</table>
+			<br />
+			<p>We can also buffer more than one geometry and input more than one distance parameter in a single execution by using cursors. We will get to that later.</p>
+			<p>For now, we will look at some code to generate a buffer from a single input geometry.</p>
+
+			<h2>Buffering a single geometry</h2>
+			<p>To buffer a single geometry, we use one of the <code>execute</code> methods of the <code>OperatorBuffer</code> class.<br>
+				<pre class="codeSnippet">public abstract Geometry execute(Geometry inputGeometry, SpatialReference sr, double distance, ProgressTracker progressTracker);</pre>
+			</p>
+			<p>To call the <code class="codeInText">execute</code> method, create a local instance of the Buffer operator.</p>
+			<p>
+				<pre class="codeSnippet">Geometry outputGeometry = OperatorBuffer.local().execute(inputGeometry, sr, distance, null);</pre>
+			</p>
+			<h3>Example</h3>
+			<p>The program given below creates a polygon that is then used as input to the Buffer operator. The spatial
+				reference is GCS_WGS_1984 so the distance units are degrees.</p>
+			<div class="codeSample">
 <pre>package geometryapp;
 
 import com.esri.core.geometry.Geometry;
@@ -117,33 +119,33 @@ import com.esri.core.geometry.Polygon;
 import com.esri.core.geometry.SpatialReference;
 
 <span class="codeComment">/*
- * This program creates a polygon, performs the Buffer operation and 
+ * This program creates a polygon, performs the Buffer operation and
  * prints out the result in JSON format.
  */</span>
 
 public class BufferApp_1 {
-  
+
   public static void main(String[] args) {
-    
+
     Polygon poly1 = createPolygon1();
-    
+
     <span class="codeComment">// Create a spatial reference object for GCS_WGS_1984.</span>
     SpatialReference spatialRef = SpatialReference.create(4326);
-    
+
     <span class="codeComment">// Buffer the geometry by a distance = 0.5.</span>
     Geometry outputGeom = OperatorBuffer.local().execute(poly1, spatialRef, 0.5, null);
     printResult(spatialRef, outputGeom, 0.5);
-    
+
     <span class="codeComment">// Buffer the geometry by a distance = 0.1.</span>
     outputGeom = OperatorBuffer.local().execute(poly1, spatialRef, 0.1, null);
     printResult(spatialRef, outputGeom, 0.1);
-    
-    <span class="codeComment">// Buffer the geometry by a distance = -0.09. 
+
+    <span class="codeComment">// Buffer the geometry by a distance = -0.09.
     // Buffer polygon should be inside the input geometry.</span>
     outputGeom = OperatorBuffer.local().execute(poly1, spatialRef, -0.09, null);
     printResult(spatialRef, outputGeom, -0.09);
   }
-  
+
   public static Polygon createPolygon1() {
 
     Polygon poly = new Polygon();
@@ -164,7 +166,7 @@ public class BufferApp_1 {
   }
 
   public static void printResult(SpatialReference spatialRef, Geometry geometry, double distance) {
-    
+
     <span class="codeComment">// Export the geometry to JSON format to print it out.</span>
     String jsonString = OperatorExportToJson.local().execute(spatialRef, geometry);
     System.out.println("Buffer distance = " + Double.toString(distance) + ":");
@@ -173,78 +175,78 @@ public class BufferApp_1 {
   }
 }
 </pre>
-		</div>
-		<br />
-		<p>The input geometry and the buffer polygons generated by <code  class="codeInText">BufferApp_1</code> are shown below.</p>
-		<table>
-			<tr>
-				<td><img src="Images/Buffer/Buffer0.jpg"></td>
-				<td><img src="Images/Buffer/Buffer1.jpg"></td>
-				<td><img src="Images/Buffer/Buffer0_1.jpg"></td>
-			</tr>
-			<tr>
-				<td>Input Geometry</td>
-				<td>Buffer Polygon (distance = 0.5)</td>
-				<td>Both</td>
-			</tr>
-			<tr>
-				<td><img src="Images/Buffer/Buffer0.jpg"></td>
-				<td><img src="Images/Buffer/Buffer2.jpg"></td>
-				<td><img src="Images/Buffer/Buffer0_2.jpg"></td>
-			</tr>
-			<tr>
-				<td>Input Geometry</td>
-				<td>Buffer Polygon (distance = 0.1)</td>
-				<td>Both</td>
-			</tr>
-			<tr>
-				<td><img src="Images/Buffer/Buffer0.jpg"></td>
-				<td><img src="Images/Buffer/Buffer3.jpg"></td>
-				<td><img src="Images/Buffer/Buffer0_3.jpg"></td>
-			</tr>
-			<tr>
-				<td>Input Geometry</td>
-				<td>Buffer Polygon (distance = -0.09)</td>
-				<td>Both</td>
-			</tr>
-		</table>
-		<br />
-		<h2>Buffering multiple geometries</h2>
-		<p>Suppose we have many geometries for which we want to generate buffer polygons. Indeed, maybe we want the union of the resultant 
-			buffer polygons. Maybe we have a need to chain operations, that is, use the output from the Buffer operation as input 
-			to another operation. If the input geometries are the same type, it is not necessary to process them one at a time.  
-			In these and similar cases, we consider using a <a href="GeometryCursors.html">geometry cursor</a>.</p>
-		<p>To buffer multiple geometries at once, we use another of the <code  class="codeInText">execute</code> methods from the 
-			<code  class="codeInText">OperatorBuffer</code> class.<br>
-			<pre class="codeSnippet">public abstract GeometryCursor execute(GeometryCursor inputGeometries, SpatialReference sr, double[] distances, boolean bUnion, ProgressTracker progressTracker);</pre>
-		</p>
-		<p>To call the <code class="codeInText">execute</code> method, create a local instance of the Buffer operator.</p>
-		<p>
-			<pre class="codeSnippet">GeometryCursor outputGeometries = OperatorBuffer.local().execute(inputGeometries, sr, distances, bUnion, null);</pre>
-		</p>
-		<p>Notice that we now have an array of distances. The first input geometry will be buffered using the first distance 
-			in the array, the second input geometry will be buffered using the second distance in the array and so on. If 
-			the size of the distances array is less than the number of input geometries, the last distance value in the array 
-			will be used to buffer the remaining input geometries.
-		</p>
-		<p>The <code class="codeInText">bUnion</code> parameter is a boolean signifying whether the buffer polygons should be unioned or not. 
-			If <code class="codeInText">bUnion</code> is set to <code class="codeInText">true</code>, then the output cursor contains only one polygon, namely, 
-			the union of all the buffer polygons. If <code class="codeInText">bUnion</code> is set to <code class="codeInText">false</code>, then the output 
-			cursor contains each of the buffer polygons as an individual geometry.
-		</p>
-		<h3>Example</h3>
-		<p>Consider the polylines shown below representing a portion of downtown Denver streets.</p>
-		<div class="image400"><img src="Images/Buffer/Buffer12.jpg"></div>
-		<p>We would like a buffer of 120 meters around the closed polyline</p>
-		<div class="image400"><img src="Images/Buffer/Buffer12_1.jpg"></div>
-		<p>and a buffer of 50 meters around the remaining polylines.</p>
-		<div class="image400"><img src="Images/Buffer/Buffer12_2.jpg"></div>
-		<br />
-		<p>We can accomplish our task with the program given below. It creates the five polylines and a geometry cursor that is used as input to the Buffer 
-			operator. The first polyline is buffered by a distance of 120 meters and the remaining polylines by 50 meters. 
-			The spatial reference is NAD_1983_2011_UTM_Zone_13N so the distance units are meters. 
-		</p>	
-		<div class="codeSample">
+			</div>
+			<br />
+			<p>The input geometry and the buffer polygons generated by <code  class="codeInText">BufferApp_1</code> are shown below.</p>
+			<table>
+				<tr>
+					<td><img src="Images/Buffer/Buffer0.jpg" class="fullImg"></td>
+					<td><img src="Images/Buffer/Buffer1.jpg" class="fullImg"></td>
+					<td><img src="Images/Buffer/Buffer0_1.jpg" class="fullImg"></td>
+				</tr>
+				<tr>
+					<td>Input Geometry</td>
+					<td>Buffer Polygon <br>(distance = 0.5)</td>
+					<td>Both</td>
+				</tr>
+				<tr>
+					<td><img src="Images/Buffer/Buffer0.jpg" class="fullImg"></td>
+					<td><img src="Images/Buffer/Buffer2.jpg" class="fullImg"></td>
+					<td><img src="Images/Buffer/Buffer0_2.jpg" class="fullImg"></td>
+				</tr>
+				<tr>
+					<td>Input Geometry</td>
+					<td>Buffer Polygon <br>(distance = 0.1)</td>
+					<td>Both</td>
+				</tr>
+				<tr>
+					<td><img src="Images/Buffer/Buffer0.jpg" class="fullImg"></td>
+					<td><img src="Images/Buffer/Buffer3.jpg" class="fullImg"></td>
+					<td><img src="Images/Buffer/Buffer0_3.jpg" class="fullImg"></td>
+				</tr>
+				<tr>
+					<td>Input Geometry</td>
+					<td>Buffer Polygon <br>(distance = -0.09)</td>
+					<td>Both</td>
+				</tr>
+			</table>
+			<br />
+			<h2>Buffering multiple geometries</h2>
+			<p>Suppose we have many geometries for which we want to generate buffer polygons. Indeed, maybe we want the union of the resultant
+				buffer polygons. Maybe we have a need to chain operations, that is, use the output from the Buffer operation as input
+				to another operation. If the input geometries are the same type, it is not necessary to process them one at a time.
+				In these and similar cases, we consider using a <a href="GeometryCursors.html">geometry cursor</a>.</p>
+			<p>To buffer multiple geometries at once, we use another of the <code  class="codeInText">execute</code> methods from the
+				<code  class="codeInText">OperatorBuffer</code> class.<br>
+				<pre class="codeSnippet">public abstract GeometryCursor execute(GeometryCursor inputGeometries, SpatialReference sr, double[] distances, boolean bUnion, ProgressTracker progressTracker);</pre>
+			</p>
+			<p>To call the <code class="codeInText">execute</code> method, create a local instance of the Buffer operator.</p>
+			<p>
+				<pre class="codeSnippet">GeometryCursor outputGeometries = OperatorBuffer.local().execute(inputGeometries, sr, distances, bUnion, null);</pre>
+			</p>
+			<p>Notice that we now have an array of distances. The first input geometry will be buffered using the first distance
+				in the array, the second input geometry will be buffered using the second distance in the array and so on. If
+				the size of the distances array is less than the number of input geometries, the last distance value in the array
+				will be used to buffer the remaining input geometries.
+			</p>
+			<p>The <code class="codeInText">bUnion</code> parameter is a boolean signifying whether the buffer polygons should be unioned or not.
+				If <code class="codeInText">bUnion</code> is set to <code class="codeInText">true</code>, then the output cursor contains only one polygon, namely,
+				the union of all the buffer polygons. If <code class="codeInText">bUnion</code> is set to <code class="codeInText">false</code>, then the output
+				cursor contains each of the buffer polygons as an individual geometry.
+			</p>
+			<h3>Example</h3>
+			<p>Consider the polylines shown below representing a portion of downtown Denver streets.</p>
+			<div class="image400"><img src="Images/Buffer/Buffer12.jpg"></div>
+			<p>We would like a buffer of 120 meters around the closed polyline</p>
+			<div class="image400" id="middle"><img src="Images/Buffer/Buffer12_1.jpg"></div>
+			<p>and a buffer of 50 meters around the remaining polylines.</p>
+			<div class="image400"><img src="Images/Buffer/Buffer12_2.jpg"></div>
+			<br />
+			<p>We can accomplish our task with the program given below. It creates the five polylines and a geometry cursor that is used as input to the Buffer
+				operator. The first polyline is buffered by a distance of 120 meters and the remaining polylines by 50 meters.
+				The spatial reference is NAD_1983_2011_UTM_Zone_13N so the distance units are meters.
+			</p>
+			<div class="codeSample">
 <pre>package geometryapp;
 
 import com.esri.core.geometry.Geometry;
@@ -263,82 +265,82 @@ import java.util.ArrayList;
  */</span>
 
 public class BufferApp_2 {
-  
+
   public static void main(String[] args) {
-    
+
     <span class="codeComment">// Create the input polylines to buffer.</span>
     ArrayList&lt;Geometry&gt; geomList = createAllPolylines();
-    
+
     <span class="codeComment">// Create the geometry cursor from the list of polylines.</span>
     SimpleGeometryCursor inputGeoms = new SimpleGeometryCursor(geomList);
-    
+
     <span class="codeComment">// Create a spatial reference object for NAD_1983_2011_UTM_Zone_13N.</span>
     SpatialReference spatialRef = SpatialReference.create(102382);
-    
+
     <span class="codeComment">// Buffer the first polyline by a distance = 120 and the rest by a distance = 50.</span>
     double distances[] = {120, 50};
-    
+
     <span class="codeComment">// Buffer the geometries. Do not union the results.</span>
     GeometryCursor outputGeoms = OperatorBuffer.local().execute(inputGeoms, spatialRef, distances, false, null);
-    
+
     <span class="codeComment">// Get the geometries from the cursor and print them in JSON format.</span>
     Geometry geom = null;
     while((geom = outputGeoms.next()) != null) {
       printResult(spatialRef, geom);
     }
   }
-  
+
   public static ArrayList&lt;Geometry&gt; createAllPolylines() {
-    
+
     <span class="codeComment">// Create a list of input geometries.</span>
     ArrayList&lt;Geometry&gt; geomList = new ArrayList&lt;Geometry&gt;(5);
-    
+
     <span class="codeComment">// Create a list of coordinates to use for creating the polylines.</span>
     double coords[][] = {{-11686713,4828005},{-11687175,4828005},{-11687337,4827898},
       {-11687461,4828009},{-11687461,4828250},{-11687421,4828250},{-11687305,4828331},
       {-11687143,4828237},{-11686716,4828237},{-11686713,4828237},{-11686713,4828005}};
-    
+
     geomList.add(createPolyline(coords));
-    
+
     double coords2[][] = {{-11686998,4828712},{-11686998,4828240}};
     geomList.add(createPolyline(coords2));
-    
+
     coords2[0][0] = -11686998;
     coords2[0][1] = 4828001;
     coords2[1][0] = -11686998;
     coords2[1][1] = 4827533;
     geomList.add(createPolyline(coords2));
-    
-    
+
+
     coords2[0][0] = -11687848;
     coords2[0][1] = 4828618;
     coords2[1][0] = -11687480;
     coords2[1][1] = 4828251;
     geomList.add(createPolyline(coords2));
-    
+
     coords2[0][0] = -11688017;
     coords2[0][1] = 4828250;
     coords2[1][0] = -11687461;
     coords2[1][1] = 4828250;
     geomList.add(createPolyline(coords2));
-    
+
     return geomList;
   }
-  
+
   public static Polyline createPolyline(double[][] pts) {
 
     Polyline line = new Polyline();
 
     line.startPath(pts[0][0], pts[0][1]);
-    
+
     for (int i = 1; i &lt; pts.length; i++)
       line.lineTo(pts[i][0], pts[i][1]);
-    
+
     return line;
   }
-  
+
   public static void printResult(SpatialReference spatialRef, Geometry geometry) {
-    
+
     <span class="codeComment">// Export the geometry to JSON format to print it out.</span>
     String jsonString = OperatorExportToJson.local().execute(spatialRef, geometry);
     System.out.println(jsonString);
@@ -346,12 +348,11 @@ public class BufferApp_2 {
   }
 }
 </pre>
-		</div>
-		<br />
-		<p>The input geometries and the buffer polygons generated by <code  class="codeInText">BufferApp_2</code> are shown below.</p>
-		<div class="image400"><img src="Images/Buffer/Buffer12_3.jpg"></div>
-		<br /><br />
-		</div>
+			</div>
+			<br />
+			<p>The input geometries and the buffer polygons generated by <code  class="codeInText">BufferApp_2</code> are shown below.</p>
+			<div class="image400"><img src="Images/Buffer/Buffer12_3.jpg"></div>
+			<br /><br />
+			</div>
 	</body>
 </html>
-

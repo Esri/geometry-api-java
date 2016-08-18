@@ -1,207 +1,249 @@
-body 
+body
 {
-  font-size:12pt;
+  font-size:14px;
+  line-height: 1.5;
+  background-position: 0 0, 0 0, 0 0;
+  font-family: 'Open Sans', Arial, sans-serif;
 }
 
-table 
+table
 {
   margin:auto;width:70%;border:1px solid black;border-collapse:collapse;
 }
 
-th, td 
+th, td
 {
   border:1px solid black;text-align: center;
 }
 
-td 
+td
 {
   font-size:20px;font-family:Arial,Verdana,Sans-serif;
 }
 
-img 
+img
 {
-  padding:10px;
+  padding:10px;  height: 84%; width: auto;
+}
+.fullImg{
+  width: auto;
+  height: auto;
 }
 
-.codeComment 
+.specifics{
+  width: 180px;
+  height: 170px;
+}
+.codeComment
 {
   color:rgb(90,153,255);font-style:italic;
 }
 
-.codeSnippet 
+.codeSnippet
 {
   margin-left:2%;
 }
 
-.codeInText 
+.codeInText
 {
   font-size:20px;
 }
 
-.codeSample 
+.codeSample
 {
-  margin:auto;width:80%;text-align:center;
+  margin:auto;width:70%;text-align:center;
 }
-.codeSample pre 
+.codeSample pre
 {
   margin:auto;padding:20px 5px 30px 15px;text-align:left;border:1px solid black;background-color:rgb(216,216,216);overflow-x:auto;overflow-y:hidden;
 }
 
-pre.emptyGeom 
+pre.emptyGeom
 {
   width:185px;text-align:center;padding:10px;
 }
 
-pre.point 
+pre.point
 {
   text-align:center;padding:10px;
 }
 
-pre.classMethod 
+pre.classMethod
 {
   width:400px;
 }
 
-pre.pointConstructor 
+pre.pointConstructor
 {
   width:550px;
 }
 
-pre.import 
+pre.import
 {
   width:100%;
 }
 
-.imageTable td 
+.imageTable td
 {
   padding:15px;
 }
 
-.image400 
+.image400
 {
-  margin-left:auto;margin-right:auto;height:auto;width:425px;text-align:center;border:1px solid black;
+  margin:auto;
+  height:auto;
+  width:425px;
+  text-align:center;
+  border:1px solid black;
 }
-
-.image360 
+#middle
+{
+  margin-top: 2.5em;
+  margin-bottom: 2.5em;
+}
+.image360
 {
   margin-left:auto;margin-right:auto;height:auto;width:385px;text-align:center;border:1px solid black;
 }
 
-.image240 
+.image240
 {
   margin-left:auto;margin-right:auto;height:auto;width:265px;text-align:center;border:1px solid black;
 }
 
-.imageGallery 
+.imageGallery
 {
   margin-left:auto;margin-right:auto;height:auto;width:100%;text-align:center;border:1px solid yellow;
 }
 
-.imageGallery .image240 
+.imageGallery .image240
 {
   float:left;height:290px;
 }
 
-.imageGallery .desc 
+.imageGallery .desc
 {
   height:28px;border:1px solid black;
 }
 
-div.clear 
+div.clear
 {
   clear:both;
 }
 
-.imageGallery4 
+.imageGallery4
 {
   margin-left:auto;margin-right:auto;height:auto;width:830px;text-align:center;border:1px solid black;
 }
 
-.imageGallery4 span 
+.imageGallery4 span
 {
   height:206px;width:206px;float:left;border-right:1px solid black;
 }
 
-span.lastImg 
+span.lastImg
 {
   border-right:none;
 }
 
-.imageGallery4 .desc 
+.imageGallery4 .desc
 {
   clear:both;
 }
 
-.desc 
+.desc
 {
   margin-left:auto;margin-right:auto;text-align:center;border-top:1px solid black;
   font-family:Arial,Verdana,Sans-serif;font-size:20px;padding:3px;
 }
 
-.map 
+.map
 {
-  margin-left:auto;margin-right:auto;height:auto;width:565px;text-align:center;border:1px solid black;  
+  margin-left:auto;margin-right:auto;height:auto;width:565px;text-align:center;border:1px solid black;
 }
 
-.map img 
+.map img
 {
   padding:15px;
 }
 
-#topic 
+#topic
 {
-  float:left;
+  position: relative;
+  float: left;
+  margin: 0;
+  border: 0;
+  padding: 0;
 }
-
-#menu 
+#header{
+  margin: 50px;
+}
+/*#reference {
+  position: absolute;
+}*/
+#menu
 {
-  float:right;list-style-type:none;font-size:14px;
+  position: relative;
+  float: right;
+  list-style-type:none;
+  font-size:14px;
+  max-width: 100px;
+  margin-bottom: 20px;
+  margin-left: 20px;
 }
-#content 
+#content
 {
   clear:both;
+  margin: 70px;
+  position: relative;
+  max-width: 1400px;
+  padding-left: 24px;
+  padding-right: 24px;
 }
 
-h1 
+h1
 {
-  font-size:40px
+  font-size:40px;
+  margin-top: 20px;
+  margin-bottom: 30px;
+  line-height: 1;
 }
 
-h2 
+h2
 {
   font-size:33px;
 }
 
-h3 
+h3
 {
   font-size:27px;
 }
 
-h4 
+h4
 {
   font-size:21px;
 }
 
-p 
+p
 {
-  font-size:20px;font-family:Arial,Verdana,Sans-serif;
+  font-size:20px;
 }
 
-.noBoundaryTable 
+.noBoundaryTable
 {
   border:none;width:400px;
 }
 
-.noBoundaryTable td 
+.noBoundaryTable td
 {
   border:none;
 }
 
-.myLightBlue 
+.myLightBlue
 {
   color:rgb(96,125,255);
 }
 
-ul 
+ul
 { font-size:20px;font-family:Arial,Verdana,Sans-serif;
  }

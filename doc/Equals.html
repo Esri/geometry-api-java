@@ -9,25 +9,26 @@
     <link rel="stylesheet" href="GeometryDocStyle.css">
   </head>
 	<body>
-		<h1 id="topic">Equals</h1>
-    <ul id="menu">
-    <li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorEquals.html">API Reference</a></li>
-      <li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
-    </ul>
+		<div id="header">
+			<h1 id="topic">Equals</h1>
+			<ul id="menu">
+			<li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorEquals.html" target="_blank">API Reference</a></li>
+				<li><a href="https://github.com/Esri/geometry-api-java/wiki/" target="_blank">Wiki Home</a></li>
+			</ul>
+		</div>
 		<div id="content">
-		<p>Two geometries are equal if they occupy the same space.</p>
-		<p>Note that the two geometries shown below have a different number of vertices, but they are still equal.
-      <table class="noBoundaryTable">
+			<p>Two geometries are equal if they occupy the same space.</p>
+			<p>Note that the two geometries shown below have a different number of vertices, but they are still equal.
+	      <table class="noBoundaryTable">
       <tr>
-        <td><img src="Images/Equals/Equals1.jpg"></td>
+        <td><img src="Images/Equals/Equals1.jpg" class="fullImg"></td>
       </tr>
       </table>
       <h4 class="myLightBlue">Example 1: Is Geometry A equal to Geometry B?</h4>
       <div class="codeSample">
-<pre class="import">static boolean geometryEquals(Geometry geometryA, Geometry geometryB, SpatialReference sr) 
+<pre class="import">static boolean geometryEquals(Geometry geometryA, Geometry geometryB, SpatialReference sr)
 {
   boolean equals = OperatorEquals.local().execute(geometryA, geometryB, sr, null);
-    
   return equals;
 }
 </pre>

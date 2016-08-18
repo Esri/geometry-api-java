@@ -9,117 +9,121 @@
 		<link rel="stylesheet" href="GeometryDocStyle.css">
 	</head>
 	<body>
-		<h1 id="topic">Polylines</h1>
-		<ul id="menu">
-			<li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/Polyline.html">API Reference</a></li>
-			<li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
-		</ul>
+		<div id="header">
+			<h1 id="topic">Polyline</h1>
+			<ul id="menu">
+				<li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/Polyline.html" target="_blank">API Reference</a></li>
+				<li><a href="https://github.com/Esri/geometry-api-java/wiki/" target="_blank">Wiki Home</a></li>
+			</ul>
+
+		</div>
 		<div id="content">
-			<p>A <i>polyline</i> is an ordered collection of paths. Each path is a collection of contiguous line segments. 
-				A line segment is defined by a pair of consecutive points. 
+
+			<p>A <i>polyline</i> is an ordered collection of paths. Each path is a collection of contiguous line segments.
+				A line segment is defined by a pair of consecutive points.
 			</p>
 			<div class="image360">
 				<img src="Images/Polyline/Polyline1.jpg">
-				<div class="desc">Polyline with 3 paths</div>				
+				<div class="desc">Polyline with 3 paths</div>
 			</div>
 			<h2 id="boundary">Boundary, Interior &amp; Exterior</h2>
-			<p>The <i>boundary</i> of a polyline is the set of start and end points of each path. The <i>interior</i> of a polyline 
-				is the set of points in the polyline that are not in the boundary. The <i>exterior</i> of a polyline is the set of 
-				points that are not in the boundary or the interior. It is important to understand the boundary, interior and exterior 
-				of a geometry when using the various operators. The relational operators, for example, rely heavily on these 
-				concepts. 
+			<p>The <i>boundary</i> of a polyline is the set of start and end points of each path. The <i>interior</i> of a polyline
+				is the set of points in the polyline that are not in the boundary. The <i>exterior</i> of a polyline is the set of
+				points that are not in the boundary or the interior. It is important to understand the boundary, interior and exterior
+				of a geometry when using the various operators. The relational operators, for example, rely heavily on these
+				concepts.
 			</p>
-			<p>For the polyline shown below, the set of points comprising the boundary is shown in red. The interior of the polyline is shown in black. 
+			<p>For the polyline shown below, the set of points comprising the boundary is shown in red. The interior of the polyline is shown in black.
 			</p>
 			<div class="image360">
 				<img src="Images/Polyline/Boundary1.jpg">
-				<div class="desc">Red is boundary, black is interior</div>				
+				<div class="desc">Red is boundary, black is interior</div>
 			</div>
 			<p>
-				If a vertex is contained in several paths, how do we determine if it is in the boundary of the polyline? 
+				If a vertex is contained in several paths, how do we determine if it is in the boundary of the polyline?
 				To determine if a vertex is in the boundary of a polyline count the number of segments in which it is it
-				is contained. If that number is even, then the vertex is not in the boundary. If that number is odd, then 
-				the vertex is in the boundary. 
+				is contained. If that number is even, then the vertex is not in the boundary. If that number is odd, then
+				the vertex is in the boundary.
 			</p>
-			<p> 
-				For example, consider the polyline shown below. 
+			<p>
+				For example, consider the polyline shown below.
 			</p>
 			<div class="image240">
 				<img src="Images/Polyline/Boundary2.jpg">
-				<div class="desc">Red is boundary, green is ?</div>				
+				<div class="desc">Red is boundary, green is ?</div>
 			</div>
 			<p>
-				Clearly, the red vertices are in the boundary of the polyline. But what about the green one? The answer 
-				is that the green vertex is not in the boundary since it is contained in four segments. 
+				Clearly, the red vertices are in the boundary of the polyline. But what about the green one? The answer
+				is that the green vertex is not in the boundary since it is contained in four segments.
 			</p>
 			<p>
-				Here is another example. 
+				Here is another example.
 			</p>
 			<div class="image240">
 				<img src="Images/Polyline/Boundary3.jpg">
-				<div class="desc">Red is boundary, green is ?</div>				
+				<div class="desc">Red is boundary, green is ?</div>
 			</div>
 			<p>
 				In this case, since the green vertex is contained in five segments, it is in the boundary of the polyline.
 			</p>
 			<p>
-				One way to remember this rule is to think of a single path with three vertices. 
+				One way to remember this rule is to think of a single path with three vertices.
 			</p>
 			<div class="image240">
 				<img src="Images/Polyline/Boundary4.jpg">
-				<div class="desc">Red is boundary</div>				
+				<div class="desc">Red is boundary</div>
 			</div>
 			<p>
-				It is easy to see that the red vertices are in the boundary and the black vertex is not. Notice that the 
+				It is easy to see that the red vertices are in the boundary and the black vertex is not. Notice that the
 				number of segments containing each of the red vertices is one, an odd number. Now count the number of segments
-				containing the black vertex. Two, an even number. 
+				containing the black vertex. Two, an even number.
 			</p>
 			<h2>Valid polylines</h2>
-			<p>A valid polyline is such that every path has at least two distinct points. Tolerance is used to determine if 
-				two points are distinct. In other words, if the distance between two points is less than the tolerance specified 
-				by the spatial reference, then the points are considered equal. 
+			<p>A valid polyline is such that every path has at least two distinct points. Tolerance is used to determine if
+				two points are distinct. In other words, if the distance between two points is less than the tolerance specified
+				by the spatial reference, then the points are considered equal.
 			</p>
-			<p>A <i>closed path</i> is a path with more than two distinct points and the start point equals the end point. 
+			<p>A <i>closed path</i> is a path with more than two distinct points and the start point equals the end point.
 				A closed path is a valid polyline.
-			</p> 
+			</p>
 			<div class="image240">
 				<img src="Images/Polyline/ClosedPath.jpg">
-				<div class="desc">Closed path is valid</div>				
+				<div class="desc">Closed path is valid</div>
 			</div>
 			<p>A valid polyline is said to be <i>simple</i>.
-			See the <a href="Simplify.html">Simplify operator</a> for a more detailed specification 
+			See the <a href="Simplify.html">Simplify operator</a> for a more detailed specification
 			of simple polylines. Note that a simple polyline may not be OGC compliant. See the <a href="SimplifyOGC.html">
 				Simplify operator with OGC restrictions</a>.
 			</p>
 			<h3>Examples</h3>
 			<p>
-				Let's look at some examples of polylines. <br /> 
-				In the first group of examples, the green circles are the vertices of the polyline. 
+				Let's look at some examples of polylines. <br />
+				In the first group of examples, the green circles are the vertices of the polyline.
 			</p>
 			<div class="imageGallery4">
-				<span><img src="Images/Polyline/ExamplePolyline1.jpg"></span>
-				<span><img src="Images/Polyline/ExamplePolyline2.jpg"></span>
-				<span><img src="Images/Polyline/ExamplePolyline3.jpg"></span>
-				<span class="lastImg"><img src="Images/Polyline/ExamplePolyline4.jpg"></span>
+				<span><img src="Images/Polyline/ExamplePolyline1.jpg" class="specifics"></span>
+				<span><img src="Images/Polyline/ExamplePolyline2.jpg" class="specifics"></span>
+				<span><img src="Images/Polyline/ExamplePolyline3.jpg" class="specifics"></span>
+				<span class="lastImg"><img src="Images/Polyline/ExamplePolyline4.jpg" class="specifics"></span>
 				<div class="desc">Polylines</div>
 			</div>
 			<p>This example shows polylines which represent some of the major highways in the United States.</p>
 			<div class="map">
 				<img src="Images/Polyline/USHighways.jpg">
-				<div class="desc">U.S. Highways</div>				
+				<div class="desc">U.S. Highways</div>
 			</div>
 			<h3 id="JSON">JSON format</h3>
-			<p>A polyline can be represented as a JSON string. A polyline in JSON format contains an array of <code>paths</code> 
-				and an optional <code>spatialReference</code>. A polyline can also have boolean-valued <code>hasM</code> and 
-				<code>hasZ</code> fields. The default value is false for both the <code>hasM</code> and <code>hasZ</code> 
+			<p>A polyline can be represented as a JSON string. A polyline in JSON format contains an array of <code>paths</code>
+				and an optional <code>spatialReference</code>. A polyline can also have boolean-valued <code>hasM</code> and
+				<code>hasZ</code> fields. The default value is false for both the <code>hasM</code> and <code>hasZ</code>
 				fields.
 			</p>
-			<p>Each path is represented by an array of points. Each point in a path is represented as an array of numbers. 
-				See the description of <a href="Multipoint.html#JSON">JSON multipoints</a> for details on the 
-				interpretation of the point arrays. 
+			<p>Each path is represented by an array of points. Each point in a path is represented as an array of numbers.
+				See the description of <a href="Multipoint.html#JSON">JSON multipoints</a> for details on the
+				interpretation of the point arrays.
 			</p>
 			<p>An empty polyline is represented with an empty array for the <code>paths</code> field.</p>
-			
+
 			<h4>Syntax</h4>
 			<div class="codeSample">
 <pre>{
@@ -171,11 +175,11 @@
 			</p>
 			<div class="image360">
 				<img src="Images/Polyline/CreatePolyline.jpg">
-				<div class="desc">Create this polyline</div>				
+				<div class="desc">Create this polyline</div>
 			</div>
 			<h3><code>Polyline</code> class methods</h3>
-			<p>To begin each path, we call the <code>startPath</code> method and then successsive calls to the 
-				<code>lineTo</code> method. 
+			<p>To begin each path, we call the <code>startPath</code> method and then successsive calls to the
+				<code>lineTo</code> method.
 			</p>
 			<div class="codeSample">
 <pre class="classMethod">static Polyline createPolyline1() {
@@ -191,66 +195,66 @@
     line.lineTo(7, 9);
     line.lineTo(7.2, 8.9);
     line.lineTo(7.4, 9);
-    
+
     <span class="codeComment">// Path 3</span>
     line.startPath(7.4, 8.9);
     line.lineTo(7.25, 8.6);
     line.lineTo(7.15, 8.8);
-    
+
     return poly;
 }
 </pre>
 			</div>
 			<h3>Import from JSON</h3>
-			<p>We first create the JSON string which represents the polyline. Note that the order of the paths doesn't 
-				matter. Only the order of the points within each path is important. We then call the <code>execute</code> 
+			<p>We first create the JSON string which represents the polyline. Note that the order of the paths doesn't
+				matter. Only the order of the points within each path is important. We then call the <code>execute</code>
 				method of <code>OperatorImportFromJson</code>.
 			</p>
 			<div class="codeSample">
 <pre class="import">static Polyline createPolygonFromJson() throws JsonParseException, IOException {
-    
+
     String jsonString = "{\"paths\":[[[6.8,8.8],[7,9],[7.2,8.9],[7.4,9]],"
                       + "[[7.4,8.9],[7.25,8.6],[7.15,8.8]],[[6.9, 9.1],[7, 8.8]]],"
                       + "\"spatialReference\":{\"wkid\":4326}}";
-                          
+
     MapGeometry mapGeom = OperatorImportFromJson.local().execute(Geometry.Type.Polyline, jsonString);
-    
+
     return (Polyline)mapGeom.getGeometry();
 }
 </pre>
 		</div>
 			<h3>Import from GeoJSON</h3>
-			<p>We first create the GeoJSON string which represents the polyline. We then call the <code>execute</code> 
+			<p>We first create the GeoJSON string which represents the polyline. We then call the <code>execute</code>
 				method of <code>OperatorImportFromGeoJson</code>.
 			</p>
-			<p>The code shown below creates the same polygon as in the previous examples. 
+			<p>The code shown below creates the same polygon as in the previous examples.
 			</p>
 			<div class="codeSample">
 <pre class="import">static Polyline createPolylineFromGeoJson() throws JsonParseException, IOException {
-    
+
     String geoJsonString = "{\"type\":\"MultiLineString\","
                          + "\"coordinates\":[[[6.8,8.8],[7,9],[7.2,8.9],[7.4,9]],"
                          + "[[7.4,8.9],[7.25,8.6],[7.15,8.8]],[[6.9, 9.1],[7, 8.8]]],"
                          + "\"crs\":\"EPSG:4326\"}";
-                          
+
     MapGeometry mapGeom = OperatorImportFromGeoJson.local().execute(GeoJsonImportFlags.geoJsonImportDefaults, Geometry.Type.Polyline, geoJsonString, null);
-    
+
     return (Polyline)mapGeom.getGeometry();
 }
 </pre>
 			</div>
 			<h3>Import from WKT</h3>
-			<p>We first create the WKT string which represents the polyline. We then call the <code>execute</code> 
+			<p>We first create the WKT string which represents the polyline. We then call the <code>execute</code>
 				method of <code>OperatorImportFromWkt</code>.
 			</p>
-			<p>The code shown below creates the same polygon as in the previous examples. 
+			<p>The code shown below creates the same polygon as in the previous examples.
 			</p>
 			<div class="codeSample">
 <pre class="import">static Polyline createPolylineFromWKT() throws JsonParseException, IOException {
-    
+
     String wktString = "MULTILINESTRING ((6.9 9.1,7 8.8),(6.8 8.8,7 9,7.2 8.9,7.4 9),(7.4 8.9,7.25 8.6,7.15 8.8))";
     Geometry geom = OperatorImportFromWkt.local().execute(WktImportFlags.wktImportDefaults, Geometry.Type.Polyline, wktString, null);
-    
+
     return (Polyline)geom;
 }
 </pre>
@@ -259,4 +263,3 @@
 	<br /><br />
 	</body>
 </html>
-

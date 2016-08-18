@@ -9,24 +9,25 @@
     <link rel="stylesheet" href="GeometryDocStyle.css">
   </head>
 	<body>
-		<h1 id="topic">Disjoint</h1>
-    <ul id="menu">
-    <li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorDisjoint.html">API Reference</a></li>
-      <li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
-    </ul>
+    <div id="header">
+      <h1 id="topic">Disjoint</h1>
+      <ul id="menu">
+      <li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorDisjoint.html" target="_blank">API Reference</a></li>
+        <li><a href="https://github.com/Esri/geometry-api-java/wiki/" target="_blank">Wiki Home</a></li>
+      </ul>
+    </div>
 		<div id="content">
-		<p>Two geometries are disjoint if they don’t have any points in common. Disjoint is the inverse of Intersects. Disjoint is the most efficient operator and is guaranteed to work even on non-simple geometries.</p>
+			<p>Two geometries are disjoint if they don’t have any points in common. Disjoint is the inverse of Intersects. Disjoint is the most efficient operator and is guaranteed to work even on non-simple geometries.</p>
       <table class="noBoundaryTable">
       <tr>
-        <td><img src="Images/Disjoint/Disjoint1.jpg"></td>
+        <td><img src="Images/Disjoint/Disjoint1.jpg" class="fullImg"></td>
       </tr>
       </table>
       <h4 class="myLightBlue">Example 1: Is Geometry A disjoint from Geometry B?</h4>
       <div class="codeSample">
-<pre class="import">static boolean geometryIsDisjoint(Geometry geometryA, Geometry geometryB, SpatialReference sr) 
+<pre class="import">static boolean geometryIsDisjoint(Geometry geometryA, Geometry geometryB, SpatialReference sr)
 {
   boolean isDisjoint = OperatorDisjoint.local().execute(geometryA, geometryB, sr, null);
-    
   return isDisjoint;
 }
 </pre>

@@ -9,40 +9,41 @@
     <link rel="stylesheet" href="GeometryDocStyle.css">
   </head>
 	<body>
-		<h1 id="topic">Contains</h1>
-    <ul id="menu">
-    <li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorContains.html">API Reference</a></li>
-      <li><a href="https://github.com/Esri/geometry-api-java/wiki/">Wiki Home</a></li>
-    </ul>
+		<div id="header">
+			<h1 id="topic">Contains</h1>
+			<ul id="menu">
+	    <li><a href="http://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorContains.html" target="_blank">API Reference</a></li>
+	      <li><a href="https://github.com/Esri/geometry-api-java/wiki/" target="_blank">Wiki Home</a></li>
+	    </ul>
+		</div>
 		<div id="content">
-      <p>One geometry contains another if the other geometry is a subset of it and their interiors have at least one point in common. Contains is the inverse of Within.</p>
+			<p>One geometry contains another if the other geometry is a subset of it and their interiors have at least one point in common. Contains is the inverse of Within.</p>
       <p>In the following pictures Geometry A is blue, and Geometry B is red.</p>
       <table class="noBoundaryTable">
       <tr>
-        <td><img src="Images/Contains/Contains1.jpg"></td>
+        <td ><img src="Images/Contains/Contains1.jpg" class="fullImg"></td>
       </tr>
       </table>
       <table class="noBoundaryTable">
       <tr>
-        <td><img src="Images/Contains/Contains2.jpg"></td>
+        <td><img src="Images/Contains/Contains2.jpg" class="fullImg"></td>
       </tr>
       </table>
       <table class="noBoundaryTable">
       <tr>
-        <td><img src="Images/Contains/Contains3.jpg"></td>
+        <td><img src="Images/Contains/Contains3.jpg" class="fullImg"></td>
       </tr>
       </table>
       <table class="noBoundaryTable">
       <tr>
-        <td><img src="Images/Contains/Contains4.jpg"></td>
+        <td><img src="Images/Contains/Contains4.jpg" class="fullImg"></td>
       </tr>
       </table>
       <h4 class="myLightBlue">Example 1: Does Geometry A contain Geometry B?</h4>
       <div class="codeSample">
-<pre class="import">static boolean geometryContains(Geometry geometryA, Geometry geometryB, SpatialReference sr) 
+<pre class="import">static boolean geometryContains(Geometry geometryA, Geometry geometryB, SpatialReference sr)
 {
   boolean contains = OperatorContains.local().execute(geometryA, geometryB, sr, null);
-    
   return contains;
 }
 </pre>
