@@ -13,9 +13,9 @@
 
 	<licenses>
 		<license>
-				<name>The Apache Software License, Version 2.0</name>
-				<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-				<distribution>repo</distribution>
+			<name>The Apache Software License, Version 2.0</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+			<distribution>repo</distribution>
 		</license>
 	</licenses>
 
@@ -39,7 +39,7 @@
 			</roles>
 		</developer>
 	</developers>
-	
+
 	<scm>
 		<connection>scm:git:git@github.com:Esri/geometry-api-java.git</connection>
 		<developerConnection>scm:git:git@github.com:Esri/geometry-api-java.git</developerConnection>
@@ -49,12 +49,12 @@
 	<profiles>
 		<profile>
 			<id>release-sign-artifacts</id>
-      <activation>
-        <property>
-          <name>performRelease</name>
-          <value>true</value>
-        </property>
-      </activation>
+			<activation>
+				<property>
+					<name>performRelease</name>
+					<value>true</value>
+				</property>
+			</activation>
 			<build>
 				<plugins>
 					<plugin>
@@ -73,15 +73,24 @@
 				</plugins>
 			</build>
 		</profile>
+		<profile>
+			<id>java8-disable-doclint</id>
+			<activation>
+				<jdk>[1.8,)</jdk>
+			</activation>
+			<properties>
+				<javadoc.doclint.param>-Xdoclint:none</javadoc.doclint.param>
+			</properties>
+		</profile>
 	</profiles>
-	
+
 	<distributionManagement>
 		<snapshotRepository>
 			<id>ossrh</id>
 			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
 		</snapshotRepository>
 	</distributionManagement>
-	
+
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
@@ -138,12 +147,12 @@
 		</testResources>
 		<plugins>
 			<plugin>
-					<artifactId>maven-compiler-plugin</artifactId>
-					<version>${compiler.plugin.version}</version>
-					<configuration>
-						<source>${java.source.version}</source>
-						<target>${java.target.version}</target>
-					</configuration>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>${compiler.plugin.version}</version>
+				<configuration>
+					<source>${java.source.version}</source>
+					<target>${java.target.version}</target>
+				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -172,6 +181,9 @@
 						<goals>
 							<goal>jar</goal>
 						</goals>
+						<configuration>
+							<additionalparam>${javadoc.doclint.param}</additionalparam>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>
