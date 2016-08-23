@@ -39,7 +39,7 @@
 			</roles>
 		</developer>
 	</developers>
-	
+
 	<scm>
 		<connection>scm:git:git@github.com:Esri/geometry-api-java.git</connection>
 		<developerConnection>scm:git:git@github.com:Esri/geometry-api-java.git</developerConnection>
@@ -73,15 +73,24 @@
 				</plugins>
 			</build>
 		</profile>
+		<profile>
+			<id>java8-disable-doclint</id>
+			<activation>
+				<jdk>[1.8,)</jdk>
+			</activation>
+			<properties>
+				<javadoc.doclint.param>-Xdoclint:none</javadoc.doclint.param>
+			</properties>
+		</profile>
 	</profiles>
-	
+
 	<distributionManagement>
 		<snapshotRepository>
 			<id>ossrh</id>
 			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
 		</snapshotRepository>
 	</distributionManagement>
-	
+
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
@@ -172,6 +181,9 @@
 						<goals>
 							<goal>jar</goal>
 						</goals>
+						<configuration>
+							<additionalparam>${javadoc.doclint.param}</additionalparam>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>
