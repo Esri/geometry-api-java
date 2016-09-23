@@ -23,11 +23,9 @@
  */
 package com.esri.core.geometry;
 
-import java.util.ArrayList;
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.JsonToken;
-import org.json.JSONArray;
 import org.json.JSONObject;
+
+import java.util.Iterator;
 
 final class JSONObjectEnumerator {
 
@@ -69,12 +67,29 @@ final class JSONObjectEnumerator {
 	boolean next() {
 		if (!m_bStarted) {
 			m_currentIndex = 0;
-			m_keys = JSONObject.getNames(m_jsonObject);
+			m_keys = getNames(m_jsonObject);
 			m_bStarted = true;
 		} else if (m_currentIndex != m_jsonObject.length()) {
 			m_currentIndex++;
 		}
 
 		return m_currentIndex != m_jsonObject.length();
+	}
+
+	// copied from https://github.com/Esri/JSON-java/blob/master/JSONObject.java
+	private static String[] getNames(JSONObject jo) {
+		int length = jo.length();
+		if (length == 0) {
+			return null;
+		}
+		//noinspection unchecked - sic
+		Iterator<String> iterator = jo.keys();
+		String[] names = new String[length];
+		int i = 0;
+		while (iterator.hasNext()) {
+			names[i] = iterator.next();
+			i += 1;
+		}
+		return names;
 	}
 }
