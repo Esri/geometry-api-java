@@ -98,9 +98,9 @@
 		<java.target.version>1.6</java.target.version>
 
 		<!-- dependency versions -->
-		<json.version>20090211</json.version>
-		<jackson.version>1.9.12</jackson.version>
-		<junit.version>4.11</junit.version>
+		<json.version>20140107</json.version>
+		<jackson.version>1.9.13</jackson.version>
+		<junit.version>4.12</junit.version>
 
 		<!-- plugin versions -->
 		<compiler.plugin.version>2.3.1</compiler.plugin.version>
