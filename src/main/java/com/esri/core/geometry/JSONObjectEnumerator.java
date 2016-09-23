@@ -23,18 +23,17 @@
  */
 package com.esri.core.geometry;
 
-import java.util.ArrayList;
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.JsonToken;
-import org.json.JSONArray;
 import org.json.JSONObject;
+
+import java.util.Iterator;
 
 final class JSONObjectEnumerator {
 
 	private JSONObject m_jsonObject;
 	private boolean m_bStarted;
 	private int m_currentIndex;
-	private String[] m_keys;
+	private Iterator<?> m_keys_iter;
+	private String m_current_key;
 
 	JSONObjectEnumerator(JSONObject jsonObject) {
 		m_bStarted = false;
@@ -51,7 +50,7 @@ final class JSONObjectEnumerator {
 			throw new GeometryException("invalid call");
 		}
 
-		return m_keys[m_currentIndex];
+		return m_current_key;
 	}
 
 	Object getCurrentObject() {
@@ -63,15 +62,23 @@ final class JSONObjectEnumerator {
 			throw new GeometryException("invalid call");
 		}
 
-		return m_jsonObject.opt(m_keys[m_currentIndex]);
+		return m_jsonObject.opt(m_current_key);
 	}
 
 	boolean next() {
 		if (!m_bStarted) {
 			m_currentIndex = 0;
-			m_keys = JSONObject.getNames(m_jsonObject);
+			m_keys_iter = m_jsonObject.keys();
 			m_bStarted = true;
+			if (m_keys_iter.hasNext()) {
+				m_current_key = (String)m_keys_iter.next();
+			}
+
 		} else if (m_currentIndex != m_jsonObject.length()) {
+			if (m_keys_iter.hasNext()) {
+				m_current_key = (String)m_keys_iter.next();
+			}
+
 			m_currentIndex++;
 		}
 
