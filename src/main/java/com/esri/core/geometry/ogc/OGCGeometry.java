@@ -496,7 +496,7 @@ public abstract class OGCGeometry {
 	}
 
 	public static OGCGeometry fromJson(String string)
-			throws Exception {
+			throws JsonParseException, IOException {
 		JsonFactory factory = new JsonFactory();
 		JsonParser jsonParserPt = factory.createJsonParser(string);
 		jsonParserPt.nextToken();
@@ -506,7 +506,7 @@ public abstract class OGCGeometry {
 	}
 
 	public static OGCGeometry fromGeoJson(String string)
-			throws Exception {
+			throws JsonParseException, IOException {
 		OperatorImportFromGeoJson op = (OperatorImportFromGeoJson) OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.ImportFromGeoJson);
 		MapOGCStructure mapOGCStructure = op.executeOGC(0, string, null);
