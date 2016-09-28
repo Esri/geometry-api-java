@@ -12,7 +12,6 @@ import org.json.JSONException;
 
 import com.esri.core.geometry.Envelope;
 import com.esri.core.geometry.Envelope1D;
-import com.esri.core.geometry.GeoJsonExportFlags;
 import com.esri.core.geometry.Geometry;
 import com.esri.core.geometry.GeometryCursor;
 import com.esri.core.geometry.GeometryCursorAppend;
@@ -30,7 +29,6 @@ import com.esri.core.geometry.OperatorExportToGeoJson;
 import com.esri.core.geometry.OperatorFactoryLocal;
 import com.esri.core.geometry.OperatorImportFromESRIShape;
 import com.esri.core.geometry.OperatorImportFromGeoJson;
-import com.esri.core.geometry.OperatorImportFromJson;
 import com.esri.core.geometry.OperatorImportFromWkb;
 import com.esri.core.geometry.OperatorImportFromWkt;
 import com.esri.core.geometry.OperatorIntersection;
@@ -506,7 +504,7 @@ public abstract class OGCGeometry {
 	}
 
 	public static OGCGeometry fromGeoJson(String string)
-			throws JsonParseException, IOException {
+			throws JSONException {
 		OperatorImportFromGeoJson op = (OperatorImportFromGeoJson) OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.ImportFromGeoJson);
 		MapOGCStructure mapOGCStructure = op.executeOGC(0, string, null);
