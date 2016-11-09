@@ -805,7 +805,7 @@ class Bufferer {
 
 	private Geometry bufferPoint_(Point point) {
 		assert (m_distance > 0);
-		Polygon resultPolygon = new Polygon(m_geometry.getDescription());
+		Polygon resultPolygon = new Polygon(point.getDescription());
 		addCircle_((MultiPathImpl) resultPolygon._getImpl(), point);
 		return setStrongSimple_(resultPolygon);
 	}
