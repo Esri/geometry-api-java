@@ -266,6 +266,17 @@ public class TestBuffer extends TestCase {
 			assertTrue(Math.abs(pointCount - 208.0) < 10);
 			assertTrue(simplify.isSimpleAsFeature(result, sr, null));
 		}
+
+		{
+			inputGeom = new Polyline();
+			inputGeom.startPath(1.762614,0.607368);
+			inputGeom.lineTo(1.762414,0.606655);
+			inputGeom.lineTo(1.763006,0.607034);
+			inputGeom.lineTo(1.762548,0.607135);
+
+			Geometry result = buffer.execute(inputGeom, sr, 0.005, null);
+			assertTrue(simplify.isSimpleAsFeature(result, sr, null));
+		}
 	}
 
 	@Test
