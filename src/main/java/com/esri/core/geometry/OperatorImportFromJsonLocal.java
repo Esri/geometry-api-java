@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2015 Esri
+ Copyright 1995-2017 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -23,46 +23,20 @@
  */
 package com.esri.core.geometry;
 
-import java.io.IOException;
-
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.JsonParser;
-import org.json.JSONObject;
-import org.json.JSONException;
-
-import com.esri.core.geometry.ogc.OGCGeometry;
-
 class OperatorImportFromJsonLocal extends OperatorImportFromJson {
 
 	@Override
 	public MapGeometryCursor execute(Geometry.Type type,
-			JsonParserCursor jsonParserCursor) {
+			JsonReaderCursor jsonParserCursor) {
 		return new OperatorImportFromJsonCursor(type.value(), jsonParserCursor);
 	}
 
 	@Override
-	public MapGeometry execute(Geometry.Type type, JsonParser jsonParser) {
-		SimpleJsonParserCursor jsonParserCursor = new SimpleJsonParserCursor(
-				jsonParser);
-		OperatorImportFromJsonCursor cursor = new OperatorImportFromJsonCursor(
-				type.value(), jsonParserCursor);
-		return cursor.next();
+	public MapGeometry execute(Geometry.Type type, JsonReader jsonParser) {
+		return OperatorImportFromJsonCursor.importFromJsonParser(type.value(), jsonParser);
 	}
 	@Override
-	public MapGeometry execute(Geometry.Type type, String string)
-			throws JsonParseException, IOException {
-		JsonFactory factory = new JsonFactory();
-		JsonParser jsonParserPt = factory.createJsonParser(string);
-		jsonParserPt.nextToken();
-		return execute(type, jsonParserPt);
+	public MapGeometry execute(Geometry.Type type, String string) {
+		return execute(type, JsonParserReader.createFromString(string));
 	}	
-	@Override
-	public MapGeometry execute(Geometry.Type type, JSONObject jsonObject)
-    throws JSONException, IOException {
-		if (jsonObject == null)
-			return null;
-		
-		return OperatorImportFromJsonCursor.importFromJsonParser(type.value(), new JsonValueReader(jsonObject));
-	}
 }

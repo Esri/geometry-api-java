@@ -5,8 +5,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonParser;
 import junit.framework.TestCase;
 import org.junit.Test;
 
@@ -237,15 +235,8 @@ public class TestCommonMethods extends TestCase {
 	}
 
 	public static MapGeometry fromJson(String jsonString) {
-		JsonFactory factory = new JsonFactory();
 		try {
-			JsonParser jsonParser = factory.createJsonParser(jsonString);
-			jsonParser.nextToken();
-			OperatorImportFromJson importer = (OperatorImportFromJson) OperatorFactoryLocal
-					.getInstance().getOperator(
-							Operator.Type.ImportFromJson);
-
-			return importer.execute(Geometry.Type.Unknown, jsonParser);
+			return OperatorImportFromJson.local().execute(Geometry.Type.Unknown, jsonString);
 		} catch (Exception ex) {
 		}
 

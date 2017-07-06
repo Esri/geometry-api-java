@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2015 Esri
+ Copyright 1995-2017 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -21,20 +21,34 @@
 
  email: contracts@esri.com
  */
+/*
+ COPYRIGHT 1995-2017 ESRI
+
+ TRADE SECRETS: ESRI PROPRIETARY AND CONFIDENTIAL
+ Unpublished material - all rights reserved under the
+ Copyright Laws of the United States.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
 package com.esri.core.geometry;
 
-import org.codehaus.jackson.JsonParser;
-
 /**
- * An abstract JsonParser Cursor class.
+ * An abstract JsonReader Cursor class.
  */
-abstract class JsonParserCursor {
+abstract class JsonReaderCursor {
 
 	/**
-	 * Moves the cursor to the next JsonParser. Returns null when reached the
+	 * Moves the cursor to the next JsonReader. Returns null when reached the
 	 * end.
 	 */
-	public abstract JsonParser next();
+	public abstract JsonReader next();
 
 	/**
 	 * Returns the ID of the current geometry. The ID is propagated across the

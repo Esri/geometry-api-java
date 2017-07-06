@@ -4,9 +4,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
 
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonParser;
-
 public class GeometryUtils {
 	public static String getGeometryType(Geometry geomIn) {
 		// there are five types: esriGeometryPoint
@@ -29,12 +26,8 @@ public class GeometryUtils {
 	}
 
 	static Geometry getGeometryFromJSon(String jsonStr) {
-		JsonFactory jf = new JsonFactory();
-
 		try {
-			JsonParser jp = jf.createJsonParser(jsonStr);
-			jp.nextToken();
-			Geometry geom = GeometryEngine.jsonToGeometry(jp).getGeometry();
+			Geometry geom = GeometryEngine.jsonToGeometry(jsonStr).getGeometry();
 			return geom;
 		} catch (Exception ex) {
 			return null;

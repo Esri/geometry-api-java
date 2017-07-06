@@ -27,12 +27,10 @@ import com.esri.core.geometry.ogc.OGCPoint;
 import com.esri.core.geometry.ogc.OGCMultiPoint;
 import com.esri.core.geometry.ogc.OGCLineString;
 import com.esri.core.geometry.ogc.OGCPolygon;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
 import com.esri.core.geometry.ogc.OGCConcreteGeometryCollection;
 import junit.framework.TestCase;
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonParser;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -228,10 +226,10 @@ public class TestGeomToGeoJson extends TestCase {
 	public void testMultiPolygon() throws IOException {
 		JsonFactory jsonFactory = new JsonFactory();
 
-		String geoJsonPolygon = "{\"type\":\"MultiPolygon\",\"coordinates\":[[[[-100,-100],[-100,100],[100,100],[100,-100],[-100,-100]],[[-90,-90],[90,90],[-90,90],[90,-90],[-90,-90]]],[[[-10.0,-10.0],[-10.0,10.0],[10.0,10.0],[10.0,-10.0],[-10.0,-10.0]]]]}";
+		//String geoJsonPolygon = "{\"type\":\"MultiPolygon\",\"coordinates\":[[[[-100,-100],[-100,100],[100,100],[100,-100],[-100,-100]],[[-90,-90],[90,90],[-90,90],[90,-90],[-90,-90]]],[[[-10.0,-10.0],[-10.0,10.0],[10.0,10.0],[10.0,-10.0],[-10.0,-10.0]]]]}";
 		String esriJsonPolygon = "{\"rings\": [[[-100, -100], [-100, 100], [100, 100], [100, -100], [-100, -100]], [[-90, -90], [90, 90], [-90, 90], [90, -90], [-90, -90]], [[-10, -10], [-10, 10], [10, 10], [10, -10], [-10, -10]]]}";
 
-		JsonParser parser = jsonFactory.createJsonParser(esriJsonPolygon);
+		JsonParser parser = jsonFactory.createParser(esriJsonPolygon);
 		MapGeometry parsedPoly = GeometryEngine.jsonToGeometry(parser);
 		//MapGeometry parsedPoly = GeometryEngine.geometryFromGeoJson(jsonPolygon, 0, Geometry.Type.Polygon);
 
@@ -244,9 +242,8 @@ public class TestGeomToGeoJson extends TestCase {
 	}
 
 
-	@Deprecated
 	@Test
-	public void testEmptyPolygon() throws JSONException {
+	public void testEmptyPolygon() {
 		Polygon p = new Polygon();
 		OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory.getOperator(Operator.Type.ExportToGeoJson);
 		String result = exporter.execute(p);
@@ -386,16 +383,6 @@ public class TestGeomToGeoJson extends TestCase {
 				geoms, sr);
 		String s2 = collection.asGeoJson();
 		
-		JSONObject json = null;
-		boolean valid = false;
-		try {
-			json = new JSONObject(s2);
-			valid = true;
-		} catch (Exception e) {
-		}
-
-		assertTrue(valid);
-		
 		assertEquals("{\"type\":\"GeometryCollection\",\"geometries\":[{\"type\":\"Point\",\"coordinates\":[1,1]},{\"type\":\"LineString\",\"coordinates\":[[1,1],[2,2]]},{\"type\":\"Polygon\",\"coordinates\":[[[1,1],[2,0],[3,1],[2,2],[1,1]]]}],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}}", collection.asGeoJson());
 	}
 
@@ -435,7 +422,7 @@ public class TestGeomToGeoJson extends TestCase {
 	}
 
 	@Test
-	public void testOldCRS() throws JSONException {
+	public void testOldCRS() {
 		String inputStr = "{\"type\":\"Polygon\",\"coordinates\":[[[-180,-90],[180,-90],[180,90],[-180,90],[-180,-90]]], \"crs\":\"EPSG:4267\"}";
 		MapGeometry mg = OperatorImportFromGeoJson.local().execute(GeoJsonImportFlags.geoJsonImportDefaults, Geometry.Type.Unknown, inputStr, null);
 		String result = GeometryEngine.geometryToGeoJson(mg.getSpatialReference(), mg.getGeometry());

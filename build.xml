@@ -14,11 +14,11 @@
 	<property name="dir.result" value="results" />
 	<property name="dir.root" value="." />
 	<property name="file.jarname" value="esri-geometry-api.jar" />
+	<property name="jackson.version" value="2.6.2" />
 
 	<path id="project.classpath">
-		<pathelement location="${dir.depfiles}/public/jackson-core-asl-1.9.11.jar" />
-		<pathelement location="${dir.depfiles}/public/java-json.jar" />
-		<pathelement location="${dir.depfiles}/unittest/junit-4.8.2.jar" />
+		<pathelement location="${dir.depfiles}/public/jackson-core-${jackson.version}.jar" />		
+		<pathelement location="${dir.depfiles}/unittest/junit-4.12.jar" />
 		<pathelement location="${dir.build}" />
 	</path>
 

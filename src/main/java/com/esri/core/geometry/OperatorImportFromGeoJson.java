@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2015 Esri
+ Copyright 1995-2017 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -23,11 +23,6 @@
  */
 package com.esri.core.geometry;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.IOException;
-
 public abstract class OperatorImportFromGeoJson extends Operator {
 
 	@Override
@@ -43,7 +38,7 @@ public abstract class OperatorImportFromGeoJson extends Operator {
 	 * @return Returns the imported MapGeometry.
 	 * @throws JsonGeometryException
 	 */
-	public abstract MapGeometry execute(int importFlags, Geometry.Type type, JSONObject jsonObject, ProgressTracker progressTracker) throws JSONException;
+	public abstract MapGeometry execute(int importFlags, Geometry.Type type, JsonReader jsonReader, ProgressTracker progressTracker);
 
 	/**
 	 * Deprecated, use version without import_flags.
@@ -57,7 +52,7 @@ public abstract class OperatorImportFromGeoJson extends Operator {
 	 * @throws JSONException
 	 * 
 	 */
-	public abstract MapGeometry execute(int import_flags, Geometry.Type type, String geoJsonString, ProgressTracker progress_tracker) throws JSONException;
+	public abstract MapGeometry execute(int import_flags, Geometry.Type type, String geoJsonString, ProgressTracker progress_tracker);
 
 	/**
 	 * 
@@ -68,7 +63,7 @@ public abstract class OperatorImportFromGeoJson extends Operator {
 	 * @return Returns the imported MapOGCStructure.
 	 * @throws JSONException
 	 */
-	public abstract MapOGCStructure executeOGC(int import_flags, String geoJsonString, ProgressTracker progress_tracker) throws JSONException;
+	public abstract MapOGCStructure executeOGC(int import_flags, String geoJsonString, ProgressTracker progress_tracker);
 
 	public static OperatorImportFromGeoJson local() {
 		return (OperatorImportFromGeoJson) OperatorFactoryLocal.getInstance().getOperator(Type.ImportFromGeoJson);

@@ -4,8 +4,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 import junit.framework.TestCase;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.junit.Test;
 
 public class TestImportExport extends TestCase {
@@ -1228,7 +1226,7 @@ public class TestImportExport extends TestCase {
 
 	@Deprecated
 	@Test
-	public static void testImportGeoJsonGeometryCollection() throws JSONException {
+	public static void testImportGeoJsonGeometryCollection() {
 		OperatorImportFromGeoJson importer = (OperatorImportFromGeoJson) OperatorFactoryLocal.getInstance().getOperator(Operator.Type.ImportFromGeoJson);
 
 		String geoJsonString;
@@ -1305,8 +1303,7 @@ public class TestImportExport extends TestCase {
 		assertTrue(polygon.getPathCount() == 5);
 		assertTrue(spatial_reference.getLatestID() == 3857);
 
-		JSONObject jsonObject = new JSONObject(geoJsonString);
-		map_geometry = importerGeoJson.execute(0, Geometry.Type.Unknown, jsonObject, null);
+		map_geometry = importerGeoJson.execute(0, Geometry.Type.Unknown, geoJsonString, null);
 		polygon = (Polygon) map_geometry.getGeometry();
 		spatial_reference = map_geometry.getSpatialReference();
 		assertTrue(polygon != null);

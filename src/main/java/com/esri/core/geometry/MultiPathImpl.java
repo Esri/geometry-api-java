@@ -25,7 +25,7 @@
 
 package com.esri.core.geometry;
 
-import java.util.ArrayList;
+import com.esri.core.geometry.MultiVertexGeometryImpl.DirtyFlags;
 
 final class MultiPathImpl extends MultiVertexGeometryImpl {
 
@@ -2561,30 +2561,34 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 		return true;
 	}
 
-    boolean _buildQuadTreeForPathsAccelerator(GeometryAccelerationDegree degree) {
-        if (m_accelerators == null) {
-            m_accelerators = new GeometryAccelerators();
-        }
+	boolean _buildQuadTreeForPathsAccelerator(GeometryAccelerationDegree degree) {
+		if (m_accelerators == null) {
+			m_accelerators = new GeometryAccelerators();
+		}
 
-        //TODO: when less than two envelopes - no need to this.
+		// TODO: when less than two envelopes - no need to this.
 
-        if (m_accelerators.getQuadTreeForPaths() != null)
-            return true;
+		if (m_accelerators.getQuadTreeForPaths() != null)
+			return true;
 
-        m_accelerators._setQuadTreeForPaths(null);
-        QuadTreeImpl quad_tree_impl = InternalUtils.buildQuadTreeForPaths(this);
-        m_accelerators._setQuadTreeForPaths(quad_tree_impl);
+		m_accelerators._setQuadTreeForPaths(null);
+		QuadTreeImpl quad_tree_impl = InternalUtils.buildQuadTreeForPaths(this);
+		m_accelerators._setQuadTreeForPaths(quad_tree_impl);
 
-        return true;
-    }
+		return true;
+	}
 
-    void setFillRule(int rule) {
-    	assert(m_bPolygon);
-    	m_fill_rule = rule;
-    }
-    int getFillRule() {
-    	return m_fill_rule;
-    }
+	void setFillRule(int rule) {
+		assert (m_bPolygon);
+		m_fill_rule = rule;
+	}
 
+	int getFillRule() {
+		return m_fill_rule;
+	}
 
+	void clearDirtyOGCFlags() { 
+		_setDirtyFlag(DirtyFlags.DirtyOGCFlags, false);
+	}
 }
+

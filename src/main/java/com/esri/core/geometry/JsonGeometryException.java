@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2015 Esri
+ Copyright 1995-2017 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -21,13 +21,15 @@
 
  email: contracts@esri.com
  */
+
 package com.esri.core.geometry;
 
 /**
  * A runtime exception raised when a JSON related exception occurs.
  */
 public class JsonGeometryException extends GeometryException {
-
+	private static final long serialVersionUID = 1L;
+	
 	/**
 	 * Constructs a Json Geometry Exception with the given error string/message.
 	 *
@@ -37,4 +39,16 @@ public class JsonGeometryException extends GeometryException {
 	public JsonGeometryException(String str) {
 		super(str);
 	}
+
+	/**
+	 * Constructs a Json Geometry Exception with the given another exception.
+	 *
+	 * @param ex
+	 *            - The exception to copy the message from.
+	 */
+	public JsonGeometryException(Exception ex) {
+		super(ex.getMessage());
+	}
+	
 }
+

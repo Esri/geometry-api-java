@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2015 Esri
+ Copyright 1995-2017 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -24,15 +24,6 @@
 
 package com.esri.core.geometry;
 
-import java.io.IOException;
-
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.JsonParser;
-import org.json.JSONObject;
-import org.json.JSONException;
-
-import com.esri.core.geometry.Operator.Type;
-
 /**
  *Import from JSON format.
  */
@@ -48,29 +39,20 @@ public abstract class OperatorImportFromJson extends Operator {
 	 * @return Returns a MapGeometryCursor.
 	 */
 	abstract MapGeometryCursor execute(Geometry.Type type,
-			JsonParserCursor jsonParserCursor);
+			JsonReaderCursor jsonReaderCursor);
 
 	/**
 	 *Performs the ImportFromJson operation on a single Json string
 	 *@return Returns a MapGeometry.
 	 */
 	public abstract MapGeometry execute(Geometry.Type type,
-			JsonParser jsonParser);
+			JsonReader jsonReader);
 
 	/**
 	 *Performs the ImportFromJson operation on a single Json string
 	 *@return Returns a MapGeometry.
 	 */
-	public abstract MapGeometry execute(Geometry.Type type, String string)
-			throws JsonParseException, IOException;
-	
-	/**
-	 *Performs the ImportFromJson operation on a JSONObject
-	 *@return Returns a MapGeometry.
-	 */
-	public abstract MapGeometry execute(Geometry.Type type, JSONObject jsonObject)
-			throws JSONException, IOException;	
-
+	public abstract MapGeometry execute(Geometry.Type type, String string);
 	
 	public static OperatorImportFromJson local() {
 		return (OperatorImportFromJson) OperatorFactoryLocal.getInstance()

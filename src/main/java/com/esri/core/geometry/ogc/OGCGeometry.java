@@ -5,42 +5,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.JsonParser;
-import org.json.JSONException;
-
-import com.esri.core.geometry.Envelope;
-import com.esri.core.geometry.Envelope1D;
-import com.esri.core.geometry.Geometry;
-import com.esri.core.geometry.GeometryCursor;
-import com.esri.core.geometry.GeometryCursorAppend;
-import com.esri.core.geometry.GeometryEngine;
-import com.esri.core.geometry.MapGeometry;
-import com.esri.core.geometry.MapOGCStructure;
-import com.esri.core.geometry.MultiPoint;
-import com.esri.core.geometry.NumberUtils;
-import com.esri.core.geometry.OGCStructure;
-import com.esri.core.geometry.Operator;
-import com.esri.core.geometry.OperatorBuffer;
-import com.esri.core.geometry.OperatorConvexHull;
-import com.esri.core.geometry.OperatorExportToWkb;
-import com.esri.core.geometry.OperatorExportToGeoJson;
-import com.esri.core.geometry.OperatorFactoryLocal;
-import com.esri.core.geometry.OperatorImportFromESRIShape;
-import com.esri.core.geometry.OperatorImportFromGeoJson;
-import com.esri.core.geometry.OperatorImportFromWkb;
-import com.esri.core.geometry.OperatorImportFromWkt;
-import com.esri.core.geometry.OperatorIntersection;
-import com.esri.core.geometry.OperatorSimplify;
-import com.esri.core.geometry.OperatorSimplifyOGC;
-import com.esri.core.geometry.OperatorUnion;
-import com.esri.core.geometry.Point;
-import com.esri.core.geometry.Polygon;
-import com.esri.core.geometry.Polyline;
-import com.esri.core.geometry.SimpleGeometryCursor;
-import com.esri.core.geometry.SpatialReference;
-import com.esri.core.geometry.VertexDescription;
+import com.esri.core.geometry.*;
 
 /**
  * OGC Simple Feature Access specification v.1.2.1
@@ -493,18 +458,13 @@ public abstract class OGCGeometry {
 				SpatialReference.create(4326));
 	}
 
-	public static OGCGeometry fromJson(String string)
-			throws JsonParseException, IOException {
-		JsonFactory factory = new JsonFactory();
-		JsonParser jsonParserPt = factory.createJsonParser(string);
-		jsonParserPt.nextToken();
-		MapGeometry mapGeom = GeometryEngine.jsonToGeometry(jsonParserPt);
+	public static OGCGeometry fromJson(String string) {
+		MapGeometry mapGeom = GeometryEngine.jsonToGeometry(JsonParserReader.createFromString(string));
 		return OGCGeometry.createFromEsriGeometry(mapGeom.getGeometry(),
 				mapGeom.getSpatialReference());
 	}
 
-	public static OGCGeometry fromGeoJson(String string)
-			throws JSONException {
+	public static OGCGeometry fromGeoJson(String string) {
 		OperatorImportFromGeoJson op = (OperatorImportFromGeoJson) OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.ImportFromGeoJson);
 		MapOGCStructure mapOGCStructure = op.executeOGC(0, string, null);

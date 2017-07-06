@@ -9,9 +9,9 @@ import java.io.IOException;
 
 import junit.framework.TestCase;
 
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonParseException;
 import org.junit.Test;
+
+import com.fasterxml.jackson.core.JsonFactory;
 
 public class TestSimplify extends TestCase {
 	OperatorFactoryLocal factory = null;
@@ -1233,18 +1233,16 @@ public class TestSimplify extends TestCase {
 	}
 
 	@Test
-	public void testPolylineIsSimpleForOGC() throws IOException {
+	public void testPolylineIsSimpleForOGC() {
 		OperatorImportFromJson importerJson = (OperatorImportFromJson) factory
 				.getOperator(Operator.Type.ImportFromJson);
 		OperatorSimplify simplify = (OperatorSimplify) factory
 				.getOperator(Operator.Type.Simplify);
 
-		JsonFactory f = new JsonFactory();
-
 		{
 			String s = "{\"paths\":[[[0, 10], [8, 5], [5, 2], [6, 0]]]}";
 			Geometry g = importerJson.execute(Geometry.Type.Unknown,
-					f.createJsonParser(s)).getGeometry();
+					JsonParserReader.createFromString(s)).getGeometry();
 			boolean res = simplifyOpOGC.isSimpleOGC(g, null, true, null, null);
 			assertTrue(res);
 		}
@@ -1252,7 +1250,7 @@ public class TestSimplify extends TestCase {
 			String s = "{\"paths\":[[[0, 10], [6,  0], [7, 5], [0, 3]]]}";// self
 																			// intersection
 			Geometry g = importerJson.execute(Geometry.Type.Unknown,
-					f.createJsonParser(s)).getGeometry();
+					JsonParserReader.createFromString(s)).getGeometry();
 			boolean res = simplifyOpOGC.isSimpleOGC(g, null, true, null, null);
 			assertTrue(!res);
 		}
@@ -1260,7 +1258,7 @@ public class TestSimplify extends TestCase {
 		{
 			String s = "{\"paths\":[[[0, 10], [6,  0], [0, 3], [0, 10]]]}"; // closed
 			Geometry g = importerJson.execute(Geometry.Type.Unknown,
-					f.createJsonParser(s)).getGeometry();
+					JsonParserReader.createFromString(s)).getGeometry();
 			boolean res = simplifyOpOGC.isSimpleOGC(g, null, true, null, null);
 			assertTrue(res);
 		}
@@ -1271,7 +1269,7 @@ public class TestSimplify extends TestCase {
 																									// self
 																									// tangent
 			Geometry g = importerJson.execute(Geometry.Type.Unknown,
-					f.createJsonParser(s)).getGeometry();
+					JsonParserReader.createFromString(s)).getGeometry();
 			boolean res = simplifyOpOGC.isSimpleOGC(g, null, true, null, null);
 			assertTrue(!res);
 		}
@@ -1284,7 +1282,7 @@ public class TestSimplify extends TestCase {
 																			// a
 																			// point
 			Geometry g = importerJson.execute(Geometry.Type.Unknown,
-					f.createJsonParser(s)).getGeometry();
+					JsonParserReader.createFromString(s)).getGeometry();
 			boolean res = simplifyOpOGC.isSimpleOGC(g, null, true, null, null);
 			assertTrue(res);
 		}
@@ -1298,7 +1296,7 @@ public class TestSimplify extends TestCase {
 																												// one
 																												// point
 			Geometry g = importerJson.execute(Geometry.Type.Unknown,
-					f.createJsonParser(s)).getGeometry();
+					JsonParserReader.createFromString(s)).getGeometry();
 			boolean res = simplifyOpOGC.isSimpleOGC(g, null, true, null, null);
 			assertTrue(!res);
 		}
@@ -1308,7 +1306,7 @@ public class TestSimplify extends TestCase {
 																				// lines
 																				// intersect
 			Geometry g = importerJson.execute(Geometry.Type.Unknown,
-					f.createJsonParser(s)).getGeometry();
+					JsonParserReader.createFromString(s)).getGeometry();
 			boolean res = simplifyOpOGC.isSimpleOGC(g, null, true, null, null);
 			assertTrue(!res);
 		}
@@ -1320,7 +1318,7 @@ public class TestSimplify extends TestCase {
 																								// mid
 																								// point.
 			Geometry g = importerJson.execute(Geometry.Type.Unknown,
-					f.createJsonParser(s)).getGeometry();
+					JsonParserReader.createFromString(s)).getGeometry();
 			boolean res = simplifyOpOGC.isSimpleOGC(g, null, true, null, null);
 			assertTrue(!res);
 		}
@@ -1328,7 +1326,7 @@ public class TestSimplify extends TestCase {
 	}
 	
 	@Test
-	public void testFillRule() throws JsonParseException, IOException {
+	public void testFillRule() {
 		//self intersecting star shape
 		MapGeometry mg = OperatorImportFromJson.local().execute(Geometry.Type.Unknown, "{\"rings\":[[[0,0], [5,10], [10, 0], [0, 7], [10, 7], [0, 0]]]}");
 		Polygon poly = (Polygon)mg.getGeometry();

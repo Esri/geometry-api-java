@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2015 Esri
+ Copyright 1995-2017 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -36,7 +36,6 @@ public abstract class Operator {
 		Project,
 
 		ExportToJson, ImportFromJson,
-		@Deprecated ImportMapGeometryFromJson,
 		ExportToESRIShape, ImportFromESRIShape,
 
 		Union, Difference,
