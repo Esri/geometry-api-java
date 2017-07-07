@@ -1,0 +1,7 @@
+* text=auto
+
+#
+# Binary specific files
+#
+resouces/* binary
+*.jar binary
