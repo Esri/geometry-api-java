@@ -26,7 +26,7 @@ public class TestCut extends TestCase {
 		testEngine(sr);
 
 	}
-
+
 	public static void testConsiderTouch1(SpatialReference spatialReference) {
 		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
 		OperatorCut opCut = (OperatorCut) engine.getOperator(Operator.Type.Cut);

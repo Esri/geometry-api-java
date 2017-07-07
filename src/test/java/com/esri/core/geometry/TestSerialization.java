@@ -317,7 +317,7 @@ public class TestSerialization extends TestCase {
 			assertEquals(ex.getMessage(), "Cannot serialize this geometry");
 		}
 	}
-
+
 	@Test
 	public void testSerializeSR() {
 		try {
@@ -334,7 +334,7 @@ public class TestSerialization extends TestCase {
 			fail("Spatial Reference serialization failure");
 		}
 	}
-
+
 	@Test
 	public void testSerializeEnvelope2D() {
 		try {

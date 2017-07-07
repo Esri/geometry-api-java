@@ -21,7 +21,7 @@ public class TestJSonToGeomFromWkiOrWkt_CR177613 extends TestCase {
 	protected void tearDown() throws Exception {
 		super.tearDown();
 	}
-
+
 	@Test
 	public void testPolygonWithEmptyWKT_NoWKI() throws JsonParseException,
 			IOException {
@@ -37,7 +37,7 @@ public class TestJSonToGeomFromWkiOrWkt_CR177613 extends TestCase {
 		SpatialReference sr = mapGeom.getSpatialReference();
 		assertTrue(sr == null);
 	}
-
+
 	@Test
 	public void testOnlyWKI() throws JsonParseException, IOException {
 		String jsonStringSR = "{\"wkid\" : 4326}";
@@ -49,7 +49,7 @@ public class TestJSonToGeomFromWkiOrWkt_CR177613 extends TestCase {
 		SpatialReference sr = mapGeom.getSpatialReference();
 		assertTrue(sr == null);
 	}
-
+
 	@Test
 	public void testMP2onCR175871() throws Exception {
 		Polygon pg = new Polygon();
