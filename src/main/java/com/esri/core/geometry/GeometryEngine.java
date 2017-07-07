@@ -41,7 +41,7 @@ public class GeometryEngine {
 
 	private static OperatorFactoryLocal factory = OperatorFactoryLocal
 			.getInstance();
-
+
 	/**
 	 * Imports the MapGeometry from its JSON representation. M and Z values are
 	 * not imported from JSON representation.
@@ -660,7 +660,7 @@ public class GeometryEngine {
 		}
 
 		return cutsList.toArray(new Geometry[0]);
-	}
+	}
 	/**
 	 * Calculates a buffer polygon for each geometry at each of the 
 	 * corresponding specified distances.  It is assumed that all geometries have
@@ -706,7 +706,7 @@ public class GeometryEngine {
 			return buffers;
 		}
 	}
-
+
 	/**
 	 * Calculates a buffer polygon of the geometry as specified by the 
 	 * distance input. The buffer is implemented in the xy-plane.
@@ -896,7 +896,7 @@ public class GeometryEngine {
 		boolean result = op.isSimpleAsFeature(geometry, spatialReference, null);
 		return result;
 	}
-
+
 	/**
 	 * A geodesic distance is the shortest distance between any two points on the earth's surface when the earth's
 	 * surface is approximated by a spheroid. The function returns the shortest distance between two points on the

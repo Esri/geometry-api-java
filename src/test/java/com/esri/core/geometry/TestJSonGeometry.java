@@ -17,7 +17,7 @@ public class TestJSonGeometry extends TestCase {
 	protected void tearDown() throws Exception {
 		super.tearDown();
 	}
-
+
 	@Test
 	public void testGetSpatialReferenceFor4326() {
 		String completeStr = "GEOGCS[\"GCS_Sphere\",DATUM[\"D_Sphere\","

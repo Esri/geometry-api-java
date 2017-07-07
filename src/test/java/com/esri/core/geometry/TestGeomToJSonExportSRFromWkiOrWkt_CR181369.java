@@ -37,7 +37,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 		String s1 = OperatorExportToJson.local().execute(null, line);
 		assertTrue(s.contains("."));
 	}
-	
+	
 	boolean testPoint() throws JsonParseException, IOException {
 		boolean bAnswer = true;
 		Point point1 = new Point(10.0, 20.0);

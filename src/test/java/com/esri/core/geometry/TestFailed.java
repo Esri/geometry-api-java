@@ -13,7 +13,7 @@ public class TestFailed extends TestCase {
 	protected void tearDown() throws Exception {
 		super.tearDown();
 	}
-
+
 	@Test
 	public void testCenterXY() {
 		Envelope env = new Envelope(-130, 30, -70, 50);
@@ -40,7 +40,7 @@ public class TestFailed extends TestCase {
 		}
 		assertEquals(noException, 1);
 	}
-
+
 	@Test
 	public void TestIntersection() {
 		OperatorIntersects op = (OperatorIntersects) OperatorFactoryLocal
