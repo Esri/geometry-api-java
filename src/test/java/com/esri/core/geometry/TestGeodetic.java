@@ -101,4 +101,5 @@ public class TestGeodetic extends TestCase {
 		 * assertTrue(Math.abs(length - 2738362.3249366437) < 2e-9 * length);
 		 */
 	}
-	}
+	
+}

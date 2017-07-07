@@ -28,7 +28,8 @@ public class TestJSonGeometry extends TestCase {
 		SpatialReference sr = SpatialReference.create(completeStr);
 		assertNotNull(sr);
 	}
-}
+
+}
 
 final class HashMapClassForTesting {
 	static Map<Integer, String> SR_WKI_WKTs = new HashMap<Integer, String>() {

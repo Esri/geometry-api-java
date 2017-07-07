@@ -41,7 +41,8 @@ public class GeometryEngine {
 
 	private static OperatorFactoryLocal factory = OperatorFactoryLocal
 			.getInstance();
-
+
+
 	/**
 	 * Imports the MapGeometry from its JSON representation. M and Z values are
 	 * not imported from JSON representation.
