@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2015 Esri
+ Copyright 1995-2017 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -38,10 +38,6 @@ import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.util.HashMap;
 
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.JsonParser;
-
 /**
  *An abstract class that represent the basic OperatorFactory interface.
  */
@@ -57,8 +53,6 @@ public class OperatorFactoryLocal extends OperatorFactory {
 		st_supportedOperators.put(Type.ExportToJson,
 				new OperatorExportToJsonLocal());
 		st_supportedOperators.put(Type.ImportFromJson,
-				new OperatorImportFromJsonLocal());
-		st_supportedOperators.put(Type.ImportMapGeometryFromJson,
 				new OperatorImportFromJsonLocal());
 		st_supportedOperators.put(Type.ExportToESRIShape,
 				new OperatorExportToESRIShapeLocal());
@@ -202,14 +196,7 @@ public class OperatorFactoryLocal extends OperatorFactory {
 		} catch (Exception ex) {
 		}
 
-		JsonFactory jf = new JsonFactory();
-		JsonParser jp = null;
-		try {
-			jp = jf.createJsonParser(jsonString);
-			jp.nextToken();
-		} catch (Exception ex) {
-		}
-		MapGeometry mapGeom = OperatorImportFromJson.local().execute(Geometry.Type.Unknown, jp);
+		MapGeometry mapGeom = OperatorImportFromJson.local().execute(Geometry.Type.Unknown, jsonString);
 		return mapGeom;
 	}
 

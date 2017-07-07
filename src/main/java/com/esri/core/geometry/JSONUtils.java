@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2015 Esri
+ Copyright 1995-2017 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -23,26 +23,21 @@
  */
 package com.esri.core.geometry;
 
-import java.io.IOException;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.JsonToken;
-
 final class JSONUtils {
 
 	static boolean isObjectStart(JsonReader parser) throws Exception {
-		return parser.currentToken() == null ? parser.nextToken() == JsonToken.START_OBJECT
-				: parser.currentToken() == JsonToken.START_OBJECT;
+		return parser.currentToken() == null ? parser.nextToken() == JsonReader.Token.START_OBJECT
+				: parser.currentToken() == JsonReader.Token.START_OBJECT;
 	}
 
-	static double readDouble(JsonReader parser) throws JsonParseException,
-			IOException, Exception {
-		if (parser.currentToken() == JsonToken.VALUE_NUMBER_FLOAT)
+	static double readDouble(JsonReader parser) {
+		if (parser.currentToken() == JsonReader.Token.VALUE_NUMBER_FLOAT)
 			return parser.currentDoubleValue();
-		else if (parser.currentToken() == JsonToken.VALUE_NUMBER_INT)
+		else if (parser.currentToken() == JsonReader.Token.VALUE_NUMBER_INT)
 			return parser.currentIntValue();
-		else if (parser.currentToken() == JsonToken.VALUE_NULL)
+		else if (parser.currentToken() == JsonReader.Token.VALUE_NULL)
 			return NumberUtils.NaN();
-		else if (parser.currentToken() == JsonToken.VALUE_STRING)
+		else if (parser.currentToken() == JsonReader.Token.VALUE_STRING)
 			if (parser.currentString().equals("NaN"))
 				return NumberUtils.NaN();
 

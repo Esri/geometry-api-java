@@ -1,12 +1,13 @@
 package com.esri.core.geometry;
 
 import java.io.IOException;
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.JsonToken;
 import junit.framework.TestCase;
 import org.junit.Test;
+
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 
 public class TestJSonToGeomFromWkiOrWkt_CR177613 extends TestCase {
 	JsonFactory factory = new JsonFactory();
@@ -28,7 +29,7 @@ public class TestJSonToGeomFromWkiOrWkt_CR177613 extends TestCase {
 				+ "[-97.06124,32.834], [-97.06127,32.832], [-97.06138,32.837] ],  "
 				+ "[ [-97.06326,32.759], [-97.06298,32.755], [-97.06153,32.749], [-97.06326,32.759] ]], "
 				+ "\"spatialReference\" : {\"wkt\" : \"\"}}";
-		JsonParser jsonParserPg = factory.createJsonParser(jsonStringPg);
+		JsonParser jsonParserPg = factory.createParser(jsonStringPg);
 		jsonParserPg.nextToken();
 
 		MapGeometry mapGeom = GeometryEngine.jsonToGeometry(jsonParserPg);

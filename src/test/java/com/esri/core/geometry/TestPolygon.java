@@ -4,7 +4,6 @@ import java.io.IOException;
 
 import junit.framework.TestCase;
 
-import org.json.JSONException;
 import org.junit.Test;
 
 import com.esri.core.geometry.ogc.OGCGeometry;
@@ -1205,7 +1204,7 @@ public class TestPolygon extends TestCase {
 	}
 
 	@Test
-	public void testPolygon2PolygonFails() throws IOException, JSONException {
+	public void testPolygon2PolygonFails() {
 		OperatorFactoryLocal factory = OperatorFactoryLocal.getInstance();
 		OperatorExportToGeoJson exporter = (OperatorExportToGeoJson) factory
 				.getOperator(Operator.Type.ExportToGeoJson);
@@ -1221,10 +1220,10 @@ public class TestPolygon extends TestCase {
 	}
 
 	@Test
-	public void testPolygon2PolygonFails2() throws JSONException {
+	public void testPolygon2PolygonFails2() {
 		String birminghamGeojson = GeometryEngine
 				.geometryToGeoJson(birmingham());
-		MapGeometry returnedGeometry = GeometryEngine.geometryFromGeoJson(
+		MapGeometry returnedGeometry = GeometryEngine.geoJsonToGeometry(
 				birminghamGeojson, GeoJsonImportFlags.geoJsonImportDefaults,
 				Geometry.Type.Polygon);
 		Polygon polygon = (Polygon) returnedGeometry.getGeometry();
@@ -1232,10 +1231,10 @@ public class TestPolygon extends TestCase {
 	}
 
 	@Test
-	public void testPolygon2PolygonWorks() throws JSONException {
+	public void testPolygon2PolygonWorks() {
 		String birminghamGeojson = GeometryEngine
 				.geometryToGeoJson(birmingham());
-		MapGeometry returnedGeometry = GeometryEngine.geometryFromGeoJson(
+		MapGeometry returnedGeometry = GeometryEngine.geoJsonToGeometry(
 				birminghamGeojson, GeoJsonImportFlags.geoJsonImportDefaults,
 				Geometry.Type.Polygon);
 		Polygon polygon = (Polygon) returnedGeometry.getGeometry();
@@ -1243,7 +1242,7 @@ public class TestPolygon extends TestCase {
 	}
 
 	@Test
-	public void testPolygon2Polygon2Works() throws JSONException, IOException {
+	public void testPolygon2Polygon2Works() {
 		String birminghamJson = GeometryEngine.geometryToJson(4326,
 				birmingham());
 		MapGeometry returnedGeometry = GeometryEngine

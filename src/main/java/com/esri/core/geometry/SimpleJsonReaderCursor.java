@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2015 Esri
+ Copyright 1995-2017 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -23,23 +23,21 @@
  */
 package com.esri.core.geometry;
 
-import org.codehaus.jackson.JsonParser;
+class SimpleJsonReaderCursor extends JsonReaderCursor {
 
-class SimpleJsonParserCursor extends JsonParserCursor {
-
-	JsonParser m_jsonParser;
-	JsonParser[] m_jsonParserArray;
+	JsonReader m_jsonParser;
+	JsonReader[] m_jsonParserArray;
 
 	int m_index;
 	int m_count;
 
-	public SimpleJsonParserCursor(JsonParser jsonString) {
+	public SimpleJsonReaderCursor(JsonReader jsonString) {
 		m_jsonParser = jsonString;
 		m_index = -1;
 		m_count = 1;
 	}
 
-	public SimpleJsonParserCursor(JsonParser[] jsonStringArray) {
+	public SimpleJsonReaderCursor(JsonReader[] jsonStringArray) {
 		m_jsonParserArray = jsonStringArray;
 		m_index = -1;
 		m_count = jsonStringArray.length;
@@ -51,7 +49,7 @@ class SimpleJsonParserCursor extends JsonParserCursor {
 	}
 
 	@Override
-	public JsonParser next() {
+	public JsonReader next() {
 		if (m_index < m_count - 1) {
 			m_index++;
 			return m_jsonParser != null ? m_jsonParser

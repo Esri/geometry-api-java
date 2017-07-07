@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2015 Esri
+ Copyright 1995-2017 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -26,12 +26,11 @@ package com.esri.core.geometry;
 
 import java.io.ObjectStreamException;
 import java.io.Serializable;
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.JsonToken;
 
 import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.SpatialReferenceSerializer;
 import com.esri.core.geometry.VertexDescription;
+import com.fasterxml.jackson.core.JsonParser;
 
 /**
  * A class that represents the spatial reference for the geometry.
@@ -91,7 +90,11 @@ public abstract class SpatialReference implements Serializable {
 		return fromJson(new JsonParserReader(parser));
 	}
 	
-	static SpatialReference fromJson(JsonReader parser) throws Exception {
+	public static SpatialReference fromJson(String string) throws Exception {
+		return fromJson(JsonParserReader.createFromString(string));
+	}
+	
+	public static SpatialReference fromJson(JsonReader parser) throws Exception {
 		// Note this class is processed specially: it is expected that the
 		// iterator points to the first element of the SR object.
 		boolean bFoundWkid = false;
@@ -105,34 +108,34 @@ public abstract class SpatialReference implements Serializable {
 		int vcs_wkid = -1;
 		int latestVcsWkid = -1;
 		String wkt = null;
-		while (parser.nextToken() != JsonToken.END_OBJECT) {
+		while (parser.nextToken() != JsonReader.Token.END_OBJECT) {
 			String name = parser.currentString();
 			parser.nextToken();
 
 			if (!bFoundWkid && name.equals("wkid")) {
 				bFoundWkid = true;
 
-				if (parser.currentToken() == JsonToken.VALUE_NUMBER_INT)
+				if (parser.currentToken() == JsonReader.Token.VALUE_NUMBER_INT)
 					wkid = parser.currentIntValue();
 			} else if (!bFoundLatestWkid && name.equals("latestWkid")) {
 				bFoundLatestWkid = true;
 
-				if (parser.currentToken() == JsonToken.VALUE_NUMBER_INT)
+				if (parser.currentToken() == JsonReader.Token.VALUE_NUMBER_INT)
 					latestWkid = parser.currentIntValue();
 			} else if (!bFoundWkt && name.equals("wkt")) {
 				bFoundWkt = true;
 
-				if (parser.currentToken() == JsonToken.VALUE_STRING)
+				if (parser.currentToken() == JsonReader.Token.VALUE_STRING)
 					wkt = parser.currentString();
 			} else if (!bFoundVcsWkid && name.equals("vcsWkid")) {
 				bFoundVcsWkid = true;
 
-				if (parser.currentToken() == JsonToken.VALUE_NUMBER_INT)
+				if (parser.currentToken() == JsonReader.Token.VALUE_NUMBER_INT)
 					vcs_wkid = parser.currentIntValue();
 			} else if (!bFoundLatestVcsWkid && name.equals("latestVcsWkid")) {
 				bFoundLatestVcsWkid = true;
 
-				if (parser.currentToken() == JsonToken.VALUE_NUMBER_INT)
+				if (parser.currentToken() == JsonReader.Token.VALUE_NUMBER_INT)
 					latestVcsWkid = parser.currentIntValue();
 			}
 		}

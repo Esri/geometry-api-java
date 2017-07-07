@@ -1,11 +1,12 @@
 package com.esri.core.geometry;
 
 import java.io.IOException;
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.JsonParser;
 import junit.framework.TestCase;
 import org.junit.Test;
+
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
 
 public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 	@Override
@@ -43,7 +44,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 		Point pointEmpty = new Point();
 		{
 			JsonParser pointWebMerc1Parser = factory
-					.createJsonParser(GeometryEngine.geometryToJson(
+					.createParser(GeometryEngine.geometryToJson(
 							spatialReferenceWebMerc1, point1));
 			MapGeometry pointWebMerc1MP = GeometryEngine
 					.jsonToGeometry(pointWebMerc1Parser);
@@ -59,7 +60,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 				bAnswer = false;
 			}
 
-			pointWebMerc1Parser = factory.createJsonParser(GeometryEngine
+			pointWebMerc1Parser = factory.createParser(GeometryEngine
 					.geometryToJson(null, point1));
 			pointWebMerc1MP = GeometryEngine
 					.jsonToGeometry(pointWebMerc1Parser);
@@ -73,11 +74,11 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 
 			String pointEmptyString = GeometryEngine.geometryToJson(
 					spatialReferenceWebMerc1, pointEmpty);
-			pointWebMerc1Parser = factory.createJsonParser(pointEmptyString);
+			pointWebMerc1Parser = factory.createParser(pointEmptyString);
 		}
 
 		JsonParser pointWebMerc2Parser = factory
-				.createJsonParser(GeometryEngine.geometryToJson(
+				.createParser(GeometryEngine.geometryToJson(
 						spatialReferenceWebMerc2, point1));
 		MapGeometry pointWebMerc2MP = GeometryEngine
 				.jsonToGeometry(pointWebMerc2Parser);
@@ -94,7 +95,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 
 		{
 			JsonParser pointWgs84Parser = factory
-					.createJsonParser(GeometryEngine.geometryToJson(
+					.createParser(GeometryEngine.geometryToJson(
 							spatialReferenceWGS84, point1));
 			MapGeometry pointWgs84MP = GeometryEngine
 					.jsonToGeometry(pointWgs84Parser);
@@ -135,7 +136,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 
 		{// import
 			String s = "{\"x\":0.0,\"y\":1.0,\"z\":5.0,\"m\":11.0,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}}";
-			JsonParser parser = factory.createJsonParser(s);
+			JsonParser parser = factory.createParser(s);
 			MapGeometry map_pt = GeometryEngine.jsonToGeometry(parser);
 			Point pt = (Point) map_pt.getGeometry();
 			assertTrue(pt.getX() == 0.0);
@@ -146,7 +147,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 
 		{
 			String s = "{\"x\" : 5.0, \"y\" : null, \"spatialReference\" : {\"wkid\" : 4326}} ";
-			JsonParser parser = factory.createJsonParser(s);
+			JsonParser parser = factory.createParser(s);
 			MapGeometry map_pt = GeometryEngine.jsonToGeometry(parser);
 			Point pt = (Point) map_pt.getGeometry();
 			assertTrue(pt.isEmpty());
@@ -169,7 +170,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 		{
 			String s = GeometryEngine.geometryToJson(spatialReferenceWGS84,
 					multiPoint1);
-			JsonParser mPointWgs84Parser = factory.createJsonParser(s);
+			JsonParser mPointWgs84Parser = factory.createParser(s);
 			MapGeometry mPointWgs84MP = GeometryEngine
 					.jsonToGeometry(mPointWgs84Parser);
 			assertTrue(multiPoint1.getPointCount() == ((MultiPoint) mPointWgs84MP
@@ -210,7 +211,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 		{
 			String points = "{\"hasM\" : false, \"hasZ\" : true, \"uncle remus\" : null, \"points\" : [ [0,0,1], [0.0,10.0,1], [10.0,10.0,1], [10.0,0.0,1, 6666] ],\"spatialReference\" : {\"wkid\" : 4326}}";
 			MapGeometry mp = GeometryEngine.jsonToGeometry(factory
-					.createJsonParser(points));
+					.createParser(points));
 			MultiPoint multipoint = (MultiPoint) mp.getGeometry();
 			assertTrue(multipoint.getPointCount() == 4);
 			Point2D point2d;
@@ -248,7 +249,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 
 		{
 			JsonParser polylinePathsWgs84Parser = factory
-					.createJsonParser(GeometryEngine.geometryToJson(
+					.createParser(GeometryEngine.geometryToJson(
 							spatialReferenceWGS84, polyline));
 			MapGeometry mPolylineWGS84MP = GeometryEngine
 					.jsonToGeometry(polylinePathsWgs84Parser);
@@ -307,7 +308,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 		{
 			String paths = "{\"hasZ\" : true, \"paths\" : [ [ [0.0, 0.0,3], [0, 10.0,3], [10.0, 10.0,3, 6666], [10.0, 0.0,3, 6666] ], [ [1.0, 1,3], [1.0, 9.0,3], [9.0, 9.0,3], [1.0, 9.0,3] ] ], \"spatialReference\" : {\"wkid\" : 4326}, \"hasM\" : false}";
 			MapGeometry mapGeometry = GeometryEngine.jsonToGeometry(factory
-					.createJsonParser(paths));
+					.createParser(paths));
 			Polyline p = (Polyline) mapGeometry.getGeometry();
 			assertTrue(p.getPathCount() == 2);
 			@SuppressWarnings("unused")
@@ -341,7 +342,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 
 		{
 			JsonParser polygonPathsWgs84Parser = factory
-					.createJsonParser(GeometryEngine.geometryToJson(
+					.createParser(GeometryEngine.geometryToJson(
 							spatialReferenceWGS84, polygon));
 			MapGeometry mPolygonWGS84MP = GeometryEngine
 					.jsonToGeometry(polygonPathsWgs84Parser);
@@ -405,7 +406,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 			// Test Import Polygon from Polygon
 			String rings = "{\"hasZ\": true, \"rings\" : [ [ [0,0, 5], [0.0, 10.0, 5], [10.0,10.0, 5, 66666], [10.0,0.0, 5] ], [ [12, 12] ],  [ [13 , 17], [13 , 17] ], [ [1.0, 1.0, 5, 66666], [9.0,1.0, 5], [9.0,9.0, 5], [1.0,9.0, 5], [1.0, 1.0, 5] ] ] }";
 			MapGeometry mapGeometry = GeometryEngine.jsonToGeometry(factory
-					.createJsonParser(rings));
+					.createParser(rings));
 			Polygon p = (Polygon) mapGeometry.getGeometry();
 			@SuppressWarnings("unused")
 			double area = p.calculateArea2D();
@@ -429,7 +430,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 
 		{
 			JsonParser envelopeWGS84Parser = factory
-					.createJsonParser(GeometryEngine.geometryToJson(
+					.createParser(GeometryEngine.geometryToJson(
 							spatialReferenceWGS84, envelope));
 			MapGeometry envelopeWGS84MP = GeometryEngine
 					.jsonToGeometry(envelopeWGS84Parser);
@@ -475,7 +476,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 
 		{// import
 			String s = "{\"xmin\":0.0,\"ymin\":1.0,\"xmax\":2.0,\"ymax\":3.0,\"zmin\":5.0,\"zmax\":7.0,\"mmin\":11.0,\"mmax\":13.0,\"spatialReference\":{\"wkid\":102100,\"latestWkid\":3857}}";
-			JsonParser parser = factory.createJsonParser(s);
+			JsonParser parser = factory.createParser(s);
 			MapGeometry map_env = GeometryEngine.jsonToGeometry(parser);
 			Envelope env = (Envelope) map_env.getGeometry();
 			Envelope1D z = env.queryInterval(VertexDescription.Semantics.Z, 0);
@@ -488,7 +489,7 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 
 		{
 			String s = "{ \"zmin\" : 33, \"xmin\" : -109.55, \"zmax\" : 53, \"ymin\" : 25.76, \"xmax\" : -86.39, \"ymax\" : 49.94, \"mmax\" : 13}";
-			JsonParser parser = factory.createJsonParser(s);
+			JsonParser parser = factory.createParser(s);
 			MapGeometry map_env = GeometryEngine.jsonToGeometry(parser);
 			Envelope env = (Envelope) map_env.getGeometry();
 			Envelope2D e = new Envelope2D();
@@ -513,13 +514,13 @@ public class TestGeomToJSonExportSRFromWkiOrWkt_CR181369 extends TestCase {
 
 		String jsonStringPointAndWKT = "{\"x\":10.0,\"y\":20.0,\"spatialReference\":{\"wkt\" : \"PROJCS[\\\"NAD83_UTM_zone_15N\\\",GEOGCS[\\\"GCS_North_American_1983\\\",DATUM[\\\"D_North_American_1983\\\",SPHEROID[\\\"GRS_1980\\\",6378137.0,298.257222101]],PRIMEM[\\\"Greenwich\\\",0.0],UNIT[\\\"Degree\\\",0.0174532925199433]],PROJECTION[\\\"Transverse_Mercator\\\"],PARAMETER[\\\"false_easting\\\",500000.0],PARAMETER[\\\"false_northing\\\",0.0],PARAMETER[\\\"central_meridian\\\",-93.0],PARAMETER[\\\"scale_factor\\\",0.9996],PARAMETER[\\\"latitude_of_origin\\\",0.0],UNIT[\\\"Meter\\\",1.0]]\"} }";
 		JsonParser jsonParserPointAndWKT = factory
-				.createJsonParser(jsonStringPointAndWKT);
+				.createParser(jsonStringPointAndWKT);
 		MapGeometry mapGeom2 = GeometryEngine
 				.jsonToGeometry(jsonParserPointAndWKT);
 		String jsonStringPointAndWKT2 = GeometryEngine.geometryToJson(
 				mapGeom2.getSpatialReference(), mapGeom2.getGeometry());
 		JsonParser jsonParserPointAndWKT2 = factory
-				.createJsonParser(jsonStringPointAndWKT2);
+				.createParser(jsonStringPointAndWKT2);
 		MapGeometry mapGeom3 = GeometryEngine
 				.jsonToGeometry(jsonParserPointAndWKT2);
 		assertTrue(((Point) mapGeom2.getGeometry()).getX() == ((Point) mapGeom3

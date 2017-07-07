@@ -4,7 +4,6 @@ import java.io.IOException;
 
 import junit.framework.TestCase;
 
-import org.codehaus.jackson.JsonParseException;
 import org.junit.Test;
 
 import com.esri.core.geometry.Geometry.GeometryAccelerationDegree;
@@ -5498,7 +5497,7 @@ public class TestRelation extends TestCase {
 	}
 	
 	@Test
-	public void testDisjointFail() throws JsonParseException, IOException {
+	public void testDisjointFail() {
 		MapGeometry geometry1 = OperatorImportFromJson.local().execute(Geometry.Type.Unknown, "{\"paths\":[[[3,3],[3,3]]],\"spatialReference\":{\"wkid\":4326}}");
 		MapGeometry geometry2 = OperatorImportFromJson.local().execute(Geometry.Type.Unknown, "{\"rings\":[[[2,2],[2,4],[4,4],[4,2],[2,2]]],\"spatialReference\":{\"wkid\":4326}}");
 		OperatorDisjoint.local().accelerateGeometry(geometry1.getGeometry(), geometry1.getSpatialReference(), GeometryAccelerationDegree.enumMedium);

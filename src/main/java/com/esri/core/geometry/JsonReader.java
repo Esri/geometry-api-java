@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2015 Esri
+ Copyright 1995-2017 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -23,29 +23,38 @@
  */
 package com.esri.core.geometry;
 
-import java.util.ArrayList;
+/**
+ * An abstract reader for Json.
+ * 
+ * See JsonParserReader for a concrete implementation around JsonParser.
+ */
+abstract public interface JsonReader {
+	public static enum Token {
+		END_ARRAY,
+		END_OBJECT,
+		FIELD_NAME,
+		START_ARRAY,
+		START_OBJECT,
+		VALUE_FALSE,
+		VALUE_NULL,
+		VALUE_NUMBER_FLOAT,
+		VALUE_NUMBER_INT,
+		VALUE_STRING,
+		VALUE_TRUE
+	}
 
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.JsonToken;
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.json.JSONException;
-import org.codehaus.jackson.JsonParseException;
+	abstract public Token nextToken() throws JsonGeometryException;
 
-import java.io.IOException;
+	abstract public Token currentToken() throws JsonGeometryException;
 
-abstract class JsonReader {
+	abstract public void skipChildren() throws JsonGeometryException;
 
-	abstract JsonToken nextToken() throws JSONException, JsonParseException, IOException;
+	abstract public String currentString() throws JsonGeometryException;
 
-	abstract JsonToken currentToken() throws JSONException, JsonParseException, IOException;
+	abstract public double currentDoubleValue() throws JsonGeometryException;
 
-	abstract void skipChildren() throws JSONException, JsonParseException, IOException;
-
-	abstract String currentString() throws JSONException, JsonParseException, IOException;
-
-	abstract double currentDoubleValue() throws JSONException, JsonParseException, IOException;
-
-	abstract int currentIntValue() throws JSONException, JsonParseException, IOException;
+	abstract public int currentIntValue() throws JsonGeometryException;
+	
+	abstract public boolean currentBooleanValue() throws JsonGeometryException;
 }
 

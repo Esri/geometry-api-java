@@ -4,13 +4,13 @@ import java.util.Hashtable;
 import java.io.IOException;
 import java.util.Map;
 import junit.framework.TestCase;
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.JsonToken;
-import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 
 public class TestJsonParser extends TestCase {
 
@@ -34,7 +34,7 @@ public class TestJsonParser extends TestCase {
     public void test3DPoint() throws JsonParseException, IOException {
         String jsonString3DPt = "{\"x\" : -118.15, \"y\" : 33.80, \"z\" : 10.0, \"spatialReference\" : {\"wkid\" : 4326}}";
 
-        JsonParser jsonParser3DPt = factory.createJsonParser(jsonString3DPt);
+        JsonParser jsonParser3DPt = factory.createParser(jsonString3DPt);
         MapGeometry point3DMP = GeometryEngine.jsonToGeometry(jsonParser3DPt);
         assertTrue(-118.15 == ((Point) point3DMP.getGeometry()).getX());
         assertTrue(33.80 == ((Point) point3DMP.getGeometry()).getY());
