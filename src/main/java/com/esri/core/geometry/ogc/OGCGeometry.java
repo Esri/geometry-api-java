@@ -204,11 +204,22 @@ public abstract class OGCGeometry {
 
 	abstract public OGCGeometry boundary();
 
+	@Override
+	public boolean equals(Object other) {
+		if (other == this)
+			return true;
+		if (other == null  ||  other.getClass() != getClass())
+			return false;
+		return equals((OGCGeometry)other);
+	}
+
 	/**
 	 * OGC equals
 	 * 
 	 */
 	public boolean equals(OGCGeometry another) {
+		if (another == null)
+			return false;
 		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
 		com.esri.core.geometry.Geometry geom2 = another.getEsriGeometry();
 		return com.esri.core.geometry.GeometryEngine.equals(geom1, geom2,

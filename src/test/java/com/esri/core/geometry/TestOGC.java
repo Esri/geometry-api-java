@@ -26,6 +26,8 @@ package com.esri.core.geometry;
 
 import junit.framework.TestCase;
 
+import com.esri.core.geometry.MapGeometry;
+import com.esri.core.geometry.Point;
 import com.esri.core.geometry.ogc.OGCGeometry;
 import com.esri.core.geometry.ogc.OGCGeometryCollection;
 import com.esri.core.geometry.ogc.OGCLineString;
@@ -916,6 +918,18 @@ public class TestOGC extends TestCase {
 			assertTrue(simpleG.equals(baseGeom));
 			
 		}
+	}
+
+	@Test
+	public void testEquals() {
+		Point pt = new Point(15.0, 5.0);
+		OGCGeometry p1 = OGCGeometry.createFromEsriGeometry(pt, null),
+			p2 = OGCGeometry.createFromEsriGeometry(pt, null);  // same call, distinct objects
+		assertTrue(p1.equals(p2));  // equals(OGCGeometry)
+		assertFalse(p1.equals(null));
+		assertEquals(p1, p2);       // equals(Object)
+		assertFalse(((Object)p1).equals(null));
+		assertFalse(p1.equals("string"));
 	}
 	
 }
