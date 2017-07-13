@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2015 Esri
+ Copyright 1995-2017 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -30,8 +30,8 @@ import java.nio.ByteBuffer;
 
 final class AttributeStreamOfFloat extends AttributeStreamBase {
 
-	float[] m_buffer = null;
-	int m_size;
+	private float[] m_buffer = null;
+	private int m_size;
 
 	public int size() {
 		return m_size;
@@ -53,6 +53,10 @@ final class AttributeStreamOfFloat extends AttributeStreamBase {
 
 	}
 
+	public int capacity() {
+		return m_buffer != null ? m_buffer.length : 0;
+	}
+	
 	public AttributeStreamOfFloat(int size) {
 		int sz = size;
 		if (sz < 2)
@@ -314,7 +318,7 @@ final class AttributeStreamOfFloat extends AttributeStreamBase {
 		resize(newSize);
 
 		if (bForward) {
-			System.arraycopy(((AttributeStreamOfDbl) src).m_buffer, start,
+			System.arraycopy(((AttributeStreamOfFloat) src).m_buffer, start,
 					m_buffer, oldSize, count);
 		} else {
 			int n = count;

@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2015 Esri
+ Copyright 1995-2017 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -31,14 +31,14 @@ import java.util.Arrays;
 
 final class AttributeStreamOfDbl extends AttributeStreamBase {
 
-	double[] m_buffer = null;
-	int m_size;
+	private double[] m_buffer = null;
+	private int m_size;
 
 	public int size() {
 		return m_size;
 	}
 
-	public void reserve(int reserve)// only in Java
+	public void reserve(int reserve)
 	{
 		if (reserve <= 0)
 			return;
@@ -54,6 +54,10 @@ final class AttributeStreamOfDbl extends AttributeStreamBase {
 
 	}
 
+	public int capacity() {
+		return m_buffer != null ? m_buffer.length : 0;
+	}
+	
 	public AttributeStreamOfDbl(int size) {
 		int sz = size;
 		if (sz < 2)
