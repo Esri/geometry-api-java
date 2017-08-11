@@ -82,28 +82,36 @@ public class TestOGC extends TestCase {
 		OGCLineString ls = p.exteriorRing();
 		// assertTrue(ls.pointN(1).equals(OGCGeometry.fromText("POINT(10 -10)")));
 		boolean b = ls
-				.equals(OGCGeometry
+				.Equals(OGCGeometry
 						.fromText("LINESTRING(-10 -10, 10 -10, 10 10, -10 10, -10 -10)"));
 		assertTrue(b);
 		OGCLineString lsi = p.interiorRingN(0);
-		b = lsi.equals(OGCGeometry
+		b = lsi.Equals(OGCGeometry
 				.fromText("LINESTRING(-5 -5, -5 5, 5 5, 5 -5, -5 -5)"));
 		assertTrue(b);
 		b = lsi.equals((Object)OGCGeometry
 				.fromText("LINESTRING(-5 -5, -5 5, 5 5, 5 -5, -5 -5)"));
-		assertTrue(!lsi.equals(ls));
+		assertTrue(!lsi.Equals(ls));
 		OGCMultiCurve boundary = p.boundary();
 		String s = boundary.asText();
 		assertTrue(s.equals("MULTILINESTRING ((-10 -10, 10 -10, 10 10, -10 10, -10 -10), (-5 -5, -5 5, 5 5, 5 -5, -5 -5))"));
 
 		{
-	    	OGCGeometry g2 = OGCGeometry.fromGeoJson("{\"type\": \"Polygon\", \"coordinates\": [[[1.00000001,1.00000001], [4.00000001,1.00000001], [4.00000001,4.00000001], [1.00000001,4.00000001]]]}");
-	    	OGCGeometry.fromGeoJson("{\"type\": \"LineString\", \"coordinates\": [[1.00000001,1.00000001], [7.00000001,8.00000001]]}").intersects(g2);
-	    	OGCGeometry.fromGeoJson("{\"type\": \"LineString\", \"coordinates\": [[2.449,4.865], [7.00000001,8.00000001]]}").intersects(g2);
-			
-	    	OGCGeometry g3 = OGCGeometry.fromGeoJson("{\"type\": \"Polygon\", \"coordinates\": [[[1.00000001,1.00000001], [4.00000001,1.00000001], [4.00000001,4.00000001], [1.00000001,4.00000001]]]}");
-	    	boolean bb = g2.equals((Object)g3);
-	    	assertTrue(bb);
+			OGCGeometry g2 = OGCGeometry.fromGeoJson(
+					"{\"type\": \"Polygon\", \"coordinates\": [[[1.00000001,1.00000001], [4.00000001,1.00000001], [4.00000001,4.00000001], [1.00000001,4.00000001]]]}");
+			OGCGeometry
+					.fromGeoJson(
+							"{\"type\": \"LineString\", \"coordinates\": [[1.00000001,1.00000001], [7.00000001,8.00000001]]}")
+					.intersects(g2);
+			OGCGeometry
+					.fromGeoJson(
+							"{\"type\": \"LineString\", \"coordinates\": [[2.449,4.865], [7.00000001,8.00000001]]}")
+					.intersects(g2);
+
+			OGCGeometry g3 = OGCGeometry.fromGeoJson(
+					"{\"type\": \"Polygon\", \"coordinates\": [[[1.00000001,1.00000001], [4.00000001,1.00000001], [4.00000001,4.00000001], [1.00000001,4.00000001]]]}");
+			boolean bb = g2.equals((Object) g3);
+			assertTrue(bb);
 		}
 	}
 

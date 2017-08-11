@@ -25,7 +25,6 @@
 package com.esri.core.geometry.ogc;
 
 import com.esri.core.geometry.MultiPoint;
-import com.esri.core.geometry.Point;
 
 public abstract class OGCCurve extends OGCGeometry {
 	public abstract double length();

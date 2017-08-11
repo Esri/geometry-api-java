@@ -27,13 +27,11 @@ package com.esri.core.geometry.ogc;
 import java.nio.ByteBuffer;
 
 import com.esri.core.geometry.Geometry;
-import com.esri.core.geometry.GeometryCursor;
 import com.esri.core.geometry.GeometryEngine;
 import com.esri.core.geometry.MultiPoint;
 import com.esri.core.geometry.Operator;
 import com.esri.core.geometry.OperatorExportToWkb;
 import com.esri.core.geometry.OperatorFactoryLocal;
-import com.esri.core.geometry.OperatorUnion;
 import com.esri.core.geometry.Point;
 import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.WkbExportFlags;
