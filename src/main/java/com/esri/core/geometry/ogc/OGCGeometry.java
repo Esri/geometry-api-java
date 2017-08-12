@@ -24,7 +24,6 @@
 
 package com.esri.core.geometry.ogc;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -205,14 +204,25 @@ public abstract class OGCGeometry {
 	abstract public OGCGeometry boundary();
 
 	/**
-	 * OGC equals
-	 * 
+	 * OGC equals. Performs topological comparison with tolerance.
+	 * This is different from equals(Object), that uses exact comparison.
 	 */
-	public boolean equals(OGCGeometry another) {
+	public boolean Equals(OGCGeometry another) {
+		if (this == another)
+			return true;
+		
+		if (another == null)
+			return false;
+		
 		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
 		com.esri.core.geometry.Geometry geom2 = another.getEsriGeometry();
 		return com.esri.core.geometry.GeometryEngine.equals(geom1, geom2,
 				getEsriSpatialReference());
+	}
+	
+	@Deprecated
+	public boolean equals(OGCGeometry another) {
+		return Equals(another);
 	}
 	
 	public boolean disjoint(OGCGeometry another) {

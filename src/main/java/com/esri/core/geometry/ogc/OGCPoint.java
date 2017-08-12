@@ -26,7 +26,6 @@ package com.esri.core.geometry.ogc;
 
 import java.nio.ByteBuffer;
 
-import com.esri.core.geometry.GeometryCursor;
 import com.esri.core.geometry.GeometryEngine;
 import com.esri.core.geometry.MultiPoint;
 import com.esri.core.geometry.Operator;
