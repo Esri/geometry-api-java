@@ -25,6 +25,13 @@ img
 {
   padding:10px;  height: 84%; width: auto;
 }
+table.relOpMatrixBig{ width:800px;border:0; cellspacing:0; cellpadding:0;border-collapse: collapse;}
+table.relOpMatrix{ width:500px;border:0; cellspacing:0; cellpadding:0;border-collapse: collapse;}
+td.noBorder 
+{
+  border-style: none;
+}
+
 .fullImg{
   width: auto;
   height: auto;
