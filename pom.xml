@@ -104,7 +104,7 @@
 		<!-- plugin versions -->
 		<compiler.plugin.version>2.3.1</compiler.plugin.version>
 		<source.plugin.version>2.2.1</source.plugin.version>
-		<javadoc.plugin.version>2.9</javadoc.plugin.version>
+		<javadoc.plugin.version>3.0.0-M1</javadoc.plugin.version>
 	</properties>
 
 	<dependencies>
