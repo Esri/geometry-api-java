@@ -39,6 +39,27 @@ public class TestClip extends TestCase {
 	}
 
 	@Test
+	public static void testClipNonIntersectingEnvelope() {
+		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
+		OperatorClip clipOp = (OperatorClip) engine
+				.getOperator(Operator.Type.Clip);
+
+		Envelope env = new Envelope(0, 0, 10,
+				10);
+
+		Envelope2D clipper = new Envelope2D();
+		clipper.xmin = 15;
+		clipper.xmax = 25;
+		clipper.ymin = 15;
+		clipper.ymax = 25;
+		Envelope clippedEnv = (Envelope) clipOp.execute(env, clipper,
+				SpatialReference.create(4326), null);
+
+		assertTrue(clippedEnv.isEmpty());
+
+	}
+
+	@Test
 	public static void testClipIntersection() {
 		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
 		OperatorClip clipOp = (OperatorClip) engine
