@@ -173,17 +173,73 @@ public class TestAttributes extends TestCase{
 	}
 
 	@Test
-	public void testLine_isIntersectingLineLine(){
+	public void testLine_intersectLineLineExact(){
 		Line env = new Line();
-		env.setStartXY(100,  200);
-		env.setEndXY(250, 300);
+		env.setStartXY(25.64954283965118,  -31.734133611649398);
+		env.setEndXY(23.62616739599725, -30.07359229915909);
 
 		Line env1 = new Line();
-		env.copyTo(env1);
+		env1.setStartXY(22.64954283965118,  -33.734133611649398);
+		env1.setEndXY(21.62616739599725, -34.07359229915909);
 
-		assertEquals(1, Line._isIntersectingLineLine(env, env1,1.5556504749595907E-8, false));
+		Point2D[] intersectionPoints = { new Point2D(24.999999999999996,-31.20106757941305)};
+		double[] param1 = {1.0,1.0,1.0};
+		double[] param2 = {1.0,1.0,1.0};
+
+		// Improve CC 1
+		assertEquals(0, env._intersectLineLineExact(env ,env1 , intersectionPoints, param1, param2));
+
+		// Improve CC 2
+		env.setStartXY(1.0,  1.0);
+		env.setEndXY(3.0, 4.0);
+		env1.setStartXY(1.0,  1.0);
+		env1.setEndXY(5.0, 6.0);
+		assertEquals(1, env._intersectLineLineExact(env ,env1 , intersectionPoints, param1, param2));
+
+		// Improve CC 3
+		env.setStartXY(1.0,  2.0);
+		env.setEndXY(3.0, 4.0);
+		env1.setStartXY(5.0,  6.0);
+		env1.setEndXY(1.0, 2.0);
+		assertEquals(1, env._intersectLineLineExact(env ,env1 , intersectionPoints, param1, param2));
+
+		Point2D[] intersectionPoints2 = { new Point2D(25,-30),new Point2D(25,-30),new Point2D(25,-30)};
+		double[] param11 = {1.0,1.0,1.0};
+		double[] param22 = {1.0,1.0,1.0};
+
+		// Improve CC 4
+		env.setStartXY(1.0,  1.0);
+		env.setEndXY(1.0, 1.0);
+		env1.setStartXY(1.0,  1.0);
+		env1.setEndXY(1.0, 1.0);
+		assertEquals(2, env._intersectLineLineExact(env ,env1 , intersectionPoints2, param11, param22));
+
+		// Improve CC 5
+		env.setStartXY(10.0,  1.0);
+		env.setEndXY(1.0, 1.0);
+		env1.setStartXY(1.0,  1.0);
+		env1.setEndXY(1.0, 1.0);
+		assertEquals(2, env._intersectLineLineExact(env ,env1 , intersectionPoints2, param11, param22));
+
+		// Improve CC 6
+		env.setStartXY(1.0,  1.0);
+		env.setEndXY(1.0, 1.0);
+		env1.setStartXY(1.0,  1.5);
+		env1.setEndXY(1.0, 1.0);
+		assertEquals(2, env._intersectLineLineExact(env ,env1 , intersectionPoints2, param11, param22));
+
+
+		// Improve CC 7
+		env.setStartXY(1.0,  10.0);
+		env.setEndXY(1.0, 10.0);
+		env1.setStartXY(1.0,  1.0);
+		env1.setEndXY(1.0, 10.0);
+		assertEquals(2, env._intersectLineLineExact(env ,env1 , intersectionPoints2, param11, param22));
+
+
+
 	}
-
+	
 	@Test
 	public void testMultiPoint() {
 		MultiPoint mp = new MultiPoint();
