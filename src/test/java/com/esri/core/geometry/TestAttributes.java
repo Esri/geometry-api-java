@@ -239,7 +239,7 @@ public class TestAttributes extends TestCase{
 
 
 	}
-	
+
 	@Test
 	public void testMultiPoint() {
 		MultiPoint mp = new MultiPoint();
