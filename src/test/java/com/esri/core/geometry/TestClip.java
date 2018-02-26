@@ -39,6 +39,53 @@ public class TestClip extends TestCase {
 	}
 
 	@Test
+	public static void testClipNonIntersectingEnvelope() {
+		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
+		OperatorClip clipOp = (OperatorClip) engine
+				.getOperator(Operator.Type.Clip);
+
+		Envelope env = new Envelope(0, 0, 10,
+				10);
+
+		Envelope2D clipper = new Envelope2D();
+		clipper.xmin = 15;
+		clipper.xmax = 25;
+		clipper.ymin = 15;
+		clipper.ymax = 25;
+		Envelope clippedEnv = (Envelope) clipOp.execute(env, clipper,
+				SpatialReference.create(4326), null);
+
+		assertTrue(clippedEnv.isEmpty());
+
+	}
+
+	@Test
+	public static void testClipIntersection() {
+		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
+		OperatorClip clipOp = (OperatorClip) engine
+				.getOperator(Operator.Type.Clip);
+
+		MultiPoint multipoint = makeMultiPoint();
+		SimpleGeometryCursor multipointCurs = new SimpleGeometryCursor(
+				multipoint);
+
+		SpatialReference spatialRef = SpatialReference.create(3857);
+
+		Envelope2D envelope = new Envelope2D();
+		envelope.xmin = 0;
+		envelope.xmax = 5;
+		envelope.ymin = 0;
+		envelope.ymax = 5;
+
+		GeometryCursor clipMulti_pointCurs = clipOp.execute(multipointCurs,
+				envelope, spatialRef, null);
+		MultiPoint clipped_multi_point = (MultiPoint) clipMulti_pointCurs
+				.next();
+		int pointCount = clipped_multi_point.getPointCount();
+		assertTrue(clipped_multi_point.isEmpty());
+	}
+
+	@Test
 	public static void testClipGeometries() {
 		// RandomTest();
 		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
@@ -291,6 +338,42 @@ public class TestClip extends TestCase {
 		int _pc = clippedPolygon.getPointCount();
 		assertTrue(_pathc == 1);
 		assertTrue(_pc == pc);
+	}
+
+	@Test
+	public static void testClipEmpty() {
+		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
+		OperatorClip clipOp = (OperatorClip) engine
+				.getOperator(Operator.Type.Clip);
+		{
+			Polygon polygon = new Polygon();
+
+			Envelope2D clipper = new Envelope2D();
+			Polygon clippedPolygon = (Polygon) clipOp.execute(polygon, clipper,
+					SpatialReference.create(4326), null);
+
+			assertEquals(polygon, clippedPolygon);
+		}
+
+		{
+			Polygon polygon = new Polygon();
+			polygon.addAttribute(VertexDescription.Semantics.M);
+
+			polygon.startPath(0, 0);
+			polygon.lineTo(30, 30);
+			polygon.lineTo(60, 0);
+
+			polygon.setAttribute(VertexDescription.Semantics.M, 0, 0, 0);
+			polygon.setAttribute(VertexDescription.Semantics.M, 1, 0, 60);
+			polygon.setAttribute(VertexDescription.Semantics.M, 2, 0, 120);
+
+			Envelope2D clipper = new Envelope2D();
+			clipper.xmin = Double.NaN;
+			Polygon clippedPolygon = (Polygon) clipOp.execute(polygon, clipper,
+					SpatialReference.create(4326), null);
+
+			assertTrue(clippedPolygon.isEmpty());
+		}
 	}
 
 	@Test
