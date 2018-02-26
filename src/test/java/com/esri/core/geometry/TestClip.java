@@ -294,6 +294,42 @@ public class TestClip extends TestCase {
 	}
 
 	@Test
+	public static void testClipEmpty() {
+		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
+		OperatorClip clipOp = (OperatorClip) engine
+				.getOperator(Operator.Type.Clip);
+		{
+			Polygon polygon = new Polygon();
+
+			Envelope2D clipper = new Envelope2D();
+			Polygon clippedPolygon = (Polygon) clipOp.execute(polygon, clipper,
+					SpatialReference.create(4326), null);
+
+			assertEquals(polygon, clippedPolygon);
+		}
+
+		{
+			Polygon polygon = new Polygon();
+			polygon.addAttribute(VertexDescription.Semantics.M);
+
+			polygon.startPath(0, 0);
+			polygon.lineTo(30, 30);
+			polygon.lineTo(60, 0);
+
+			polygon.setAttribute(VertexDescription.Semantics.M, 0, 0, 0);
+			polygon.setAttribute(VertexDescription.Semantics.M, 1, 0, 60);
+			polygon.setAttribute(VertexDescription.Semantics.M, 2, 0, 120);
+
+			Envelope2D clipper = new Envelope2D();
+			clipper.xmin = Double.NaN;
+			Polygon clippedPolygon = (Polygon) clipOp.execute(polygon, clipper,
+					SpatialReference.create(4326), null);
+
+			assertTrue(clippedPolygon.isEmpty());
+		}
+	}
+
+	@Test
 	public static void testClipAttributes() {
 		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
 		OperatorClip clipOp = (OperatorClip) engine
