@@ -171,7 +171,19 @@ public class TestAttributes extends TestCase{
 		assertTrue(env.getStartAttributeAsDbl(VertexDescription.Semantics.Z, 0) == 3);
 		assertTrue(env.getEndAttributeAsDbl(VertexDescription.Semantics.Z, 0) == 4);
 	}
-	
+
+	@Test
+	public void testLine_isIntersectingLineLine(){
+		Line env = new Line();
+		env.setStartXY(100,  200);
+		env.setEndXY(250, 300);
+
+		Line env1 = new Line();
+		env.copyTo(env1);
+
+		assertEquals(1, Line._isIntersectingLineLine(env, env1,1.5556504749595907E-8, false));
+	}
+
 	@Test
 	public void testMultiPoint() {
 		MultiPoint mp = new MultiPoint();
