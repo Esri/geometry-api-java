@@ -39,6 +39,32 @@ public class TestClip extends TestCase {
 	}
 
 	@Test
+	public static void testClipIntersection() {
+		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
+		OperatorClip clipOp = (OperatorClip) engine
+				.getOperator(Operator.Type.Clip);
+
+		MultiPoint multipoint = makeMultiPoint();
+		SimpleGeometryCursor multipointCurs = new SimpleGeometryCursor(
+				multipoint);
+
+		SpatialReference spatialRef = SpatialReference.create(3857);
+
+		Envelope2D envelope = new Envelope2D();
+		envelope.xmin = 0;
+		envelope.xmax = 5;
+		envelope.ymin = 0;
+		envelope.ymax = 5;
+
+		GeometryCursor clipMulti_pointCurs = clipOp.execute(multipointCurs,
+				envelope, spatialRef, null);
+		MultiPoint clipped_multi_point = (MultiPoint) clipMulti_pointCurs
+				.next();
+		int pointCount = clipped_multi_point.getPointCount();
+		assertTrue(clipped_multi_point.isEmpty());
+	}
+
+	@Test
 	public static void testClipGeometries() {
 		// RandomTest();
 		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
