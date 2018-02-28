@@ -171,7 +171,215 @@ public class TestAttributes extends TestCase{
 		assertTrue(env.getStartAttributeAsDbl(VertexDescription.Semantics.Z, 0) == 3);
 		assertTrue(env.getEndAttributeAsDbl(VertexDescription.Semantics.Z, 0) == 4);
 	}
-	
+	/*
+	@Test
+	public void testLine_intersectLineLineExact(){
+		Line env = new Line();
+		env.setStartXY(25.64954283965118,  -31.734133611649398);
+		env.setEndXY(23.62616739599725, -30.07359229915909);
+
+		Line env1 = new Line();
+		env1.setStartXY(22.64954283965118,  -33.734133611649398);
+		env1.setEndXY(21.62616739599725, -34.07359229915909);
+
+		Point2D[] intersectionPoints = { new Point2D(24.999999999999996,-31.20106757941305)};
+		double[] param1 = {1.0,1.0,1.0};
+		double[] param2 = {1.0,1.0,1.0};
+
+		// Improve CC 1
+		assertEquals(0, env._intersectLineLineExact(env ,env1 , intersectionPoints, param1, param2));
+
+		// Improve CC 2
+		env.setStartXY(1.0,  1.0);
+		env.setEndXY(3.0, 4.0);
+		env1.setStartXY(1.0,  1.0);
+		env1.setEndXY(5.0, 6.0);
+		assertEquals(1, env._intersectLineLineExact(env ,env1 , intersectionPoints, param1, param2));
+
+		// Improve CC 3
+		env.setStartXY(1.0,  2.0);
+		env.setEndXY(3.0, 4.0);
+		env1.setStartXY(5.0,  6.0);
+		env1.setEndXY(1.0, 2.0);
+		assertEquals(1, env._intersectLineLineExact(env ,env1 , intersectionPoints, param1, param2));
+
+
+
+	}*/
+	@Test
+	public void testLine_intersectLineLineExact1 () {
+		Line env = new Line();
+		env.setStartXY(25.64954283965118,  -31.734133611649398);
+		env.setEndXY(23.62616739599725, -30.07359229915909);
+
+		Line env1 = new Line();
+		env1.setStartXY(22.64954283965118,  -33.734133611649398);
+		env1.setEndXY(21.62616739599725, -34.07359229915909);
+
+		Point2D[] intersectionPoints = { new Point2D(24.999999999999996,-31.20106757941305)};
+		double[] param1 = {1.0,1.0,1.0};
+		double[] param2 = {1.0,1.0,1.0};
+
+		// Improve CC 1
+		assertEquals(0, env._intersectLineLineExact(env ,env1 , intersectionPoints, param1, param2));
+	}
+	@Test
+	public void testLine_intersectLineLineExact2 () {
+		Line env = new Line();
+		env.setStartXY(25.64954283965118,  -31.734133611649398);
+		env.setEndXY(23.62616739599725, -30.07359229915909);
+
+		Line env1 = new Line();
+		env1.setStartXY(22.64954283965118,  -33.734133611649398);
+		env1.setEndXY(21.62616739599725, -34.07359229915909);
+
+		Point2D[] intersectionPoints = { new Point2D(24.999999999999996,-31.20106757941305)};
+		double[] param1 = {1.0,1.0,1.0};
+		double[] param2 = {1.0,1.0,1.0};
+		// Improve CC 2
+		env.setStartXY(1.0,  1.0);
+		env.setEndXY(3.0, 4.0);
+		env1.setStartXY(1.0,  1.0);
+		env1.setEndXY(5.0, 6.0);
+		assertEquals(1, env._intersectLineLineExact(env ,env1 , intersectionPoints, param1, param2));
+
+	}
+	@Test
+	public void testLine_intersectLineLineExact3 () {
+		Line env = new Line();
+		env.setStartXY(25.64954283965118,  -31.734133611649398);
+		env.setEndXY(23.62616739599725, -30.07359229915909);
+
+		Line env1 = new Line();
+		env1.setStartXY(22.64954283965118,  -33.734133611649398);
+		env1.setEndXY(21.62616739599725, -34.07359229915909);
+
+		Point2D[] intersectionPoints = { new Point2D(24.999999999999996,-31.20106757941305)};
+		double[] param1 = {1.0,1.0,1.0};
+		double[] param2 = {1.0,1.0,1.0};
+		// Improve CC 3
+		env.setStartXY(1.0,  2.0);
+		env.setEndXY(3.0, 4.0);
+		env1.setStartXY(5.0,  6.0);
+		env1.setEndXY(1.0, 2.0);
+		assertEquals(1, env._intersectLineLineExact(env ,env1 , intersectionPoints, param1, param2));
+
+	}
+
+
+	@Test
+	public void testLine_intersectLineLineExact4 () {
+		Line env = new Line();
+		env.setStartXY(25.64954283965118,  -31.734133611649398);
+		env.setEndXY(23.62616739599725, -30.07359229915909);
+
+		Line env1 = new Line();
+		env1.setStartXY(22.64954283965118,  -33.734133611649398);
+		env1.setEndXY(21.62616739599725, -34.07359229915909);
+
+
+		Point2D[] intersectionPoints2 = { new Point2D(25,-30),new Point2D(25,-30),new Point2D(25,-30)};
+		double[] param1 = {1.0,1.0,1.0};
+		double[] param2 = {1.0,1.0,1.0};
+
+		// Improve CC 4
+		env.setStartXY(1.0,  1.0);
+		env.setEndXY(1.0, 1.0);
+		env1.setStartXY(1.0,  1.0);
+		env1.setEndXY(1.0, 1.0);
+		assertEquals(2, env._intersectLineLineExact(env ,env1 , intersectionPoints2, param1, param2));
+
+	}
+	@Test
+	public void testLine_intersectLineLineExact5 () {
+		Line env = new Line();
+		env.setStartXY(25.64954283965118,  -31.734133611649398);
+		env.setEndXY(23.62616739599725, -30.07359229915909);
+
+		Line env1 = new Line();
+		env1.setStartXY(22.64954283965118,  -33.734133611649398);
+		env1.setEndXY(21.62616739599725, -34.07359229915909);
+
+
+		Point2D[] intersectionPoints2 = { new Point2D(25,-30),new Point2D(25,-30),new Point2D(25,-30)};
+		double[] param1 = {1.0,1.0,1.0};
+		double[] param2 = {1.0,1.0,1.0};
+
+		// Improve CC 5
+		env.setStartXY(10.0,  1.0);
+		env.setEndXY(1.0, 1.0);
+		env1.setStartXY(1.0,  1.0);
+		env1.setEndXY(1.0, 1.0);
+		assertEquals(2, env._intersectLineLineExact(env ,env1 , intersectionPoints2, param1, param2));
+
+	}
+	@Test
+	public void testLine_intersectLineLineExact6 () {
+		Line env = new Line();
+		env.setStartXY(25.64954283965118,  -31.734133611649398);
+		env.setEndXY(23.62616739599725, -30.07359229915909);
+
+		Line env1 = new Line();
+		env1.setStartXY(22.64954283965118,  -33.734133611649398);
+		env1.setEndXY(21.62616739599725, -34.07359229915909);
+
+
+		Point2D[] intersectionPoints2 = { new Point2D(25,-30),new Point2D(25,-30),new Point2D(25,-30)};
+		double[] param1 = {1.0,1.0,1.0};
+		double[] param2 = {1.0,1.0,1.0};
+
+		// Improve CC 6
+		env.setStartXY(1.0,  1.0);
+		env.setEndXY(1.0, 1.0);
+		env1.setStartXY(1.0,  1.5);
+		env1.setEndXY(1.0, 1.0);
+		assertEquals(2, env._intersectLineLineExact(env ,env1 , intersectionPoints2, param1, param2));
+
+	}
+	@Test
+	public void testLine_intersectLineLineExact7() {
+		Line env = new Line();
+		env.setStartXY(25.64954283965118,  -31.734133611649398);
+		env.setEndXY(23.62616739599725, -30.07359229915909);
+
+		Line env1 = new Line();
+		env1.setStartXY(22.64954283965118,  -33.734133611649398);
+		env1.setEndXY(21.62616739599725, -34.07359229915909);
+
+
+		Point2D[] intersectionPoints2 = { new Point2D(25,-30),new Point2D(25,-30),new Point2D(25,-30)};
+		double[] param1 = {1.0,1.0,1.0};
+		double[] param2 = {1.0,1.0,1.0};
+		// (line1.m_xStart == line2.m_xStart && line1.m_yStart == line2.m_yStart)
+		// (line1.m_xStart == line2.m_xEnd && line1.m_yStart == line2.m_yEnd)
+		// (line1.m_xEnd == line2.m_xStart && line1.m_yEnd == line2.m_yStart)
+		// yes: (line1.m_xEnd == line2.m_xEnd && line1.m_yEnd == line2.m_yEnd)
+		env.setStartXY(1.0,  1.0);  // kan ändra
+		env.setEndXY(1.0, 1.0);
+		env1.setStartXY(1.0,  1.0); // kan ändra
+		env1.setEndXY(1.0, 1.0);
+		assertEquals(2, env._intersectLineLineExact(env ,env1 , intersectionPoints2, param1, param2));
+
+	}
+
+	@Test
+	public void test_intersectLineLine () {
+		Line env = new Line();
+		env.setStartXY(25.64954283965118,  -31.734133611649398);
+		env.setEndXY(23.62616739599725, -30.07359229915909);
+
+		Line env1 = new Line();
+		env1.setStartXY(22.64954283965118,  -33.734133611649398);
+		env1.setEndXY(21.62616739599725, -34.07359229915909);
+
+
+		Point2D[] intersectionPoints2 = { new Point2D(25,-30),new Point2D(25,-30),new Point2D(25,-30)};
+		double[] param1 = {1.0,1.0,1.0};
+		double[] param2 = {1.0,1.0,1.0};
+		Line._intersectLineLine(env, env1, intersectionPoints2, param1, param2, 10.0);
+
+	}
+
 	@Test
 	public void testMultiPoint() {
 		MultiPoint mp = new MultiPoint();
