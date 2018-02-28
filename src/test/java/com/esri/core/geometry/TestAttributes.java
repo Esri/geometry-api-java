@@ -337,7 +337,7 @@ public class TestAttributes extends TestCase{
 
 	}
 	@Test
-	public void testLine_intersectLineLineExact() {
+	public void testLine_intersectLineLineExact7() {
 		Line env = new Line();
 		env.setStartXY(25.64954283965118,  -31.734133611649398);
 		env.setEndXY(23.62616739599725, -30.07359229915909);
@@ -361,6 +361,7 @@ public class TestAttributes extends TestCase{
 		assertEquals(2, env._intersectLineLineExact(env ,env1 , intersectionPoints2, param1, param2));
 
 	}
+
 	@Test
 	public void test_intersectLineLine () {
 		Line env = new Line();
