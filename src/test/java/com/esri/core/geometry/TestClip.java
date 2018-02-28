@@ -341,7 +341,7 @@ public class TestClip extends TestCase {
 	}
 
 	@Test
-	public static void testClipEmpty() {
+	public static void testClipEmptyPolygon() {
 		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
 		OperatorClip clipOp = (OperatorClip) engine
 				.getOperator(Operator.Type.Clip);
@@ -355,6 +355,13 @@ public class TestClip extends TestCase {
 			assertEquals(polygon, clippedPolygon);
 		}
 
+	}
+
+	@Test
+	public static void testClipEmptyEnvelope() {
+		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
+		OperatorClip clipOp = (OperatorClip) engine
+				.getOperator(Operator.Type.Clip);
 		{
 			Polygon polygon = new Polygon();
 			polygon.addAttribute(VertexDescription.Semantics.M);
