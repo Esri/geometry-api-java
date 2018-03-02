@@ -24,8 +24,6 @@
 
 package com.esri.core.geometry.ogc;
 
-import java.nio.ByteBuffer;
-
 import com.esri.core.geometry.Geometry;
 import com.esri.core.geometry.GeometryEngine;
 import com.esri.core.geometry.MultiPoint;
@@ -36,6 +34,10 @@ import com.esri.core.geometry.Point;
 import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.WkbExportFlags;
 import com.esri.core.geometry.WktExportFlags;
+
+import java.nio.ByteBuffer;
+
+import static com.esri.core.geometry.SizeOf.SIZE_OF_OGC_MULTI_POINT;
 
 public class OGCMultiPoint extends OGCGeometryCollection {
 	public int numGeometries() {
@@ -64,6 +66,12 @@ public class OGCMultiPoint extends OGCGeometryCollection {
 	@Override
 	public String geometryType() {
 		return "MultiPoint";
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+		return SIZE_OF_OGC_MULTI_POINT + (multiPoint != null ? multiPoint.estimateMemorySize() : 0);
 	}
 
 	/**

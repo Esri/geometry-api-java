@@ -27,11 +27,12 @@ package com.esri.core.geometry;
 
 import java.io.Serializable;
 
+import static com.esri.core.geometry.SizeOf.SIZE_OF_POLYGON;
+
 /**
  * A polygon is a collection of one or many interior or exterior rings.
  */
 public class Polygon extends MultiPath implements Serializable {
-
 	private static final long serialVersionUID = 2L;// TODO:remove as we use
 													// writeReplace and
 													// GeometrySerializer
@@ -60,6 +61,11 @@ public class Polygon extends MultiPath implements Serializable {
 	@Override
 	public Geometry.Type getType() {
 		return Type.Polygon;
+	}
+
+	@Override
+	public long estimateMemorySize() {
+		return SIZE_OF_POLYGON + m_impl.estimateMemorySize();
 	}
 
 	/**

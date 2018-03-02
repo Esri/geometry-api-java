@@ -25,10 +25,9 @@
 
 package com.esri.core.geometry;
 
-import com.esri.core.geometry.MultiVertexGeometryImpl.DirtyFlags;
+import static com.esri.core.geometry.SizeOf.SIZE_OF_MULTI_PATH_IMPL;
 
 final class MultiPathImpl extends MultiVertexGeometryImpl {
-
 	protected boolean m_bPolygon;
 	protected Point m_moveToPoint;
 	protected double m_cachedLength2D;
@@ -59,6 +58,27 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 	static int[] _segmentParamSizes = { 0, 0, 6, 0, 8, 0 }; // None, Line,
 															// Bezier, XXX, Arc,
 															// XXX;
+
+	@Override
+	public long estimateMemorySize()
+	{
+		long size = SIZE_OF_MULTI_PATH_IMPL +
+			+ (m_envelope != null ? m_envelope.estimateMemorySize() : 0)
+			+ (m_moveToPoint != null ? m_moveToPoint.estimateMemorySize() : 0)
+			+ (m_cachedRingAreas2D != null ? m_cachedRingAreas2D.estimateMemorySize() : 0)
+			+ m_paths.estimateMemorySize()
+			+ m_pathFlags.estimateMemorySize()
+			+ (m_segmentFlags != null ? m_segmentFlags.estimateMemorySize() : 0)
+			+ (m_segmentParamIndex != null ? m_segmentParamIndex.estimateMemorySize() : 0)
+			+ (m_segmentParams != null ? m_segmentParams.estimateMemorySize() : 0);
+
+		if (m_vertexAttributes != null) {
+			for (int i = 0; i < m_vertexAttributes.length; i++) {
+				size += m_vertexAttributes[i].estimateMemorySize();
+			}
+		}
+		return size;
+	}
 
 	public boolean hasNonLinearSegments() {
 		return m_curveParamwritePoint > 0;

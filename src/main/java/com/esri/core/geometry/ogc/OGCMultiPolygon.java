@@ -36,7 +36,10 @@ import com.esri.core.geometry.Polyline;
 import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.WkbExportFlags;
 import com.esri.core.geometry.WktExportFlags;
+
 import java.nio.ByteBuffer;
+
+import static com.esri.core.geometry.SizeOf.SIZE_OF_OGC_MULTI_POLYGON;
 
 public class OGCMultiPolygon extends OGCMultiSurface {
 
@@ -87,6 +90,12 @@ public class OGCMultiPolygon extends OGCMultiSurface {
 	@Override
 	public String geometryType() {
 		return "MultiPolygon";
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+		return SIZE_OF_OGC_MULTI_POLYGON + (polygon != null ? polygon.estimateMemorySize() : 0);
 	}
 
 	@Override

@@ -25,10 +25,10 @@
 
 package com.esri.core.geometry;
 
-import com.esri.core.geometry.VertexDescription.Semantics;
-
 import java.io.ObjectStreamException;
 import java.io.Serializable;
+
+import static com.esri.core.geometry.SizeOf.sizeOfDoubleArray;
 
 /**
  * Common properties and methods shared by all geometric objects. Geometries are
@@ -149,6 +149,22 @@ public abstract class Geometry implements Serializable {
 	 * @return Returns the integer value of the dimension of geometry.
 	 */
 	public abstract int getDimension();
+
+	/**
+	 * Returns an estimate of this object size in bytes.
+	 * <p>
+	 * This estimate doesn't include the size of the {@link VertexDescription} object
+	 * because instances of {@link VertexDescription} are shared among
+	 * geometry objects.
+	 * 
+	 * @return Returns an estimate of this object size in bytes.
+	 */
+	public abstract long estimateMemorySize();
+
+	protected static long estimateMemorySize(double[] attributes)
+	{
+		return attributes != null ? sizeOfDoubleArray(attributes.length) : 0;
+	}
 
 	/**
 	 * Returns the VertexDescription of this geomtry.

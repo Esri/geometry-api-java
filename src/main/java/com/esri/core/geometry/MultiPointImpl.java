@@ -26,11 +26,12 @@ package com.esri.core.geometry;
 
 import com.esri.core.geometry.VertexDescription.Semantics;
 
+import static com.esri.core.geometry.SizeOf.SIZE_OF_MULTI_POINT_IMPL;
+
 /**
  * The MultiPoint is a collection of points.
  */
 final class MultiPointImpl extends MultiVertexGeometryImpl {
-
 	public MultiPointImpl() {
 		super();
 		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();
@@ -245,6 +246,19 @@ final class MultiPointImpl extends MultiVertexGeometryImpl {
 	@Override
 	public int getDimension() {
 		return 0;
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+		long size = SIZE_OF_MULTI_POINT_IMPL + (m_envelope != null ? m_envelope.estimateMemorySize() : 0);
+
+		if (m_vertexAttributes != null) {
+			for (int i = 0; i < m_vertexAttributes.length; i++) {
+				size += m_vertexAttributes[i].estimateMemorySize();
+			}
+		}
+		return size;
 	}
 
 	@Override

@@ -36,10 +36,12 @@ import com.esri.core.geometry.Polyline;
 import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.WkbExportFlags;
 import com.esri.core.geometry.WktExportFlags;
+
 import java.nio.ByteBuffer;
 
-public class OGCMultiLineString extends OGCMultiCurve {
+import static com.esri.core.geometry.SizeOf.SIZE_OF_OGC_MULTI_LINE_STRING;
 
+public class OGCMultiLineString extends OGCMultiCurve {
 	public OGCMultiLineString(Polyline poly, SpatialReference sr) {
 		polyline = poly;
 		esriSR = sr;
@@ -73,6 +75,12 @@ public class OGCMultiLineString extends OGCMultiCurve {
 	@Override
 	public String geometryType() {
 		return "MultiLineString";
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+		return SIZE_OF_OGC_MULTI_LINE_STRING + (polyline != null ? polyline.estimateMemorySize() : 0);
 	}
 
 	@Override

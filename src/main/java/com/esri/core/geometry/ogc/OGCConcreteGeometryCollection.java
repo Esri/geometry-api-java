@@ -32,10 +32,13 @@ import com.esri.core.geometry.Polygon;
 import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.GeoJsonExportFlags;
 import com.esri.core.geometry.OperatorExportToGeoJson;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.esri.core.geometry.SizeOf.SIZE_OF_OGC_CONCRETE_GEOMETRY_COLLECTION;
 
 public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 	public OGCConcreteGeometryCollection(List<OGCGeometry> geoms,
@@ -102,6 +105,18 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 	@Override
 	public String geometryType() {
 		return "GeometryCollection";
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+		long size = SIZE_OF_OGC_CONCRETE_GEOMETRY_COLLECTION;
+		if (geometries != null) {
+			for (OGCGeometry geometry : geometries) {
+				size += geometry.estimateMemorySize();
+			}
+		}
+		return size;
 	}
 
 	@Override
