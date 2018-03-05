@@ -26,10 +26,13 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.VertexDescription.Persistence;
+
 import java.nio.ByteBuffer;
 
-final class AttributeStreamOfFloat extends AttributeStreamBase {
+import static com.esri.core.geometry.SizeOf.SIZE_OF_ATTRIBUTE_STREAM_OF_FLOAT;
+import static com.esri.core.geometry.SizeOf.sizeOfFloatArray;
 
+final class AttributeStreamOfFloat extends AttributeStreamBase {
 	private float[] m_buffer = null;
 	private int m_size;
 
@@ -143,6 +146,12 @@ final class AttributeStreamOfFloat extends AttributeStreamBase {
 	@Override
 	public int virtualSize() {
 		return size();
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+		return SIZE_OF_ATTRIBUTE_STREAM_OF_FLOAT + sizeOfFloatArray(m_buffer.length);
 	}
 
 	@Override

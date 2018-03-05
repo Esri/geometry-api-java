@@ -100,6 +100,7 @@
 		<!-- dependency versions -->
 		<jackson.version>2.6.5</jackson.version>
 		<junit.version>4.12</junit.version>
+		<jol.version>0.2</jol.version>
 
 		<!-- plugin versions -->
 		<compiler.plugin.version>2.3.1</compiler.plugin.version>
@@ -118,6 +119,14 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>${junit.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Test dependencies -->
+		<dependency>
+			<groupId>org.openjdk.jol</groupId>
+			<artifactId>jol-core</artifactId>
+			<version>${jol.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

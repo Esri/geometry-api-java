@@ -29,6 +29,8 @@ import com.esri.core.geometry.VertexDescription.Semantics;
 
 import java.io.Serializable;
 
+import static com.esri.core.geometry.SizeOf.SIZE_OF_LINE;
+
 /**
  * A straight line between a pair of points.
  * 
@@ -38,6 +40,12 @@ public final class Line extends Segment implements Serializable {
 	@Override
 	public Geometry.Type getType() {
 		return Type.Line;
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+		return SIZE_OF_LINE + estimateMemorySize(m_attributes);
 	}
 
 	@Override

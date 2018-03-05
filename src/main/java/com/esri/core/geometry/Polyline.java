@@ -27,6 +27,8 @@ package com.esri.core.geometry;
 
 import java.io.Serializable;
 
+import static com.esri.core.geometry.SizeOf.SIZE_OF_POLYLINE;
+
 /**
  * A polyline is a collection of one or many paths.
  * 
@@ -70,6 +72,11 @@ public class Polyline extends MultiPath implements Serializable {
 	@Override
 	public Geometry.Type getType() {
 		return Type.Polyline;
+	}
+
+	@Override
+	public long estimateMemorySize() {
+		return SIZE_OF_POLYLINE + m_impl.estimateMemorySize();
 	}
 
 	/**

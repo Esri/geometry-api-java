@@ -26,8 +26,13 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.VertexDescription.Persistence;
+
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+
+import static com.esri.core.geometry.SizeOf.SIZE_OF_ATTRIBUTE_STREAM_OF_DBL;
+import static com.esri.core.geometry.SizeOf.SIZE_OF_ATTRIBUTE_STREAM_OF_INT32;
+import static com.esri.core.geometry.SizeOf.sizeOfDoubleArray;
 
 final class AttributeStreamOfDbl extends AttributeStreamBase {
 
@@ -171,6 +176,12 @@ final class AttributeStreamOfDbl extends AttributeStreamBase {
 	@Override
 	public int virtualSize() {
 		return size();
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+		return SIZE_OF_ATTRIBUTE_STREAM_OF_DBL + sizeOfDoubleArray(m_buffer.length);
 	}
 
 	// @Override

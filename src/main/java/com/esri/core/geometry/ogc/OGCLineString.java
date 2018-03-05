@@ -34,9 +34,13 @@ import com.esri.core.geometry.Polyline;
 import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.WkbExportFlags;
 import com.esri.core.geometry.WktExportFlags;
+
 import java.nio.ByteBuffer;
 
+import static com.esri.core.geometry.SizeOf.SIZE_OF_OGC_LINE_STRING;
+
 public class OGCLineString extends OGCCurve {
+
 	/**
 	 * The number of Points in this LineString.
 	 */
@@ -114,6 +118,12 @@ public class OGCLineString extends OGCCurve {
 	@Override
 	public String geometryType() {
 		return "LineString";
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+		return SIZE_OF_OGC_LINE_STRING + (multiPath != null ? multiPath.estimateMemorySize() : 0);
 	}
 
 	@Override

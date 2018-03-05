@@ -25,20 +25,7 @@
 package com.esri.core.geometry;
 
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
-import java.lang.ref.*;
-
-import com.esri.core.geometry.Envelope2D;
-import com.esri.core.geometry.GeoDist;
-import com.esri.core.geometry.GeometryException;
-import com.esri.core.geometry.PeDouble;
-import com.esri.core.geometry.Point;
-import com.esri.core.geometry.Polyline;
-import com.esri.core.geometry.SpatialReference;
-import com.esri.core.geometry.SpatialReferenceImpl;
-import com.esri.core.geometry.VertexDescription.Semantics;
 
 class SpatialReferenceImpl extends SpatialReference {
 	static final boolean no_projection_engine = true;

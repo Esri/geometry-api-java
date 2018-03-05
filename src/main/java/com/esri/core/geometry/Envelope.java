@@ -25,9 +25,11 @@
 
 package com.esri.core.geometry;
 
+import com.esri.core.geometry.VertexDescription.Semantics;
+
 import java.io.Serializable;
 
-import com.esri.core.geometry.VertexDescription.Semantics;
+import static com.esri.core.geometry.SizeOf.SIZE_OF_ENVELOPE;
 
 /**
  * An envelope is an axis-aligned rectangle.
@@ -443,6 +445,12 @@ public class Envelope extends Geometry implements Serializable {
 	@Override
 	public int getDimension() {
 		return 2;
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+		return SIZE_OF_ENVELOPE + m_envelope.estimateMemorySize() + estimateMemorySize(m_attributes);
 	}
 
 	@Override

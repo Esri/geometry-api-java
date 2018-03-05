@@ -26,6 +26,8 @@ package com.esri.core.geometry;
 
 import java.io.Serializable;
 
+import static com.esri.core.geometry.SizeOf.SIZE_OF_MULTI_POINT;
+
 /**
  * A Multipoint is a collection of points. A multipoint is a one-dimensional
  * geometry object. Multipoints can be used to store a collection of point-based
@@ -256,6 +258,12 @@ public class MultiPoint extends MultiVertexGeometry implements
 	@Override
 	public int getDimension() {
 		return 0;
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+		return SIZE_OF_MULTI_POINT + m_impl.estimateMemorySize();
 	}
 
 	@Override

@@ -28,6 +28,8 @@ import com.esri.core.geometry.VertexDescription.Semantics;
 
 import java.io.Serializable;
 
+import static com.esri.core.geometry.SizeOf.SIZE_OF_POINT;
+
 /**
  * A Point is a zero-dimensional object that represents a specific (X,Y)
  * location in a two-dimensional XY-Plane. In case of Geographic Coordinate
@@ -37,7 +39,7 @@ public class Point extends Geometry implements Serializable {
 	//We are using writeReplace instead.
 	//private static final long serialVersionUID = 2L;
 
-	double[] m_attributes; // use doubles to store everything (long are bitcast)
+    double[] m_attributes; // use doubles to store everything (long are bitcast)
 
 	/**
 	 * Creates an empty 2D point.
@@ -367,6 +369,12 @@ public class Point extends Geometry implements Serializable {
 	@Override
 	public int getDimension() {
 		return 0;
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+		return SIZE_OF_POINT + estimateMemorySize(m_attributes);
 	}
 
 	@Override

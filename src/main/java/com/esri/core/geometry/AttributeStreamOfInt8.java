@@ -26,7 +26,11 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.VertexDescription.Persistence;
+
 import java.nio.ByteBuffer;
+
+import static com.esri.core.geometry.SizeOf.SIZE_OF_ATTRIBUTE_STREAM_OF_INT8;
+import static com.esri.core.geometry.SizeOf.sizeOfByteArray;
 
 final class AttributeStreamOfInt8 extends AttributeStreamBase {
 
@@ -150,6 +154,12 @@ final class AttributeStreamOfInt8 extends AttributeStreamBase {
 	@Override
 	public int virtualSize() {
 		return size();
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+		return SIZE_OF_ATTRIBUTE_STREAM_OF_INT8 + sizeOfByteArray(m_buffer.length);
 	}
 
 	@Override

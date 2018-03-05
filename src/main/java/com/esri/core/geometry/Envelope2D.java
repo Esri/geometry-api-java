@@ -28,12 +28,14 @@ import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
 
+import static com.esri.core.geometry.SizeOf.SIZE_OF_ENVELOPE2D;
+
 /**
  * An axis parallel 2-dimensional rectangle.
  */
 public final class Envelope2D implements Serializable {
 	private static final long serialVersionUID = 1L;
-	
+
 	private final static int XLESSXMIN = 1;
 	// private final int XGREATERXMAX = 2;
 	private final static int YLESSYMIN = 4;
@@ -78,6 +80,11 @@ public final class Envelope2D implements Serializable {
 
 	public Envelope2D(Envelope2D other) {
 		setCoords(other);
+	}
+
+	public int estimateMemorySize()
+	{
+		return SIZE_OF_ENVELOPE2D;
 	}
 	
 	public void setCoords(double _x, double _y) {
