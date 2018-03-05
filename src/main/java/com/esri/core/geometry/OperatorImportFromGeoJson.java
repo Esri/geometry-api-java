@@ -34,7 +34,7 @@ public abstract class OperatorImportFromGeoJson extends Operator {
 	 * Performs the ImportFromGeoJson operation.
 	 *
 	 * @param type Use the {@link Geometry.Type} enum.
-	 * @param jsonObject The JSONObject holding the geometry and spatial reference.
+	 * @param jsonReader The JSONReader.
 	 * @return Returns the imported MapGeometry.
 	 * @throws JsonGeometryException
 	 */
@@ -49,7 +49,6 @@ public abstract class OperatorImportFromGeoJson extends Operator {
 	 * @param type Use the {@link Geometry.Type} enum.
 	 * @param geoJsonString The string holding the Geometry in geoJson format.
 	 * @return Returns the imported MapGeometry.
-	 * @throws JSONException
 	 * 
 	 */
 	public abstract MapGeometry execute(int import_flags, Geometry.Type type, String geoJsonString, ProgressTracker progress_tracker);
@@ -61,7 +60,6 @@ public abstract class OperatorImportFromGeoJson extends Operator {
 	 * @param import_flags Use the {@link GeoJsonImportFlags} interface.
 	 * @param geoJsonString The string holding the Geometry in geoJson format.
 	 * @return Returns the imported MapOGCStructure.
-	 * @throws JSONException
 	 */
 	public abstract MapOGCStructure executeOGC(int import_flags, String geoJsonString, ProgressTracker progress_tracker);
 

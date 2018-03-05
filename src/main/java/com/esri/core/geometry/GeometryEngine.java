@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2017 Esri
+ Copyright 1995-2018 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -88,8 +88,6 @@ public class GeometryEngine {
 	 *            reference).
 	 * @return The MapGeometry instance containing the imported geometry and its
 	 *         spatial reference.
-	 * @throws IOException 
-	 * @throws JsonParseException 
 	 */
 	public static MapGeometry jsonToGeometry(String json) {
 		MapGeometry geom = OperatorImportFromJson.local().execute(Geometry.Type.Unknown, json);
@@ -153,8 +151,6 @@ public class GeometryEngine {
 	 *            reference).
 	 * @return The MapGeometry instance containing the imported geometry and its
 	 *         spatial reference.
-	 * @throws IOException 
-	 * @throws JsonParseException 
 	 */
 	public static MapGeometry geoJsonToGeometry(String json, int importFlags, Geometry.Type type) {
 		MapGeometry geom = OperatorImportFromGeoJson.local().execute(importFlags, type, json, null);
@@ -254,7 +250,7 @@ public class GeometryEngine {
 	 * @param geometryType The required type of the Geometry to be imported. Use Geometry.Type.Unknown if the geometry type needs to be determined from the WKT context.
 	 * @return The geometry.
 	 * @throws GeometryException when the geometryType is not Geometry.Type.Unknown and the WKT contains a geometry that cannot be converted to the given geometryType.
-	 * @throws IllegalArgument exception if an error is found while parsing the WKT string.
+	 * @throws IllegalArgumentException if an error is found while parsing the WKT string.
 	 */
 	public static Geometry geometryFromWkt(String wkt, int importFlags,
 			Geometry.Type geometryType) {

@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2015 Esri
+ Copyright 1995-2018 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -435,7 +435,7 @@ public final class Point2D implements Serializable{
 	}
 
 	/**
-	 * Calculates the orientation of the triangle formed by p->q->r. Returns 1
+	 * Calculates the orientation of the triangle formed by p, q, r. Returns 1
 	 * for counter-clockwise, -1 for clockwise, and 0 for collinear. May use
 	 * high precision arithmetics for some special degenerate cases.
 	 */

@@ -43,7 +43,7 @@ public abstract class OperatorOffset extends Operator {
 	 * 
 	 * The offset operation creates a geometry that is a constant distance from
 	 * an input polyline or polygon. It is similar to buffering, but produces a
-	 * one sided result. If offsetDistance > 0, then the offset geometry is
+	 * one sided result. If offsetDistance greater than 0, then the offset geometry is
 	 * constructed to the right of the oriented input geometry, otherwise it is
 	 * constructed to the left. For a simple polygon, the orientation of outer
 	 * rings is clockwise and for inner rings it is counter clockwise. So the
@@ -82,7 +82,7 @@ public abstract class OperatorOffset extends Operator {
 	 * 
 	 * The offset operation creates a geometry that is a constant distance from
 	 * an input polyline or polygon. It is similar to buffering, but produces a
-	 * one sided result. If offsetDistance > 0, then the offset geometry is
+	 * one sided result. If offsetDistance greater than 0, then the offset geometry is
 	 * constructed to the right of the oriented input geometry, otherwise it is
 	 * constructed to the left. For a simple polygon, the orientation of outer
 	 * rings is clockwise and for inner rings it is counter clockwise. So the

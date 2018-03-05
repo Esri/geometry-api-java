@@ -133,8 +133,10 @@ public final class Envelope1D implements Serializable {
 	/**
 	 * Returns True if the envelope contains the other envelope (boundary
 	 * inclusive). Note: Will return false if either envelope is empty.
+	 * @param other The other envelope.
+	 * @return Return true if this contains the other.
 	 */
-	public boolean contains(/* const */Envelope1D other) /* const */
+	public boolean contains(Envelope1D other)
 	{
 		return other.vmin >= vmin && other.vmax <= vmax;
 	}

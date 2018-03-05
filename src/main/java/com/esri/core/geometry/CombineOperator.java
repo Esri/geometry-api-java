@@ -36,7 +36,8 @@ public interface CombineOperator {
 	 * Operation on two geometries, returning a third. Examples include
 	 * Intersection, Difference, and so forth.
 	 *
-	 * @param geom1 and geom2 are the geometry instances to be operated on.
+	 * @param geom1 is the geometry instance to be operated on.
+	 * @param geom2 is the geometry instance to be operated on.
 	 * @param sr The spatial reference to get the tolerance value from.
 	 * When sr is null, the tolerance is calculated from the input geometries.
 	 * @param progressTracker ProgressTracker instance that is used to cancel the lengthy operation. Can be null.
