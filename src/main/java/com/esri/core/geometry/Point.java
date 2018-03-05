@@ -39,7 +39,7 @@ public class Point extends Geometry implements Serializable {
 	//We are using writeReplace instead.
 	//private static final long serialVersionUID = 2L;
 
-    double[] m_attributes; // use doubles to store everything (long are bitcast)
+	double[] m_attributes; // use doubles to store everything (long are bitcast)
 
 	/**
 	 * Creates an empty 2D point.
@@ -626,22 +626,22 @@ public class Point extends Geometry implements Serializable {
 		return hashCode;
 	}
 
-    @Override
-    public Geometry getBoundary() {
-        return null;
-    }
-    
-    @Override
-    public void replaceNaNs(int semantics, double value) {
-    	addAttribute(semantics);
-    	if (isEmpty())
-    		return;
-    	
-    	int ncomps = VertexDescription.getComponentCount(semantics);
-    	for (int i = 0; i < ncomps; i++) {
-    		double v = getAttributeAsDbl(semantics, i);
-    		if (Double.isNaN(v))
-    			setAttribute(semantics, i, value);
-    	}
-    }
+	@Override
+	public Geometry getBoundary() {
+		return null;
+	}
+
+	@Override
+	public void replaceNaNs(int semantics, double value) {
+		addAttribute(semantics);
+		if (isEmpty())
+			return;
+
+		int ncomps = VertexDescription.getComponentCount(semantics);
+		for (int i = 0; i < ncomps; i++) {
+			double v = getAttributeAsDbl(semantics, i);
+			if (Double.isNaN(v))
+				setAttribute(semantics, i, value);
+		}
+	}
 }

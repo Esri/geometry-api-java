@@ -53,12 +53,12 @@ public abstract class OperatorIntersection extends Operator implements CombineOp
 	 *@param sr The spatial reference is used to get tolerance value. Can be null, then the tolerance is not used and the operation is performed with
 	 *a small tolerance value just enough to make the operation robust.
 	 *@param progress_tracker Allows to cancel the operation. Can be null.
-	 *@param dimensionMask The dimension of the intersection. The value is either -1, or a bitmask mask of values (1 << dim).
+	 *@param dimensionMask The dimension of the intersection. The value is either -1, or a bitmask mask of values (1 &lt;&lt; dim).
 	 *The value of -1 means the lower dimension in the intersecting pair.
 	 *This is a fastest option when intersecting polygons with polygons or polylines.
-	 *The bitmask of values (1 << dim), where dim is the desired dimension value, is used to indicate
+	 *The bitmask of values (1 &lt;&lt; dim), where dim is the desired dimension value, is used to indicate
 	 *what dimensions of geometry one wants to be returned. For example, to return
-	 *multipoints and lines only, pass (1 << 0) | (1 << 1), which is equivalen to 1 | 2, or 3.
+	 *multipoints and lines only, pass (1 &lt;&lt; 0) | (1 &lt;&lt; 1), which is equivalen to 1 | 2, or 3.
 	 *@return Returns the cursor of the intersection result. The cursors' getGeometryID method returns the current ID of the input geometry
 	 *being processed. When dimensionMask is a bitmask, there will be n result geometries per one input geometry returned, where n is the number
 	 *of bits set in the bitmask. For example, if the dimensionMask is 5, there will be two geometries per one input geometry.
@@ -81,7 +81,7 @@ public abstract class OperatorIntersection extends Operator implements CombineOp
 	 *points, but the overlaps only).
 	 *The call is equivalent to calling the overloaded method using cursors:
 	 *execute(new SimpleGeometryCursor(input_geometry), new SimpleGeometryCursor(intersector), sr, progress_tracker, mask).next();
-	 *where mask can be either -1 or min(1 << input_geometry.getDimension(), 1 << intersector.getDimension());
+	 *where mask can be either -1 or min(1 &lt;&lt; input_geometry.getDimension(), 1 &lt;&lt; intersector.getDimension());
 	 *@param inputGeometry is the Geometry instance to be intersected by the intersector.
 	 *@param intersector is the intersector Geometry.
 	 *@param sr The spatial reference to get the tolerance value from. Can be null, then the tolerance is calculated from the input geometries.

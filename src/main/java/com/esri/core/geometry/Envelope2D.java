@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2015 Esri
+ Copyright 1995-2018 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -131,6 +131,7 @@ public final class Envelope2D implements Serializable {
 	/**
 	 * Sets the envelope from the array of points. The envelope will be set to
 	 * empty if the array is null.
+	 * @param points The points to set the envelope from. No element in the array can be null.
 	 */
 	public void setFromPoints(Point2D[] points) {
 		if (points == null || points.length == 0) {
@@ -198,6 +199,8 @@ public final class Envelope2D implements Serializable {
 	/**
 	 * Merges a point with this envelope without checking if the envelope is
 	 * empty. Use with care.
+	 * @param x The x coord of the point
+	 * @param y the y coord in the point
 	 */
 	public void mergeNE(double x, double y) {
 		if (xmin > x)
@@ -258,6 +261,7 @@ public final class Envelope2D implements Serializable {
 
 	/**
 	 * Checks if this envelope intersects the other.
+	 * @param other The other envelope.
 	 * @return True if this envelope intersects the other.
 	 */
 	public boolean isIntersecting(Envelope2D other) {
@@ -274,6 +278,7 @@ public final class Envelope2D implements Serializable {
 
 	/**
 	 * Checks if this envelope intersects the other assuming neither one is empty.
+	 * @param other The other envelope.
 	 * @return True if this envelope intersects the other. Assumes this and
 	 * other envelopes are not empty.
 	 */
@@ -289,6 +294,10 @@ public final class Envelope2D implements Serializable {
 
 	/**
 	 * Checks if this envelope intersects the other.
+	 * @param xmin_
+	 * @param ymin_
+	 * @param xmax_
+	 * @param ymax_
 	 * @return True if this envelope intersects the other.
 	 */
 	public boolean isIntersecting(double xmin_, double ymin_, double xmax_, double ymax_) {
@@ -307,7 +316,7 @@ public final class Envelope2D implements Serializable {
 	/**
 	 * Intersects this envelope with the other and stores result in this
 	 * envelope.
-	 * 
+	 * @param other The other envelope.
 	 * @return True if this envelope intersects the other, otherwise sets this
 	 *         envelope to empty state and returns False.
 	 */
@@ -370,6 +379,7 @@ public final class Envelope2D implements Serializable {
 	/**
 	 * Queries corners into a given array. The array length must be at least
 	 * 4. Starts from the lower left corner and goes clockwise.
+	 * @param corners The array of four points.
 	 */
 	public void queryCorners(Point2D[] corners) {
 		if ((corners == null) || (corners.length < 4))
@@ -399,6 +409,7 @@ public final class Envelope2D implements Serializable {
 	 * Queries corners into a given array in reversed order. The array length
 	 * must be at least 4. Starts from the lower left corner and goes
 	 * counterclockwise.
+	 * @param corners The array of four points.
 	 */
 	public void queryCornersReversed(Point2D[] corners) {
 		if (corners == null || ((corners != null) && (corners.length < 4)))
@@ -500,6 +511,8 @@ public final class Envelope2D implements Serializable {
 
 	/**
 	 * Moves the Envelope by given distance.
+	 * @param dx
+	 * @param dy
 	 */
 	public void move(double dx, double dy) {
 		if (isEmpty())
@@ -558,6 +571,7 @@ public final class Envelope2D implements Serializable {
 	/**
 	 * Returns True if this envelope is valid (empty, or has xmin less or equal
 	 * to xmax, or ymin less or equal to ymax).
+	 * @return True if the envelope is valid.
 	 */
 	public boolean isValid() {
 		return isEmpty() || (xmin <= xmax && ymin <= ymax);
@@ -621,6 +635,8 @@ public final class Envelope2D implements Serializable {
 	/**
 	 * Returns True if the envelope contains the other envelope (boundary
 	 * inclusive).
+	 * @param other The other envelope.
+	 * @return True if this contains the other.
 	 */
 	public boolean contains(Envelope2D other) {// Note: Will return False, if
 												// either envelope is empty.
@@ -630,7 +646,10 @@ public final class Envelope2D implements Serializable {
 
 	/**
 	 * Returns True if the envelope contains the point (boundary exclusive).
-	 */
+	 * @param x
+	 * @param y
+	 * @return True if this contains the point.
+	 * */
 	public boolean containsExclusive(double x, double y) {
 		// Note: This will return False, if envelope is empty, thus no need to
 		// call is_empty().
@@ -647,6 +666,8 @@ public final class Envelope2D implements Serializable {
 	/**
 	 * Returns True if the envelope contains the other envelope (boundary
 	 * exclusive).
+	 * @param other The other envelope
+	 * @return True if this contains the other, boundary exclusive.
 	 */
 	boolean containsExclusive(Envelope2D other) {
 		// Note: This will return False, if either envelope is empty, thus no
@@ -1075,8 +1096,10 @@ public final class Envelope2D implements Serializable {
 	/**
 	 * Calculates minimum distance from this envelope to the other.
 	 * Returns 0 for empty envelopes.
+	 * @param other The other envelope.
+	 * @return Returns the distance
 	 */
-	public double distance(/* const */Envelope2D other)
+	public double distance(Envelope2D other)
 	{
 		return Math.sqrt(sqrDistance(other));
 	}
@@ -1084,6 +1107,8 @@ public final class Envelope2D implements Serializable {
 	/**
 	 * Calculates minimum distance from this envelope to the point.
 	 * Returns 0 for empty envelopes.
+	 * @param pt2D The other point.
+	 * @return Returns the distance
 	 */
 	public double distance(Point2D pt2D)
 	{
@@ -1093,6 +1118,8 @@ public final class Envelope2D implements Serializable {
 	/**
 	 * Calculates minimum squared distance from this envelope to the other.
 	 * Returns 0 for empty envelopes.
+	 * @param other The other envelope.
+	 * @return Returns the squared distance
 	 */
 	public double sqrDistance(Envelope2D other)
 	{
@@ -1122,6 +1149,11 @@ public final class Envelope2D implements Serializable {
 	/**
 	 * Calculates minimum squared distance from this envelope to the other.
 	 * Returns 0 for empty envelopes.
+	 * @param xmin_
+	 * @param ymin_
+	 * @param xmax_
+	 * @param ymax_
+	 * @return Returns the squared distance.
 	 */
 	public double sqrDistance(double xmin_, double ymin_, double xmax_, double ymax_)
 	{
@@ -1178,6 +1210,8 @@ public final class Envelope2D implements Serializable {
 	/**
 	 * Calculates minimum squared distance from this envelope to the point.
 	 * Returns 0 for empty envelopes.
+	 * @param pt2D The point.
+	 * @return Returns the squared distance
 	 */
 	public double sqrDistance(Point2D pt2D)
 	{

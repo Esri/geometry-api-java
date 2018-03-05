@@ -49,7 +49,7 @@ public abstract class OperatorDensifyByLength extends Operator {
 	 *            After that the curves are replaced with straight segments.
 	 * @param progressTracker
 	 * @return Returns the densified geometries (It does nothing to geometries
-	 *         with dim < 1, but simply passes them along).
+	 *         with dim &lt; 1, but simply passes them along).
 	 */
 	public abstract GeometryCursor execute(GeometryCursor inputGeometries,
 			double maxLength, ProgressTracker progressTracker);
@@ -67,7 +67,7 @@ public abstract class OperatorDensifyByLength extends Operator {
 	 *            After that the curves are replaced with straight segments.
 	 * @param progressTracker
 	 * @return Returns the densified geometry. (It does nothing to geometries
-	 *         with dim < 1, but simply passes them along).
+	 *         with dim &lt; 1, but simply passes them along).
 	 */
 	public abstract Geometry execute(Geometry inputGeometry, double maxLength,
 			ProgressTracker progressTracker);

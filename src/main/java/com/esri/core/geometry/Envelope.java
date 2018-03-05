@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2015 Esri
+ Copyright 1995-2018 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -1118,28 +1118,28 @@ public class Envelope extends Geometry implements Serializable {
 		m_envelope.ymax = y;
 	}
 
-    @Override
-    public Geometry getBoundary() {
-        return Boundary.calculate(this, null);
-    }
-    
-    @Override
-    public void replaceNaNs(int semantics, double value) {
-    	addAttribute(semantics);
-    	if (isEmpty())
-    		return;
-    	
-    	int ncomps = VertexDescription.getComponentCount(semantics);
-    	for (int i = 0; i < ncomps; i++) {
-    		Envelope1D interval = queryInterval(semantics, i);
-    		if (interval.isEmpty()) {
-    			interval.vmin = value;
-    			interval.vmax = value;
-    			setInterval(semantics, i, interval);
-    		}
-    	}
-    }
-    
+	@Override
+	public Geometry getBoundary() {
+		return Boundary.calculate(this, null);
+	}
+
+	@Override
+	public void replaceNaNs(int semantics, double value) {
+		addAttribute(semantics);
+		if (isEmpty())
+			return;
+
+		int ncomps = VertexDescription.getComponentCount(semantics);
+		for (int i = 0; i < ncomps; i++) {
+			Envelope1D interval = queryInterval(semantics, i);
+			if (interval.isEmpty()) {
+				interval.vmin = value;
+				interval.vmax = value;
+				setInterval(semantics, i, interval);
+			}
+		}
+	}
+
 	/**
 	 * The output of this method can be only used for debugging. It is subject to change without notice. 
 	 */
