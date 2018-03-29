@@ -40,11 +40,6 @@ public class TestUnion extends TestCase {
 
 	@Test
 	public static void testUnion() {
-		Point pt = new Point(10, 20);
-
-		Point pt2 = new Point();
-		pt2.setXY(10, 10);
-
 		Envelope env1 = new Envelope(10, 10, 30, 50);
 		Envelope env2 = new Envelope(30, 10, 60, 50);
 		Geometry[] geomArray = new Geometry[] { env1, env2 };
@@ -57,5 +52,129 @@ public class TestUnion extends TestCase {
 
 		GeometryCursor outputCursor = union.execute(inputGeometries, sr, null);
 		Geometry result = outputCursor.next();
+
+		MultiPath path = (MultiPath)result;
+		assertEquals(1, path.getPathCount());
+		assertEquals(6, path.getPathEnd(0));
+		assertEquals(new Point2D(10, 10), path.getXY(0));
+		assertEquals(new Point2D(10, 50), path.getXY(1));
+		assertEquals(new Point2D(30, 50), path.getXY(2));
+		assertEquals(new Point2D(60, 50), path.getXY(3));
+		assertEquals(new Point2D(60, 10), path.getXY(4));
+		assertEquals(new Point2D(30, 10), path.getXY(5));
+	}
+
+	@Test
+	public static void testUnionDistinctGeometries() {
+		Envelope env = new Envelope(1, 5, 3, 10);
+
+		Polygon polygon = new Polygon();
+		polygon.startPath(new Point(4, 3));
+		polygon.lineTo(new Point(7, 6));
+		polygon.lineTo(new Point(6, 8));
+		polygon.lineTo(new Point(4, 3));
+
+		Geometry[] geomArray = new Geometry[] { env, polygon };
+		SimpleGeometryCursor inputGeometries = new SimpleGeometryCursor(
+				geomArray);
+		OperatorUnion union = (OperatorUnion) OperatorFactoryLocal
+				.getInstance().getOperator(Operator.Type.Union);
+		SpatialReference sr = SpatialReference.create(4326);
+
+		GeometryCursor outputCursor = union.execute(inputGeometries, sr, null);
+		Geometry result = outputCursor.next();
+
+		MultiPath path = (MultiPath)result;
+		assertEquals(2, path.getPathCount());
+
+		assertEquals(3, path.getPathEnd(0));
+		assertEquals(7, path.getPathEnd(1));
+		// from polygon
+		assertEquals(new Point2D(4, 3), path.getXY(0));
+		assertEquals(new Point2D(6, 8), path.getXY(1));
+		assertEquals(new Point2D(7, 6), path.getXY(2));
+		// from envelope
+		assertEquals(new Point2D(1, 5), path.getXY(3));
+		assertEquals(new Point2D(1, 10), path.getXY(4));
+		assertEquals(new Point2D(3, 10), path.getXY(5));
+		assertEquals(new Point2D(3, 5), path.getXY(6));
+	}
+
+	@Test
+	public static void testUnionCoincidentPolygons() {
+		Polygon polygon1 = new Polygon();
+		polygon1.startPath(new Point(3, 2));
+		polygon1.lineTo(new Point(1, 2));
+		polygon1.lineTo(new Point(1, 4));
+		polygon1.lineTo(new Point(3, 4));
+		polygon1.lineTo(new Point(3, 2));
+
+		Polygon polygon2 = new Polygon();
+		polygon2.startPath(new Point(1, 2));
+		polygon2.lineTo(new Point(1, 4));
+		polygon2.lineTo(new Point(3, 4));
+		polygon2.lineTo(new Point(3, 2));
+		polygon2.lineTo(new Point(1, 2));
+
+		Geometry[] geomArray = new Geometry[] { polygon1, polygon2 };
+		SimpleGeometryCursor inputGeometries = new SimpleGeometryCursor(
+				geomArray);
+		OperatorUnion union = (OperatorUnion) OperatorFactoryLocal
+				.getInstance().getOperator(Operator.Type.Union);
+		SpatialReference sr = SpatialReference.create(4326);
+
+		GeometryCursor outputCursor = union.execute(inputGeometries, sr, null);
+		Geometry result = outputCursor.next();
+
+		MultiPath path = (MultiPath)result;
+		assertEquals(1, path.getPathCount());
+		assertEquals(4, path.getPathEnd(0));
+		assertEquals(new Point2D(1, 2), path.getXY(0));
+		assertEquals(new Point2D(1, 4), path.getXY(1));
+		assertEquals(new Point2D(3, 4), path.getXY(2));
+		assertEquals(new Point2D(3, 2), path.getXY(3));
+	}
+
+	@Test
+	public static void testUnionCoincidentPolygonsWithReverseWinding() {
+		// Input polygons have CCW winding, result is always CW
+		Polygon polygon1 = new Polygon();
+		polygon1.startPath(new Point(3, 2));
+		polygon1.lineTo(new Point(3, 4));
+		polygon1.lineTo(new Point(1, 4));
+		polygon1.lineTo(new Point(1, 2));
+		polygon1.lineTo(new Point(3, 2));
+
+		Polygon polygon2 = new Polygon();
+		polygon2.startPath(new Point(1, 2));
+		polygon2.lineTo(new Point(3, 2));
+		polygon2.lineTo(new Point(3, 4));
+		polygon2.lineTo(new Point(1, 4));
+		polygon2.lineTo(new Point(1, 2));
+
+		Polygon expectedPolygon = new Polygon();
+		expectedPolygon.startPath(new Point(1, 2));
+		expectedPolygon.lineTo(new Point(1, 4));
+		expectedPolygon.lineTo(new Point(3, 4));
+		expectedPolygon.lineTo(new Point(3, 2));
+		expectedPolygon.lineTo(new Point(1, 2));
+
+		Geometry[] geomArray = new Geometry[] { polygon1, polygon2 };
+		SimpleGeometryCursor inputGeometries = new SimpleGeometryCursor(
+				geomArray);
+		OperatorUnion union = (OperatorUnion) OperatorFactoryLocal
+				.getInstance().getOperator(Operator.Type.Union);
+		SpatialReference sr = SpatialReference.create(4326);
+
+		GeometryCursor outputCursor = union.execute(inputGeometries, sr, null);
+		Geometry result = outputCursor.next();
+
+		MultiPath path = (MultiPath)result;
+		assertEquals(1, path.getPathCount());
+		assertEquals(4, path.getPathEnd(0));
+		assertEquals(new Point2D(1, 2), path.getXY(0));
+		assertEquals(new Point2D(1, 4), path.getXY(1));
+		assertEquals(new Point2D(3, 4), path.getXY(2));
+		assertEquals(new Point2D(3, 2), path.getXY(3));
 	}
 }
