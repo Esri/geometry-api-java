@@ -14,8 +14,9 @@ The Esri Geometry API for Java can be used to enable spatial data processing in 
 Building the source:
 
 1. Download and unzip the .zip file, or clone the repository.
-2. Deploy the esri-geometry-api.jar to the target system, add a reference to it in a Java project.
-3. To build the jar, Javadoc, and run the unit-tests, run the “ant” command-line command from within the cloned directory. The ant tool runs the “build.xml” script which creates the jar, runs the unit tests, then creates the Javadoc documentation files.
+1. To build the jar, run the `mvn compile` command-line command from within the cloned directory.
+1. Deploy the esri-geometry-api.jar to the target system, add a reference to it in a Java project.
+1. To run the unit-tests, run the `mvn test` command-line command from within the cloned directory.
 
 The project is also available as a [Maven](http://maven.apache.org/) dependency:
 
@@ -30,7 +31,7 @@ The project is also available as a [Maven](http://maven.apache.org/) dependency:
 ## Requirements
 
 * Java JDK 1.6 or greater.
-* [Apache Ant](http://ant.apache.org/) build system.
+* [Apache Maven](https://maven.apache.org/) build system.
 * Experience developing MapReduce applications for [Apache Hadoop](http://hadoop.apache.org/).
 * Familiarity with text-based spatial data formats such as JSON or WKT would be useful. 
 
