@@ -21,16 +21,20 @@
 
  email: contracts@esri.com
  */
+package com.esri.core.geometry;
 
-package com.esri.core.geometry.ogc;
+public abstract class OperatorCentroid2D extends Operator
+{
+    @Override
+    public Type getType()
+    {
+        return Type.Centroid2D;
+    }
 
-public abstract class OGCMultiSurface extends OGCGeometryCollection {
-	public double area() {
-		return getEsriGeometry().calculateArea2D();
-	}
+    public abstract Point2D execute(Geometry geometry, ProgressTracker progressTracker);
 
-	public OGCPoint pointOnSurface() {
-		// TODO
-		throw new UnsupportedOperationException();
-	}
+    public static OperatorCentroid2D local()
+    {
+        return (OperatorCentroid2D) OperatorFactoryLocal.getInstance().getOperator(Type.Centroid2D);
+    }
 }

@@ -29,11 +29,6 @@ public abstract class OGCSurface extends OGCGeometry {
 		return getEsriGeometry().calculateArea2D();
 	}
 
-	public OGCPoint centroid() {
-		// TODO: implement me;
-		throw new UnsupportedOperationException();
-	}
-
 	public OGCPoint pointOnSurface() {
 		// TODO: support this (need to port OperatorLabelPoint)
 		throw new UnsupportedOperationException();

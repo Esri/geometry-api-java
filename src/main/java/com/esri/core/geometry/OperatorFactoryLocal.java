@@ -29,7 +29,6 @@ import com.esri.core.geometry.Operator.Type;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.Reader;
@@ -61,6 +60,8 @@ public class OperatorFactoryLocal extends OperatorFactory {
 
 		st_supportedOperators.put(Type.Proximity2D,
 				new OperatorProximity2DLocal());
+		st_supportedOperators.put(Type.Centroid2D,
+				new OperatorCentroid2DLocal());
 		st_supportedOperators.put(Type.DensifyByLength,
 				new OperatorDensifyByLengthLocal());
 

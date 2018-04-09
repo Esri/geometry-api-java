@@ -38,6 +38,7 @@ import com.esri.core.geometry.NumberUtils;
 import com.esri.core.geometry.OGCStructure;
 import com.esri.core.geometry.Operator;
 import com.esri.core.geometry.OperatorBuffer;
+import com.esri.core.geometry.OperatorCentroid2D;
 import com.esri.core.geometry.OperatorConvexHull;
 import com.esri.core.geometry.OperatorExportToGeoJson;
 import com.esri.core.geometry.OperatorExportToWkb;
@@ -51,6 +52,7 @@ import com.esri.core.geometry.OperatorSimplify;
 import com.esri.core.geometry.OperatorSimplifyOGC;
 import com.esri.core.geometry.OperatorUnion;
 import com.esri.core.geometry.Point;
+import com.esri.core.geometry.Point2D;
 import com.esri.core.geometry.Polygon;
 import com.esri.core.geometry.Polyline;
 import com.esri.core.geometry.SimpleGeometryCursor;
@@ -425,6 +427,17 @@ public abstract class OGCGeometry {
 				getEsriGeometryCursor(), getEsriSpatialReference(), d, true,
 				null);
 		return OGCGeometry.createFromEsriGeometry(cursor.next(), esriSR);
+	}
+
+	public OGCGeometry centroid() {
+		OperatorCentroid2D op = (OperatorCentroid2D) OperatorFactoryLocal.getInstance()
+				.getOperator(Operator.Type.Centroid2D);
+
+        Point2D centroid = op.execute(getEsriGeometry(), null);
+        if (centroid == null) {
+            return OGCGeometry.createFromEsriGeometry(new Point(), esriSR);
+        }
+        return OGCGeometry.createFromEsriGeometry(new Point(centroid), esriSR);
 	}
 
 	public OGCGeometry convexHull() {

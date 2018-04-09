@@ -40,7 +40,7 @@ public abstract class Operator {
 
 		Union, Difference,
 
-		Proximity2D,
+		Proximity2D, Centroid2D,
 
 		Relate, Equals, Disjoint, Intersects, Within, Contains, Crosses, Touches, Overlaps,
 
