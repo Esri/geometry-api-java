@@ -321,8 +321,10 @@ public final class Envelope2D implements Serializable {
 	 *         envelope to empty state and returns False.
 	 */
 	public boolean intersect(Envelope2D other) {
-		if (isEmpty() || other.isEmpty())
+		if (isEmpty() || other.isEmpty()) {
+			setEmpty();
 			return false;
+		}
 
 		if (other.xmin > xmin)
 			xmin = other.xmin;
