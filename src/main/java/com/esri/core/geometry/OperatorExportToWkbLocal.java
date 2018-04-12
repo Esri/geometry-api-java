@@ -170,7 +170,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 		if (!bExportZs && !bExportMs) {
 			type = WkbGeometryType.wkbPolygon;
 
-			if ((exportFlags & WktExportFlags.wktExportPolygon) == 0) {
+			if ((exportFlags & WkbExportFlags.wkbExportPolygon) == 0) {
 				wkbBuffer.put(offset, byteOrder);
 				offset += 1;
 				wkbBuffer.putInt(offset, WkbGeometryType.wkbMultiPolygon);
