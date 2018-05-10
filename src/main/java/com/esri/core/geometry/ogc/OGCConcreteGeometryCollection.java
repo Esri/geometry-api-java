@@ -27,11 +27,19 @@ package com.esri.core.geometry.ogc;
 import com.esri.core.geometry.Envelope;
 import com.esri.core.geometry.Geometry;
 import com.esri.core.geometry.GeometryCursor;
+import com.esri.core.geometry.GeometryException;
+import com.esri.core.geometry.MultiPath;
+import com.esri.core.geometry.MultiPoint;
+import com.esri.core.geometry.MultiVertexGeometry;
 import com.esri.core.geometry.NumberUtils;
+import com.esri.core.geometry.OperatorConvexHull;
 import com.esri.core.geometry.Polygon;
+import com.esri.core.geometry.SimpleGeometryCursor;
 import com.esri.core.geometry.SpatialReference;
+import com.esri.core.geometry.VertexDescription;
 import com.esri.core.geometry.GeoJsonExportFlags;
 import com.esri.core.geometry.OperatorExportToGeoJson;
+import com.esri.core.geometry.Point;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -376,6 +384,59 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 			return m_index;
 		}
 
+	}
+	
+	@Override
+	public OGCGeometry convexHull() {
+		GeometryCursor cursor = OperatorConvexHull.local().execute(
+				getEsriGeometryCursor(), false, null);
+		MultiPoint mp = new MultiPoint();
+		Polygon polygon = new Polygon();
+		VertexDescription vd = null;
+		for (Geometry geom = cursor.next(); geom != null; geom = cursor.next()) {
+			vd = geom.getDescription();
+			if (geom.isEmpty())
+				continue;
+
+			if (geom.getType() == Geometry.Type.Polygon) {
+				polygon.add((MultiPath) geom, false);
+			}
+			else if (geom.getType() == Geometry.Type.Polyline) {
+				mp.add((MultiVertexGeometry) geom, 0, -1);
+			}
+			else if (geom.getType() == Geometry.Type.Point) {
+				mp.add((Point) geom);
+			}
+			else {
+				throw new GeometryException("internal error");
+			}
+		}
+
+		Geometry resultGeom = null;
+		if (!mp.isEmpty()) {
+			resultGeom = OperatorConvexHull.local().execute(mp, null);
+		}
+
+		if (!polygon.isEmpty()) {
+			if (!resultGeom.isEmpty()) {
+				Geometry[] geoms = { resultGeom, polygon };
+				resultGeom = OperatorConvexHull.local().execute(
+						new SimpleGeometryCursor(geoms), true, null).next();
+			}
+			else {
+				resultGeom = polygon;
+			}
+		}
+
+		if (resultGeom == null) {
+			Point pt = new Point();
+			if (vd != null)
+				pt.assignVertexDescription(vd);
+
+			return new OGCPoint(pt, getEsriSpatialReference());
+		}
+
+		return OGCGeometry.createFromEsriGeometry(resultGeom, getEsriSpatialReference(), false);
 	}
 
 	List<OGCGeometry> geometries;

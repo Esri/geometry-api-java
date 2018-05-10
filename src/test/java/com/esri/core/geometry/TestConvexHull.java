@@ -27,6 +27,8 @@ package com.esri.core.geometry;
 import junit.framework.TestCase;
 import org.junit.Test;
 
+import com.esri.core.geometry.ogc.OGCGeometry;
+
 public class TestConvexHull extends TestCase {
 	@Override
 	protected void setUp() throws Exception {
@@ -991,6 +993,70 @@ public class TestConvexHull extends TestCase {
 		assertTrue(p4.x == 5.0 && p4.y == -5.0);
 		assertTrue(p5.x == -5.0 && p5.y == 1.25);
 		assertTrue(p6.x == 0.0 && p6.y == 10.0);
+	}
+	
+	@Test
+	public void testHullIssueGithub172() {
+		{
+			//empty
+			OGCGeometry geom = OGCGeometry.fromText("MULTIPOINT EMPTY");
+			OGCGeometry result = geom.convexHull();
+			String text = result.asText();
+			assertTrue(text.compareTo("POINT EMPTY") == 0);
+		}
+		{
+			//Point
+			OGCGeometry geom = OGCGeometry.fromText("POINT (1 2)");
+			OGCGeometry result = geom.convexHull();
+			String text = result.asText();
+			assertTrue(text.compareTo("POINT (1 2)") == 0);
+		}
+		{
+			//line
+			OGCGeometry geom = OGCGeometry.fromText("MULTIPOINT (1 1, 2 2)");
+			OGCGeometry result = geom.convexHull();
+			String text = result.asText();
+			assertTrue(text.compareTo("LINESTRING (1 1, 2 2)") == 0);
+		}
+		{
+			//empty
+			OGCGeometry geom = OGCGeometry.fromText("GEOMETRYCOLLECTION EMPTY");
+			OGCGeometry result = geom.convexHull();
+			String text = result.asText();
+			assertTrue(text.compareTo("POINT EMPTY") == 0);
+		}
+		
+		{
+			//empty
+			OGCGeometry geom = OGCGeometry.fromText("GEOMETRYCOLLECTION (POINT (1 2))");
+			OGCGeometry result = geom.convexHull();
+			String text = result.asText();
+			assertTrue(text.compareTo("POINT (1 2)") == 0);
+		}
+
+		{
+			//empty
+			OGCGeometry geom = OGCGeometry.fromText("GEOMETRYCOLLECTION(POLYGON EMPTY, POINT(1 1), LINESTRING EMPTY, MULTIPOLYGON EMPTY, MULTILINESTRING EMPTY)");
+			OGCGeometry result = geom.convexHull();
+			String text = result.asText();
+			assertTrue(text.compareTo("POINT (1 1)") == 0);
+		}
+
+		{
+			//empty
+			OGCGeometry geom = OGCGeometry.fromText("GEOMETRYCOLLECTION(POLYGON EMPTY, LINESTRING (1 1, 2 2), POINT(3 3), LINESTRING EMPTY, MULTIPOLYGON EMPTY, MULTILINESTRING EMPTY)");
+			OGCGeometry result = geom.convexHull();
+			String text = result.asText();
+			assertTrue(text.compareTo("LINESTRING (1 1, 3 3)") == 0);
+		}
+
+		{
+			//empty
+			OGCGeometry geom = OGCGeometry.fromText("GEOMETRYCOLLECTION(POLYGON EMPTY, LINESTRING (1 1, 2 2), POINT(3 3), LINESTRING EMPTY, POLYGON((-10 -10, 10 -10, 10 10, -10 10, -10 -10), (-5 -5, -5 5, 5 5, 5 -5, -5 -5)))");
+			OGCGeometry result = geom.convexHull();
+			String text = result.asText();
+			assertTrue(text.compareTo("POLYGON ((-10 -10, 10 -10, 10 10, -10 10, -10 -10))") == 0);
+		}
 	}
 
 }

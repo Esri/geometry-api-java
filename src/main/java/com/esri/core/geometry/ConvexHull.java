@@ -52,10 +52,13 @@ class ConvexHull {
 
 	/**
 	 * Adds a geometry to the current bounding geometry using an incremental algorithm for dynamic insertion.
-	 * \param geometry The geometry to add to the bounding geometry.
+	 * @param geometry The geometry to add to the bounding geometry.
 	 */
 
 	void addGeometry(Geometry geometry) {
+		if (geometry.isEmpty())
+			return;
+		
 		int type = geometry.getType().value();
 
 		if (MultiVertexGeometry.isMultiVertex(type))
@@ -80,6 +83,9 @@ class ConvexHull {
 		Point point = new Point();
 		int first = m_tree_hull.getFirst(-1);
 		Polygon hull = new Polygon(m_shape.getVertexDescription());
+		if (m_tree_hull.size(-1) == 0)
+			return hull;
+		
 		m_shape.queryPoint(m_tree_hull.getElement(first), point);
 		hull.startPath(point);
 

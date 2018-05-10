@@ -433,18 +433,16 @@ public abstract class OGCGeometry {
 		OperatorCentroid2D op = (OperatorCentroid2D) OperatorFactoryLocal.getInstance()
 				.getOperator(Operator.Type.Centroid2D);
 
-        Point2D centroid = op.execute(getEsriGeometry(), null);
-        if (centroid == null) {
-            return OGCGeometry.createFromEsriGeometry(new Point(), esriSR);
-        }
-        return OGCGeometry.createFromEsriGeometry(new Point(centroid), esriSR);
+		Point2D centroid = op.execute(getEsriGeometry(), null);
+		if (centroid == null) {
+			return OGCGeometry.createFromEsriGeometry(new Point(), esriSR);
+		}
+		return OGCGeometry.createFromEsriGeometry(new Point(centroid), esriSR);
 	}
 
 	public OGCGeometry convexHull() {
-		com.esri.core.geometry.OperatorConvexHull op = (OperatorConvexHull) OperatorFactoryLocal
-				.getInstance().getOperator(Operator.Type.ConvexHull);
-		com.esri.core.geometry.GeometryCursor cursor = op.execute(
-				getEsriGeometryCursor(), true, null);
+		com.esri.core.geometry.GeometryCursor cursor = OperatorConvexHull.local().execute(
+				getEsriGeometryCursor(), false, null);
 		return OGCGeometry.createFromEsriCursor(cursor, esriSR);
 	}
 
