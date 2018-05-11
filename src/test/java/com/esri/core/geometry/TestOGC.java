@@ -926,4 +926,34 @@ public class TestOGC extends TestCase {
 		}
 	}
 	
+	@Test
+	public void testEmptyBoundary() throws Exception {
+		{
+			OGCGeometry g = OGCGeometry.fromText("POINT EMPTY");
+			OGCGeometry b = g.boundary();
+			assertTrue(b.asText().compareTo("MULTIPOINT EMPTY") == 0);
+		}
+		{
+			OGCGeometry g = OGCGeometry.fromText("MULTIPOINT EMPTY");
+			OGCGeometry b = g.boundary();
+			assertTrue(b.asText().compareTo("MULTIPOINT EMPTY") == 0);
+		}
+		{
+			OGCGeometry g = OGCGeometry.fromText("LINESTRING EMPTY");
+			OGCGeometry b = g.boundary();
+			assertTrue(b.asText().compareTo("MULTIPOINT EMPTY") == 0);
+		}
+		{
+			OGCGeometry g = OGCGeometry.fromText("POLYGON EMPTY");
+			OGCGeometry b = g.boundary();
+			assertTrue(b.asText().compareTo("MULTILINESTRING EMPTY") == 0);
+		}
+		{
+			OGCGeometry g = OGCGeometry.fromText("MULTIPOLYGON EMPTY");
+			OGCGeometry b = g.boundary();
+			assertTrue(b.asText().compareTo("MULTILINESTRING EMPTY") == 0);
+		}
+	}
+	
+	
 }
