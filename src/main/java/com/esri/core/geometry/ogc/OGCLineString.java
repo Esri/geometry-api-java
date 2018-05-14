@@ -82,6 +82,9 @@ public class OGCLineString extends OGCCurve {
 
 	@Override
 	public boolean isClosed() {
+		if (isEmpty())
+			return false;
+
 		return multiPath.isClosedPathInXYPlane(0);
 	}
 

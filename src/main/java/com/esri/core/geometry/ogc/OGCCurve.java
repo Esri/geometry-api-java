@@ -41,6 +41,9 @@ public abstract class OGCCurve extends OGCGeometry {
 
 	@Override
 	public OGCGeometry boundary() {
+		if (isEmpty())
+			return new OGCMultiPoint(this.getEsriSpatialReference());
+		
 		if (isClosed())
 			return new OGCMultiPoint(new MultiPoint(getEsriGeometry()
 					.getDescription()), esriSR);// return empty multipoint;
