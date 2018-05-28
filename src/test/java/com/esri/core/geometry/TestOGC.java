@@ -967,7 +967,7 @@ public class TestOGC extends TestCase {
 
 	@Test
 	public void testUnionLinestringWithEmptyPolygon() {
-		assertUnion("LINESTRING (1 2, 3 4)", "POLYGON EMPTY", "GEOMETRYCOLLECTION (LINESTRING ((1 2, 3 4)))");
+		assertUnion("LINESTRING (1 2, 3 4)", "POLYGON EMPTY", "GEOMETRYCOLLECTION (LINESTRING (1 2, 3 4))");
 	}
 
 	@Test
@@ -980,11 +980,35 @@ public class TestOGC extends TestCase {
 	public void testUnionGeometryCollectionWithGeometryCollection() {
 		assertUnion("GEOMETRYCOLLECTION (LINESTRING (1 2, 3 4), POLYGON ((0 0, 1 1, 0 1, 0 0)))", 
 				"GEOMETRYCOLLECTION (POINT (1 2), POINT (2 3), POINT (0.5 0.5), POINT (3 5), LINESTRING (3 4, 5 6), POLYGON ((0 0, 1 0, 1 1, 0 0)))",
-				"GEOMETRYCOLLECTION (LINESTRING (1 2, 3 4), POLYGON ((0 0, 1 1, 0 1, 0 0)))");
+				"GEOMETRYCOLLECTION (POINT (3 5), LINESTRING (1 2, 2 3, 3 4, 5 6), POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0)))");
 	}
 
 	private void assertUnion(String leftWkt, String rightWkt, String expectedWkt) {
 		OGCGeometry union = OGCGeometry.fromText(leftWkt).union(OGCGeometry.fromText(rightWkt));
 		assertEquals(expectedWkt, union.asText());
+	}
+	
+	@Test
+	public void testDisjointOnGeometryCollection() {
+		OGCGeometry ogcGeometry = OGCGeometry.fromText("GEOMETRYCOLLECTION (POINT (1 1))");
+		assertFalse(ogcGeometry.disjoint(OGCGeometry.fromText("POINT (1 1)")));
+	}
+
+	@Test
+	public void testContainsOnGeometryCollection() {
+		OGCGeometry ogcGeometry = OGCGeometry.fromText("GEOMETRYCOLLECTION (POINT (1 1))");
+		assertTrue(ogcGeometry.contains(OGCGeometry.fromText("POINT (1 1)")));
+	}
+
+	@Test
+	public void testIntersectsOnGeometryCollection() {
+		OGCGeometry ogcGeometry = OGCGeometry.fromText("GEOMETRYCOLLECTION (POINT (1 1))");
+		assertTrue(ogcGeometry.intersects(OGCGeometry.fromText("POINT (1 1)")));
+	}
+
+	@Test
+	public void testDistanceOnGeometryCollection() {
+		OGCGeometry ogcGeometry = OGCGeometry.fromText("GEOMETRYCOLLECTION (POINT (1 1))");
+		assertTrue(ogcGeometry.distance(OGCGeometry.fromText("POINT (1 1)")) == 0);
 	}
 }

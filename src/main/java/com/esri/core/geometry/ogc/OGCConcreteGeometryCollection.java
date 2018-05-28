@@ -520,6 +520,21 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 		return hash;
 	}
 	
+	@Override
+	public double distance(OGCGeometry another) {
+		double minD = 0;
+		for (int i = 0, n = numGeometries(); i < n; ++i) {
+			double d = geometryN(i).distance(another);
+			if (d < minD) {
+				minD = d;
+				if (minD == 0) {
+					break;
+				}
+			}
+		}
+
+		return minD;
+	}
 	//Relational operations
 	@Override
 	public boolean disjoint(OGCGeometry another) {
@@ -708,12 +723,12 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 	
 	private OGCConcreteGeometryCollection removeOverlapsHelper_(List<Geometry> geoms) {
 		ArrayList<Geometry> result = new ArrayList<Geometry>();
-		for (int i = 0; i < geoms.size() - 1; ++i) {
+		for (int i = 0; i < geoms.size(); ++i) {
 			Geometry current = geoms.get(i);
 			if (current.isEmpty())
 				continue;
 			
-			for (int j = 1; j < geoms.size(); ++j) {
+			for (int j = i + 1; j < geoms.size(); ++j) {
 				Geometry subG = geoms.get(j);
 				current = OperatorDifference.local().execute(current, subG, esriSR, null);
 				if (current.isEmpty())
@@ -726,7 +741,7 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 			result.add(current);
 		}
 		
-		return new OGCConcreteGeometryCollection(new SimpleGeometryCursor(geoms), esriSR);
+		return new OGCConcreteGeometryCollection(new SimpleGeometryCursor(result), esriSR);
 	}
 	
 	private static class FlatteningCollectionCursor extends GeometryCursor {

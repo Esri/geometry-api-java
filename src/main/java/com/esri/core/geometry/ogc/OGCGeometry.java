@@ -325,6 +325,10 @@ public abstract class OGCGeometry {
 
 	// analysis
 	public double distance(OGCGeometry another) {
+		if (another.geometryType() == OGCConcreteGeometryCollection.TYPE) {
+			return another.distance(this);
+		}
+
 		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
 		com.esri.core.geometry.Geometry geom2 = another.getEsriGeometry();
 		return com.esri.core.geometry.GeometryEngine.distance(geom1, geom2,
