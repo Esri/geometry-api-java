@@ -295,10 +295,7 @@ public abstract class OGCGeometry {
 	}
 
 	public boolean within(OGCGeometry another) {
-		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
-		com.esri.core.geometry.Geometry geom2 = another.getEsriGeometry();
-		return com.esri.core.geometry.GeometryEngine.within(geom1, geom2,
-				getEsriSpatialReference());
+		return another.contains(this);
 	}
 
 	public boolean contains(OGCGeometry another) {
@@ -456,6 +453,18 @@ public abstract class OGCGeometry {
 	}
 
 	public OGCGeometry union(OGCGeometry another) {
+		String thisType = geometryType();
+		String anotherType = another.geometryType();
+		if (thisType != anotherType || thisType == OGCConcreteGeometryCollection.TYPE) {
+			//heterogeneous union.
+			//We make a geometry collection, then process to union parts and remove overlaps.
+			ArrayList<OGCGeometry> geoms = new ArrayList<OGCGeometry>();
+			geoms.add(this);
+			geoms.add(another);
+			OGCConcreteGeometryCollection geomCol = new OGCConcreteGeometryCollection(geoms, esriSR);
+			return geomCol.flattenAndRemoveOverlaps();
+		}
+		
 		OperatorUnion op = (OperatorUnion) OperatorFactoryLocal.getInstance()
 				.getOperator(Operator.Type.Union);
 		GeometryCursorAppend ap = new GeometryCursorAppend(

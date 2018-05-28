@@ -42,22 +42,31 @@ import java.nio.ByteBuffer;
 import static com.esri.core.geometry.SizeOf.SIZE_OF_OGC_MULTI_LINE_STRING;
 
 public class OGCMultiLineString extends OGCMultiCurve {
+	static public String TYPE = "MultiLineString";
+	
 	public OGCMultiLineString(Polyline poly, SpatialReference sr) {
 		polyline = poly;
 		esriSR = sr;
 	}
 
+	public OGCMultiLineString(SpatialReference sr) {
+		polyline = new Polyline();
+		esriSR = sr;
+	}
+	
 	@Override
 	public String asText() {
 		return GeometryEngine.geometryToWkt(getEsriGeometry(),
 				WktExportFlags.wktExportMultiLineString);
 	}
+
 	@Override
-    public String asGeoJson() {
-        OperatorExportToGeoJson op = (OperatorExportToGeoJson) OperatorFactoryLocal
-                .getInstance().getOperator(Operator.Type.ExportToGeoJson);
-        return op.execute(GeoJsonExportFlags.geoJsonExportPreferMultiGeometry, null, getEsriGeometry());
-    }
+	public String asGeoJson() {
+		OperatorExportToGeoJson op = (OperatorExportToGeoJson) OperatorFactoryLocal.getInstance()
+				.getOperator(Operator.Type.ExportToGeoJson);
+		return op.execute(GeoJsonExportFlags.geoJsonExportPreferMultiGeometry, null, getEsriGeometry());
+	}
+	
 	@Override
 	public ByteBuffer asBinary() {
 		OperatorExportToWkb op = (OperatorExportToWkb) OperatorFactoryLocal
@@ -74,7 +83,7 @@ public class OGCMultiLineString extends OGCMultiCurve {
 
 	@Override
 	public String geometryType() {
-		return "MultiLineString";
+		return TYPE;
 	}
 
 	@Override

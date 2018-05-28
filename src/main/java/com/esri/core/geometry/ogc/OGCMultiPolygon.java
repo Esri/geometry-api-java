@@ -42,12 +42,18 @@ import java.nio.ByteBuffer;
 import static com.esri.core.geometry.SizeOf.SIZE_OF_OGC_MULTI_POLYGON;
 
 public class OGCMultiPolygon extends OGCMultiSurface {
-
+	static public String TYPE = "MultiPolygon";
+	
 	public OGCMultiPolygon(Polygon src, SpatialReference sr) {
 		polygon = src;
 		esriSR = sr;
 	}
 
+	public OGCMultiPolygon(SpatialReference sr) {
+		polygon = new Polygon();
+		esriSR = sr;
+	}
+	
 	@Override
 	public String asText() {
 		return GeometryEngine.geometryToWkt(getEsriGeometry(),
@@ -89,7 +95,7 @@ public class OGCMultiPolygon extends OGCMultiSurface {
 
 	@Override
 	public String geometryType() {
-		return "MultiPolygon";
+		return TYPE;
 	}
 
 	@Override

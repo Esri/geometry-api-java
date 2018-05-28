@@ -40,6 +40,8 @@ import java.nio.ByteBuffer;
 import static com.esri.core.geometry.SizeOf.SIZE_OF_OGC_POLYGON;
 
 public class OGCPolygon extends OGCSurface {
+	public static String TYPE = "Polygon";
+	
 	public OGCPolygon(Polygon src, int exteriorRing, SpatialReference sr) {
 		polygon = new Polygon();
 		for (int i = exteriorRing, n = src.getPathCount(); i < n; i++) {
@@ -109,7 +111,7 @@ public class OGCPolygon extends OGCSurface {
 
 	@Override
 	public String geometryType() {
-		return "Polygon";
+		return TYPE;
 	}
 
 	@Override

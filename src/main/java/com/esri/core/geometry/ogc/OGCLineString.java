@@ -40,7 +40,8 @@ import java.nio.ByteBuffer;
 import static com.esri.core.geometry.SizeOf.SIZE_OF_OGC_LINE_STRING;
 
 public class OGCLineString extends OGCCurve {
-
+	static public String TYPE = "LineString";
+	
 	/**
 	 * The number of Points in this LineString.
 	 */
@@ -120,7 +121,7 @@ public class OGCLineString extends OGCCurve {
 
 	@Override
 	public String geometryType() {
-		return "LineString";
+		return TYPE;
 	}
 
 	@Override

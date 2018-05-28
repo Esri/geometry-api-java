@@ -40,6 +40,8 @@ import java.nio.ByteBuffer;
 import static com.esri.core.geometry.SizeOf.SIZE_OF_OGC_MULTI_POINT;
 
 public class OGCMultiPoint extends OGCGeometryCollection {
+	public static String TYPE = "MultiPoint";
+	
 	public int numGeometries() {
 		return multiPoint.getPointCount();
 	}
@@ -65,7 +67,7 @@ public class OGCMultiPoint extends OGCGeometryCollection {
 
 	@Override
 	public String geometryType() {
-		return "MultiPoint";
+		return TYPE;
 	}
 
 	@Override

@@ -456,7 +456,7 @@ public abstract class Geometry implements Serializable {
 	 * @param type
 	 *            The integer value from geometry enumeration. You can use the
 	 *            method {@link Type#value()} to get at the integer value.
-	 * @return TRUE if the geometry is a point.
+	 * @return TRUE if the geometry is a point (a Point or a Multipoint).
 	 */
 	public static boolean isPoint(int type) {
 		return (type & 0x20) != 0;

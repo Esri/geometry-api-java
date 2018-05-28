@@ -39,6 +39,8 @@ import java.nio.ByteBuffer;
 import static com.esri.core.geometry.SizeOf.SIZE_OF_OGC_POINT;
 
 public final class OGCPoint extends OGCGeometry {
+	public static String TYPE = "Point";
+	
 	public OGCPoint(Point pt, SpatialReference sr) {
 		point = pt;
 		esriSR = sr;
@@ -76,7 +78,7 @@ public final class OGCPoint extends OGCGeometry {
 
 	@Override
 	public String geometryType() {
-		return "Point";
+		return TYPE;
 	}
 
 	@Override
