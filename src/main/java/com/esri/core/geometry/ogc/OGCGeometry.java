@@ -270,6 +270,10 @@ public abstract class OGCGeometry {
 	}
 	
 	public boolean disjoint(OGCGeometry another) {
+		if (another.geometryType() == OGCConcreteGeometryCollection.TYPE) {
+			return another.disjoint(this);
+		}
+		
 		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
 		com.esri.core.geometry.Geometry geom2 = another.getEsriGeometry();
 		return com.esri.core.geometry.GeometryEngine.disjoint(geom1, geom2,
@@ -299,6 +303,10 @@ public abstract class OGCGeometry {
 	}
 
 	public boolean contains(OGCGeometry another) {
+		if (another.geometryType() == OGCConcreteGeometryCollection.TYPE) {
+			return another.contains(this);
+		}
+		
 		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
 		com.esri.core.geometry.Geometry geom2 = another.getEsriGeometry();
 		return com.esri.core.geometry.GeometryEngine.contains(geom1, geom2,

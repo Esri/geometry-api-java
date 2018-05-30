@@ -522,10 +522,10 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 	
 	@Override
 	public double distance(OGCGeometry another) {
-		double minD = 0;
+		double minD = Double.NaN;
 		for (int i = 0, n = numGeometries(); i < n; ++i) {
 			double d = geometryN(i).distance(another);
-			if (d < minD) {
+			if (d < minD || Double.isNaN(minD)) {
 				minD = d;
 				if (minD == 0) {
 					break;
@@ -612,6 +612,7 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 		if (n > 3)
 			return false;
 
+		int dimension = -1;
 		for (int i = 0; i < n; ++i) {
 			OGCGeometry g = geometryN(i);
 			if (g.isEmpty())
@@ -620,6 +621,13 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 			String t = g.geometryType();
 			if (t != OGCMultiPoint.TYPE && t != OGCMultiPolygon.TYPE && t != OGCMultiLineString.TYPE)
 				return false;
+			
+			//check strict order of geometry dimensions
+			int d = g.dimension();
+			if (d <= dimension)
+				return false;
+
+			dimension = d;
 		}
 		
 		return true;

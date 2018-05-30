@@ -1004,11 +1004,25 @@ public class TestOGC extends TestCase {
 	public void testIntersectsOnGeometryCollection() {
 		OGCGeometry ogcGeometry = OGCGeometry.fromText("GEOMETRYCOLLECTION (POINT (1 1))");
 		assertTrue(ogcGeometry.intersects(OGCGeometry.fromText("POINT (1 1)")));
+		ogcGeometry = OGCGeometry.fromText("POINT (1 1)");
+		assertTrue(ogcGeometry.intersects(OGCGeometry.fromText("GEOMETRYCOLLECTION (POINT (1 1))")));
 	}
 
 	@Test
 	public void testDistanceOnGeometryCollection() {
 		OGCGeometry ogcGeometry = OGCGeometry.fromText("GEOMETRYCOLLECTION (POINT (1 1))");
 		assertTrue(ogcGeometry.distance(OGCGeometry.fromText("POINT (1 1)")) == 0);
+		
+		//distance to empty is NAN
+		ogcGeometry = OGCGeometry.fromText("GEOMETRYCOLLECTION (POINT (1 1))");
+		assertTrue(Double.isNaN(ogcGeometry.distance(OGCGeometry.fromText("POINT EMPTY"))));
+	}
+	
+	@Test
+	public void testFlattened() {
+		OGCConcreteGeometryCollection ogcGeometry = (OGCConcreteGeometryCollection)OGCGeometry.fromText("GEOMETRYCOLLECTION (MULTILINESTRING ((1 2, 3 4)), MULTIPOLYGON (((1 2, 3 4, 5 6, 1 2))), MULTIPOINT (1 1))");
+		assertFalse(ogcGeometry.isFlattened());
+		ogcGeometry = (OGCConcreteGeometryCollection)OGCGeometry.fromText("GEOMETRYCOLLECTION (MULTIPOINT (1 1), MULTILINESTRING ((1 2, 3 4)), MULTIPOLYGON (((1 2, 3 4, 5 6, 1 2))))");
+		assertTrue(ogcGeometry.isFlattened());
 	}
 }
