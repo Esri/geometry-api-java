@@ -983,6 +983,18 @@ public class TestOGC extends TestCase {
 				"GEOMETRYCOLLECTION (POINT (3 5), LINESTRING (1 2, 2 3, 3 4, 5 6), POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0)))");
 	}
 
+	@Test
+	public void testIntersectionGeometryCollectionWithGeometryCollection() {
+		assertIntersection("GEOMETRYCOLLECTION (LINESTRING (1 2, 3 4), POLYGON ((0 0, 1 1, 0 1, 0 0)))", 
+				"GEOMETRYCOLLECTION (POINT (1 2), POINT (2 3), POINT (0.5 0.5), POINT (3 5), LINESTRING (3 4, 5 6), POLYGON ((0 0, 1 0, 1 1, 0 0)))",
+				"GEOMETRYCOLLECTION (MULTIPOINT ((1 2), (2 3), (3 4)), LINESTRING (0 0, 0.5 0.5, 1 1))");
+	}
+
+	private void assertIntersection(String leftWkt, String rightWkt, String expectedWkt) {
+		OGCGeometry intersection = OGCGeometry.fromText(leftWkt).intersection(OGCGeometry.fromText(rightWkt));
+		assertEquals(expectedWkt, intersection.asText());
+	}
+	
 	private void assertUnion(String leftWkt, String rightWkt, String expectedWkt) {
 		OGCGeometry union = OGCGeometry.fromText(leftWkt).union(OGCGeometry.fromText(rightWkt));
 		assertEquals(expectedWkt, union.asText());

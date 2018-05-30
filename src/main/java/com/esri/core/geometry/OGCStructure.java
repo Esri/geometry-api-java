@@ -23,12 +23,7 @@
  */
 package com.esri.core.geometry;
 
-import java.util.ArrayList;
 import java.util.List;
-
-import com.esri.core.geometry.ogc.OGCConcreteGeometryCollection;
-import com.esri.core.geometry.ogc.OGCGeometry;
-import com.esri.core.geometry.ogc.OGCGeometryCollection;
 
 public class OGCStructure {
 	public int m_type;

@@ -253,7 +253,7 @@ public abstract class OGCGeometry {
 	 */
 	public boolean Equals(OGCGeometry another) {
 		if (this == another)
-			return true;
+			return true; //should return false for empty
 		
 		if (another == null)
 			return false;
@@ -333,6 +333,9 @@ public abstract class OGCGeometry {
 
 	// analysis
 	public double distance(OGCGeometry another) {
+		if (this == another)
+			return isEmpty() ? Double.NaN : 0;
+		
 		if (another.geometryType() == OGCConcreteGeometryCollection.TYPE) {
 			return another.distance(this);
 		}
@@ -456,6 +459,10 @@ public abstract class OGCGeometry {
 	}
 
 	public OGCGeometry intersection(OGCGeometry another) {
+		if (another.geometryType() == OGCConcreteGeometryCollection.TYPE) {
+			return (new OGCConcreteGeometryCollection(this, esriSR)).intersection(another);
+		}
+
 		com.esri.core.geometry.OperatorIntersection op = (OperatorIntersection) OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Intersection);
 		com.esri.core.geometry.GeometryCursor cursor = op.execute(
@@ -487,6 +494,10 @@ public abstract class OGCGeometry {
 	}
 
 	public OGCGeometry difference(OGCGeometry another) {
+		if (another.geometryType() == OGCConcreteGeometryCollection.TYPE) {
+			return (new OGCConcreteGeometryCollection(this, esriSR)).difference(another);
+		}
+		
 		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
 		com.esri.core.geometry.Geometry geom2 = another.getEsriGeometry();
 		return createFromEsriGeometry(
