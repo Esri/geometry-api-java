@@ -133,5 +133,19 @@ public class OGCMultiPoint extends OGCGeometryCollection {
 		return this;
 	}
 	
+	@Override
+	public OGCGeometry reduceFromMulti() {
+		int n = numGeometries();
+		if (n == 0) {
+			return new OGCPoint(new Point(multiPoint.getDescription()), esriSR);
+		}
+		
+		if (n == 1) {
+			return geometryN(0);
+		}
+		
+		return this;
+	}
+	
 	private com.esri.core.geometry.MultiPoint multiPoint;
 }

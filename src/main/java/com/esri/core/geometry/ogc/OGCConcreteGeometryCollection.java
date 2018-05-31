@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2017 Esri
+ Copyright 1995-2018 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -477,6 +477,20 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 	public OGCGeometry convertToMulti() {
 		return this;
 	}
+	
+	@Override
+	public OGCGeometry reduceFromMulti() {
+		int n = numGeometries();
+		if (n == 0) {
+			return this;
+		}
+		
+		if (n == 1) {
+			return geometryN(0).reduceFromMulti();
+		}
+		
+		return this;
+	}
 
 	@Override
 	public String asJson() {
@@ -582,7 +596,7 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 			return false;
 		
 		if (this == another)
-			return false;
+			return true;
 
 		//TODO: a simple envelope test
 		
@@ -612,6 +626,48 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 		//each geometry of another is contained in a geometry from this.
 		return true;
 	}
+	
+	@Override
+	public boolean Equals(OGCGeometry another) {
+		if (this == another)
+			return !isEmpty();
+		
+		if (another == null)
+			return false;
+		
+
+		OGCGeometry g1 = reduceFromMulti();
+		String t1 = g1.geometryType();
+		OGCGeometry g2 = reduceFromMulti();
+		if (t1 != g2.geometryType()) {
+			return false;
+		}
+		
+		if (t1 != OGCConcreteGeometryCollection.TYPE) {
+			return g1.Equals(g2);
+		}
+		
+		OGCConcreteGeometryCollection gc1 = (OGCConcreteGeometryCollection)g1;
+		OGCConcreteGeometryCollection gc2 = (OGCConcreteGeometryCollection)g2;
+		gc1 = gc1.flattenAndRemoveOverlaps();
+		gc2 = gc2.flattenAndRemoveOverlaps();
+		int n = gc1.numGeometries();
+		if (n != gc2.numGeometries()) {
+			return false;
+		}
+		
+		boolean res = false;
+		for (int i = 0; i < n; ++i) {
+			if (!gc1.geometryN(i).Equals(gc2.geometryN(i))) {
+				return false;
+			}
+			
+			res = true;
+		}
+		
+		return res;
+	}
+	
 	//Topological
 	@Override
 	public OGCGeometry difference(OGCGeometry another) {
@@ -641,9 +697,13 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 			result.add(cur);
 		}
 		
+		if (result.size() == 1) {
+			result.get(0).reduceFromMulti();
+		}
+		
 		return new OGCConcreteGeometryCollection(result, esriSR);
 	}
-
+	
 	@Override
 	public OGCGeometry intersection(OGCGeometry another) {
 		List<OGCConcreteGeometryCollection> list = wrapGeomsIntoList_(this, another);
@@ -665,6 +725,10 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 				
 				result.add(partialIntersection);
 			}
+		}
+		
+		if (result.size() == 1) {
+			result.get(0).reduceFromMulti();
 		}
 
 		return (new OGCConcreteGeometryCollection(result, esriSR)).flattenAndRemoveOverlaps();

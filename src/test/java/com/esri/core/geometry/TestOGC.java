@@ -957,7 +957,7 @@ public class TestOGC extends TestCase {
 	
 	@Test
 	public void testUnionPointWithEmptyLineString() {
-		assertUnion("POINT (1 2)", "LINESTRING EMPTY", "GEOMETRYCOLLECTION (POINT (1 2))");
+		assertUnion("POINT (1 2)", "LINESTRING EMPTY", "POINT (1 2)");
 	}
 
 	@Test
@@ -967,7 +967,7 @@ public class TestOGC extends TestCase {
 
 	@Test
 	public void testUnionLinestringWithEmptyPolygon() {
-		assertUnion("LINESTRING (1 2, 3 4)", "POLYGON EMPTY", "GEOMETRYCOLLECTION (LINESTRING (1 2, 3 4))");
+		assertUnion("MULTILINESTRING ((1 2, 3 4))", "POLYGON EMPTY", "LINESTRING (1 2, 3 4)");
 	}
 
 	@Test

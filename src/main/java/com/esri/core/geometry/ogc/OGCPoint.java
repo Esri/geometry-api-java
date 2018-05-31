@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2017 Esri
+ Copyright 1995-2018 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -114,6 +114,11 @@ public final class OGCPoint extends OGCGeometry {
 	public OGCGeometry convertToMulti()
 	{
 		return new OGCMultiPoint(point, esriSR);
+	}
+	
+	@Override
+	public OGCGeometry reduceFromMulti() {
+		return this;
 	}
 
 	com.esri.core.geometry.Point point;

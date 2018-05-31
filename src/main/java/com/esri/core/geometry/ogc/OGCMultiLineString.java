@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2017 Esri
+ Copyright 1995-2018 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -120,6 +120,20 @@ public class OGCMultiLineString extends OGCMultiCurve {
 	@Override
 	public OGCGeometry convertToMulti()
 	{
+		return this;
+	}
+	
+	@Override
+	public OGCGeometry reduceFromMulti() {
+		int n = numGeometries();
+		if (n == 0) {
+			return new OGCLineString(new Polyline(polyline.getDescription()), 0, esriSR);
+		}
+		
+		if (n == 1) {
+			return geometryN(0);
+		}
+		
 		return this;
 	}
 	

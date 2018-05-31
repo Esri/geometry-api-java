@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2017 Esri
+ Copyright 1995-2018 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -141,6 +141,11 @@ public class OGCPolygon extends OGCSurface {
 	public OGCGeometry convertToMulti()
 	{
 		return new OGCMultiPolygon(polygon, esriSR);
+	}
+	
+	@Override
+	public OGCGeometry reduceFromMulti() {
+		return this;
 	}
 	
 	Polygon polygon;

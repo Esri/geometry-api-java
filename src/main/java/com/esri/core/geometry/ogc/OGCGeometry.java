@@ -253,17 +253,21 @@ public abstract class OGCGeometry {
 	 */
 	public boolean Equals(OGCGeometry another) {
 		if (this == another)
-			return true; //should return false for empty
+			return !isEmpty();
 		
 		if (another == null)
 			return false;
+		
+		if (another.geometryType() == OGCConcreteGeometryCollection.TYPE) {
+			return another.Equals(this);
+		}
 		
 		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
 		com.esri.core.geometry.Geometry geom2 = another.getEsriGeometry();
 		return com.esri.core.geometry.GeometryEngine.equals(geom1, geom2,
 				getEsriSpatialReference());
 	}
-	
+
 	@Deprecated
 	public boolean equals(OGCGeometry another) {
 		return Equals(another);
@@ -481,7 +485,7 @@ public abstract class OGCGeometry {
 			geoms.add(this);
 			geoms.add(another);
 			OGCConcreteGeometryCollection geomCol = new OGCConcreteGeometryCollection(geoms, esriSR);
-			return geomCol.flattenAndRemoveOverlaps();
+			return geomCol.flattenAndRemoveOverlaps().reduceFromMulti();
 		}
 		
 		OperatorUnion op = (OperatorUnion) OperatorFactoryLocal.getInstance()
@@ -755,6 +759,17 @@ public abstract class OGCGeometry {
 	 */
 	public abstract OGCGeometry convertToMulti();
 
+	/**
+	 * For the geometry collection types, when it has 1 or 0 elements, converts a MultiPolygon to Polygon, 
+	 * MultiPoint to Point, MultiLineString to a LineString, and
+	 * OGCConcretGeometryCollection to the reduced element it contains.
+	 * 
+	 * If OGCConcretGeometryCollection is empty, returns self.
+	 * 
+	 * @return A reduced geometry or this.
+	 */
+	public abstract OGCGeometry reduceFromMulti();
+	
 	@Override
 	public String toString() {
 		String snippet = asText();
