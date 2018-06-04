@@ -81,9 +81,9 @@ class OperatorDifferenceLocal extends OperatorDifference {
 		if (!env_a_inflated.isIntersecting(env_b))
 			return geometry_a;
 
-		if (dimension_a == 1 && dimension_b == 2)
+		/*if (dimension_a == 1 && dimension_b == 2)
 			return polylineMinusArea_(geometry_a, geometry_b, type_b,
-					spatial_reference, progress_tracker);
+					spatial_reference, progress_tracker);*/
 
 		if (type_a == Geometry.GeometryType.Point) {
 			Geometry geometry_b_;
