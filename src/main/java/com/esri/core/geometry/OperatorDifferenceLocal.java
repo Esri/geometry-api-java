@@ -358,7 +358,9 @@ class OperatorDifferenceLocal extends OperatorDifference {
 		return new_multipoint;
 	}
 
-	static Geometry polylineMinusArea_(Geometry geometry, Geometry area,
+	/*
+	 This optimization causes a bug when polyline segments are on the boundary.
+	 static Geometry polylineMinusArea_(Geometry geometry, Geometry area,
 			int area_type, SpatialReference sr, ProgressTracker progress_tracker) {
 		// construct the complement of the Polygon (or Envelope)
 		Envelope envelope = new Envelope();
@@ -387,6 +389,6 @@ class OperatorDifferenceLocal extends OperatorDifference {
 		Geometry difference = operatorIntersection.execute(geometry,
 				complement, sr, progress_tracker);
 		return difference;
-	}
+	}*/
 
 }
