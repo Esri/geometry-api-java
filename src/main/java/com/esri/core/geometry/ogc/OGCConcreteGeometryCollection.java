@@ -598,33 +598,7 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 		if (this == another)
 			return true;
 
-		//TODO: a simple envelope test
-		
-		OGCConcreteGeometryCollection flattened1 = flatten();
-		if (flattened1.isEmpty())
-			return true;
-		OGCConcreteGeometryCollection otherCol = new OGCConcreteGeometryCollection(another, esriSR);
-		OGCConcreteGeometryCollection flattened2 = otherCol.flatten();
-		if (flattened2.isEmpty())
-			return true;
-		
-		for (int i = 0, n2 = flattened2.numGeometries(); i < n2; ++i) {
-			OGCGeometry g2 = flattened2.geometryN(i);
-			boolean good = false;
-			for (int j = 0, n1 = flattened1.numGeometries(); j < n1; ++j) {
-				OGCGeometry g1 = flattened1.geometryN(i);
-				if (g1.contains(g2)) {
-					good = true;
-					break;
-				}
-			}
-			
-			if (!good)
-				return false;
-		}
-		
-		//each geometry of another is contained in a geometry from this.
-		return true;
+		return another.difference(this).isEmpty();
 	}
 	
 	@Override
