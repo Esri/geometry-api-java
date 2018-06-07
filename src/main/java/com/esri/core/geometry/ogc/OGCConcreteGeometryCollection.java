@@ -561,6 +561,29 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 	//
 	//Relational operations
 	@Override
+	public boolean overlaps(OGCGeometry another) {
+		//TODO
+		throw new UnsupportedOperationException();
+	}
+	
+	@Override
+	public boolean touches(OGCGeometry another) {
+		//TODO
+		throw new UnsupportedOperationException();
+	}
+	
+	@Override
+	public boolean crosses(OGCGeometry another) {
+		//TODO
+		throw new UnsupportedOperationException();
+	}
+	
+	@Override
+	public boolean relate(OGCGeometry another, String matrix) {
+		throw new UnsupportedOperationException();
+	}
+	
+	@Override
 	public boolean disjoint(OGCGeometry another) {
 		if (isEmpty() || another.isEmpty())
 			return true;
@@ -672,7 +695,7 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 		}
 		
 		if (result.size() == 1) {
-			result.get(0).reduceFromMulti();
+			return result.get(0).reduceFromMulti();
 		}
 		
 		return new OGCConcreteGeometryCollection(result, esriSR);
@@ -680,6 +703,10 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 	
 	@Override
 	public OGCGeometry intersection(OGCGeometry another) {
+		if (isEmpty() || another.isEmpty()) {
+			return new OGCConcreteGeometryCollection(esriSR);
+		}
+		
 		List<OGCConcreteGeometryCollection> list = wrapGeomsIntoList_(this, another);
 		list = prepare_for_ops_(list);
 		if (list.size() != 2) // this should not happen
@@ -702,10 +729,16 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 		}
 		
 		if (result.size() == 1) {
-			result.get(0).reduceFromMulti();
+			return result.get(0).reduceFromMulti();
 		}
 
 		return (new OGCConcreteGeometryCollection(result, esriSR)).flattenAndRemoveOverlaps();
+	}
+	
+	@Override
+	public OGCGeometry symDifference(OGCGeometry another) {
+		//TODO
+		throw new UnsupportedOperationException();
 	}
 
 	//make a list of collections out of two geometries

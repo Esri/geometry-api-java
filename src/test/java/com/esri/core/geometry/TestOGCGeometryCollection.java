@@ -216,5 +216,22 @@ public class TestOGCGeometryCollection {
 		Assert.assertTrue(geometry.disjoint(otherGeometry));
 		Assert.assertTrue(otherGeometry.disjoint(geometry));
 	}
+	
+	@Test
+	public void testGeometryCollectionIntersect() {
+		assertIntersection("GEOMETRYCOLLECTION (POINT (1 2))", "POINT EMPTY", "GEOMETRYCOLLECTION EMPTY");
+		assertIntersection("GEOMETRYCOLLECTION (POINT (1 2), MULTIPOINT (3 4, 5 6))", "POINT (3 4)",
+				"POINT (3 4)");
+		assertIntersection("GEOMETRYCOLLECTION (POINT (1 2), MULTIPOINT (3 4, 5 6))", "POINT (30 40)",
+				"GEOMETRYCOLLECTION EMPTY");
+		assertIntersection("POINT (30 40)", "GEOMETRYCOLLECTION (POINT (1 2), MULTIPOINT (3 4, 5 6))",
+				"GEOMETRYCOLLECTION EMPTY");
+	}
 
+	private void assertIntersection(String wkt, String otherWkt, String expectedWkt) {
+		OGCGeometry geometry = OGCGeometry.fromText(wkt);
+		OGCGeometry otherGeometry = OGCGeometry.fromText(otherWkt);
+		OGCGeometry result = geometry.intersection(otherGeometry);
+		Assert.assertEquals(expectedWkt, result.asText());
+	}
 }

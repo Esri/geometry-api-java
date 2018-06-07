@@ -289,6 +289,11 @@ public abstract class OGCGeometry {
 	}
 
 	public boolean touches(OGCGeometry another) {
+		if (another.geometryType() == OGCConcreteGeometryCollection.TYPE) {
+			//TODO
+			throw new UnsupportedOperationException();
+		}
+		
 		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
 		com.esri.core.geometry.Geometry geom2 = another.getEsriGeometry();
 		return com.esri.core.geometry.GeometryEngine.touches(geom1, geom2,
@@ -296,6 +301,11 @@ public abstract class OGCGeometry {
 	}
 
 	public boolean crosses(OGCGeometry another) {
+		if (another.geometryType() == OGCConcreteGeometryCollection.TYPE) {
+			//TODO
+			throw new UnsupportedOperationException();
+		}
+		
 		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
 		com.esri.core.geometry.Geometry geom2 = another.getEsriGeometry();
 		return com.esri.core.geometry.GeometryEngine.crosses(geom1, geom2,
@@ -308,7 +318,7 @@ public abstract class OGCGeometry {
 
 	public boolean contains(OGCGeometry another) {
 		if (another.geometryType() == OGCConcreteGeometryCollection.TYPE) {
-			return another.contains(this);
+			return new OGCConcreteGeometryCollection(this, esriSR).contains(another);
 		}
 		
 		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
@@ -318,6 +328,10 @@ public abstract class OGCGeometry {
 	}
 
 	public boolean overlaps(OGCGeometry another) {
+		if (another.geometryType() == OGCConcreteGeometryCollection.TYPE) {
+			return another.overlaps(this); //overlaps should be symmetric
+		}
+		
 		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
 		com.esri.core.geometry.Geometry geom2 = another.getEsriGeometry();
 		return com.esri.core.geometry.GeometryEngine.overlaps(geom1, geom2,
@@ -325,6 +339,11 @@ public abstract class OGCGeometry {
 	}
 
 	public boolean relate(OGCGeometry another, String matrix) {
+		if (another.geometryType() == OGCConcreteGeometryCollection.TYPE) {
+			//TODO
+			throw new UnsupportedOperationException();
+		}
+		
 		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
 		com.esri.core.geometry.Geometry geom2 = another.getEsriGeometry();
 		return com.esri.core.geometry.GeometryEngine.relate(geom1, geom2,
@@ -337,8 +356,9 @@ public abstract class OGCGeometry {
 
 	// analysis
 	public double distance(OGCGeometry another) {
-		if (this == another)
+		if (this == another) {
 			return isEmpty() ? Double.NaN : 0;
+		}
 		
 		if (another.geometryType() == OGCConcreteGeometryCollection.TYPE) {
 			return another.distance(this);
@@ -510,6 +530,9 @@ public abstract class OGCGeometry {
 	}
 
 	public OGCGeometry symDifference(OGCGeometry another) {
+		if (another.geometryType() == OGCConcreteGeometryCollection.TYPE)
+			return another.symDifference(this);
+		
 		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
 		com.esri.core.geometry.Geometry geom2 = another.getEsriGeometry();
 		return createFromEsriGeometry(
