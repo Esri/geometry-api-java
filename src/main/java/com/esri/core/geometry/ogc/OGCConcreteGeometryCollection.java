@@ -581,7 +581,7 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 		for (int i = 0, n1 = flattened1.numGeometries(); i < n1; ++i) {
 			OGCGeometry g1 = flattened1.geometryN(i);
 			for (int j = 0, n2 = flattened2.numGeometries(); j < n2; ++j) {
-				OGCGeometry g2 = flattened2.geometryN(i);
+				OGCGeometry g2 = flattened2.geometryN(j);
 				if (!g1.disjoint(g2))
 					return false;
 			}

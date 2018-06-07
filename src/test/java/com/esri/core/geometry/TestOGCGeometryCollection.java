@@ -203,4 +203,18 @@ public class TestOGCGeometryCollection {
 		Assert.assertTrue(geometry.contains(otherGeometry));
 		Assert.assertTrue(otherGeometry.within(geometry));
 	}
+	
+	@Test
+	public void testGeometryCollectionDisjoint() {
+		assertDisjoint("GEOMETRYCOLLECTION (POINT (0 0), LINESTRING (0 1, 5 1))",
+				"GEOMETRYCOLLECTION (MULTIPOINT (10 0, 21 1), LINESTRING (30 0, 31 1), POLYGON ((40 0, 41 1, 40 1, 40 0)))");
+	}
+	
+	private void assertDisjoint(String wkt, String otherWkt) {
+		OGCGeometry geometry = OGCGeometry.fromText(wkt);
+		OGCGeometry otherGeometry = OGCGeometry.fromText(otherWkt);
+		Assert.assertTrue(geometry.disjoint(otherGeometry));
+		Assert.assertTrue(otherGeometry.disjoint(geometry));
+	}
+
 }
