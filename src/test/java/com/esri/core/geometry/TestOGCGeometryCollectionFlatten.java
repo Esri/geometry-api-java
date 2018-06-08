@@ -14,9 +14,9 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.ogc.OGCConcreteGeometryCollection;
-import com.esri.core.geometry.ogc.OGCGeometry;
 import org.junit.Test;
 
+import static com.esri.core.geometry.ogc.OGCGeometry.fromText;
 import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -35,7 +35,7 @@ public class TestOGCGeometryCollectionFlatten
 
     private void assertFlatten(String wkt, String flattenedWkt)
     {
-        OGCConcreteGeometryCollection collection = (OGCConcreteGeometryCollection) OGCGeometry.fromText(wkt);
+        OGCConcreteGeometryCollection collection = (OGCConcreteGeometryCollection) fromText(wkt);
         assertEquals(flattenedWkt, collection.flatten().asText());
         assertTrue(collection.flatten().isFlattened());
         assertEquals(flattenedWkt, collection.flatten().flatten().asText());
