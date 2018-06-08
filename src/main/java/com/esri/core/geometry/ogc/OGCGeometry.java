@@ -329,7 +329,8 @@ public abstract class OGCGeometry {
 
 	public boolean overlaps(OGCGeometry another) {
 		if (another.geometryType() == OGCConcreteGeometryCollection.TYPE) {
-			return another.overlaps(this); //overlaps should be symmetric
+			// TODO
+			throw new UnsupportedOperationException();
 		}
 		
 		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
@@ -530,9 +531,11 @@ public abstract class OGCGeometry {
 	}
 
 	public OGCGeometry symDifference(OGCGeometry another) {
-		if (another.geometryType() == OGCConcreteGeometryCollection.TYPE)
-			return another.symDifference(this);
-		
+		if (another.geometryType() == OGCConcreteGeometryCollection.TYPE) {
+			// TODO
+			throw new UnsupportedOperationException();
+		}
+
 		com.esri.core.geometry.Geometry geom1 = getEsriGeometry();
 		com.esri.core.geometry.Geometry geom2 = another.getEsriGeometry();
 		return createFromEsriGeometry(
