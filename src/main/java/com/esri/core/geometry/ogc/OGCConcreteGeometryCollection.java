@@ -546,9 +546,11 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 
 		double minD = Double.NaN;
 		for (int i = 0, n = numGeometries(); i < n; ++i) {
+			// TODO Skip expensive distance computation if bounding boxes are further away than minD
 			double d = geometryN(i).distance(another);
 			if (d < minD || Double.isNaN(minD)) {
 				minD = d;
+				// TODO Replace zero with tolerance defined by the spatial reference
 				if (minD == 0) {
 					break;
 				}
