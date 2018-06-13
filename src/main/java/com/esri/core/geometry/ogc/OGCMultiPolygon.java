@@ -139,7 +139,7 @@ public class OGCMultiPolygon extends OGCMultiSurface {
 	public OGCGeometry reduceFromMulti() {
 		int n = numGeometries();
 		if (n == 0) {
-			return new OGCLineString(new Polygon(polygon.getDescription()), 0, esriSR);
+			return new OGCPolygon(new Polygon(polygon.getDescription()), 0, esriSR);
 		}
 		
 		if (n == 1) {
