@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2017 Esri
+ Copyright 1995-2018 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -24,8 +24,6 @@
 
 package com.esri.core.geometry;
 
-import java.util.ArrayList;
-import java.util.List;
 
 import junit.framework.TestCase;
 
@@ -503,6 +501,14 @@ public class TestDifference extends TestCase {
 		}
 
 		assertEquals(5, pointCountDiffPolyline);
+	}
+	
+	@Test
+	public static void testDifferencePolylineAlongPolygonBoundary() {
+		Polyline polyline = (Polyline)GeometryEngine.geometryFromWkt("LINESTRING(0 0, 0 5, -2 5)", 0, Geometry.Type.Unknown);
+		Polygon polygon = (Polygon)GeometryEngine.geometryFromWkt("POLYGON((0 0, 5 0, 5 5, 0 5, 0 0))", 0, Geometry.Type.Unknown);
+		Geometry result = OperatorDifference.local().execute(polyline,  polygon, null,  null);
+		assertEquals(GeometryEngine.geometryToJson(null, result), "{\"paths\":[[[0,5],[-2,5]]]}");
 	}
 
 	public static Polygon makePolygon1() {

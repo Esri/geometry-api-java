@@ -81,10 +81,6 @@ class OperatorDifferenceLocal extends OperatorDifference {
 		if (!env_a_inflated.isIntersecting(env_b))
 			return geometry_a;
 
-		if (dimension_a == 1 && dimension_b == 2)
-			return polylineMinusArea_(geometry_a, geometry_b, type_b,
-					spatial_reference, progress_tracker);
-
 		if (type_a == Geometry.GeometryType.Point) {
 			Geometry geometry_b_;
 			if (MultiPath.isSegment(type_b)) {
@@ -357,36 +353,5 @@ class OperatorDifferenceLocal extends OperatorDifference {
 
 		return new_multipoint;
 	}
-
-	static Geometry polylineMinusArea_(Geometry geometry, Geometry area,
-			int area_type, SpatialReference sr, ProgressTracker progress_tracker) {
-		// construct the complement of the Polygon (or Envelope)
-		Envelope envelope = new Envelope();
-		geometry.queryEnvelope(envelope);
-		Envelope2D env_2D = new Envelope2D();
-		area.queryEnvelope2D(env_2D);
-		envelope.merge(env_2D);
-		double dw = 0.1 * envelope.getWidth();
-		double dh = 0.1 * envelope.getHeight();
-		envelope.inflate(dw, dh);
-
-		Polygon complement = new Polygon();
-		complement.addEnvelope(envelope, false);
-
-		MultiPathImpl complementImpl = (MultiPathImpl) (complement._getImpl());
-
-		if (area_type == Geometry.GeometryType.Polygon) {
-			MultiPathImpl polygonImpl = (MultiPathImpl) (area._getImpl());
-			complementImpl.add(polygonImpl, true);
-		} else
-			complementImpl.addEnvelope((Envelope) (area), true);
-
-		OperatorFactoryLocal projEnv = OperatorFactoryLocal.getInstance();
-		OperatorIntersection operatorIntersection = (OperatorIntersection) projEnv
-				.getOperator(Operator.Type.Intersection);
-		Geometry difference = operatorIntersection.execute(geometry,
-				complement, sr, progress_tracker);
-		return difference;
-	}
-
 }
+

@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2017 Esri
+ Copyright 1995-2018 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -42,12 +42,18 @@ import java.nio.ByteBuffer;
 import static com.esri.core.geometry.SizeOf.SIZE_OF_OGC_MULTI_POLYGON;
 
 public class OGCMultiPolygon extends OGCMultiSurface {
-
+	static public String TYPE = "MultiPolygon";
+	
 	public OGCMultiPolygon(Polygon src, SpatialReference sr) {
 		polygon = src;
 		esriSR = sr;
 	}
 
+	public OGCMultiPolygon(SpatialReference sr) {
+		polygon = new Polygon();
+		esriSR = sr;
+	}
+	
 	@Override
 	public String asText() {
 		return GeometryEngine.geometryToWkt(getEsriGeometry(),
@@ -89,7 +95,7 @@ public class OGCMultiPolygon extends OGCMultiSurface {
 
 	@Override
 	public String geometryType() {
-		return "MultiPolygon";
+		return TYPE;
 	}
 
 	@Override
@@ -126,6 +132,20 @@ public class OGCMultiPolygon extends OGCMultiSurface {
 	@Override
 	public OGCGeometry convertToMulti()
 	{
+		return this;
+	}
+	
+	@Override
+	public OGCGeometry reduceFromMulti() {
+		int n = numGeometries();
+		if (n == 0) {
+			return new OGCPolygon(new Polygon(polygon.getDescription()), 0, esriSR);
+		}
+		
+		if (n == 1) {
+			return geometryN(0);
+		}
+		
 		return this;
 	}
 	

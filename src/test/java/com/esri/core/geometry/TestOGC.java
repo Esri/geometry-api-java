@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2017 Esri
+ Copyright 1995-2018 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -35,7 +35,6 @@ import com.esri.core.geometry.ogc.OGCMultiPoint;
 import com.esri.core.geometry.ogc.OGCMultiPolygon;
 import com.esri.core.geometry.ogc.OGCPoint;
 import com.esri.core.geometry.ogc.OGCPolygon;
-import com.fasterxml.jackson.core.JsonParseException;
 import com.esri.core.geometry.ogc.OGCConcreteGeometryCollection;
 
 import org.junit.Test;
@@ -955,5 +954,86 @@ public class TestOGC extends TestCase {
 		}
 	}
 	
+	@Test
+	public void testUnionPointWithEmptyLineString() {
+		assertUnion("POINT (1 2)", "LINESTRING EMPTY", "POINT (1 2)");
+	}
+
+	@Test
+	public void testUnionPointWithLinestring() {
+		assertUnion("POINT (1 2)", "LINESTRING (3 4, 5 6)", "GEOMETRYCOLLECTION (POINT (1 2), LINESTRING (3 4, 5 6))");
+	}
+
+	@Test
+	public void testUnionLinestringWithEmptyPolygon() {
+		assertUnion("MULTILINESTRING ((1 2, 3 4))", "POLYGON EMPTY", "LINESTRING (1 2, 3 4)");
+	}
+
+	@Test
+	public void testUnionLinestringWithPolygon() {
+		assertUnion("LINESTRING (1 2, 3 4)", "POLYGON ((0 0, 1 1, 0 1, 0 0))",
+				"GEOMETRYCOLLECTION (LINESTRING (1 2, 3 4), POLYGON ((0 0, 1 1, 0 1, 0 0)))");
+	}
 	
+	@Test
+	public void testUnionGeometryCollectionWithGeometryCollection() {
+		assertUnion("GEOMETRYCOLLECTION (LINESTRING (1 2, 3 4), POLYGON ((0 0, 1 1, 0 1, 0 0)))", 
+				"GEOMETRYCOLLECTION (POINT (1 2), POINT (2 3), POINT (0.5 0.5), POINT (3 5), LINESTRING (3 4, 5 6), POLYGON ((0 0, 1 0, 1 1, 0 0)))",
+				"GEOMETRYCOLLECTION (POINT (3 5), LINESTRING (1 2, 2 3, 3 4, 5 6), POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0)))");
+	}
+
+	@Test
+	public void testIntersectionGeometryCollectionWithGeometryCollection() {
+		assertIntersection("GEOMETRYCOLLECTION (LINESTRING (1 2, 3 4), POLYGON ((0 0, 1 1, 0 1, 0 0)))", 
+				"GEOMETRYCOLLECTION (POINT (1 2), POINT (2 3), POINT (0.5 0.5), POINT (3 5), LINESTRING (3 4, 5 6), POLYGON ((0 0, 1 0, 1 1, 0 0)))",
+				"GEOMETRYCOLLECTION (MULTIPOINT ((1 2), (2 3), (3 4)), LINESTRING (0 0, 0.5 0.5, 1 1))");
+	}
+
+	private void assertIntersection(String leftWkt, String rightWkt, String expectedWkt) {
+		OGCGeometry intersection = OGCGeometry.fromText(leftWkt).intersection(OGCGeometry.fromText(rightWkt));
+		assertEquals(expectedWkt, intersection.asText());
+	}
+	
+	private void assertUnion(String leftWkt, String rightWkt, String expectedWkt) {
+		OGCGeometry union = OGCGeometry.fromText(leftWkt).union(OGCGeometry.fromText(rightWkt));
+		assertEquals(expectedWkt, union.asText());
+	}
+	
+	@Test
+	public void testDisjointOnGeometryCollection() {
+		OGCGeometry ogcGeometry = OGCGeometry.fromText("GEOMETRYCOLLECTION (POINT (1 1))");
+		assertFalse(ogcGeometry.disjoint(OGCGeometry.fromText("POINT (1 1)")));
+	}
+
+	@Test
+	public void testContainsOnGeometryCollection() {
+		OGCGeometry ogcGeometry = OGCGeometry.fromText("GEOMETRYCOLLECTION (POINT (1 1))");
+		assertTrue(ogcGeometry.contains(OGCGeometry.fromText("POINT (1 1)")));
+	}
+
+	@Test
+	public void testIntersectsOnGeometryCollection() {
+		OGCGeometry ogcGeometry = OGCGeometry.fromText("GEOMETRYCOLLECTION (POINT (1 1))");
+		assertTrue(ogcGeometry.intersects(OGCGeometry.fromText("POINT (1 1)")));
+		ogcGeometry = OGCGeometry.fromText("POINT (1 1)");
+		assertTrue(ogcGeometry.intersects(OGCGeometry.fromText("GEOMETRYCOLLECTION (POINT (1 1))")));
+	}
+
+	@Test
+	public void testDistanceOnGeometryCollection() {
+		OGCGeometry ogcGeometry = OGCGeometry.fromText("GEOMETRYCOLLECTION (POINT (1 1))");
+		assertTrue(ogcGeometry.distance(OGCGeometry.fromText("POINT (1 1)")) == 0);
+		
+		//distance to empty is NAN
+		ogcGeometry = OGCGeometry.fromText("GEOMETRYCOLLECTION (POINT (1 1))");
+		assertTrue(Double.isNaN(ogcGeometry.distance(OGCGeometry.fromText("POINT EMPTY"))));
+	}
+	
+	@Test
+	public void testFlattened() {
+		OGCConcreteGeometryCollection ogcGeometry = (OGCConcreteGeometryCollection)OGCGeometry.fromText("GEOMETRYCOLLECTION (MULTILINESTRING ((1 2, 3 4)), MULTIPOLYGON (((1 2, 3 4, 5 6, 1 2))), MULTIPOINT (1 1))");
+		assertFalse(ogcGeometry.isFlattened());
+		ogcGeometry = (OGCConcreteGeometryCollection)OGCGeometry.fromText("GEOMETRYCOLLECTION (MULTIPOINT (1 1), MULTILINESTRING ((1 2, 3 4)), MULTIPOLYGON (((1 2, 3 4, 5 6, 1 2))))");
+		assertTrue(ogcGeometry.isFlattened());
+	}
 }

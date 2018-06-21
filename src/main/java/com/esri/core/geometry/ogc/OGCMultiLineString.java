@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2017 Esri
+ Copyright 1995-2018 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -42,22 +42,31 @@ import java.nio.ByteBuffer;
 import static com.esri.core.geometry.SizeOf.SIZE_OF_OGC_MULTI_LINE_STRING;
 
 public class OGCMultiLineString extends OGCMultiCurve {
+	static public String TYPE = "MultiLineString";
+	
 	public OGCMultiLineString(Polyline poly, SpatialReference sr) {
 		polyline = poly;
 		esriSR = sr;
 	}
 
+	public OGCMultiLineString(SpatialReference sr) {
+		polyline = new Polyline();
+		esriSR = sr;
+	}
+	
 	@Override
 	public String asText() {
 		return GeometryEngine.geometryToWkt(getEsriGeometry(),
 				WktExportFlags.wktExportMultiLineString);
 	}
+
 	@Override
-    public String asGeoJson() {
-        OperatorExportToGeoJson op = (OperatorExportToGeoJson) OperatorFactoryLocal
-                .getInstance().getOperator(Operator.Type.ExportToGeoJson);
-        return op.execute(GeoJsonExportFlags.geoJsonExportPreferMultiGeometry, null, getEsriGeometry());
-    }
+	public String asGeoJson() {
+		OperatorExportToGeoJson op = (OperatorExportToGeoJson) OperatorFactoryLocal.getInstance()
+				.getOperator(Operator.Type.ExportToGeoJson);
+		return op.execute(GeoJsonExportFlags.geoJsonExportPreferMultiGeometry, null, getEsriGeometry());
+	}
+	
 	@Override
 	public ByteBuffer asBinary() {
 		OperatorExportToWkb op = (OperatorExportToWkb) OperatorFactoryLocal
@@ -74,7 +83,7 @@ public class OGCMultiLineString extends OGCMultiCurve {
 
 	@Override
 	public String geometryType() {
-		return "MultiLineString";
+		return TYPE;
 	}
 
 	@Override
@@ -111,6 +120,20 @@ public class OGCMultiLineString extends OGCMultiCurve {
 	@Override
 	public OGCGeometry convertToMulti()
 	{
+		return this;
+	}
+	
+	@Override
+	public OGCGeometry reduceFromMulti() {
+		int n = numGeometries();
+		if (n == 0) {
+			return new OGCLineString(new Polyline(polyline.getDescription()), 0, esriSR);
+		}
+		
+		if (n == 1) {
+			return geometryN(0);
+		}
+		
 		return this;
 	}
 	
