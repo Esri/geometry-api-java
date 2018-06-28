@@ -98,7 +98,7 @@
 		<java.target.version>1.6</java.target.version>
 
 		<!-- dependency versions -->
-		<jackson.version>2.9.4</jackson.version>
+		<jackson.version>2.9.6</jackson.version>
 		<junit.version>4.12</junit.version>
 		<jol.version>0.9</jol.version>
 
