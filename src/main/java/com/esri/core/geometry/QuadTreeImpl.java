@@ -23,9 +23,12 @@
  */
 package com.esri.core.geometry;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
-class QuadTreeImpl {
+class QuadTreeImpl implements Serializable {
+	private static final long serialVersionUID = 1L;
+
 	static final class QuadTreeIteratorImpl {
 		/**
 		 * Resets the iterator to an starting state on the Quad_tree_impl. If
@@ -1258,7 +1261,9 @@ class QuadTreeImpl {
 	private int m_height_bit_shift = 2;
 	private int m_flushing_count = 5;
 
-	static final class Data {
+	static final class Data implements Serializable {
+		private static final long serialVersionUID = 1L;
+
 		int element;
 		Envelope2D box;
 

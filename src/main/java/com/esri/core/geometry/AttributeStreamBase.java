@@ -26,12 +26,15 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.VertexDescription.Persistence;
+
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 
 /**
  * Base class for AttributeStream instances.
  */
-abstract class AttributeStreamBase {
+abstract class AttributeStreamBase implements Serializable {
+	private static final long serialVersionUID = 1L;
 
 	protected boolean m_bLockedInSize;
 	protected boolean m_bReadonly;

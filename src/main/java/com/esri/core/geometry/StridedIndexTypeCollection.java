@@ -23,13 +23,17 @@
  */
 package com.esri.core.geometry;
 
+import java.io.Serializable;
+
 /**
  * A collection of strides of Index_type elements. To be used when one needs a
  * collection of homogeneous elements that contain only integer fields (i.e.
  * structs with Index_type members) Recycles the strides. Allows for constant
  * time creation and deletion of an element.
  */
-final class StridedIndexTypeCollection {
+final class StridedIndexTypeCollection implements Serializable {
+	private static final long serialVersionUID = 1L;
+
 	private int[][] m_buffer = null;
 	private int m_firstFree = -1;
 	private int m_last = 0;
