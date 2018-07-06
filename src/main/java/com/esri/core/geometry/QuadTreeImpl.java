@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2015 Esri
+ Copyright 1995-2018 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -23,9 +23,15 @@
  */
 package com.esri.core.geometry;
 
+import java.io.IOException;
+import java.io.InvalidObjectException;
+import java.io.ObjectStreamException;
+import java.io.Serializable;
 import java.util.ArrayList;
 
-class QuadTreeImpl {
+class QuadTreeImpl implements Serializable {
+	private static final long serialVersionUID = 1L;
+	
 	static final class QuadTreeIteratorImpl {
 		/**
 		 * Resets the iterator to an starting state on the Quad_tree_impl. If
@@ -1248,25 +1254,85 @@ class QuadTreeImpl {
 	private Envelope2D m_data_extent;
 	private StridedIndexTypeCollection m_quad_tree_nodes;
 	private StridedIndexTypeCollection m_element_nodes;
-	private ArrayList<Data> m_data;
+	transient private ArrayList<Data> m_data;
 	private AttributeStreamOfInt32 m_free_data;
 	private int m_root;
 	private int m_height;
 	private boolean m_b_store_duplicates;
 
-	private int m_quadrant_mask = 3;
-	private int m_height_bit_shift = 2;
-	private int m_flushing_count = 5;
+	final static private int m_quadrant_mask = 3;
+	final static private int m_height_bit_shift = 2;
+	final static private int m_flushing_count = 5;
 
 	static final class Data {
 		int element;
 		Envelope2D box;
+		
+		Data() {
+		}
+		
+		Data(int element_, double x1, double y1, double x2, double y2) {
+			element = element_;
+			box = new Envelope2D();
+			box.setCoords(x1, y1, x2, y2);
+		}
 
 		Data(int element_, Envelope2D box_) {
 			element = element_;
 			box = new Envelope2D();
 			box.setCoords(box_);
 		}
+	}
+
+	private void writeObject(java.io.ObjectOutputStream stream)
+			throws IOException {
+		stream.defaultWriteObject();
+		stream.writeInt(m_data.size());
+		for (int i = 0, n = m_data.size(); i < n; ++i) {
+			Data d = m_data.get(i);
+			if (d != null) {
+				stream.writeByte(1);
+				stream.writeInt(d.element);
+				stream.writeDouble(d.box.xmin);
+				stream.writeDouble(d.box.ymin);
+				stream.writeDouble(d.box.xmax);
+				stream.writeDouble(d.box.ymax);
+			}
+			else {
+				stream.writeByte(0);
+			}
+				
+		}
+	}
+
+	private void readObject(java.io.ObjectInputStream stream)
+			throws IOException, ClassNotFoundException {
+		stream.defaultReadObject();
+		int dataSize = stream.readInt();
+		m_data = new ArrayList<Data>(dataSize);
+		for (int i = 0, n = dataSize; i < n; ++i) {
+			int b = stream.readByte();
+			if (b == 1) {
+				int elm = stream.readInt();
+				double x1 = stream.readDouble();
+				double y1 = stream.readDouble();
+				double x2 = stream.readDouble();
+				double y2 = stream.readDouble();
+				Data d = new Data(elm, x1, y1, x2, y2);
+				m_data.add(d);
+			}
+			else if (b == 0) {
+				m_data.add(null);
+			}
+			else {
+				throw new IOException();
+			}
+		}
+	}
+	
+	@SuppressWarnings("unused")
+	private void readObjectNoData() throws ObjectStreamException {
+		throw new InvalidObjectException("Stream data required");
 	}
 
     /* m_quad_tree_nodes

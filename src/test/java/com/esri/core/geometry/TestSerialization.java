@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2017 Esri
+ Copyright 1995-2018 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ package com.esri.core.geometry;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -401,4 +400,97 @@ public class TestSerialization extends TestCase {
 		}
 	}
 
+	public void testAttributeStreamOfInt32() {
+		AttributeStreamOfInt32 a = new AttributeStreamOfInt32(0);
+		for (int i = 0; i < 100; i++)
+			a.add(i);
+		
+		try {
+			// serialize
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			ObjectOutputStream os = new ObjectOutputStream(baos);
+			os.writeObject(a);
+			os.close();
+			baos.close();
+
+			// deserialize
+			ByteArrayInputStream bais = new ByteArrayInputStream(
+					baos.toByteArray());
+			ObjectInputStream in = new ObjectInputStream(bais);
+			AttributeStreamOfInt32 aOut = (AttributeStreamOfInt32) in.readObject();
+			in.close();
+			bais.close();
+
+			assertTrue(aOut.size() == a.size());
+			for (int i = 0; i < 100; i++)
+				assertTrue(aOut.get(i) == a.get(i));
+
+		} catch (Exception e) {
+			fail("AttributeStreamOfInt32 serialization failure");
+		}
+		
+	}
+	
+	@Test
+	public void testQuadTree() {
+		MultiPoint mp = new MultiPoint();
+		int r = 124124;
+		for (int i = 0; i < 100; ++i) {
+			r = NumberUtils.nextRand(r);
+			int x = r;
+			r = NumberUtils.nextRand(r);
+			int y = r;
+			mp.add(x, y);
+		}
+		
+		Envelope2D extent = new Envelope2D();
+		mp.queryEnvelope2D(extent);
+		QuadTree quadTree = new QuadTree(extent, 8);
+		Envelope2D boundingbox = new Envelope2D();
+		Point2D pt;
+
+		for (int i = 0; i < mp.getPointCount(); i++) {
+			pt = mp.getXY(i);
+			boundingbox.setCoords(pt.x, pt.y, pt.x, pt.y);
+			quadTree.insert(i, boundingbox, -1);
+		}
+		
+		try {
+			// serialize
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			ObjectOutputStream os = new ObjectOutputStream(baos);
+			os.writeObject(quadTree);
+			os.close();
+			baos.close();
+
+			// deserialize
+			ByteArrayInputStream bais = new ByteArrayInputStream(
+					baos.toByteArray());
+			ObjectInputStream in = new ObjectInputStream(bais);
+			QuadTree qOut = (QuadTree) in.readObject();
+			in.close();
+			bais.close();
+
+			assertTrue(quadTree.getElementCount() == qOut.getElementCount());
+			QuadTree.QuadTreeIterator iter1 = quadTree.getIterator();
+			QuadTree.QuadTreeIterator iter2 = qOut.getIterator();
+			int h1 = iter1.next();
+			int h2 = iter2.next();
+			for (; h1 != -1 && h2 != -1; h1 = iter1.next(), h2 = iter2.next()) {
+				assertTrue(quadTree.getElement(h1) == qOut.getElement(h2));
+				assertTrue(quadTree.getElementExtent(h1).equals(qOut.getElementExtent(h2)));
+				assertTrue(quadTree.getExtent(quadTree.getQuad(h1)).equals(qOut.getExtent(qOut.getQuad(h2))));
+				int c1 = quadTree.getSubTreeElementCount(quadTree.getQuad(h1));
+				int c2 = qOut.getSubTreeElementCount(qOut.getQuad(h2));
+				assertTrue(c1 == c2);
+			}
+			
+			assertTrue(h1 == -1 && h2 == -1);
+
+			assertTrue(quadTree.getDataExtent().equals(qOut.getDataExtent()));
+		} catch (Exception e) {
+			fail("QuadTree serialization failure");
+		}
+		
+	}
 }
