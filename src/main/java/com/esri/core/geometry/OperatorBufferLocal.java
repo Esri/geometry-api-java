@@ -28,21 +28,24 @@ class OperatorBufferLocal extends OperatorBuffer {
 
 	@Override
 	public GeometryCursor execute(GeometryCursor inputGeometries,
-			SpatialReference sr, double[] distances, boolean bUnion,
+			SpatialReference sr, double[] distances, int max_vertices_in_full_circle, boolean bUnion,
 			ProgressTracker progressTracker) {
 		return execute(inputGeometries, sr, distances, NumberUtils.NaN(), 96,
 				bUnion, progressTracker);
 	}
 
 	@Override
-	public Geometry execute(Geometry inputGeometry, SpatialReference sr,
-			double distance, ProgressTracker progressTracker) {
+	public Geometry execute(
+			Geometry inputGeometry, SpatialReference sr,
+			double distance, int max_vertices_in_full_circle, ProgressTracker progressTracker
+	) {
 		SimpleGeometryCursor inputCursor = new SimpleGeometryCursor(
 				inputGeometry);
 		double[] distances = new double[1];
 		distances[0] = distance;
 		GeometryCursor outputCursor = execute(inputCursor, sr, distances,
-				false, progressTracker);
+			  max_vertices_in_full_circle, false, progressTracker
+		);
 
 		return outputCursor.next();
 	}

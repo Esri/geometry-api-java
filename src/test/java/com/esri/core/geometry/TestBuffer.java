@@ -46,7 +46,7 @@ public class TestBuffer extends TestCase {
 				.getInstance().getOperator(Operator.Type.Buffer);
 		OperatorSimplify simplify = (OperatorSimplify) OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Simplify);
-		Geometry result = buffer.execute(inputGeom, sr, 40.0, null);
+		Geometry result = buffer.execute(inputGeom, sr, 40.0, 0, null);
 		assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 		Polygon poly = (Polygon) result;
 		int pathCount = poly.getPathCount();
@@ -65,13 +65,13 @@ public class TestBuffer extends TestCase {
 		assertTrue(is_simple);
 
 		{
-			result = buffer.execute(inputGeom, sr, 0, null);
+			result = buffer.execute(inputGeom, sr, 0, 0, null);
 			assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 			assertTrue(result.isEmpty());
 		}
 
 		{
-			result = buffer.execute(inputGeom, sr, -1, null);
+			result = buffer.execute(inputGeom, sr, -1, 0, null);
 			assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 			assertTrue(result.isEmpty());
 		}
@@ -85,7 +85,7 @@ public class TestBuffer extends TestCase {
 				.getInstance().getOperator(Operator.Type.Buffer);
 		OperatorSimplify simplify = (OperatorSimplify) OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Simplify);
-		Geometry result = buffer.execute(inputGeom, sr, 40.0, null);
+		Geometry result = buffer.execute(inputGeom, sr, 40.0, 0, null);
 		assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 		Polygon poly = (Polygon) (result);
 		Envelope2D env2D = new Envelope2D();
@@ -102,25 +102,25 @@ public class TestBuffer extends TestCase {
 		assertTrue(simplify.isSimpleAsFeature(result, sr, true, nsr, null));
 
 		{
-			result = buffer.execute(inputGeom, sr, -200.0, null);
+			result = buffer.execute(inputGeom, sr, -200.0, 0, null);
 			assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 			assertTrue(result.isEmpty());
 		}
 
 		{
-			result = buffer.execute(inputGeom, sr, -200.0, null);
+			result = buffer.execute(inputGeom, sr, -200.0, 0, null);
 			assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 			assertTrue(result.isEmpty());
 		}
 
 		{
-			result = buffer.execute(inputGeom, sr, -199 / 2.0, null);
+			result = buffer.execute(inputGeom, sr, -199 / 2.0, 0, null);
 			assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 			assertTrue(result.isEmpty());
 		}
 
 		{
-			result = buffer.execute(inputGeom, sr, -50.0, null);
+			result = buffer.execute(inputGeom, sr, -50.0, 0, null);
 			poly = (Polygon) (result);
 			result.queryEnvelope2D(env2D);
 			assertTrue(Math.abs(env2D.getWidth() - (199 - 100)) < 0.001
@@ -145,7 +145,7 @@ public class TestBuffer extends TestCase {
 		MultiPoint inputGeom = new MultiPoint();
 		inputGeom.add(12, 120);
 		inputGeom.add(20, 120);
-		Geometry result = buffer.execute(inputGeom, sr, 40.0, null);
+		Geometry result = buffer.execute(inputGeom, sr, 40.0, 0, null);
 		assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 		Polygon poly = (Polygon) (result);
 		Envelope2D env2D = new Envelope2D();
@@ -161,13 +161,13 @@ public class TestBuffer extends TestCase {
 		assertTrue(simplify.isSimpleAsFeature(result, sr, null));
 
 		{
-			result = buffer.execute(inputGeom, sr, 0, null);
+			result = buffer.execute(inputGeom, sr, 0, 0, null);
 			assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 			assertTrue(result.isEmpty());
 		}
 
 		{
-			result = buffer.execute(inputGeom, sr, -1, null);
+			result = buffer.execute(inputGeom, sr, -1, 0, null);
 			assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 			assertTrue(result.isEmpty());
 		}
@@ -181,7 +181,7 @@ public class TestBuffer extends TestCase {
 				.getInstance().getOperator(Operator.Type.Buffer);
 		OperatorSimplify simplify = (OperatorSimplify) OperatorFactoryLocal
 				.getInstance().getOperator(Operator.Type.Simplify);
-		Geometry result = buffer.execute(inputGeom, sr, 40.0, null);
+		Geometry result = buffer.execute(inputGeom, sr, 40.0, 0, null);
 		assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 		Polygon poly = (Polygon) (result);
 		Envelope2D env2D = new Envelope2D();
@@ -197,13 +197,13 @@ public class TestBuffer extends TestCase {
 		assertTrue(simplify.isSimpleAsFeature(result, sr, null));
 
 		{
-			result = buffer.execute(inputGeom, sr, 0, null);
+			result = buffer.execute(inputGeom, sr, 0, 0, null);
 			assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 			assertTrue(result.isEmpty());
 		}
 
 		{
-			result = buffer.execute(inputGeom, sr, -1, null);
+			result = buffer.execute(inputGeom, sr, -1, 0, null);
 			assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 			assertTrue(result.isEmpty());
 		}
@@ -223,19 +223,19 @@ public class TestBuffer extends TestCase {
 		inputGeom.lineTo(0, 50);
 
 		{
-			Geometry result = buffer.execute(inputGeom, sr, 0, null);
+			Geometry result = buffer.execute(inputGeom, sr, 0, 0, null);
 			assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 			assertTrue(result.isEmpty());
 		}
 
 		{
-			Geometry result = buffer.execute(inputGeom, sr, -1, null);
+			Geometry result = buffer.execute(inputGeom, sr, -1, 0, null);
 			assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 			assertTrue(result.isEmpty());
 		}
 
 		{
-			Geometry result = buffer.execute(inputGeom, sr, 40.0, null);
+			Geometry result = buffer.execute(inputGeom, sr, 40.0, 0, null);
 			assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 			Polygon poly = (Polygon) (result);
 			Envelope2D env2D = new Envelope2D();
@@ -252,7 +252,7 @@ public class TestBuffer extends TestCase {
 		}
 
 		{
-			Geometry result = buffer.execute(inputGeom, sr, 4.0, null);
+			Geometry result = buffer.execute(inputGeom, sr, 4.0, 0, null);
 			assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 			Polygon poly = (Polygon) (result);
 			Envelope2D env2D = new Envelope2D();
@@ -275,7 +275,7 @@ public class TestBuffer extends TestCase {
 			inputGeom.startPath(50, 0);
 			inputGeom.lineTo(0, 50);
 
-			Geometry result = buffer.execute(inputGeom, sr, 4.0, null);
+			Geometry result = buffer.execute(inputGeom, sr, 4.0, 0, null);
 			assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 			Polygon poly = (Polygon) (result);
 			Envelope2D env2D = new Envelope2D();
@@ -298,7 +298,7 @@ public class TestBuffer extends TestCase {
 			inputGeom.lineTo(1.763006,0.607034);
 			inputGeom.lineTo(1.762548,0.607135);
 
-			Geometry result = buffer.execute(inputGeom, sr, 0.005, null);
+			Geometry result = buffer.execute(inputGeom, sr, 0.005, 0, null);
 			assertTrue(simplify.isSimpleAsFeature(result, sr, null));
 		}
 	}
@@ -316,13 +316,13 @@ public class TestBuffer extends TestCase {
 		inputGeom.lineTo(50, 0);
 
 		{
-			Geometry result = buffer.execute(inputGeom, sr, 0, null);
+			Geometry result = buffer.execute(inputGeom, sr, 0, 0, null);
 			assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 			assertTrue(result == inputGeom);
 		}
 
 		{
-			Geometry result = buffer.execute(inputGeom, sr, 10, null);
+			Geometry result = buffer.execute(inputGeom, sr, 10, 0, null);
 			assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 			Polygon poly = (Polygon) (result);
 			Envelope2D env2D = new Envelope2D();
@@ -345,7 +345,7 @@ public class TestBuffer extends TestCase {
 			inputGeom.lineTo(50, 50);
 			inputGeom.lineTo(50, 0);
 
-			Geometry result = buffer.execute(inputGeom, sr, -10, null);
+			Geometry result = buffer.execute(inputGeom, sr, -10, 0, null);
 			assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 			Polygon poly = (Polygon) (result);
 			Envelope2D env2D = new Envelope2D();
@@ -373,7 +373,7 @@ public class TestBuffer extends TestCase {
 			inputGeom.lineTo(40, 40);
 			inputGeom.lineTo(10, 40);
 
-			Geometry result = buffer.execute(inputGeom, sr, -2, null);
+			Geometry result = buffer.execute(inputGeom, sr, -2, 0, null);
 			assertTrue(result.getType().value() == Geometry.GeometryType.Polygon);
 			Polygon poly = (Polygon) (result);
 			Envelope2D env2D = new Envelope2D();
