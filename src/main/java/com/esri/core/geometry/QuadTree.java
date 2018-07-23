@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2015 Esri
+ Copyright 1995-2018 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -25,7 +25,11 @@
 
 package com.esri.core.geometry;
 
-public class QuadTree {
+import java.io.Serializable;
+
+public class QuadTree implements Serializable {
+	private static final long serialVersionUID = 1L;
+	
 	public static final class QuadTreeIterator {
 		/**
 		 * Resets the iterator to an starting state on the QuadTree. If the

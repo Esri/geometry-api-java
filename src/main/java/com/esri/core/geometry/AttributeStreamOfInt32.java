@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2017 Esri
+ Copyright 1995-2018 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -27,14 +27,20 @@ package com.esri.core.geometry;
 
 import com.esri.core.geometry.VertexDescription.Persistence;
 
+import java.io.IOException;
+import java.io.ObjectStreamException;
+import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 import java.util.Arrays;
 
 import static com.esri.core.geometry.SizeOf.SIZE_OF_ATTRIBUTE_STREAM_OF_INT32;
 import static com.esri.core.geometry.SizeOf.sizeOfIntArray;
 
-final class AttributeStreamOfInt32 extends AttributeStreamBase {
-	private int[] m_buffer = null;
+final class AttributeStreamOfInt32 extends AttributeStreamBase implements Serializable {
+	private static final long serialVersionUID = 1L;
+	
+	transient private int[] m_buffer = null;
 	private int m_size;
 
 	public void reserve(int reserve)
@@ -594,7 +600,6 @@ final class AttributeStreamOfInt32 extends AttributeStreamBase {
 		// reverse what we written
 		int j = toElement;
 		int offset = toElement + count - stride;
-		int dj = stride;
 		for (int i = 0, n = count / 2; i < n; i++) {
 			for (int k = 0; k < stride; k++) {
 				int v = m_buffer[j + k];
@@ -727,5 +732,50 @@ final class AttributeStreamOfInt32 extends AttributeStreamBase {
 
 	public void sort(int start, int end) {
 		Arrays.sort(m_buffer, start, end);
+	}
+	
+	private void writeObject(java.io.ObjectOutputStream stream)
+			throws IOException {
+		stream.defaultWriteObject();
+		IntBuffer intBuf = null;
+		byte[] bytes = null;
+		for (int i = 0; i < m_size;) {
+			int n = Math.min(32, m_size - i);
+			if (bytes == null) {
+				bytes = new byte[n * 4]; //32 elements at a time
+				ByteBuffer buf = ByteBuffer.wrap(bytes);
+				intBuf = buf.asIntBuffer();
+			}
+			intBuf.rewind();
+			intBuf.put(m_buffer, i, n);
+			stream.write(bytes, 0, n * 4);
+			i += n;
+		}
+	}
+
+	private void readObject(java.io.ObjectInputStream stream)
+			throws IOException, ClassNotFoundException {
+		stream.defaultReadObject();
+		m_buffer = new int[m_size];
+		IntBuffer intBuf = null;
+		byte[] bytes = null;
+		for (int i = 0; i < m_size;) {
+			int n = Math.min(32, m_size - i);
+			if (bytes == null) {
+				bytes = new byte[n * 4]; //32 elements at a time
+				ByteBuffer buf = ByteBuffer.wrap(bytes);
+				intBuf = buf.asIntBuffer();
+			}
+			stream.read(bytes, 0, n * 4);
+			intBuf.rewind();
+			intBuf.get(m_buffer, i, n);
+			i += n;
+		}
+	}
+	
+	@SuppressWarnings("unused")
+	private void readObjectNoData() throws ObjectStreamException {
+		m_buffer = new int[2];
+		m_size = 0;
 	}
 }
