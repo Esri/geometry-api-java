@@ -66,8 +66,8 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 			+ (m_envelope != null ? m_envelope.estimateMemorySize() : 0)
 			+ (m_moveToPoint != null ? m_moveToPoint.estimateMemorySize() : 0)
 			+ (m_cachedRingAreas2D != null ? m_cachedRingAreas2D.estimateMemorySize() : 0)
-			+ m_paths.estimateMemorySize()
-			+ m_pathFlags.estimateMemorySize()
+			+ (m_paths != null ? m_paths.estimateMemorySize() : 0)
+			+ (m_pathFlags != null ? m_pathFlags.estimateMemorySize() : 0)
 			+ (m_segmentFlags != null ? m_segmentFlags.estimateMemorySize() : 0)
 			+ (m_segmentParamIndex != null ? m_segmentParamIndex.estimateMemorySize() : 0)
 			+ (m_segmentParams != null ? m_segmentParams.estimateMemorySize() : 0);

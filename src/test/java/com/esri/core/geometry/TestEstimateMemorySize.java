@@ -78,8 +78,18 @@ public class TestEstimateMemorySize {
 	}
 
 	@Test
+	public void testEmptyPoint() {
+		testGeometry(parseWkt("POINT EMPTY"));
+	}
+
+	@Test
 	public void testMultiPoint() {
 		testGeometry(parseWkt("MULTIPOINT (0 0, 1 1, 2 3)"));
+	}
+
+	@Test
+	public void testEmptyMultiPoint() {
+		testGeometry(parseWkt("MULTIPOINT EMPTY"));
 	}
 
 	@Test
@@ -88,8 +98,18 @@ public class TestEstimateMemorySize {
 	}
 
 	@Test
+	public void testEmptyLineString() {
+		testGeometry(parseWkt("LINESTRING EMPTY"));
+	}
+
+	@Test
 	public void testMultiLineString() {
 		testGeometry(parseWkt("MULTILINESTRING ((0 1, 2 3, 4 5), (1 1, 2 2))"));
+	}
+
+	@Test
+	public void testEmptyMultiLineString() {
+		testGeometry(parseWkt("MULTILINESTRING EMPTY"));
 	}
 
 	@Test
@@ -98,13 +118,28 @@ public class TestEstimateMemorySize {
 	}
 
 	@Test
+	public void testEmptyPolygon() {
+		testGeometry(parseWkt("POLYGON EMPTY"));
+	}
+
+	@Test
 	public void testMultiPolygon() {
 		testGeometry(parseWkt("MULTIPOLYGON (((30 20, 45 40, 10 40, 30 20)), ((15 5, 40 10, 10 20, 5 10, 15 5)))"));
 	}
 
 	@Test
+	public void testEmptyMultiPolygon() {
+		testGeometry(parseWkt("MULTIPOLYGON EMPTY"));
+	}
+
+	@Test
 	public void testGeometryCollection() {
 		testGeometry(parseWkt("GEOMETRYCOLLECTION (POINT(4 6), LINESTRING(4 6,7 10))"));
+	}
+
+	@Test
+	public void testEmptyGeometryCollection() {
+		testGeometry(parseWkt("GEOMETRYCOLLECTION EMPTY"));
 	}
 
 	private void testGeometry(OGCGeometry geometry) {
