@@ -1059,4 +1059,14 @@ public class TestConvexHull extends TestCase {
 		}
 	}
 
+	@Test
+	public void testHullIssueGithub194() {
+		{
+			//empty
+			OGCGeometry geom = OGCGeometry.fromText("GEOMETRYCOLLECTION(POLYGON EMPTY, POLYGON((0 0, 1 0, 1 1, 0 0)), POLYGON((-10 -10, 10 -10, 10 10, -10 10, -10 -10), (-5 -5, -5 5, 5 5, 5 -5, -5 -5)))");
+			OGCGeometry result = geom.convexHull();
+			String text = result.asText();
+			assertTrue(text.compareTo("POLYGON ((-10 -10, 10 -10, 10 10, -10 10, -10 -10))") == 0);
+		}
+	}
 }

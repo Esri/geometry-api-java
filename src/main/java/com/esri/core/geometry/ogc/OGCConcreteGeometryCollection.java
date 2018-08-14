@@ -444,13 +444,13 @@ public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
 		}
 
 		if (!polygon.isEmpty()) {
-			if (!resultGeom.isEmpty()) {
+			if (resultGeom != null && !resultGeom.isEmpty()) {
 				Geometry[] geoms = { resultGeom, polygon };
 				resultGeom = OperatorConvexHull.local().execute(
 						new SimpleGeometryCursor(geoms), true, null).next();
 			}
 			else {
-				resultGeom = polygon;
+				resultGeom = OperatorConvexHull.local().execute(polygon, null);
 			}
 		}
 
