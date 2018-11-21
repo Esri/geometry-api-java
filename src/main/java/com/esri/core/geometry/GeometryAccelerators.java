@@ -23,8 +23,6 @@
  */
 package com.esri.core.geometry;
 
-import java.util.ArrayList;
-
 class GeometryAccelerators {
 
 	private RasterizedGeometry2D m_rasterizedGeometry;
@@ -84,4 +82,11 @@ class GeometryAccelerators {
 
         return true;
     }
+
+	public long estimateMemorySize()
+	{
+		return (m_rasterizedGeometry != null ? m_rasterizedGeometry.estimateMemorySize() : 0) +
+			(m_quad_tree != null ? m_quad_tree.estimateMemorySize() : 0) +
+			(m_quad_tree_for_paths != null ? m_quad_tree_for_paths.estimateMemorySize() : 0);
+	}
 }

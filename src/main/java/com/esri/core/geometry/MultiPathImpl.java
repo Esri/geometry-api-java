@@ -77,6 +77,11 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 				size += m_vertexAttributes[i].estimateMemorySize();
 			}
 		}
+
+		if (m_accelerators != null) {
+			size += m_accelerators.estimateMemorySize();
+		}
+
 		return size;
 	}
 

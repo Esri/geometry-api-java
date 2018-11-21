@@ -24,6 +24,7 @@
 
  package com.esri.core.geometry;
 
+import com.esri.core.geometry.Geometry.GeometryAccelerationDegree;
 import com.esri.core.geometry.ogc.OGCConcreteGeometryCollection;
 import com.esri.core.geometry.ogc.OGCGeometry;
 import com.esri.core.geometry.ogc.OGCLineString;
@@ -66,6 +67,14 @@ public class TestEstimateMemorySize {
 		assertEquals(getInstanceSize(OGCMultiPolygon.class), SizeOf.SIZE_OF_OGC_MULTI_POLYGON);
 		assertEquals(getInstanceSize(OGCPoint.class), SizeOf.SIZE_OF_OGC_POINT);
 		assertEquals(getInstanceSize(OGCPolygon.class), SizeOf.SIZE_OF_OGC_POLYGON);
+		assertEquals(getInstanceSize(RasterizedGeometry2DImpl.class), SizeOf.SIZE_OF_RASTERIZED_GEOMETRY_2D_IMPL);
+		assertEquals(getInstanceSize(RasterizedGeometry2DImpl.ScanCallbackImpl.class), SizeOf.SIZE_OF_SCAN_CALLBACK_IMPL);
+		assertEquals(getInstanceSize(Transformation2D.class), SizeOf.SIZE_OF_TRANSFORMATION_2D);
+		assertEquals(getInstanceSize(SimpleRasterizer.class), SizeOf.SIZE_OF_SIMPLE_RASTERIZER);
+		assertEquals(getInstanceSize(SimpleRasterizer.Edge.class), SizeOf.SIZE_OF_EDGE);
+		assertEquals(getInstanceSize(QuadTreeImpl.class), SizeOf.SIZE_OF_QUAD_TREE_IMPL);
+		assertEquals(getInstanceSize(QuadTreeImpl.Data.class), SizeOf.SIZE_OF_DATA);
+		assertEquals(getInstanceSize(StridedIndexTypeCollection.class), SizeOf.SIZE_OF_STRIDED_INDEX_TYPE_COLLECTION);
 	}
 
 	private static <T> long getInstanceSize(Class<T> clazz) {
@@ -93,7 +102,7 @@ public class TestEstimateMemorySize {
 	}
 
 	@Test
-	public void testLineString() {
+	public void testAcceleratedGeometry() {
 		testGeometry(parseWkt("LINESTRING (0 1, 2 3, 4 5)"));
 	}
 
@@ -104,7 +113,7 @@ public class TestEstimateMemorySize {
 
 	@Test
 	public void testMultiLineString() {
-		testGeometry(parseWkt("MULTILINESTRING ((0 1, 2 3, 4 5), (1 1, 2 2))"));
+		testAcceleratedGeometry(parseWkt("MULTILINESTRING ((0 1, 2 3, 4 5), (1 1, 2 2))"));
 	}
 
 	@Test
@@ -114,7 +123,7 @@ public class TestEstimateMemorySize {
 
 	@Test
 	public void testPolygon() {
-		testGeometry(parseWkt("POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))"));
+		testAcceleratedGeometry(parseWkt("POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))"));
 	}
 
 	@Test
@@ -124,7 +133,7 @@ public class TestEstimateMemorySize {
 
 	@Test
 	public void testMultiPolygon() {
-		testGeometry(parseWkt("MULTIPOLYGON (((30 20, 45 40, 10 40, 30 20)), ((15 5, 40 10, 10 20, 5 10, 15 5)))"));
+		testAcceleratedGeometry(parseWkt("MULTIPOLYGON (((30 20, 45 40, 10 40, 30 20)), ((15 5, 40 10, 10 20, 5 10, 15 5)))"));
 	}
 
 	@Test
@@ -144,6 +153,36 @@ public class TestEstimateMemorySize {
 
 	private void testGeometry(OGCGeometry geometry) {
 		assertTrue(geometry.estimateMemorySize() > 0);
+	}
+
+	private void testAcceleratedGeometry(OGCGeometry geometry) {
+		long initialSize = geometry.estimateMemorySize();
+		assertTrue(initialSize > 0);
+
+		Envelope envelope = new Envelope();
+		geometry.getEsriGeometry().queryEnvelope(envelope);
+
+		long withEnvelopeSize = geometry.estimateMemorySize();
+		assertTrue(withEnvelopeSize > initialSize);
+
+		accelerate(geometry, GeometryAccelerationDegree.enumMild);
+		long mildAcceleratedSize = geometry.estimateMemorySize();
+		assertTrue(mildAcceleratedSize > withEnvelopeSize);
+
+		accelerate(geometry, GeometryAccelerationDegree.enumMedium);
+		long mediumAcceleratedSize = geometry.estimateMemorySize();
+		assertTrue(mediumAcceleratedSize > mildAcceleratedSize);
+
+		accelerate(geometry, GeometryAccelerationDegree.enumHot);
+		long hotAcceleratedSize = geometry.estimateMemorySize();
+		assertTrue(hotAcceleratedSize > mediumAcceleratedSize);
+	}
+
+	private void accelerate(OGCGeometry geometry, GeometryAccelerationDegree accelerationDegree)
+	{
+		Operator relateOperator = OperatorFactoryLocal.getInstance().getOperator(Operator.Type.Relate);
+		boolean accelerated = relateOperator.accelerateGeometry(geometry.getEsriGeometry(), geometry.getEsriSpatialReference(), accelerationDegree);
+		assertTrue(accelerated);
 	}
 
 	private static OGCGeometry parseWkt(String wkt) {

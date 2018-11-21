@@ -136,4 +136,10 @@ public abstract class RasterizedGeometry2D {
 	 */
 	public abstract boolean dbgSaveToBitmap(String fileName);
 
+	/**
+	 * Returns an estimate of this object size in bytes.
+	 *
+	 * @return Returns an estimate of this object size in bytes.
+	 */
+	public abstract long estimateMemorySize();
 }

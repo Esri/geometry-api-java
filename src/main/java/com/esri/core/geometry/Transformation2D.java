@@ -24,6 +24,8 @@
 
 package com.esri.core.geometry;
 
+import static com.esri.core.geometry.SizeOf.SIZE_OF_TRANSFORMATION_2D;
+
 /**
  * The affine transformation class for 2D.
  * 
@@ -921,4 +923,8 @@ public final class Transformation2D {
 		rotateNshearNshift.multiply(this);
 	}
 
+	public long estimateMemorySize()
+	{
+		return SIZE_OF_TRANSFORMATION_2D;
+	}
 }
