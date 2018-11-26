@@ -86,14 +86,14 @@
 	</target>
 	
 	<target name="javadoc" depends="jar">
-		<javadoc access="public" author="true" classpathref="project.classpath" destdir="${dir.javadoc}" doctitle="Esri-geometry-api" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" packagenames="com.esri.core.geometry.*" source="1.5" sourcepath="${dir.src.main.java}" splitindex="true" use="true" version="true">
+		<javadoc access="public" author="true" classpathref="project.classpath" destdir="${dir.javadoc}" doctitle="Esri-geometry-api" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" packagenames="com.esri.core.geometry.*" source="1.6" sourcepath="${dir.src.main.java}" splitindex="true" use="true" version="true">
 			<link href="http://help.arcgis.com/EN/sdk/10.0/Java_AO_ADF/api/arcobjects" />
 			<link href="http://docs.oracle.com/javase/6/docs/api/" />
 		</javadoc>
 	</target>
 
 	<target name="javadoc1">
-		<javadoc access="public" author="true" classpathref="project.classpath" destdir="${dir.javadoc}" doctitle="Esri-geometry-api" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" packagenames="com.esri.core.geometry.*" source="1.5" sourcepath="${dir.src.main.java}" splitindex="true" use="true" version="true">
+		<javadoc access="public" author="true" classpathref="project.classpath" destdir="${dir.javadoc}" doctitle="Esri-geometry-api" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" packagenames="com.esri.core.geometry.*" source="1.6" sourcepath="${dir.src.main.java}" splitindex="true" use="true" version="true">
 			<link href="http://help.arcgis.com/EN/sdk/10.0/Java_AO_ADF/api/arcobjects" />
 			<link href="http://docs.oracle.com/javase/6/docs/api/" />
 		</javadoc>
