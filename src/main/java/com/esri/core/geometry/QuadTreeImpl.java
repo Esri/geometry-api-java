@@ -29,6 +29,10 @@ import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.util.ArrayList;
 
+import static com.esri.core.geometry.SizeOf.SIZE_OF_DATA;
+import static com.esri.core.geometry.SizeOf.SIZE_OF_QUAD_TREE_IMPL;
+import static com.esri.core.geometry.SizeOf.sizeOfObjectArray;
+
 class QuadTreeImpl implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
@@ -777,6 +781,22 @@ class QuadTreeImpl implements Serializable {
 		return new QuadTreeSortedIteratorImpl(getIterator());
 	}
 
+	public long estimateMemorySize()
+	{
+		long size = SIZE_OF_QUAD_TREE_IMPL +
+				(m_extent != null ? m_extent.estimateMemorySize() : 0) +
+				(m_data_extent != null ? m_data_extent.estimateMemorySize() : 0) +
+				(m_quad_tree_nodes != null ? m_quad_tree_nodes.estimateMemorySize() : 0) +
+				(m_element_nodes != null ? m_element_nodes.estimateMemorySize() : 0) +
+				(m_free_data != null ? m_free_data.estimateMemorySize() : 0);
+
+		if (m_data != null) {
+			size += sizeOfObjectArray(m_data.size()) + m_data.size() * SIZE_OF_DATA;
+		}
+
+		return size;
+	}
+
 	private void reset_(Envelope2D extent, int height) {
 		if (height < 0 || height > 127)
 			throw new IllegalArgumentException("invalid height");
@@ -1267,9 +1287,6 @@ class QuadTreeImpl implements Serializable {
 	static final class Data {
 		int element;
 		Envelope2D box;
-		
-		Data() {
-		}
 		
 		Data(int element_, double x1, double y1, double x2, double y2) {
 			element = element_;

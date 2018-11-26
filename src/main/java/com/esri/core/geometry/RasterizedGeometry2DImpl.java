@@ -24,18 +24,14 @@
 
 package com.esri.core.geometry;
 
-import java.io.*;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import com.esri.core.geometry.Envelope2D;
-import com.esri.core.geometry.Geometry;
-import com.esri.core.geometry.GeometryException;
-import com.esri.core.geometry.NumberUtils;
-import com.esri.core.geometry.Point2D;
-import com.esri.core.geometry.Segment;
-import com.esri.core.geometry.SegmentIteratorImpl;
-import com.esri.core.geometry.SimpleRasterizer;
+import static com.esri.core.geometry.SizeOf.SIZE_OF_RASTERIZED_GEOMETRY_2D_IMPL;
+import static com.esri.core.geometry.SizeOf.SIZE_OF_SCAN_CALLBACK_IMPL;
+import static com.esri.core.geometry.SizeOf.sizeOfIntArray;
 
 final class RasterizedGeometry2DImpl extends RasterizedGeometry2D {
 	int[] m_bitmap;
@@ -88,6 +84,13 @@ final class RasterizedGeometry2DImpl extends RasterizedGeometry2D {
 					// color
 			}
 			}
+		}
+
+		@Override
+		public long estimateMemorySize()
+		{
+			return SIZE_OF_SCAN_CALLBACK_IMPL +
+					(m_bitmap != null ? sizeOfIntArray(m_bitmap.length) : 0);
 		}
 	}
 
@@ -558,5 +561,15 @@ final class RasterizedGeometry2DImpl extends RasterizedGeometry2D {
 			return false;
 
 		}
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+		return SIZE_OF_RASTERIZED_GEOMETRY_2D_IMPL +
+				(m_geomEnv != null ? m_geomEnv.estimateMemorySize() : 0) +
+				(m_transform != null ? m_transform.estimateMemorySize(): 0) +
+				(m_rasterizer != null ? m_rasterizer.estimateMemorySize(): 0) +
+				(m_callback != null ? m_callback.estimateMemorySize(): 0);
 	}
 }

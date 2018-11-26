@@ -25,6 +25,10 @@ package com.esri.core.geometry;
 
 import java.io.Serializable;
 
+import static com.esri.core.geometry.SizeOf.SIZE_OF_STRIDED_INDEX_TYPE_COLLECTION;
+import static com.esri.core.geometry.SizeOf.sizeOfIntArray;
+import static com.esri.core.geometry.SizeOf.sizeOfObjectArray;
+
 /**
  * A collection of strides of Index_type elements. To be used when one needs a
  * collection of homogeneous elements that contain only integer fields (i.e.
@@ -276,5 +280,19 @@ final class StridedIndexTypeCollection implements Serializable {
 				m_capacity += m_blockSize;
 			}
 		}
+	}
+
+	public long estimateMemorySize()
+	{
+		long size = SIZE_OF_STRIDED_INDEX_TYPE_COLLECTION;
+		if (m_buffer != null) {
+			size += sizeOfObjectArray(m_buffer.length);
+			for (int i = 0; i< m_buffer.length; i++) {
+				if (m_buffer[i] != null) {
+					size += sizeOfIntArray(m_buffer[i].length);
+				}
+			}
+		}
+		return size;
 	}
 }

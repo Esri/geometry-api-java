@@ -36,6 +36,8 @@ import static sun.misc.Unsafe.ARRAY_INT_BASE_OFFSET;
 import static sun.misc.Unsafe.ARRAY_INT_INDEX_SCALE;
 import static sun.misc.Unsafe.ARRAY_LONG_BASE_OFFSET;
 import static sun.misc.Unsafe.ARRAY_LONG_INDEX_SCALE;
+import static sun.misc.Unsafe.ARRAY_OBJECT_BASE_OFFSET;
+import static sun.misc.Unsafe.ARRAY_OBJECT_INDEX_SCALE;
 import static sun.misc.Unsafe.ARRAY_SHORT_BASE_OFFSET;
 import static sun.misc.Unsafe.ARRAY_SHORT_INDEX_SCALE;
 
@@ -88,6 +90,22 @@ public final class SizeOf {
 	
 	public static final int SIZE_OF_MAPGEOMETRY = 24;
 
+	public static final int SIZE_OF_RASTERIZED_GEOMETRY_2D_IMPL = 112;
+
+	public static final int SIZE_OF_SCAN_CALLBACK_IMPL = 32;
+
+	public static final int SIZE_OF_TRANSFORMATION_2D = 64;
+
+	public static final int SIZE_OF_SIMPLE_RASTERIZER = 64;
+
+	public static final int SIZE_OF_EDGE = 48;
+
+	public static final int SIZE_OF_QUAD_TREE_IMPL = 48;
+
+	public static final int SIZE_OF_DATA = 24;
+
+	public static final int SIZE_OF_STRIDED_INDEX_TYPE_COLLECTION = 48;
+
 	public static long sizeOfByteArray(int length) {
 		return ARRAY_BYTE_BASE_OFFSET + (((long) ARRAY_BYTE_INDEX_SCALE) * length);
 	}
@@ -114,6 +132,11 @@ public final class SizeOf {
 
 	public static long sizeOfDoubleArray(int length) {
 		return ARRAY_DOUBLE_BASE_OFFSET + (((long) ARRAY_DOUBLE_INDEX_SCALE) * length);
+	}
+
+	public static long sizeOfObjectArray(int length)
+	{
+		return ARRAY_OBJECT_BASE_OFFSET + (((long) ARRAY_OBJECT_INDEX_SCALE) * length);
 	}
 
 	private SizeOf() {
