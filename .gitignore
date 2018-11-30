@@ -1,6 +1,8 @@
 bin/
 results/
 javadoc/
+depfiles/
+DepFiles/
 esri-geometry-api.jar
 .project
 .classpath

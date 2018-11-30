@@ -305,50 +305,51 @@ public class SimpleRasterizer {
 		}
 	}
 	
-    final boolean addSegmentStroke(double x1, double y1, double x2, double y2, double half_width, boolean skip_short, double[] helper_xy_10_elm)
-    {
-      double vec_x = x2 - x1;
-      double vec_y = y2 - y1;
-      double len = Math.sqrt(vec_x * vec_x + vec_y * vec_y);
-      if (skip_short && len < 0.5)
-        return false;
+	final boolean addSegmentStroke(double x1, double y1, double x2, double y2, double half_width, boolean skip_short,
+			double[] helper_xy_10_elm) {
+		double vec_x = x2 - x1;
+		double vec_y = y2 - y1;
+		double sqr_len = vec_x * vec_x + vec_y * vec_y;
+		if (skip_short && sqr_len < (0.5 * 0.5)) {
+			return false;
+		}
 
-      boolean bshort = len < 0.00001;
-      if (bshort)
-      {
-        len = 0.00001;
-        vec_x = len;
-        vec_y = 0.0;
-      }
+		boolean veryShort = !skip_short && (sqr_len < (0.00001 * 0.00001));
+		if (veryShort) {
+			vec_x = half_width + 0.00001;
+			vec_y = 0.0;
+		} else {
+			double f = half_width / Math.sqrt(sqr_len);
+			vec_x *= f;
+			vec_y *= f;
+		}
 
-      double f = half_width / len;
-      vec_x *= f; vec_y *= f;
-      double vecA_x = -vec_y;
-      double vecA_y = vec_x;
-      double vecB_x = vec_y;
-      double vecB_y = -vec_x;
-      //extend by half width
-      x1 -= vec_x;
-      y1 -= vec_y;
-      x2 += vec_x;
-      y2 += vec_y;
-      //create rotated rectangle
-      double[] fan = helper_xy_10_elm;
-      assert(fan.length == 10);
-      fan[0] = x1 + vecA_x;
-      fan[1] = y1 + vecA_y;//fan[0].add(pt_start, vecA);
-      fan[2] = x1 + vecB_x;
-      fan[3] = y1 + vecB_y;//fan[1].add(pt_start, vecB);
-      fan[4] = x2 + vecB_x;
-      fan[5] = y2 + vecB_y;//fan[2].add(pt_end, vecB)
-      fan[6] = x2 + vecA_x;
-      fan[7] = y2 + vecA_y;//fan[3].add(pt_end, vecA)
-      fan[8] = fan[0];
-      fan[9] = fan[1];
-      addRing(fan);
-      return true;
-    }
-	
+		double vecA_x = -vec_y;
+		double vecA_y = vec_x;
+		double vecB_x = vec_y;
+		double vecB_y = -vec_x;
+		// extend by half width
+		x1 -= vec_x;
+		y1 -= vec_y;
+		x2 += vec_x;
+		y2 += vec_y;
+		// create rotated rectangle
+		double[] fan = helper_xy_10_elm;
+		assert (fan.length == 10);
+		fan[0] = x1 + vecA_x;
+		fan[1] = y1 + vecA_y;// fan[0].add(pt_start, vecA);
+		fan[2] = x1 + vecB_x;
+		fan[3] = y1 + vecB_y;// fan[1].add(pt_start, vecB);
+		fan[4] = x2 + vecB_x;
+		fan[5] = y2 + vecB_y;// fan[2].add(pt_end, vecB)
+		fan[6] = x2 + vecA_x;
+		fan[7] = y2 + vecA_y;// fan[3].add(pt_end, vecA)
+		fan[8] = fan[0];
+		fan[9] = fan[1];
+		addRing(fan);
+		return true;
+	}
+
 	public final ScanCallback getScanCallback() { return callback_; }
 
 	public long estimateMemorySize()
