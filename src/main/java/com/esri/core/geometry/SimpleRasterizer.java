@@ -56,13 +56,6 @@ public class SimpleRasterizer {
 		 * @param scanCount3 The number of initialized elements in the scans array. The scan count is scanCount3 / 3. 
 		 */
 		void drawScan(int[] scans, int scanCount3);
-
-		/**
-		 * Returns an estimate of this object size in bytes.
-		 *
-		 * @return Returns an estimate of this object size in bytes.
-		 */
-		long estimateMemorySize();
 	}
 	
 	public SimpleRasterizer() {
