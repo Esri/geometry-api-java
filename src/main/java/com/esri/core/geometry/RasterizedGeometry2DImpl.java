@@ -86,7 +86,11 @@ final class RasterizedGeometry2DImpl extends RasterizedGeometry2D {
 			}
 		}
 
-		@Override
+		/**
+		 * Returns an estimate of this object size in bytes.
+		 *
+		 * @return Returns an estimate of this object size in bytes.
+		 */
 		public long estimateMemorySize()
 		{
 			return SIZE_OF_SCAN_CALLBACK_IMPL +
