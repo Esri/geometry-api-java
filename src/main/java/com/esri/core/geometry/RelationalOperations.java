@@ -156,174 +156,215 @@ class RelationalOperations {
 			}
 		}
 
-		switch (type_a) {
+		bRelation = switchGeometryTypes(relation, progress_tracker, type_a, type_b, tolerance, bRelation, _geometry_a,
+                _geometry_b);
+
+		return bRelation;
+	}
+
+    private static boolean switchGeometryTypes(int relation, ProgressTracker progress_tracker, int type_a, int type_b,
+            double tolerance, boolean bRelation, Geometry _geometry_a, Geometry _geometry_b) {
+        switch (type_a) {
 		case Geometry.GeometryType.Polygon:
-			switch (type_b) {
-			case Geometry.GeometryType.Polygon:
-				bRelation = polygonRelatePolygon_((Polygon) (_geometry_a),
-						(Polygon) (_geometry_b), tolerance, relation,
-						progress_tracker);
-				break;
-
-			case Geometry.GeometryType.Polyline:
-				bRelation = polygonRelatePolyline_((Polygon) (_geometry_a),
-						(Polyline) (_geometry_b), tolerance, relation,
-						progress_tracker);
-				break;
-
-			case Geometry.GeometryType.Point:
-				bRelation = polygonRelatePoint_((Polygon) (_geometry_a),
-						(Point) (_geometry_b), tolerance, relation,
-						progress_tracker);
-				break;
-
-			case Geometry.GeometryType.MultiPoint:
-				bRelation = polygonRelateMultiPoint_((Polygon) (_geometry_a),
-						(MultiPoint) (_geometry_b), tolerance, relation,
-						progress_tracker);
-				break;
-
-			case Geometry.GeometryType.Envelope:
-				bRelation = polygonRelateEnvelope_((Polygon) (_geometry_a),
-						(Envelope) (_geometry_b), tolerance, relation,
-						progress_tracker);
-				break;
-
-			default:
-				break; // warning fix
-			}
+			bRelation = typeAPolygon(relation, progress_tracker, type_b, tolerance, bRelation, _geometry_a,
+                    _geometry_b);
 			break;
 
 		case Geometry.GeometryType.Polyline:
-			switch (type_b) {
-			case Geometry.GeometryType.Polygon:
-				bRelation = polygonRelatePolyline_((Polygon) (_geometry_b),
-						(Polyline) (_geometry_a), tolerance, relation,
-						progress_tracker);
-				break;
-
-			case Geometry.GeometryType.Polyline:
-				bRelation = polylineRelatePolyline_((Polyline) (_geometry_a),
-						(Polyline) (_geometry_b), tolerance, relation,
-						progress_tracker);
-				break;
-
-			case Geometry.GeometryType.Point:
-				bRelation = polylineRelatePoint_((Polyline) (_geometry_a),
-						(Point) (_geometry_b), tolerance, relation,
-						progress_tracker);
-				break;
-
-			case Geometry.GeometryType.MultiPoint:
-				bRelation = polylineRelateMultiPoint_((Polyline) (_geometry_a),
-						(MultiPoint) (_geometry_b), tolerance, relation,
-						progress_tracker);
-				break;
-
-			case Geometry.GeometryType.Envelope:
-				bRelation = polylineRelateEnvelope_((Polyline) (_geometry_a),
-						(Envelope) (_geometry_b), tolerance, relation,
-						progress_tracker);
-				break;
-
-			default:
-				break; // warning fix
-			}
+			bRelation = typeAPolyline(relation, progress_tracker, type_b, tolerance, bRelation, _geometry_a,
+                    _geometry_b);
 			break;
 
 		case Geometry.GeometryType.Point:
-			switch (type_b) {
-			case Geometry.GeometryType.Polygon:
-				bRelation = polygonRelatePoint_((Polygon) (_geometry_b),
-						(Point) (_geometry_a), tolerance, relation,
-						progress_tracker);
-				break;
-
-			case Geometry.GeometryType.Polyline:
-				bRelation = polylineRelatePoint_((Polyline) (_geometry_b),
-						(Point) (_geometry_a), tolerance, relation,
-						progress_tracker);
-				break;
-
-			case Geometry.GeometryType.MultiPoint:
-				bRelation = multiPointRelatePoint_((MultiPoint) (_geometry_b),
-						(Point) (_geometry_a), tolerance, relation,
-						progress_tracker);
-				break;
-
-			default:
-				break; // warning fix
-			}
+			bRelation = typeAPoint(relation, progress_tracker, type_b, tolerance, bRelation, _geometry_a, _geometry_b);
 			break;
 
 		case Geometry.GeometryType.MultiPoint:
-			switch (type_b) {
-			case Geometry.GeometryType.Polygon:
-				bRelation = polygonRelateMultiPoint_((Polygon) (_geometry_b),
-						(MultiPoint) (_geometry_a), tolerance, relation,
-						progress_tracker);
-				break;
-
-			case Geometry.GeometryType.Polyline:
-				bRelation = polylineRelateMultiPoint_((Polyline) (_geometry_b),
-						(MultiPoint) (_geometry_a), tolerance, relation,
-						progress_tracker);
-				break;
-
-			case Geometry.GeometryType.MultiPoint:
-				bRelation = multiPointRelateMultiPoint_(
-						(MultiPoint) (_geometry_a), (MultiPoint) (_geometry_b),
-						tolerance, relation, progress_tracker);
-				break;
-
-			case Geometry.GeometryType.Point:
-				bRelation = multiPointRelatePoint_((MultiPoint) (_geometry_a),
-						(Point) (_geometry_b), tolerance, relation,
-						progress_tracker);
-				break;
-
-			case Geometry.GeometryType.Envelope:
-				bRelation = multiPointRelateEnvelope_(
-						(MultiPoint) (_geometry_a), (Envelope) (_geometry_b),
-						tolerance, relation, progress_tracker);
-				break;
-
-			default:
-				break; // warning fix
-			}
+			bRelation = typeAMultiPoint(relation, progress_tracker, type_b, tolerance, bRelation, _geometry_a,
+                    _geometry_b);
 			break;
 
 		case Geometry.GeometryType.Envelope:
-			switch (type_b) {
-			case Geometry.GeometryType.Polygon:
-				bRelation = polygonRelateEnvelope_((Polygon) (_geometry_b),
-						(Envelope) (_geometry_a), tolerance, relation,
-						progress_tracker);
-				break;
-
-			case Geometry.GeometryType.Polyline:
-				bRelation = polylineRelateEnvelope_((Polyline) (_geometry_b),
-						(Envelope) (_geometry_a), tolerance, relation,
-						progress_tracker);
-				break;
-
-			case Geometry.GeometryType.MultiPoint:
-				bRelation = multiPointRelateEnvelope_(
-						(MultiPoint) (_geometry_b), (Envelope) (_geometry_a),
-						tolerance, relation, progress_tracker);
-				break;
-
-			default:
-				break; // warning fix
-			}
+			bRelation = typeAEnvelope(relation, progress_tracker, type_b, tolerance, bRelation, _geometry_a,
+                    _geometry_b);
 			break;
 
 		default:
 			break; // warning fix
 		}
+        return bRelation;
+    }
 
-		return bRelation;
-	}
+    private static boolean typeAEnvelope(int relation, ProgressTracker progress_tracker, int type_b, double tolerance,
+            boolean bRelation, Geometry _geometry_a, Geometry _geometry_b) {
+        switch (type_b) {
+        case Geometry.GeometryType.Polygon:
+        	bRelation = polygonRelateEnvelope_((Polygon) (_geometry_b),
+        			(Envelope) (_geometry_a), tolerance, relation,
+        			progress_tracker);
+        	break;
+
+        case Geometry.GeometryType.Polyline:
+        	bRelation = polylineRelateEnvelope_((Polyline) (_geometry_b),
+        			(Envelope) (_geometry_a), tolerance, relation,
+        			progress_tracker);
+        	break;
+
+        case Geometry.GeometryType.MultiPoint:
+        	bRelation = multiPointRelateEnvelope_(
+        			(MultiPoint) (_geometry_b), (Envelope) (_geometry_a),
+        			tolerance, relation, progress_tracker);
+        	break;
+
+        default:
+        	break; // warning fix
+        }
+        return bRelation;
+    }
+
+    private static boolean typeAMultiPoint(int relation, ProgressTracker progress_tracker, int type_b, double tolerance,
+            boolean bRelation, Geometry _geometry_a, Geometry _geometry_b) {
+        switch (type_b) {
+        case Geometry.GeometryType.Polygon:
+        	bRelation = polygonRelateMultiPoint_((Polygon) (_geometry_b),
+        			(MultiPoint) (_geometry_a), tolerance, relation,
+        			progress_tracker);
+        	break;
+
+        case Geometry.GeometryType.Polyline:
+        	bRelation = polylineRelateMultiPoint_((Polyline) (_geometry_b),
+        			(MultiPoint) (_geometry_a), tolerance, relation,
+        			progress_tracker);
+        	break;
+
+        case Geometry.GeometryType.MultiPoint:
+        	bRelation = multiPointRelateMultiPoint_(
+        			(MultiPoint) (_geometry_a), (MultiPoint) (_geometry_b),
+        			tolerance, relation, progress_tracker);
+        	break;
+
+        case Geometry.GeometryType.Point:
+        	bRelation = multiPointRelatePoint_((MultiPoint) (_geometry_a),
+        			(Point) (_geometry_b), tolerance, relation,
+        			progress_tracker);
+        	break;
+
+        case Geometry.GeometryType.Envelope:
+        	bRelation = multiPointRelateEnvelope_(
+        			(MultiPoint) (_geometry_a), (Envelope) (_geometry_b),
+        			tolerance, relation, progress_tracker);
+        	break;
+
+        default:
+        	break; // warning fix
+        }
+        return bRelation;
+    }
+
+    private static boolean typeAPoint(int relation, ProgressTracker progress_tracker, int type_b, double tolerance,
+            boolean bRelation, Geometry _geometry_a, Geometry _geometry_b) {
+        switch (type_b) {
+        case Geometry.GeometryType.Polygon:
+        	bRelation = polygonRelatePoint_((Polygon) (_geometry_b),
+        			(Point) (_geometry_a), tolerance, relation,
+        			progress_tracker);
+        	break;
+
+        case Geometry.GeometryType.Polyline:
+        	bRelation = polylineRelatePoint_((Polyline) (_geometry_b),
+        			(Point) (_geometry_a), tolerance, relation,
+        			progress_tracker);
+        	break;
+
+        case Geometry.GeometryType.MultiPoint:
+        	bRelation = multiPointRelatePoint_((MultiPoint) (_geometry_b),
+        			(Point) (_geometry_a), tolerance, relation,
+        			progress_tracker);
+        	break;
+
+        default:
+        	break; // warning fix
+        }
+        return bRelation;
+    }
+
+    private static boolean typeAPolyline(int relation, ProgressTracker progress_tracker, int type_b, double tolerance,
+            boolean bRelation, Geometry _geometry_a, Geometry _geometry_b) {
+        switch (type_b) {
+        case Geometry.GeometryType.Polygon:
+        	bRelation = polygonRelatePolyline_((Polygon) (_geometry_b),
+        			(Polyline) (_geometry_a), tolerance, relation,
+        			progress_tracker);
+        	break;
+
+        case Geometry.GeometryType.Polyline:
+        	bRelation = polylineRelatePolyline_((Polyline) (_geometry_a),
+        			(Polyline) (_geometry_b), tolerance, relation,
+        			progress_tracker);
+        	break;
+
+        case Geometry.GeometryType.Point:
+        	bRelation = polylineRelatePoint_((Polyline) (_geometry_a),
+        			(Point) (_geometry_b), tolerance, relation,
+        			progress_tracker);
+        	break;
+
+        case Geometry.GeometryType.MultiPoint:
+        	bRelation = polylineRelateMultiPoint_((Polyline) (_geometry_a),
+        			(MultiPoint) (_geometry_b), tolerance, relation,
+        			progress_tracker);
+        	break;
+
+        case Geometry.GeometryType.Envelope:
+        	bRelation = polylineRelateEnvelope_((Polyline) (_geometry_a),
+        			(Envelope) (_geometry_b), tolerance, relation,
+        			progress_tracker);
+        	break;
+
+        default:
+        	break; // warning fix
+        }
+        return bRelation;
+    }
+
+    private static boolean typeAPolygon(int relation, ProgressTracker progress_tracker, int type_b, double tolerance,
+            boolean bRelation, Geometry _geometry_a, Geometry _geometry_b) {
+        switch (type_b) {
+        case Geometry.GeometryType.Polygon:
+        	bRelation = polygonRelatePolygon_((Polygon) (_geometry_a),
+        			(Polygon) (_geometry_b), tolerance, relation,
+        			progress_tracker);
+        	break;
+
+        case Geometry.GeometryType.Polyline:
+        	bRelation = polygonRelatePolyline_((Polygon) (_geometry_a),
+        			(Polyline) (_geometry_b), tolerance, relation,
+        			progress_tracker);
+        	break;
+
+        case Geometry.GeometryType.Point:
+        	bRelation = polygonRelatePoint_((Polygon) (_geometry_a),
+        			(Point) (_geometry_b), tolerance, relation,
+        			progress_tracker);
+        	break;
+
+        case Geometry.GeometryType.MultiPoint:
+        	bRelation = polygonRelateMultiPoint_((Polygon) (_geometry_a),
+        			(MultiPoint) (_geometry_b), tolerance, relation,
+        			progress_tracker);
+        	break;
+
+        case Geometry.GeometryType.Envelope:
+        	bRelation = polygonRelateEnvelope_((Polygon) (_geometry_a),
+        			(Envelope) (_geometry_b), tolerance, relation,
+        			progress_tracker);
+        	break;
+
+        default:
+        	break; // warning fix
+        }
+        return bRelation;
+    }
 
 	// Computes the necessary 9 intersection relationships of boundary,
 	// interior, and exterior of envelope_a vs envelope_b for the given
