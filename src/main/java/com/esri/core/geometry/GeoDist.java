@@ -159,80 +159,29 @@ final class GeoDist {
 
 		if (PE_EQ(phi1, phi2) && (PE_ZERO(dlam) || PE_EQ(PE_ABS(phi1), PE_PI2))) {
 			/* Check that the points are not the same */
-			if (p_dist != null)
-				p_dist.val = 0.0;
-			if (p_az12 != null)
-				p_az12.val = 0.0;
-			if (p_az21 != null)
-				p_az21.val = 0.0;
+			assignValues(p_dist, p_az12, p_az21, 0.0, 0.0, 0.0);
 
 			return;
 		} else if (PE_EQ(phi1, -phi2)) {
 			/* Check if they are perfectly antipodal */
 			if (PE_EQ(PE_ABS(phi1), PE_PI2)) {
 				/* Check if they are at opposite poles */
-				if (p_dist != null)
-					p_dist.val = 2.0 * q90(a, e2);
-
-				if (p_az12 != null)
-					p_az12.val = phi1 > 0.0 ? lam_delta(PE_PI - lam_delta(lam2))
-							: lam_delta(lam2);
-
-				if (p_az21 != null)
-					p_az21.val = phi1 > 0.0 ? lam_delta(lam2) : lam_delta(PE_PI
-							- lam_delta(lam2));
-
+				assignValues(p_dist, p_az12, p_az21, 2.0 * q90(a, e2),
+						phi1 > 0.0 ? lam_delta(PE_PI - lam_delta(lam2))
+						: lam_delta(lam2),
+						phi1 > 0.0 ? lam_delta(lam2) : lam_delta(PE_PI
+								- lam_delta(lam2)));
 				return;
 			} else if (PE_EQ(PE_ABS(dlam), PE_PI)) {
 				/* Other antipodal */
-				if (p_dist != null)
-					p_dist.val = 2.0 * q90(a, e2);
-				if (p_az12 != null)
-					p_az12.val = 0.0;
-				if (p_az21 != null)
-					p_az21.val = 0.0;
+				assignValues(p_dist, p_az12, p_az21, 2.0 * q90(a, e2), 0.0, 0.0);
 				return;
 			}
 		}
 
 		if (PE_ZERO(e2)) /* Sphere */
 		{
-			double cos_phi1, cos_phi2;
-			double sin_phi1, sin_phi2;
-
-			cos_phi1 = Math.cos(phi1);
-			cos_phi2 = Math.cos(phi2);
-			sin_phi1 = Math.sin(phi1);
-			sin_phi2 = Math.sin(phi2);
-
-			if (p_dist != null) {
-				tem1 = Math.sin((phi2 - phi1) / 2.0);
-				tem2 = Math.sin(dlam / 2.0);
-				sigma = 2.0 * Math.asin(Math.sqrt(tem1 * tem1 + cos_phi1
-						* cos_phi2 * tem2 * tem2));
-				p_dist.val = sigma * a;
-			}
-
-			if (p_az12 != null) {
-				if (PE_EQ(PE_ABS(phi1), PE_PI2)) /* Origin at N or S Pole */
-				{
-					p_az12.val = phi1 < 0.0 ? lam2 : lam_delta(PE_PI - lam2);
-				} else {
-					p_az12.val = Math.atan2(cos_phi2 * Math.sin(dlam), cos_phi1
-							* sin_phi2 - sin_phi1 * cos_phi2 * Math.cos(dlam));
-				}
-			}
-
-			if (p_az21 != null) {
-				if (PE_EQ(PE_ABS(phi2), PE_PI2)) /* Destination at N or S Pole */
-				{
-					p_az21.val = phi2 < 0.0 ? lam1 : lam_delta(PE_PI - lam1);
-				} else {
-					p_az21.val = Math.atan2(cos_phi1 * Math.sin(dlam), sin_phi2
-							* cos_phi1 * Math.cos(dlam) - cos_phi2 * sin_phi1);
-					p_az21.val = lam_delta(p_az21.val + PE_PI);
-				}
-			}
+			sigma = sphereDistance(a, lam1, phi1, lam2, phi2, p_dist, p_az12, p_az21, dlam, sigma);
 
 			return;
 		}
@@ -290,14 +239,7 @@ final class GeoDist {
 
 				cos2_azeq = 1.0 - sin_azeq * sin_azeq;
 
-				if (PE_ABS(cos2_azeq) < eps) /* avoid division by 0 */
-				{
-					costm = cos_sigma - 2.0
-							* (sin_eta1 * sin_eta2 / PE_SGN(eps, cos2_azeq));
-				} else {
-					costm = cos_sigma - 2.0 * (sin_eta1 * sin_eta2 / cos2_azeq);
-					/* v18 (Rapp 1.91) */
-				}
+				costm = checkCos2AzeqNotNull(eps, sin_eta1, sin_eta2, cos_sigma, cos2_azeq);
 				costm2 = costm * costm;
 				c = ((-3.0 * cos2_azeq + 4.0) * f + 4.0) * cos2_azeq * f / 16.0; /*
 																				 * v10
@@ -345,16 +287,7 @@ final class GeoDist {
 						q_continue_looping = false;
 						continue;
 					}
-					if (PE_ABS(cos2_azeq) < eps) /* avoid division by 0 */
-					{
-						costm = cos_sigma
-								- 2.0
-								* (sin_eta1 * sin_eta2 / PE_SGN(eps, cos2_azeq));
-					} else {
-						costm = cos_sigma - 2.0
-								* (sin_eta1 * sin_eta2 / cos2_azeq);
-						/* v18 (Rapp 1.91) */
-					}
+					costm = checkCos2AzeqNotNull(eps, sin_eta1, sin_eta2, cos_sigma, cos2_azeq);
 					costm2 = costm * costm;
 					continue;
 				}
@@ -397,14 +330,7 @@ final class GeoDist {
 					q_continue_looping = false;
 					continue;
 				}
-				if (PE_ABS(cos2_azeq) < eps) /* avoid division by 0 */
-				{
-					costm = cos_sigma - 2.0
-							* (sin_eta1 * sin_eta2 / PE_SGN(eps, cos2_azeq));
-				} else {
-					costm = cos_sigma - 2.0 * (sin_eta1 * sin_eta2 / cos2_azeq);
-					/* v18 (Rapp 1.91) */
-				}
+				costm = checkCos2AzeqNotNull(eps, sin_eta1, sin_eta2, cos_sigma, cos2_azeq);
 				costm2 = costm * costm;
 				continue;
 			}
@@ -455,13 +381,75 @@ final class GeoDist {
 				tem2 = sin_eta1 * cos_eta2 - cos_eta1 * sin_eta2 * cos_lam_sph;
 				az21 = Math.atan2(tem1, tem2);
 			}
-
-			if (p_az12 != null) {
-				p_az12.val = lam_delta(az12);
-			}
-			if (p_az21 != null) {
-				p_az21.val = lam_delta(az21);
-			}
+			assignValues(null, p_az12, p_az21, 0.0, lam_delta(az12), lam_delta(az21));
 		}
 	}
+
+	private static void assignValues(PeDouble p_dist, PeDouble p_az12, PeDouble p_az21, double dist, double az12, double az21) {
+		if (p_dist != null)
+			p_dist.val = dist;
+		if (p_az12 != null)
+			p_az12.val = az12;
+		if (p_az21 != null)
+			p_az21.val = az21;
+	}
+
+	private static double checkCos2AzeqNotNull(double eps, double sin_eta1, double sin_eta2, double cos_sigma,
+			double cos2_azeq) {
+		double costm;
+		if (PE_ABS(cos2_azeq) < eps) /* avoid division by 0 */
+		{
+			costm = cos_sigma - 2.0
+					* (sin_eta1 * sin_eta2 / PE_SGN(eps, cos2_azeq));
+		} else {
+			costm = cos_sigma - 2.0 * (sin_eta1 * sin_eta2 / cos2_azeq);
+			/* v18 (Rapp 1.91) */
+		}
+		return costm;
+	}
+
+	private static double sphereDistance(double a, double lam1, double phi1, double lam2, double phi2, PeDouble p_dist,
+			PeDouble p_az12, PeDouble p_az21, double dlam, double sigma) {
+		double tem1;
+		double tem2;
+		double cos_phi1, cos_phi2;
+		double sin_phi1, sin_phi2;
+
+		cos_phi1 = Math.cos(phi1);
+		cos_phi2 = Math.cos(phi2);
+		sin_phi1 = Math.sin(phi1);
+		sin_phi2 = Math.sin(phi2);
+
+		if (p_dist != null) {
+			tem1 = Math.sin((phi2 - phi1) / 2.0);
+			tem2 = Math.sin(dlam / 2.0);
+			sigma = 2.0 * Math.asin(Math.sqrt(tem1 * tem1 + cos_phi1
+					* cos_phi2 * tem2 * tem2));
+			p_dist.val = sigma * a;
+		}
+
+		if (p_az12 != null) {
+			if (PE_EQ(PE_ABS(phi1), PE_PI2)) /* Origin at N or S Pole */
+			{
+				p_az12.val = phi1 < 0.0 ? lam2 : lam_delta(PE_PI - lam2);
+			} else {
+				p_az12.val = Math.atan2(cos_phi2 * Math.sin(dlam), cos_phi1
+						* sin_phi2 - sin_phi1 * cos_phi2 * Math.cos(dlam));
+			}
+		}
+
+		if (p_az21 != null) {
+			if (PE_EQ(PE_ABS(phi2), PE_PI2)) /* Destination at N or S Pole */
+			{
+				p_az21.val = phi2 < 0.0 ? lam1 : lam_delta(PE_PI - lam1);
+			} else {
+				p_az21.val = Math.atan2(cos_phi1 * Math.sin(dlam), sin_phi2
+						* cos_phi1 * Math.cos(dlam) - cos_phi2 * sin_phi1);
+				p_az21.val = lam_delta(p_az21.val + PE_PI);
+			}
+		}
+		return sigma;
+	}
 }
+
+
