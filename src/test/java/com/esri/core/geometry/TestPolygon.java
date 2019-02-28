@@ -1103,10 +1103,10 @@ public class TestPolygon extends TestCase {
 
 		Line line = new Line();
 		line.toString();
-		
+
 		line.setStart(new Point(0, 0));
 		line.setEnd(new Point(1, 0));
-		
+
 		line.toString();
 
 		double geoLength = GeometryEngine.geodesicDistanceOnWGS84(new Point(0,
@@ -1152,7 +1152,7 @@ public class TestPolygon extends TestCase {
 
 		assertTrue(noException);
 	}// end of method
-	
+
 	@Test
 	public void testBoundary() {
 		Geometry g = OperatorImportFromWkt
@@ -1170,7 +1170,7 @@ public class TestPolygon extends TestCase {
 		assertTrue(s
 				.equals("MULTILINESTRING ((-10 -10, 10 -10, 10 10, -10 10, -10 -10), (-5 -5, -5 5, 5 5, 5 -5, -5 -5))"));
 	}
-	
+
 	@Test
 	public void testReplaceNaNs() {
 		{
@@ -1183,7 +1183,7 @@ public class TestPolygon extends TestCase {
 		pt.setXY(11, 12);
 		pt.setZ(3);
 		mp.add(pt);
-		
+
 		mp.replaceNaNs(VertexDescription.Semantics.Z, 5);
 		assertTrue(mp.getPoint(0).equals(new Point(1, 2, 5)));
 		assertTrue(mp.getPoint(1).equals(new Point(11, 12, 3)));
@@ -1199,12 +1199,12 @@ public class TestPolygon extends TestCase {
 		pt.setXY(11, 12);
 		pt.setZ(3);
 		mp.lineTo(pt);
-		
+
 		mp.replaceNaNs(VertexDescription.Semantics.Z, 5);
 		assertTrue(mp.getPoint(0).equals(new Point(1, 2, 5)));
 		assertTrue(mp.getPoint(1).equals(new Point(11, 12, 3)));
 		}
-		
+
 		{
 		Polygon mp = new Polygon();
 		Point pt = new Point();
@@ -1215,7 +1215,7 @@ public class TestPolygon extends TestCase {
 		pt.setXY(11, 12);
 		pt.setM(3);
 		mp.lineTo(pt);
-		
+
 		mp.replaceNaNs(VertexDescription.Semantics.M, 5);
 		Point p = new Point(1, 2); p.setM(5);
 		boolean b = mp.getPoint(0).equals(p);
@@ -1224,7 +1224,7 @@ public class TestPolygon extends TestCase {
 		b = mp.getPoint(1).equals(p);
 		assertTrue(b);
 		}
-		
+
 	}
 
 	@Test
@@ -1316,6 +1316,28 @@ public class TestPolygon extends TestCase {
 		}
 		assertEquals(paths, 3);
 		assertEquals(segments, 15);
+	}
+
+	@Test
+	public void testIsExteriorRing() {
+		{
+			Polygon poly = new Polygon();
+			poly.startPath(0, 0);
+			poly.lineTo(0, 1);
+			poly.lineTo(1, 1);
+			poly.lineTo(1, 0);
+			assertTrue(poly.isExteriorRing(0));
+		}
+
+		{
+			Polygon poly = new Polygon();
+			poly.startPath(-135, 85);
+			poly.lineTo(-45, 85);
+			poly.lineTo(45, 85);
+			poly.lineTo(135, 85);
+			assertTrue(poly.isExteriorRing(0));
+		}
+
 	}
 
 	private static Polygon birmingham() {

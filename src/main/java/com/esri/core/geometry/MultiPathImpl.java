@@ -505,7 +505,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 	// Reviewed vs. Native Jan 11, 2011
 	/**
 	 * Returns the size of the segment data for the given segment type.
-	 * 
+	 *
 	 * @param flag
 	 *            is one of the segment flags from the SegmentFlags enum.
 	 * @return the size of the segment params as the number of doubles.
@@ -517,7 +517,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 	// Reviewed vs. Native Jan 11, 2011
 	/**
 	 * Closes last path of the MultiPathImpl with the Bezier Segment.
-	 * 
+	 *
 	 * The start point of the Bezier is the last point of the path and the last
 	 * point of the bezier is the first point of the path.
 	 */
@@ -615,7 +615,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 	// Reviewed vs. Native Jan 11, 2011
 	/**
 	 * adds a rectangular closed Path to the MultiPathImpl.
-	 * 
+	 *
 	 * @param envSrc
 	 *            is the source rectangle.
 	 * @param bReverse
@@ -648,7 +648,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 	// Reviewed vs. Native Jan 11, 2011
 	/**
 	 * adds a rectangular closed Path to the MultiPathImpl.
-	 * 
+	 *
 	 * @param envSrc
 	 *            is the source rectangle.
 	 * @param bReverse
@@ -1872,7 +1872,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 		dstPoly.m_bPathStarted = false;
 		dstPoly.m_curveParamwritePoint = m_curveParamwritePoint;
 		dstPoly.m_fill_rule = m_fill_rule;
-		
+
 		if (m_paths != null)
 			dstPoly.m_paths = new AttributeStreamOfInt32(m_paths);
 		else
@@ -1968,7 +1968,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 					return false;
 			}
 		}
-	      
+
 		return super.equals(other);
 	}
 
@@ -2062,8 +2062,10 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 		if (!_hasDirtyFlag(DirtyFlags.DirtyOGCFlags))
 			return (m_pathFlags.read(ringIndex) & (byte) PathFlags.enumOGCStartPolygon) != 0;
 
-		_updateRingAreas2D();
-		return m_cachedRingAreas2D.read(ringIndex) > 0;
+		_updateOGCFlags();
+		return (m_pathFlags.read(ringIndex) & (byte) PathFlags.enumOGCStartPolygon) != 0;
+        //_updateRingAreas2D();
+		//return m_cachedRingAreas2D.read(ringIndex) > 0;
 		// Should we make a function called _UpdateHasNonLinearSegmentsFlags and
 		// call it here?
 	}
@@ -2139,12 +2141,12 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 				m_pathFlags = (AttributeStreamOfInt8) AttributeStreamBase
 						.createByteStream(pathCount + 1);
 
-			int firstSign = 1;
+			float firstSign = 1;
 			for (int ipath = 0; ipath < pathCount; ipath++) {
 				double area = m_cachedRingAreas2D.read(ipath);
 				if (ipath == 0)
-					firstSign = area > 0 ? 1 : -1;
-				if (area * firstSign > 0.0)
+					firstSign = area >= 0.0 ? 1f : -1f;
+				if (area * firstSign >= 0.0)
 					m_pathFlags.setBits(ipath,
 							(byte) PathFlags.enumOGCStartPolygon);
 				else
@@ -2287,7 +2289,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 	/**
 	 * Returns a reference to the AttributeStream of MultiPathImpl parts
 	 * (Paths).
-	 * 
+	 *
 	 * For the non empty MultiPathImpl, that stream contains start points of the
 	 * MultiPathImpl curves. In addition, the last element is the total point
 	 * count. The number of vertices in a given part is parts[i + 1] - parts[i].
@@ -2308,7 +2310,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 	/**
 	 * Returns a reference to the AttributeStream of Segment flags (SegmentFlags
 	 * flags). Can be NULL when no non-linear segments are present.
-	 * 
+	 *
 	 * Segment flags indicate what kind of segment originates (starts) on the
 	 * given point. The last vertices of open Path parts has enumNone flag.
 	 */
@@ -2320,7 +2322,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 	/**
 	 * Returns a reference to the AttributeStream of Path flags (PathFlags
 	 * flags).
-	 * 
+	 *
 	 * Each start point of a path has a flag set to indicate if the Path is open
 	 * or closed.
 	 */
@@ -2569,7 +2571,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 			envelope.setCoords(env);
 		}
 	}
-	
+
 	@Override
 	public boolean _buildQuadTreeAccelerator(GeometryAccelerationDegree d) {
 		if (m_accelerators == null)// (!m_accelerators)
@@ -2612,8 +2614,7 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 		return m_fill_rule;
 	}
 
-	void clearDirtyOGCFlags() { 
+	void clearDirtyOGCFlags() {
 		_setDirtyFlag(DirtyFlags.DirtyOGCFlags, false);
 	}
 }
-
