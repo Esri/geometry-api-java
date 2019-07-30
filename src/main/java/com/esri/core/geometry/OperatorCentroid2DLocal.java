@@ -102,8 +102,14 @@ public class OperatorCentroid2DLocal extends OperatorCentroid2D {
 	// 0 to N - 1) / (6 * signedArea)
 	private static Point2D computePolygonCentroid(Polygon polygon) {
 		double totalArea = polygon.calculateArea2D();
+		if (totalArea == 0)
+		{
+			return computePolylineCentroid(polygon);
+		}
+		
 		MathUtils.KahanSummator xSum = new MathUtils.KahanSummator(0);
 		MathUtils.KahanSummator ySum = new MathUtils.KahanSummator(0);
+		Point2D startPoint = new Point2D();
 		Point2D current = new Point2D();
 		Point2D next = new Point2D();
 		Point2D origin = polygon.getXY(0);
@@ -116,16 +122,23 @@ public class OperatorCentroid2DLocal extends OperatorCentroid2D {
 				continue;
 			}
 			
-			polygon.getXY(startIndex, current);
-			current.sub(origin);
-			for (int i = startIndex + 1; i < endIndex; i++) {
+			polygon.getXY(startIndex, startPoint);
+			polygon.getXY(startIndex + 1, current);
+			current.sub(startPoint);
+			for (int i = startIndex + 2, n = endIndex; i < n; i++) {
 				polygon.getXY(i, next);
-				next.sub(origin);
+				next.sub(startPoint);
 				double twiceTriangleArea = next.x * current.y - current.x * next.y;
 				xSum.add((current.x + next.x) * twiceTriangleArea);
 				ySum.add((current.y + next.y) * twiceTriangleArea);
 				current.setCoords(next);
 			}
+			
+			startPoint.sub(origin);
+			startPoint.scale(6.0 * polygon.calculateRingArea2D(ipath));
+			//add weighted startPoint
+			xSum.add(startPoint.x);
+			ySum.add(startPoint.y);
 		}
 
 		totalArea *= 6.0;
