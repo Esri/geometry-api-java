@@ -1,5 +1,5 @@
 /*
- Copyright 1995-2017 Esri
+ Copyright 1995-2019 Esri
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -22,8 +22,6 @@
  email: contracts@esri.com
  */
 package com.esri.core.geometry;
-
-import static java.lang.Math.sqrt;
 
 public class OperatorCentroid2DLocal extends OperatorCentroid2D {
 	@Override
@@ -95,11 +93,7 @@ public class OperatorCentroid2DLocal extends OperatorCentroid2D {
 		return new Point2D(xSum.getResult() / totalLength, ySum.getResult() / totalLength);
 	}
 
-	// Polygon centroid: area weighted average of centroids:
-	// c[x] = (Sigma(x[i] + x[i + 1]) * (x[i] * y[i + 1] - x[i + 1] * y[i]), for i =
-	// 0 to N - 1) / (6 * signedArea)
-	// c[y] = (Sigma(y[i] + y[i + 1]) * (x[i] * y[i + 1] - x[i + 1] * y[i]), for i =
-	// 0 to N - 1) / (6 * signedArea)
+	// Polygon centroid: area weighted average of centroids
 	private static Point2D computePolygonCentroid(Polygon polygon) {
 		double totalArea = polygon.calculateArea2D();
 		if (totalArea == 0)
