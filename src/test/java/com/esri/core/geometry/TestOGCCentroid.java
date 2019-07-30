@@ -81,10 +81,13 @@ public class TestOGCCentroid {
 		//polygon is only vertices - compute as multipoint. Note that the closing vertex of the ring is not counted
 		assertCentroid("MULTIPOLYGON (((0 0, 0 0, 0 0), (1 1, 1 1, 1 1, 1 1)))", new Point(0.6, 0.6));
 		
-		// a test case from https://github.com/Esri/geometry-api-java/issues/225
+		// test cases from https://github.com/Esri/geometry-api-java/issues/225
 		assertCentroid(
 				"MULTIPOLYGON (((153.492818 -28.13729, 153.492821 -28.137291, 153.492816 -28.137289, 153.492818 -28.13729)))",
 				new Point(153.49281833333333, -28.13729));
+		assertCentroid(
+				"MULTIPOLYGON (((153.112475 -28.360526, 153.1124759 -28.360527, 153.1124759 -28.360526, 153.112475 -28.360526)))",
+				new Point(153.1124756, -28.360526333333333));
 		assertEmptyCentroid("MULTIPOLYGON EMPTY");
 	}
 
