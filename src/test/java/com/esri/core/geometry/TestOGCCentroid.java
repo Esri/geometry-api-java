@@ -38,7 +38,9 @@ public class TestOGCCentroid {
 	@Test
 	public void testLineString() {
 		assertCentroid("LINESTRING (1 1, 2 2, 3 3)", new Point(2, 2));
+		//closed path
 		assertCentroid("LINESTRING (0 0, 1 0, 1 1, 0 1, 0 0)", new Point(0.5, 0.5));
+		//all points coincide
 		assertCentroid("LINESTRING (0 0, 0 0, 0 0, 0 0, 0 0)", new Point(0.0, 0.0));
 		assertEmptyCentroid("LINESTRING EMPTY");
 	}
@@ -61,6 +63,7 @@ public class TestOGCCentroid {
 	@Test
 	public void testMultiLineString() {
 		assertCentroid("MULTILINESTRING ((1 1, 5 1), (2 4, 4 4))')))", new Point(3, 2));
+		assertCentroid("MULTILINESTRING ((1 1, 5 1), (2 4, 3 3, 4 4))')))", new Point(3, 2.0355339059327378));
 		assertCentroid("MULTILINESTRING ((0 0, 0 0, 0 0), (1 1, 1 1, 1 1, 1 1))", new Point(0.571428571428571429, 0.571428571428571429));
 		assertEmptyCentroid("MULTILINESTRING EMPTY");
 	}
@@ -88,7 +91,8 @@ public class TestOGCCentroid {
 	private static void assertCentroid(String wkt, Point expectedCentroid) {
 		OGCGeometry geometry = OGCGeometry.fromText(wkt);
 		OGCGeometry centroid = geometry.centroid();
-		Assert.assertEquals(centroid, new OGCPoint(expectedCentroid, geometry.getEsriSpatialReference()));
+		Assert.assertEquals(((OGCPoint)centroid).X(), expectedCentroid.getX(), 1e-13);
+		Assert.assertEquals(((OGCPoint)centroid).Y(), expectedCentroid.getY(), 1e-13);
 	}
 
 	private static void assertEmptyCentroid(String wkt) {
