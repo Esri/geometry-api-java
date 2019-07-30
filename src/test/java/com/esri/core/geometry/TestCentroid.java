@@ -44,7 +44,7 @@ public class TestCentroid
     public void testEnvelope()
     {
         assertCentroid(new Envelope(1, 2, 3,4), new Point2D(2, 3));
-        assertCentroid(new Envelope(), null);
+        assertCentroidEmpty(new Envelope());
     }
 
     @Test
@@ -57,7 +57,7 @@ public class TestCentroid
         multiPoint.add(0, 1);
 
         assertCentroid(multiPoint, new Point2D(1, 1));
-        assertCentroid(new MultiPoint(), null);
+        assertCentroidEmpty(new MultiPoint());
     }
 
     @Test
@@ -67,14 +67,14 @@ public class TestCentroid
         polyline.startPath(0, 0);
         polyline.lineTo(1, 2);
         polyline.lineTo(3, 4);
-        assertCentroid(polyline, new Point2D(1.5, 2));
+        assertCentroid(polyline, new Point2D(1.3377223398316207, 2.1169631197754946));
 
         polyline.startPath(1, -1);
         polyline.lineTo(2, 0);
         polyline.lineTo(10, 1);
-        assertCentroid(polyline, new Point2D(4.093485180902371 , 0.7032574095488145));
+        assertCentroid(polyline, new Point2D(3.93851092460519, 0.9659173294165462));
 
-        assertCentroid(new Polyline(), null);
+        assertCentroidEmpty(new Polyline());
     }
 
     @Test
@@ -102,14 +102,23 @@ public class TestCentroid
         polygon.lineTo(-1, -1);
         assertCentroid(polygon, new Point2D(2.166465459423206 , 1.3285043594902748));
 
-        assertCentroid(new Polygon(), null);
+        assertCentroidEmpty(new Polygon());
     }
 
-    private static void assertCentroid(Geometry geometry, Point2D expectedCentroid)
-    {
-        OperatorCentroid2D operator = (OperatorCentroid2D) OperatorFactoryLocal.getInstance().getOperator(Operator.Type.Centroid2D);
+	private static void assertCentroid(Geometry geometry, Point2D expectedCentroid) {
+		OperatorCentroid2D operator = (OperatorCentroid2D) OperatorFactoryLocal.getInstance()
+				.getOperator(Operator.Type.Centroid2D);
 
-        Point2D actualCentroid = operator.execute(geometry, null);
-        Assert.assertEquals(expectedCentroid, actualCentroid);
-    }
+		Point2D actualCentroid = operator.execute(geometry, null);
+		Assert.assertEquals(actualCentroid.x, expectedCentroid.x, 1e-13);
+		Assert.assertEquals(actualCentroid.y, expectedCentroid.y, 1e-13);
+	}
+	
+	private static void assertCentroidEmpty(Geometry geometry) {
+		OperatorCentroid2D operator = (OperatorCentroid2D) OperatorFactoryLocal.getInstance()
+				.getOperator(Operator.Type.Centroid2D);
+
+		Point2D actualCentroid = operator.execute(geometry, null);
+		Assert.assertTrue(actualCentroid == null);
+	}
 }
