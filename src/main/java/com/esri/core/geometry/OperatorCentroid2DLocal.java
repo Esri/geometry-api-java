@@ -56,7 +56,7 @@ public class OperatorCentroid2DLocal extends OperatorCentroid2D {
 	}
 
 	// Points centroid is arithmetic mean of the input points
-	private static Point2D computePointsCentroid(MultiPoint multiPoint) {
+	private static Point2D computePointsCentroid(MultiVertexGeometry multiPoint) {
 		double xSum = 0;
 		double ySum = 0;
 		int pointCount = multiPoint.getPointCount();
@@ -71,89 +71,66 @@ public class OperatorCentroid2DLocal extends OperatorCentroid2D {
 
 	// Lines centroid is weighted mean of each line segment, weight in terms of line
 	// length
-	private static Point2D computePolylineCentroid(Polyline polyline) {
-		double xSum = 0;
-		double ySum = 0;
-		double weightSum = 0;
-
-		Point2D startPoint = new Point2D();
-		Point2D endPoint = new Point2D();
-		for (int i = 0; i < polyline.getPathCount(); i++) {
-			polyline.getXY(polyline.getPathStart(i), startPoint);
-			polyline.getXY(polyline.getPathEnd(i) - 1, endPoint);
-			double dx = endPoint.x - startPoint.x;
-			double dy = endPoint.y - startPoint.y;
-			double length = sqrt(dx * dx + dy * dy);
-			weightSum += length;
-			xSum += (startPoint.x + endPoint.x) * length / 2;
-			ySum += (startPoint.y + endPoint.y) * length / 2;
+	private static Point2D computePolylineCentroid(MultiPath polyline) {
+		double totalLength = polyline.calculateLength2D();
+		if (totalLength == 0) {
+			return computePointsCentroid(polyline);
 		}
-		return new Point2D(xSum / weightSum, ySum / weightSum);
+		
+		MathUtils.KahanSummator xSum = new MathUtils.KahanSummator(0);
+		MathUtils.KahanSummator ySum = new MathUtils.KahanSummator(0);
+		Point2D point = new Point2D();
+		SegmentIterator iter = polyline.querySegmentIterator();
+		while (iter.nextPath()) {
+			while (iter.hasNextSegment()) {
+				Segment seg = iter.nextSegment();
+				seg.getCoord2D(0.5, point);
+				double length = seg.calculateLength2D();
+				point.scale(length);
+				xSum.add(point.x);
+				ySum.add(point.y);
+			}
+		}
+		
+		return new Point2D(xSum.getResult() / totalLength, ySum.getResult() / totalLength);
 	}
 
-	// Polygon centroid: area weighted average of centroids in case of holes
-	private static Point2D computePolygonCentroid(Polygon polygon) {
-		int pathCount = polygon.getPathCount();
-
-		if (pathCount == 1) {
-			return getPolygonSansHolesCentroid(polygon);
-		}
-
-		double xSum = 0;
-		double ySum = 0;
-		double areaSum = 0;
-
-		for (int i = 0; i < pathCount; i++) {
-			int startIndex = polygon.getPathStart(i);
-			int endIndex = polygon.getPathEnd(i);
-
-			Polygon sansHoles = getSubPolygon(polygon, startIndex, endIndex);
-
-			Point2D centroid = getPolygonSansHolesCentroid(sansHoles);
-			double area = sansHoles.calculateArea2D();
-
-			xSum += centroid.x * area;
-			ySum += centroid.y * area;
-			areaSum += area;
-		}
-
-		return new Point2D(xSum / areaSum, ySum / areaSum);
-	}
-
-	private static Polygon getSubPolygon(Polygon polygon, int startIndex, int endIndex) {
-		Polyline boundary = new Polyline();
-		boundary.startPath(polygon.getPoint(startIndex));
-		for (int i = startIndex + 1; i < endIndex; i++) {
-			Point current = polygon.getPoint(i);
-			boundary.lineTo(current);
-		}
-
-		final Polygon newPolygon = new Polygon();
-		newPolygon.add(boundary, false);
-		return newPolygon;
-	}
-
-	// Polygon sans holes centroid:
+	// Polygon centroid: area weighted average of centroids:
 	// c[x] = (Sigma(x[i] + x[i + 1]) * (x[i] * y[i + 1] - x[i + 1] * y[i]), for i =
 	// 0 to N - 1) / (6 * signedArea)
 	// c[y] = (Sigma(y[i] + y[i + 1]) * (x[i] * y[i + 1] - x[i + 1] * y[i]), for i =
 	// 0 to N - 1) / (6 * signedArea)
-	private static Point2D getPolygonSansHolesCentroid(Polygon polygon) {
-		int pointCount = polygon.getPointCount();
-		double xSum = 0;
-		double ySum = 0;
-		double signedArea = 0;
-
+	private static Point2D computePolygonCentroid(Polygon polygon) {
+		double totalArea = polygon.calculateArea2D();
+		MathUtils.KahanSummator xSum = new MathUtils.KahanSummator(0);
+		MathUtils.KahanSummator ySum = new MathUtils.KahanSummator(0);
 		Point2D current = new Point2D();
 		Point2D next = new Point2D();
-		for (int i = 0; i < pointCount; i++) {
-			polygon.getXY(i, current);
-			polygon.getXY((i + 1) % pointCount, next);
-			double ladder = current.x * next.y - next.x * current.y;
-			xSum += (current.x + next.x) * ladder;
-			ySum += (current.y + next.y) * ladder;
-			signedArea += ladder / 2;
+		Point2D origin = polygon.getXY(0);
+
+		for (int ipath = 0, npaths = polygon.getPathCount(); ipath < npaths; ipath++) {
+			int startIndex = polygon.getPathStart(ipath);
+			int endIndex = polygon.getPathEnd(ipath);
+			int pointCount = endIndex - startIndex;
+			if (pointCount < 3) {
+				continue;
+			}
+			
+			polygon.getXY(startIndex, current);
+			current.sub(origin);
+			for (int i = startIndex + 1; i < endIndex; i++) {
+				polygon.getXY(i, next);
+				next.sub(origin);
+				double twiceTriangleArea = next.x * current.y - current.x * next.y;
+				xSum.add((current.x + next.x) * twiceTriangleArea);
+				ySum.add((current.y + next.y) * twiceTriangleArea);
+				current.setCoords(next);
+			}
 		}
-		return new Point2D(xSum / (signedArea * 6), ySum / (signedArea * 6));
+
+		totalArea *= 6.0;
+		Point2D res = new Point2D(xSum.getResult() / totalArea, ySum.getResult() / totalArea);
+		res.add(origin);
+		return res;
 	}
 }
