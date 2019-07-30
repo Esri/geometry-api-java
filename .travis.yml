@@ -3,7 +3,6 @@ jdk:
     - openjdk9
     - openjdk10
     - openjdk14
-    - oraclejdk9
-    - oraclejdk10
+#    - oraclejdk9
 notifications:
     email: false
