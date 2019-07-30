@@ -74,11 +74,35 @@ public class TestOGCCentroid
         assertEmptyCentroid("MULTIPOLYGON EMPTY");
     }
 
-    private static void assertCentroid(String wkt, Point expectedCentroid)
+    @Test
+    public void testCentroidForNumericalStability()
+    {
+        assertCentroid("MULTIPOLYGON (((153.492818 -28.13729, 153.492821 -28.137291, 153.492816 -28.137289, 153.492818 -28.13729)))",
+                new Point(153.49281, -28.13729), 1e-5);
+
+        assertCentroid("MULTIPOLYGON (((153.112475 -28.360526, 153.1124759 -28.360527, 153.1124759 -28.360526, 153.112475 -28.360526)))",
+                new Point(153.112475, -28.360526), 1e-6);
+
+    }
+
+    private static void assertCentroid(String wkt, Point expectedCentroid) {
+        assertCentroid(wkt, expectedCentroid, Double.MIN_NORMAL);
+    }
+
+    private static void assertCentroid(String wkt, Point centroid, double epsilon)
     {
         OGCGeometry geometry = OGCGeometry.fromText(wkt);
-        OGCGeometry centroid = geometry.centroid();
-        Assert.assertEquals(centroid, new OGCPoint(expectedCentroid, geometry.getEsriSpatialReference()));
+        OGCPoint actualCentroid = (OGCPoint) geometry.centroid();
+        OGCPoint expectedCentroid = new OGCPoint(centroid, geometry.getEsriSpatialReference());
+        if (expectedCentroid == null || actualCentroid == null
+                || expectedCentroid.isEmpty() || actualCentroid.isEmpty()) {
+            // If one is null (resp empty), they must both be null (resp empty)
+            Assert.assertEquals(expectedCentroid, actualCentroid);
+        } else {
+            // Neither is null/empty and their xy coords should be within precision
+            Assert.assertEquals(expectedCentroid.X(), actualCentroid.X(), epsilon);
+            Assert.assertEquals(expectedCentroid.Y(), actualCentroid.Y(), epsilon);
+        }
     }
 
     private static void assertEmptyCentroid(String wkt)

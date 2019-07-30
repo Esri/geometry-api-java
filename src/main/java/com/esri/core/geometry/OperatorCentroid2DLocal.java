@@ -23,6 +23,7 @@
  */
 package com.esri.core.geometry;
 
+import static java.lang.Math.abs;
 import static java.lang.Math.sqrt;
 
 public class OperatorCentroid2DLocal extends OperatorCentroid2D
@@ -148,6 +149,10 @@ public class OperatorCentroid2DLocal extends OperatorCentroid2D
         double xSum = 0;
         double ySum = 0;
         double signedArea = 0;
+        double xMin = Double.POSITIVE_INFINITY;
+        double yMin = Double.POSITIVE_INFINITY;
+        double xMax = Double.NEGATIVE_INFINITY;
+        double yMax = Double.NEGATIVE_INFINITY;
 
         Point2D current = new Point2D();
         Point2D next = new Point2D();
@@ -158,6 +163,16 @@ public class OperatorCentroid2DLocal extends OperatorCentroid2D
             xSum += (current.x + next.x) * ladder;
             ySum += (current.y + next.y) * ladder;
             signedArea += ladder / 2;
+            xMin = Math.min(xMin, current.x);
+            yMin = Math.min(yMin, current.y);
+            xMax = Math.max(xMax, current.x);
+            yMax = Math.max(yMax, current.y);
+        }
+        if (abs(signedArea) < Double.MIN_NORMAL) {
+            // Handle degenerate cases with ~0 area by the bounding box centroid.
+            // By this point we've already handled the empty case, so we won't
+            // have infinities.
+            return new Point2D((xMin + xMax) / 2, (yMin + yMax) / 2);
         }
         return new Point2D(xSum / (signedArea * 6), ySum / (signedArea * 6));
     }

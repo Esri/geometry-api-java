@@ -105,11 +105,40 @@ public class TestCentroid
         assertCentroid(new Polygon(), null);
     }
 
+    @Test
+    public void testCentroidForNumericalStability() {
+        Polygon polygon = new Polygon();
+        polygon.startPath(153.492818, -28.13729);
+        polygon.lineTo(153.492821, -28.137291);
+        polygon.lineTo(153.492816, -28.137289);
+        polygon.lineTo(153.492818, -28.13729);
+        assertCentroid(polygon, new Point2D(153.49281, -28.13729), 1e-5);
+
+        polygon = new Polygon();
+        polygon.startPath(153.112475, -28.360526);
+        polygon.lineTo(153.1124759, -28.360527);
+        polygon.lineTo(153.1124759, -28.360526);
+        polygon.lineTo(153.112475, -28.360526);
+        assertCentroid(polygon, new Point2D(153.112475, -28.360526), 1e-6);
+    }
+
     private static void assertCentroid(Geometry geometry, Point2D expectedCentroid)
+    {
+        assertCentroid(geometry, expectedCentroid, Double.MIN_NORMAL);
+    }
+
+    private static void assertCentroid(Geometry geometry, Point2D expectedCentroid, double epsilon)
     {
         OperatorCentroid2D operator = (OperatorCentroid2D) OperatorFactoryLocal.getInstance().getOperator(Operator.Type.Centroid2D);
 
         Point2D actualCentroid = operator.execute(geometry, null);
-        Assert.assertEquals(expectedCentroid, actualCentroid);
+        if (expectedCentroid == null || actualCentroid == null) {
+            // If one is null, they must both be null
+            Assert.assertEquals(expectedCentroid, actualCentroid);
+        } else {
+            // Neither is null and their xy coords should be within precision
+            Assert.assertEquals(expectedCentroid.x, actualCentroid.x, epsilon);
+            Assert.assertEquals(expectedCentroid.y, actualCentroid.y, epsilon);
+        }
     }
 }
