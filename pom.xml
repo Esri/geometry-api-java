@@ -94,8 +94,8 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-		<java.source.version>1.6</java.source.version>
-		<java.target.version>1.6</java.target.version>
+		<java.source.version>1.7</java.source.version>
+		<java.target.version>1.7</java.target.version>
 
 		<!-- dependency versions -->
 		<jackson.version>2.9.6</jackson.version>
@@ -194,7 +194,7 @@
 			<plugin>
 				<groupId>org.sonatype.plugins</groupId>
 				<artifactId>nexus-staging-maven-plugin</artifactId>
-				<version>1.6.2</version>
+				<version>1.6.8</version>
 				<extensions>true</extensions>
 				<configuration>
 					<serverId>ossrh</serverId>

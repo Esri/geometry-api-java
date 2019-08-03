@@ -38,6 +38,10 @@ public class TestOGCCentroid {
 	@Test
 	public void testLineString() {
 		assertCentroid("LINESTRING (1 1, 2 2, 3 3)", new Point(2, 2));
+		//closed path
+		assertCentroid("LINESTRING (0 0, 1 0, 1 1, 0 1, 0 0)", new Point(0.5, 0.5));
+		//all points coincide
+		assertCentroid("LINESTRING (0 0, 0 0, 0 0, 0 0, 0 0)", new Point(0.0, 0.0));
 		assertEmptyCentroid("LINESTRING EMPTY");
 	}
 
@@ -59,20 +63,39 @@ public class TestOGCCentroid {
 	@Test
 	public void testMultiLineString() {
 		assertCentroid("MULTILINESTRING ((1 1, 5 1), (2 4, 4 4))')))", new Point(3, 2));
+		assertCentroid("MULTILINESTRING ((1 1, 5 1), (2 4, 3 3, 4 4))')))", new Point(3, 2.0355339059327378));
+		assertCentroid("MULTILINESTRING ((0 0, 0 0, 0 0), (1 1, 1 1, 1 1, 1 1))", new Point(0.571428571428571429, 0.571428571428571429));
 		assertEmptyCentroid("MULTILINESTRING EMPTY");
 	}
 
 	@Test
 	public void testMultiPolygon() {
+		assertCentroid("MULTIPOLYGON (((0 0, 1 0, 1 1, 0 1, 0 0)), ((2 2, 3 2, 3 3, 2 3, 2 2)))", new Point(1.5, 1.5));
+		assertCentroid("MULTIPOLYGON (((2 2, 3 2, 3 3, 2 3, 2 2)), ((4 4, 5 4, 5 5, 4 5, 4 4)))", new Point(3.5, 3.5));
 		assertCentroid("MULTIPOLYGON (((1 1, 1 3, 3 3, 3 1)), ((2 4, 2 6, 6 6, 6 4)))",
 				new Point(3.3333333333333335, 4));
+		
+		//hole is same as exterior - compute as polyline
+		assertCentroid("MULTIPOLYGON (((0 0, 1 0, 1 1, 0 1, 0 0), (0 0, 0 1, 1 1, 1 0, 0 0)))", new Point(0.5, 0.5));
+		
+		//polygon is only vertices - compute as multipoint. Note that the closing vertex of the ring is not counted
+		assertCentroid("MULTIPOLYGON (((0 0, 0 0, 0 0), (1 1, 1 1, 1 1, 1 1)))", new Point(0.6, 0.6));
+		
+		// test cases from https://github.com/Esri/geometry-api-java/issues/225
+		assertCentroid(
+				"MULTIPOLYGON (((153.492818 -28.13729, 153.492821 -28.137291, 153.492816 -28.137289, 153.492818 -28.13729)))",
+				new Point(153.49281833333333, -28.13729));
+		assertCentroid(
+				"MULTIPOLYGON (((153.112475 -28.360526, 153.1124759 -28.360527, 153.1124759 -28.360526, 153.112475 -28.360526)))",
+				new Point(153.1124756, -28.360526333333333));
 		assertEmptyCentroid("MULTIPOLYGON EMPTY");
 	}
 
 	private static void assertCentroid(String wkt, Point expectedCentroid) {
 		OGCGeometry geometry = OGCGeometry.fromText(wkt);
 		OGCGeometry centroid = geometry.centroid();
-		Assert.assertEquals(centroid, new OGCPoint(expectedCentroid, geometry.getEsriSpatialReference()));
+		Assert.assertEquals(((OGCPoint)centroid).X(), expectedCentroid.getX(), 1e-13);
+		Assert.assertEquals(((OGCPoint)centroid).Y(), expectedCentroid.getY(), 1e-13);
 	}
 
 	private static void assertEmptyCentroid(String wkt) {
