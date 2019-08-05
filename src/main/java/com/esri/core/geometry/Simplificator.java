@@ -33,16 +33,16 @@ class Simplificator {
 	private AttributeStreamOfInt32 m_bunchEdgeIndices;
 	// private AttributeStreamOfInt32 m_orphanVertices;
 
-	private int m_dbgCounter;
 	private int m_sortedVerticesListIndex;
 	private int m_userIndexSortedIndexToVertex;
 	private int m_userIndexSortedAngleIndexToVertex;
 	private int m_nextVertexToProcess;
 	private int m_firstCoincidentVertex;
-	private int m_knownSimpleResult;
-	private boolean m_bWinding;
+	//private int m_knownSimpleResult;
 	private boolean m_fixSelfTangency;
 	private ProgressTracker m_progressTracker;
+	private int[] m_ar = null;
+	private int[] m_br = null;
 
 	private void _beforeRemoveVertex(int vertex, boolean bChangePathFirst) {
 		int vertexlistIndex = m_shape.getUserIndex(vertex,
@@ -91,9 +91,15 @@ class Simplificator {
 		}
 	}
 
-	static class SimplificatorAngleComparer extends
+	static private class SimplificatorAngleComparer extends
 			AttributeStreamOfInt32.IntComparator {
-		Simplificator m_parent;
+		private Simplificator m_parent;
+		private Point2D pt1 = new Point2D();
+		private Point2D pt2 = new Point2D();
+		private Point2D pt10 = new Point2D();
+		private Point2D pt20 = new Point2D();
+		private Point2D v1 = new Point2D();
+		private Point2D v2 = new Point2D();
 
 		public SimplificatorAngleComparer(Simplificator parent) {
 			m_parent = parent;
@@ -101,19 +107,35 @@ class Simplificator {
 
 		@Override
 		public int compare(int v1, int v2) {
-			return m_parent._compareAngles(v1, v2);
+			return _compareAngles(v1, v2);
 		}
 
+		private int _compareAngles(int index1, int index2) {
+			int vert1 = m_parent.m_bunchEdgeEndPoints.get(index1);
+			m_parent.m_shape.getXY(vert1, pt1);
+			int vert2 = m_parent.m_bunchEdgeEndPoints.get(index2);
+			m_parent.m_shape.getXY(vert2, pt2);
+
+			if (pt1.isEqual(pt2))
+				return 0;// overlap case
+
+			int vert10 = m_parent.m_bunchEdgeCenterPoints.get(index1);
+			m_parent.m_shape.getXY(vert10, pt10);
+
+			int vert20 = m_parent.m_bunchEdgeCenterPoints.get(index2);
+			m_parent.m_shape.getXY(vert20, pt20);
+
+			v1.sub(pt1, pt10);
+			v2.sub(pt2, pt20);
+			int result = Point2D._compareVectors(v1, v2);
+			return result;
+		}
 	}
 
 	private boolean _processBunch() {
 		boolean bModified = false;
-		int iter = 0;
 		Point2D ptCenter = new Point2D();
 		while (true) {
-			m_dbgCounter++;// only for debugging
-			iter++;
-			// _ASSERT(iter < 10);
 			if (m_bunchEdgeEndPoints == null) {
 				m_bunchEdgeEndPoints = new AttributeStreamOfInt32(0);
 				m_bunchEdgeCenterPoints = new AttributeStreamOfInt32(0);
@@ -129,25 +151,17 @@ class Simplificator {
 			boolean bFirst = true;
 			while (currentVertex != m_nextVertexToProcess) {
 				int v = m_sortedVertices.getData(currentVertex);
-				{// debug
-					Point2D pt = new Point2D();
-					m_shape.getXY(v, pt);
-					double y = pt.x;
-				}
 				if (bFirst) {
 					m_shape.getXY(v, ptCenter);
 					bFirst = false;
 				}
 				int vertP = m_shape.getPrevVertex(v);
 				int vertN = m_shape.getNextVertex(v);
-				// _ASSERT(vertP != vertN || m_shape.getPrevVertex(vertN) == v
-				// && m_shape.getNextVertex(vertP) == v);
 
 				int id = m_shape.getUserIndex(vertP,
 						m_userIndexSortedAngleIndexToVertex);
 				if (id != 0xdeadbeef)// avoid adding a point twice
 				{
-					// _ASSERT(id == -1);
 					m_bunchEdgeEndPoints.add(vertP);
 					m_shape.setUserIndex(vertP,
 							m_userIndexSortedAngleIndexToVertex, 0xdeadbeef);// mark
@@ -165,7 +179,6 @@ class Simplificator {
 						m_userIndexSortedAngleIndexToVertex);
 				if (id2 != 0xdeadbeef) // avoid adding a point twice
 				{
-					// _ASSERT(id2 == -1);
 					m_bunchEdgeEndPoints.add(vertN);
 					m_shape.setUserIndex(vertN,
 							m_userIndexSortedAngleIndexToVertex, 0xdeadbeef);// mark
@@ -189,8 +202,6 @@ class Simplificator {
 			// the edge, connecting the endpoint with the bunch center)
 			m_bunchEdgeIndices.Sort(0, m_bunchEdgeIndices.size(),
 					new SimplificatorAngleComparer(this));
-			// SORTDYNAMICARRAYEX(m_bunchEdgeIndices, int, 0,
-			// m_bunchEdgeIndices.size(), SimplificatorAngleComparer, this);
 
 			for (int i = 0, n = m_bunchEdgeIndices.size(); i < n; i++) {
 				int indexL = m_bunchEdgeIndices.get(i);
@@ -199,11 +210,6 @@ class Simplificator {
 						m_userIndexSortedAngleIndexToVertex, i);// rember the
 																// sort by angle
 																// order
-				{// debug
-					Point2D pt = new Point2D();
-					m_shape.getXY(vertex, pt);
-					double y = pt.x;
-				}
 			}
 
 			boolean bCrossOverResolved = _processCrossOvers(ptCenter);// see of
@@ -254,7 +260,6 @@ class Simplificator {
 
 				int vertexB1 = m_bunchEdgeEndPoints.get(edgeindex1);
 				int vertexB2 = m_bunchEdgeEndPoints.get(edgeindex2);
-				// _ASSERT(vertexB2 != vertexB1);
 
 				int vertexA1 = m_shape.getNextVertex(vertexB1);
 				if (!m_shape.isEqualXY(vertexA1, ptCenter))
@@ -262,9 +267,6 @@ class Simplificator {
 				int vertexA2 = m_shape.getNextVertex(vertexB2);
 				if (!m_shape.isEqualXY(vertexA2, ptCenter))
 					vertexA2 = m_shape.getPrevVertex(vertexB2);
-
-				// _ASSERT(m_shape.isEqualXY(vertexA1, vertexA2));
-				// _ASSERT(m_shape.isEqualXY(vertexA1, ptCenter));
 
 				boolean bDirection1 = _getDirection(vertexA1, vertexB1);
 				boolean bDirection2 = _getDirection(vertexA2, vertexB2);
@@ -331,9 +333,6 @@ class Simplificator {
 				if (!m_shape.isEqualXY(vertexA2, ptCenter))
 					vertexA2 = m_shape.getPrevVertex(vertexB2);
 
-				// _ASSERT(m_shape.isEqualXY(vertexA1, vertexA2));
-				// _ASSERT(m_shape.isEqualXY(vertexA1, ptCenter));
-
 				boolean bDirection1 = _getDirection(vertexA1, vertexB1);
 				boolean bDirection2 = _getDirection(vertexA2, vertexB2);
 				int vertexC1 = bDirection1 ? m_shape.getPrevVertex(vertexA1)
@@ -355,9 +354,11 @@ class Simplificator {
 		return bFound;
 	}
 
-	static class SimplificatorVertexComparer extends
+	static private class SimplificatorVertexComparer extends
 			AttributeStreamOfInt32.IntComparator {
-		Simplificator m_parent;
+		private Simplificator m_parent;
+		private Point2D pt1 = new Point2D();
+		private Point2D pt2 = new Point2D();
 
 		SimplificatorVertexComparer(Simplificator parent) {
 			m_parent = parent;
@@ -365,9 +366,21 @@ class Simplificator {
 
 		@Override
 		public int compare(int v1, int v2) {
-			return m_parent._compareVerticesSimple(v1, v2);
+			return _compareVerticesSimple(v1, v2);
 		}
 
+		private int _compareVerticesSimple(int v1, int v2) {
+			m_parent.m_shape.getXY(v1, pt1);
+			m_parent.m_shape.getXY(v2, pt2);
+			int res = pt1.compare(pt2);
+			if (res == 0) {// sort equal vertices by the path ID
+				int i1 = m_parent.m_shape.getPathFromVertex(v1);
+				int i2 = m_parent.m_shape.getPathFromVertex(v2);
+				res = i1 < i2 ? -1 : (i1 == i2 ? 0 : 1);
+			}
+
+			return res;
+		}
 	}
 
 	private boolean _simplify() {
@@ -381,8 +394,6 @@ class Simplificator {
 			assert (m_shape.getFillRule(m_geometry) == Polygon.FillRule.enumFillRuleOddEven);
 		}
 		boolean bChanged = false;
-		boolean bNeedWindingRepeat = true;
-		boolean bWinding = false;
 
 		m_userIndexSortedIndexToVertex = -1;
 		m_userIndexSortedAngleIndexToVertex = -1;
@@ -406,8 +417,6 @@ class Simplificator {
 		// Sort
 		verticesSorter.Sort(0, pointCount,
 				new SimplificatorVertexComparer(this));
-		// SORTDYNAMICARRAYEX(verticesSorter, int, 0, pointCount,
-		// SimplificatorVertexComparer, this);
 
 		// Copy sorted vertices to the m_sortedVertices list. Make a mapping
 		// from the edit shape vertices to the sorted vertices.
@@ -424,11 +433,6 @@ class Simplificator {
 		m_sortedVerticesListIndex = m_sortedVertices.createList(0);
 		for (int i = 0; i < pointCount; i++) {
 			int vertex = verticesSorter.get(i);
-			{// debug
-				Point2D pt = new Point2D();
-				m_shape.getXY(vertex, pt);// for debugging
-				double y = pt.x;
-			}
 			int vertexlistIndex = m_sortedVertices.addElement(
 					m_sortedVerticesListIndex, vertex);
 			m_shape.setUserIndex(vertex, m_userIndexSortedIndexToVertex,
@@ -452,120 +456,100 @@ class Simplificator {
 		if (_cleanupSpikes())// cleanup any spikes on the polygon.
 			bChanged = true;
 
-		// External iteration loop for the simplificator.
-		// ST. I am not sure if it actually needs this loop. TODO: figure this
-		// out.
-		while (bNeedWindingRepeat) {
-			bNeedWindingRepeat = false;
+		// Simplify polygon
+		int iRepeatNum = 0;
+		boolean bNeedRepeat = false;
 
-			int max_iter = m_shape.getPointCount(m_geometry) + 10 > 30 ? 1000
-					: (m_shape.getPointCount(m_geometry) + 10)
-							* (m_shape.getPointCount(m_geometry) + 10);
+		// Internal iteration loop for the simplificator.
+		// ST. I am not sure if it actually needs this loop. TODO: figure
+		// this out.
+		do// while (bNeedRepeat);
+		{
+			bNeedRepeat = false;
 
-			// Simplify polygon
-			int iRepeatNum = 0;
-			boolean bNeedRepeat = false;
+			m_firstCoincidentVertex = -1;
+			int coincidentCount = 0;
+			Point2D ptFirst = new Point2D();
+			Point2D pt = new Point2D();
+			// Main loop of the simplificator. Go through the vertices and
+			// for those that have same coordinates,
+			for (int vlistindex = m_sortedVertices
+					.getFirst(m_sortedVerticesListIndex); vlistindex != IndexMultiDCList
+					.nullNode();) {
+				int vertex = m_sortedVertices.getData(vlistindex);
 
-			// Internal iteration loop for the simplificator.
-			// ST. I am not sure if it actually needs this loop. TODO: figure
-			// this out.
-			do// while (bNeedRepeat);
-			{
-				bNeedRepeat = false;
-
-				boolean bVertexRecheck = false;
-				m_firstCoincidentVertex = -1;
-				int coincidentCount = 0;
-				Point2D ptFirst = new Point2D();
-				Point2D pt = new Point2D();
-				// Main loop of the simplificator. Go through the vertices and
-				// for those that have same coordinates,
-				for (int vlistindex = m_sortedVertices
-						.getFirst(m_sortedVerticesListIndex); vlistindex != IndexMultiDCList
-						.nullNode();) {
-					int vertex = m_sortedVertices.getData(vlistindex);
-					{// debug
-						// Point2D pt = new Point2D();
-						m_shape.getXY(vertex, pt);
-						double d = pt.x;
-					}
-
-					if (m_firstCoincidentVertex != -1) {
-						// Point2D pt = new Point2D();
-						m_shape.getXY(vertex, pt);
-						if (ptFirst.isEqual(pt)) {
-							coincidentCount++;
-						} else {
-							ptFirst.setCoords(pt);
-							m_nextVertexToProcess = vlistindex;// we remeber the
-																// next index in
-																// the member
-																// variable to
-																// allow it to
-																// be updated if
-																// a vertex is
-																// removed
-																// inside of the
-																// _ProcessBunch.
-							if (coincidentCount > 0) {
-								boolean result = _processBunch();// process a
-																	// bunch of
-																	// coinciding
-																	// vertices
-								if (result) {// something has changed.
-												// Note that ProcessBunch may
-												// change m_nextVertexToProcess
-												// and m_firstCoincidentVertex.
-									bNeedRepeat = true;
-									if (m_nextVertexToProcess != IndexMultiDCList
-											.nullNode()) {
-										int v = m_sortedVertices
-												.getData(m_nextVertexToProcess);
-										m_shape.getXY(v, ptFirst);
-									}
+				if (m_firstCoincidentVertex != -1) {
+					// Point2D pt = new Point2D();
+					m_shape.getXY(vertex, pt);
+					if (ptFirst.isEqual(pt)) {
+						coincidentCount++;
+					} else {
+						ptFirst.setCoords(pt);
+						m_nextVertexToProcess = vlistindex;// we remeber the
+															// next index in
+															// the member
+															// variable to
+															// allow it to
+															// be updated if
+															// a vertex is
+															// removed
+															// inside of the
+															// _ProcessBunch.
+						if (coincidentCount > 0) {
+							boolean result = _processBunch();// process a
+																// bunch of
+																// coinciding
+																// vertices
+							if (result) {// something has changed.
+											// Note that ProcessBunch may
+											// change m_nextVertexToProcess
+											// and m_firstCoincidentVertex.
+								bNeedRepeat = true;
+								if (m_nextVertexToProcess != IndexMultiDCList
+										.nullNode()) {
+									int v = m_sortedVertices
+											.getData(m_nextVertexToProcess);
+									m_shape.getXY(v, ptFirst);
 								}
 							}
-
-							vlistindex = m_nextVertexToProcess;
-							m_firstCoincidentVertex = vlistindex;
-							coincidentCount = 0;
 						}
-					} else {
+
+						vlistindex = m_nextVertexToProcess;
 						m_firstCoincidentVertex = vlistindex;
-						m_shape.getXY(m_sortedVertices.getData(vlistindex),
-								ptFirst);
 						coincidentCount = 0;
 					}
-
-					if (vlistindex != -1)//vlistindex can be set to -1 after ProcessBunch call above
-						vlistindex = m_sortedVertices.getNext(vlistindex);
+				} else {
+					m_firstCoincidentVertex = vlistindex;
+					m_shape.getXY(m_sortedVertices.getData(vlistindex),
+							ptFirst);
+					coincidentCount = 0;
 				}
 
-				m_nextVertexToProcess = -1;
+				if (vlistindex != -1)//vlistindex can be set to -1 after ProcessBunch call above
+					vlistindex = m_sortedVertices.getNext(vlistindex);
+			}
 
-				if (coincidentCount > 0) {
-					boolean result = _processBunch();
-					if (result)
-						bNeedRepeat = true;
-				}
+			m_nextVertexToProcess = -1;
 
-				if (iRepeatNum++ > 10) {
-					throw GeometryException.GeometryInternalError();
-				}
-
-				if (bNeedRepeat)
-					_fixOrphanVertices();// fix broken structure of the shape
-
-				if (_cleanupSpikes())
+			if (coincidentCount > 0) {
+				boolean result = _processBunch();
+				if (result)
 					bNeedRepeat = true;
+			}
 
-				bNeedWindingRepeat |= bNeedRepeat && bWinding;
+			if (iRepeatNum++ > 10) {
+				throw GeometryException.GeometryInternalError();
+			}
 
-				bChanged |= bNeedRepeat;
+			if (bNeedRepeat)
+				_fixOrphanVertices();// fix broken structure of the shape
 
-			} while (bNeedRepeat);
+			if (_cleanupSpikes())
+				bNeedRepeat = true;
 
-		}// while (bNeedWindingRepeat)
+			bChanged |= bNeedRepeat;
+
+		} while (bNeedRepeat);
 
 		// Now process rings. Fix ring orientation and determine rings that need
 		// to be deleted.
@@ -581,11 +565,8 @@ class Simplificator {
 
 	private boolean _getDirection(int vert1, int vert2) {
 		if (m_shape.getNextVertex(vert2) == vert1) {
-			// _ASSERT(m_shape.getPrevVertex(vert1) == vert2);
 			return false;
 		} else {
-			// _ASSERT(m_shape.getPrevVertex(vert2) == vert1);
-			// _ASSERT(m_shape.getNextVertex(vert1) == vert2);
 			return true;
 		}
 	}
@@ -593,25 +574,12 @@ class Simplificator {
 	private boolean _detectAndResolveCrossOver(boolean bDirection1,
 			boolean bDirection2, int vertexB1, int vertexA1, int vertexC1,
 			int vertexB2, int vertexA2, int vertexC2) {
-		// _ASSERT(!m_shape.isEqualXY(vertexB1, vertexB2));
-		// _ASSERT(!m_shape.isEqualXY(vertexC1, vertexC2));
 
 		if (vertexA1 == vertexA2) {
 			_removeAngleSortInfo(vertexB1);
 			_removeAngleSortInfo(vertexB2);
 			return false;
 		}
-
-		// _ASSERT(!m_shape.isEqualXY(vertexB1, vertexC2));
-		// _ASSERT(!m_shape.isEqualXY(vertexB1, vertexC1));
-		// _ASSERT(!m_shape.isEqualXY(vertexB2, vertexC2));
-		// _ASSERT(!m_shape.isEqualXY(vertexB2, vertexC1));
-		// _ASSERT(!m_shape.isEqualXY(vertexA1, vertexB1));
-		// _ASSERT(!m_shape.isEqualXY(vertexA1, vertexC1));
-		// _ASSERT(!m_shape.isEqualXY(vertexA2, vertexB2));
-		// _ASSERT(!m_shape.isEqualXY(vertexA2, vertexC2));
-
-		// _ASSERT(m_shape.isEqualXY(vertexA1, vertexA2));
 
 		// get indices of the vertices for the angle sort.
 		int iB1 = m_shape.getUserIndex(vertexB1,
@@ -622,44 +590,42 @@ class Simplificator {
 				m_userIndexSortedAngleIndexToVertex);
 		int iC2 = m_shape.getUserIndex(vertexC2,
 				m_userIndexSortedAngleIndexToVertex);
-		// _ASSERT(iB1 >= 0);
-		// _ASSERT(iC1 >= 0);
-		// _ASSERT(iB2 >= 0);
-		// _ASSERT(iC2 >= 0);
 		// Sort the indices to restore the angle-sort order
-		int[] ar = new int[8];
-		int[] br = new int[4];
 
-		ar[0] = 0;
-		br[0] = iB1;
-		ar[1] = 0;
-		br[1] = iC1;
-		ar[2] = 1;
-		br[2] = iB2;
-		ar[3] = 1;
-		br[3] = iC2;
+		if (m_ar == null) {
+			m_ar = new int[8];
+			m_br = new int[4];
+		}
+		m_ar[0] = 0;
+		m_br[0] = iB1;
+		m_ar[1] = 0;
+		m_br[1] = iC1;
+		m_ar[2] = 1;
+		m_br[2] = iB2;
+		m_ar[3] = 1;
+		m_br[3] = iC2;
 		for (int j = 1; j < 4; j++)// insertion sort
 		{
-			int key = br[j];
-			int data = ar[j];
+			int key = m_br[j];
+			int data = m_ar[j];
 			int i = j - 1;
-			while (i >= 0 && br[i] > key) {
-				br[i + 1] = br[i];
-				ar[i + 1] = ar[i];
+			while (i >= 0 && m_br[i] > key) {
+				m_br[i + 1] = m_br[i];
+				m_ar[i + 1] = m_ar[i];
 				i--;
 			}
-			br[i + 1] = key;
-			ar[i + 1] = data;
+			m_br[i + 1] = key;
+			m_ar[i + 1] = data;
 		}
 
 		int detector = 0;
-		if (ar[0] != 0)
+		if (m_ar[0] != 0)
 			detector |= 1;
-		if (ar[1] != 0)
+		if (m_ar[1] != 0)
 			detector |= 2;
-		if (ar[2] != 0)
+		if (m_ar[2] != 0)
 			detector |= 4;
-		if (ar[3] != 0)
+		if (m_ar[3] != 0)
 			detector |= 8;
 		if (detector != 5 && detector != 10)// not an overlap
 			return false;
@@ -701,19 +667,8 @@ class Simplificator {
 
 	private void _resolveOverlap(boolean bDirection1, boolean bDirection2,
 			int vertexA1, int vertexB1, int vertexA2, int vertexB2) {
-		if (m_bWinding) {
-			_resolveOverlapWinding(bDirection1, bDirection2, vertexA1,
-					vertexB1, vertexA2, vertexB2);
-		} else {
-			_resolveOverlapOddEven(bDirection1, bDirection2, vertexA1,
-					vertexB1, vertexA2, vertexB2);
-		}
-	}
-
-	private void _resolveOverlapWinding(boolean bDirection1,
-			boolean bDirection2, int vertexA1, int vertexB1, int vertexA2,
-			int vertexB2) {
-		throw new GeometryException("not implemented.");
+		_resolveOverlapOddEven(bDirection1, bDirection2, vertexA1,
+				vertexB1, vertexA2, vertexB2);
 	}
 
 	private void _resolveOverlapOddEven(boolean bDirection1,
@@ -721,8 +676,6 @@ class Simplificator {
 			int vertexB2) {
 		if (bDirection1 != bDirection2) {
 			if (bDirection1) {
-				// _ASSERT(m_shape.getNextVertex(vertexA1) == vertexB1);
-				// _ASSERT(m_shape.getNextVertex(vertexB2) == vertexA2);
 				m_shape.setNextVertex_(vertexA1, vertexA2); // B1< B2
 				m_shape.setPrevVertex_(vertexA2, vertexA1); // | |
 				m_shape.setNextVertex_(vertexB2, vertexB1); // | |
@@ -753,15 +706,6 @@ class Simplificator {
 			}
 		} else// bDirection1 == bDirection2
 		{
-			if (!bDirection1) {
-				// _ASSERT(m_shape.getNextVertex(vertexB1) == vertexA1);
-				// _ASSERT(m_shape.getNextVertex(vertexB2) == vertexA2);
-			} else {
-				// _ASSERT(m_shape.getNextVertex(vertexA1) == vertexB1);
-				// _ASSERT(m_shape.getNextVertex(vertexA2) == vertexB2);
-			}
-
-			// if (m_shape._RingParentageCheckInternal(vertexA1, vertexA2))
 			{
 				int a1 = bDirection1 ? vertexA1 : vertexB1;
 				int a2 = bDirection2 ? vertexA2 : vertexB2;
@@ -861,7 +805,6 @@ class Simplificator {
 		// m_shape.dbgVerifyIntegrity(vertex);//debug
 		int vertex = vertexIn;
 
-		// _ASSERT(m_shape.isEqualXY(m_shape.getNextVertex(vertex),
 		// m_shape.getPrevVertex(vertex)));
 		boolean bFound = false;
 		while (true) {
@@ -984,61 +927,16 @@ class Simplificator {
 	}
 
 	protected Simplificator() {
-		m_dbgCounter = 0;
 	}
 
 	public static boolean execute(EditShape shape, int geometry,
 			int knownSimpleResult, boolean fixSelfTangency, ProgressTracker progressTracker) {
 		Simplificator simplificator = new Simplificator();
 		simplificator.m_shape = shape;
-		// simplificator.m_bWinding = bWinding;
 		simplificator.m_geometry = geometry;
-		simplificator.m_knownSimpleResult = knownSimpleResult;
+		//simplificator.m_knownSimpleResult = knownSimpleResult;
 		simplificator.m_fixSelfTangency = fixSelfTangency;
 		simplificator.m_progressTracker = progressTracker;
 		return simplificator._simplify();
-	}
-
-	int _compareVerticesSimple(int v1, int v2) {
-		Point2D pt1 = new Point2D();
-		m_shape.getXY(v1, pt1);
-		Point2D pt2 = new Point2D();
-		m_shape.getXY(v2, pt2);
-		int res = pt1.compare(pt2);
-		if (res == 0) {// sort equal vertices by the path ID
-			int i1 = m_shape.getPathFromVertex(v1);
-			int i2 = m_shape.getPathFromVertex(v2);
-			res = i1 < i2 ? -1 : (i1 == i2 ? 0 : 1);
-		}
-
-		return res;
-	}
-
-	int _compareAngles(int index1, int index2) {
-		int vert1 = m_bunchEdgeEndPoints.get(index1);
-		Point2D pt1 = new Point2D();
-		m_shape.getXY(vert1, pt1);
-		Point2D pt2 = new Point2D();
-		int vert2 = m_bunchEdgeEndPoints.get(index2);
-		m_shape.getXY(vert2, pt2);
-
-		if (pt1.isEqual(pt2))
-			return 0;// overlap case
-
-		int vert10 = m_bunchEdgeCenterPoints.get(index1);
-		Point2D pt10 = new Point2D();
-		m_shape.getXY(vert10, pt10);
-
-		int vert20 = m_bunchEdgeCenterPoints.get(index2);
-		Point2D pt20 = new Point2D();
-		m_shape.getXY(vert20, pt20);
-		// _ASSERT(pt10.isEqual(pt20));
-
-		Point2D v1 = new Point2D();
-		v1.sub(pt1, pt10);
-		Point2D v2 = new Point2D();
-		v2.sub(pt2, pt20);
-		int result = Point2D._compareVectors(v1, v2);
-		return result;
 	}
 }
