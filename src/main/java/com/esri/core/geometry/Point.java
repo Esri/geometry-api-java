@@ -39,19 +39,24 @@ public class Point extends Geometry implements Serializable {
 	//We are using writeReplace instead.
 	//private static final long serialVersionUID = 2L;
 
-	double[] m_attributes; // use doubles to store everything (long are bitcast)
+	private double m_x;
+	private double m_y;
+	private double[] m_attributes; // use doubles to store everything (long are bitcast)
 
 	/**
 	 * Creates an empty 2D point.
 	 */
 	public Point() {
 		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();
+		m_x = NumberUtils.TheNaN;
+		m_y = NumberUtils.TheNaN;
 	}
 
 	public Point(VertexDescription vd) {
 		if (vd == null)
 			throw new IllegalArgumentException();
 		m_description = vd;
+		_setToDefault();
 	}
 
 	/**
@@ -68,6 +73,7 @@ public class Point extends Geometry implements Serializable {
 		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();
 		setXY(x, y);
 	}
+	
 	public Point(Point2D pt) {
 		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();
 		setXY(pt);
@@ -91,19 +97,14 @@ public class Point extends Geometry implements Serializable {
 		Point3D pt = new Point3D();
 		pt.setCoords(x, y, z);
 		setXYZ(pt);
-
 	}
 
 	/**
 	 * Returns XY coordinates of this point.
 	 */
 	public final Point2D getXY() {
-		if (isEmptyImpl())
-			throw new GeometryException(
-					"This operation should not be performed on an empty geometry.");
-
 		Point2D pt = new Point2D();
-		pt.setCoords(m_attributes[0], m_attributes[1]);
+		pt.setCoords(m_x, m_y);
 		return pt;
 	}
 
@@ -111,11 +112,7 @@ public class Point extends Geometry implements Serializable {
 	 * Returns XY coordinates of this point.
 	 */
 	public final void getXY(Point2D pt) {
-		if (isEmptyImpl())
-			throw new GeometryException(
-					"This operation should not be performed on an empty geometry.");
-
-		pt.setCoords(m_attributes[0], m_attributes[1]);
+		pt.setCoords(m_x, m_y);
 	}
 	
 	/**
@@ -131,17 +128,10 @@ public class Point extends Geometry implements Serializable {
 	 * Returns XYZ coordinates of the point. Z will be set to 0 if Z is missing.
 	 */
 	public Point3D getXYZ() {
-		if (isEmptyImpl())
-			throw new GeometryException(
-					"This operation should not be performed on an empty geometry.");
-
 		Point3D pt = new Point3D();
-		pt.x = m_attributes[0];
-		pt.y = m_attributes[1];
-		if (m_description.hasZ())
-			pt.z = m_attributes[2];
-		else
-			pt.z = VertexDescription.getDefaultValue(Semantics.Z);
+		pt.x = m_x;
+		pt.y = m_y;
+		pt.z = hasZ() ? m_attributes[0] : VertexDescription.getDefaultValue(VertexDescription.Semantics.Z);
 
 		return pt;
 	}
@@ -154,39 +144,17 @@ public class Point extends Geometry implements Serializable {
 	 */
 	public void setXYZ(Point3D pt) {
 		_touch();
-		boolean bHasZ = hasAttribute(Semantics.Z);
-		if (!bHasZ && !VertexDescription.isDefaultValue(Semantics.Z, pt.z)) {// add
-																				// Z
-																				// only
-																				// if
-																				// pt.z
-																				// is
-																				// not
-																				// a
-																				// default
-																				// value.
-			addAttribute(Semantics.Z);
-			bHasZ = true;
-		}
-
-		if (m_attributes == null)
-			_setToDefault();
-
-		m_attributes[0] = pt.x;
-		m_attributes[1] = pt.y;
-		if (bHasZ)
-			m_attributes[2] = pt.z;
+		addAttribute(Semantics.Z);
+		m_x = pt.x;
+		m_y = pt.y;
+		m_attributes[0] = pt.z;
 	}
 
 	/**
 	 * Returns the X coordinate of the point.
 	 */
 	public final double getX() {
-		if (isEmptyImpl())
-			throw new GeometryException(
-					"This operation should not be performed on an empty geometry.");
-
-		return m_attributes[0];
+		return m_x;
 	}
 
 	/**
@@ -196,18 +164,14 @@ public class Point extends Geometry implements Serializable {
 	 *            The X coordinate to be set for this point.
 	 */
 	public void setX(double x) {
-		setAttribute(Semantics.POSITION, 0, x);
+		m_x = x;
 	}
 
 	/**
 	 * Returns the Y coordinate of this point.
 	 */
 	public final double getY() {
-		if (isEmptyImpl())
-			throw new GeometryException(
-					"This operation should not be performed on an empty geometry.");
-
-		return m_attributes[1];
+		return m_y;
 	}
 
 	/**
@@ -217,14 +181,14 @@ public class Point extends Geometry implements Serializable {
 	 *            The Y coordinate to be set for this point.
 	 */
 	public void setY(double y) {
-		setAttribute(Semantics.POSITION, 1, y);
+		m_y = y;
 	}
 
 	/**
 	 * Returns the Z coordinate of this point.
 	 */
 	public double getZ() {
-		return getAttributeAsDbl(Semantics.Z, 0);
+		return hasZ() ? m_attributes[0] : VertexDescription.getDefaultValue(VertexDescription.Semantics.Z);
 	}
 
 	/**
@@ -282,10 +246,18 @@ public class Point extends Geometry implements Serializable {
 	 * @return The ordinate as double value.
 	 */
 	public double getAttributeAsDbl(int semantics, int ordinate) {
-		if (isEmptyImpl())
-			throw new GeometryException(
-					"This operation was performed on an Empty Geometry.");
-
+		if (semantics == VertexDescription.Semantics.POSITION) {
+			if (ordinate == 0) {
+				return m_x;
+			}
+			else if (ordinate == 1) {
+				return m_y;
+			}
+			else {
+				throw new IndexOutOfBoundsException();
+			}
+		}
+		
 		int ncomps = VertexDescription.getComponentCount(semantics);
 		if (ordinate >= ncomps)
 			throw new IndexOutOfBoundsException();
@@ -293,7 +265,7 @@ public class Point extends Geometry implements Serializable {
 		int attributeIndex = m_description.getAttributeIndex(semantics);
 		if (attributeIndex >= 0)
 			return m_attributes[m_description
-					._getPointAttributeOffset(attributeIndex) + ordinate];
+					._getPointAttributeOffset(attributeIndex) - 2 + ordinate];
 		else
 			return VertexDescription.getDefaultValue(semantics);
 	}
@@ -310,20 +282,7 @@ public class Point extends Geometry implements Serializable {
 	 * @return The ordinate value truncated to a 32 bit integer value.
 	 */
 	public int getAttributeAsInt(int semantics, int ordinate) {
-		if (isEmptyImpl())
-			throw new GeometryException(
-					"This operation was performed on an Empty Geometry.");
-
-		int ncomps = VertexDescription.getComponentCount(semantics);
-		if (ordinate >= ncomps)
-			throw new IndexOutOfBoundsException();
-
-		int attributeIndex = m_description.getAttributeIndex(semantics);
-		if (attributeIndex >= 0)
-			return (int) m_attributes[m_description
-					._getPointAttributeOffset(attributeIndex) + ordinate];
-		else
-			return (int) VertexDescription.getDefaultValue(semantics);
+		return (int)getAttributeAsDbl(semantics, ordinate);
 	}
 
 	/**
@@ -340,6 +299,19 @@ public class Point extends Geometry implements Serializable {
 	 */
 	public void setAttribute(int semantics, int ordinate, double value) {
 		_touch();
+		if (semantics == VertexDescription.Semantics.POSITION) {
+			if (ordinate == 0) {
+				m_x = value;
+			}
+			else if (ordinate == 1) {
+				m_y = value;
+			}
+			else {
+				throw new IndexOutOfBoundsException();
+			}
+			return;
+		}
+		
 		int ncomps = VertexDescription.getComponentCount(semantics);
 		if (ncomps < ordinate)
 			throw new IndexOutOfBoundsException();
@@ -350,10 +322,7 @@ public class Point extends Geometry implements Serializable {
 			attributeIndex = m_description.getAttributeIndex(semantics);
 		}
 
-		if (m_attributes == null)
-			_setToDefault();
-
-		m_attributes[m_description._getPointAttributeOffset(attributeIndex)
+		m_attributes[m_description._getPointAttributeOffset(attributeIndex) - 2
 				+ ordinate] = value;
 	}
 
@@ -380,62 +349,70 @@ public class Point extends Geometry implements Serializable {
 	@Override
 	public void setEmpty() {
 		_touch();
-		if (m_attributes != null) {
-			m_attributes[0] = NumberUtils.NaN();
-			m_attributes[1] = NumberUtils.NaN();
-		}
+		_setToDefault();
 	}
 
 	@Override
 	protected void _assignVertexDescriptionImpl(VertexDescription newDescription) {
-		if (m_attributes == null) {
-			m_description = newDescription;
-			return;
-		}
-		
 		int[] mapping = VertexDescriptionDesignerImpl.mapAttributes(newDescription, m_description);
 		
-		double[] newAttributes = new double[newDescription.getTotalComponentCount()];
-		
-		int j = 0;
-		for (int i = 0, n = newDescription.getAttributeCount(); i < n; i++) {
-			int semantics = newDescription.getSemantics(i);
-			int nords = VertexDescription.getComponentCount(semantics);
-			if (mapping[i] == -1)
-			{
-				double d = VertexDescription.getDefaultValue(semantics);
-				for (int ord = 0; ord < nords; ord++)
+		int newLen = newDescription.getTotalComponentCount() - 2;
+		if (newLen > 0) {
+			double[] newAttributes = new double[newLen];
+			
+			int j = 0;
+			for (int i = 1, n = newDescription.getAttributeCount(); i < n; i++) {
+				int semantics = newDescription.getSemantics(i);
+				int nords = VertexDescription.getComponentCount(semantics);
+				if (mapping[i] == -1)
 				{
-					newAttributes[j] = d;
-					j++;
+					double d = VertexDescription.getDefaultValue(semantics);
+					for (int ord = 0; ord < nords; ord++)
+					{
+						newAttributes[j] = d;
+						j++;
+					}
 				}
-			}
-			else {
-				int m = mapping[i];
-				int offset = m_description._getPointAttributeOffset(m);
-				for (int ord = 0; ord < nords; ord++)
-				{
-					newAttributes[j] = m_attributes[offset];
-					j++;
-					offset++;
+				else {
+					int m = mapping[i];
+					int offset = m_description._getPointAttributeOffset(m) - 2;
+					for (int ord = 0; ord < nords; ord++)
+					{
+						newAttributes[j] = m_attributes[offset];
+						j++;
+						offset++;
+					}
 				}
+					 
 			}
-				 
+			
+			m_attributes = newAttributes;
 		}
-		
-		m_attributes = newAttributes;
+		else {
+			m_attributes = null;
+		}
+			
 		m_description = newDescription;
 	}
 
 	/**
-	 * Sets the Point to a default, non-empty state.
+	 * Sets to a default empty state.
 	 */
-	void _setToDefault() {
-		resizeAttributes(m_description.getTotalComponentCount());
-		Point.attributeCopy(m_description._getDefaultPointAttributes(),
-				m_attributes, m_description.getTotalComponentCount());
-		m_attributes[0] = NumberUtils.NaN();
-		m_attributes[1] = NumberUtils.NaN();
+	private void _setToDefault() {
+		int len = m_description.getTotalComponentCount() - 2;
+		if (len != 0) {
+			if (m_attributes == null || m_attributes.length != len) {
+				m_attributes = new double[len];
+			}
+	
+			System.arraycopy(m_description._getDefaultPointAttributes(), 2, m_attributes,  0, len);
+		}
+		else {
+			m_attributes = null;
+		}
+		
+		m_x = NumberUtils.TheNaN;
+		m_y = NumberUtils.TheNaN;
 	}
 
 	@Override
@@ -449,7 +426,7 @@ public class Point extends Geometry implements Serializable {
 	}
 
 	@Override
-	void applyTransformation(Transformation3D transform) {
+	public void applyTransformation(Transformation3D transform) {
 		if (isEmptyImpl())
 			return;
 
@@ -462,20 +439,27 @@ public class Point extends Geometry implements Serializable {
 	public void copyTo(Geometry dst) {
 		if (dst.getType() != Type.Point)
 			throw new IllegalArgumentException();
-
-		Point pointDst = (Point) dst;
+		
+		if (this == dst)
+			return;
+		
 		dst._touch();
 
-		if (m_attributes == null) {
-			pointDst.setEmpty();
+		Point pointDst = (Point) dst;
+		dst.m_description = m_description;
+		pointDst.m_x = m_x;
+		pointDst.m_y = m_y;
+		int attrLen = m_description.getTotalComponentCount() - 2;
+		if (attrLen == 0) {
 			pointDst.m_attributes = null;
-			pointDst.assignVertexDescription(m_description);
-		} else {
-			pointDst.assignVertexDescription(m_description);
-			pointDst.resizeAttributes(m_description.getTotalComponentCount());
-			attributeCopy(m_attributes, pointDst.m_attributes,
-					m_description.getTotalComponentCount());
+			return;
 		}
+		
+		if (pointDst.m_attributes == null || pointDst.m_attributes.length != attrLen) {
+			pointDst.m_attributes = new double[attrLen];
+		}
+		
+		System.arraycopy(m_attributes, 0,  pointDst.m_attributes, 0, attrLen);
 	}
 
 	@Override
@@ -490,30 +474,29 @@ public class Point extends Geometry implements Serializable {
 	}
 
 	final boolean isEmptyImpl() {
-		return ((m_attributes == null) || NumberUtils.isNaN(m_attributes[0]) || NumberUtils
-				.isNaN(m_attributes[1]));
+		return NumberUtils.isNaN(m_x) || NumberUtils.isNaN(m_y);
 	}
 
 	@Override
 	public void queryEnvelope(Envelope env) {
-		env.setEmpty();
 		if (m_description != env.m_description)
 			env.assignVertexDescription(m_description);
+		
+		env.setEmpty();		
 		env.merge(this);
 	}
 
 	@Override
 	public void queryEnvelope2D(Envelope2D env) {
-
 		if (isEmptyImpl()) {
 			env.setEmpty();
 			return;
 		}
 
-		env.xmin = m_attributes[0];
-		env.ymin = m_attributes[1];
-		env.xmax = m_attributes[0];
-		env.ymax = m_attributes[1];
+		env.xmin = m_x;
+		env.ymin = m_y;
+		env.xmax = m_x;
+		env.ymax = m_y;
 	}
 
 	@Override
@@ -523,13 +506,13 @@ public class Point extends Geometry implements Serializable {
 			return;
 		}
 
-		Point3D pt = getXYZ();
-		env.xmin = pt.x;
-		env.ymin = pt.y;
-		env.zmin = pt.z;
-		env.xmax = pt.x;
-		env.ymax = pt.y;
-		env.zmax = pt.z;
+		env.xmin = m_x;
+		env.ymin = m_y;
+		env.xmax = m_x;
+		env.ymax = m_y;
+		double z = getZ(); 
+		env.zmin = z;
+		env.zmax = z;
 	}
 
 	@Override
@@ -546,21 +529,6 @@ public class Point extends Geometry implements Serializable {
 		return env;
 	}
 
-	private void resizeAttributes(int newSize) {
-		if (m_attributes == null) {
-			m_attributes = new double[newSize];
-		} else if (m_attributes.length < newSize) {
-			double[] newbuffer = new double[newSize];
-			System.arraycopy(m_attributes, 0, newbuffer, 0, m_attributes.length);
-			m_attributes = newbuffer;
-		}
-	}
-
-	static void attributeCopy(double[] src, double[] dst, int count) {
-		if (count > 0)
-			System.arraycopy(src, 0, dst, 0, count);
-	}
-
 	/**
 	 * Set the X and Y coordinate of the point.
 	 * 
@@ -572,11 +540,8 @@ public class Point extends Geometry implements Serializable {
 	public void setXY(double x, double y) {
 		_touch();
 
-		if (m_attributes == null)
-			_setToDefault();
-
-		m_attributes[0] = x;
-		m_attributes[1] = y;
+		m_x = x;
+		m_y = y;
 	}
 
 	/**
@@ -596,15 +561,21 @@ public class Point extends Geometry implements Serializable {
 		if (m_description != otherPt.m_description)
 			return false;
 
-		if (isEmptyImpl())
+		if (isEmptyImpl()) {
 			if (otherPt.isEmptyImpl())
 				return true;
 			else
 				return false;
+		}
+		
+		if (m_x != otherPt.m_x || m_y != otherPt.m_y) {
+			return false;
+		}
 
-		for (int i = 0, n = m_description.getTotalComponentCount(); i < n; i++)
-			if (m_attributes[i] != otherPt.m_attributes[i])
+		for (int i = 0, n = m_description.getTotalComponentCount() - 2; i < n; i++) {
+			if (!NumberUtils.isEqualNonIEEE(m_attributes[i], otherPt.m_attributes[i]))
 				return false;
+		}
 
 		return true;
 	}
@@ -617,12 +588,15 @@ public class Point extends Geometry implements Serializable {
 	public int hashCode() {
 		int hashCode = m_description.hashCode();
 		if (!isEmptyImpl()) {
-			for (int i = 0, n = m_description.getTotalComponentCount(); i < n; i++) {
+			hashCode = NumberUtils.hash(hashCode, m_x);
+			hashCode = NumberUtils.hash(hashCode, m_y);
+			for (int i = 0, n = m_description.getTotalComponentCount() - 2; i < n; i++) {
 				long bits = Double.doubleToLongBits(m_attributes[i]);
 				int hc = (int) (bits ^ (bits >>> 32));
 				hashCode = NumberUtils.hash(hashCode, hc);
 			}
 		}
+
 		return hashCode;
 	}
 

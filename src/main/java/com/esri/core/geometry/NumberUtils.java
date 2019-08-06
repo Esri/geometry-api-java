@@ -136,5 +136,18 @@ public class NumberUtils {
 		return (1103515245 * prevRand + 12345) & intMax(); // according to Wiki,
 															// this is gcc's
 	}
+	
+	/**
+	 * Returns true if two values are equal (also can compare inf and nan).
+	 */
+	static boolean isEqualNonIEEE(double a, double b) {
+		return a == b || (Double.isNaN(a) && Double.isNaN(b));
+	}
 
+	/**
+	 * Returns true if two values are equal (also can compare inf and nan).
+	 */
+	static boolean isEqualNonIEEE(double a, double b, double tolerance) {
+		return a == b || Math.abs(a - b) <= tolerance || (Double.isNaN(a) && Double.isNaN(b));
+	}
 }

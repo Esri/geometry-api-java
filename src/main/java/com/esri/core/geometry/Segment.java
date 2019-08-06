@@ -528,9 +528,6 @@ public abstract class Segment extends Geometry implements Serializable {
 
 		outPoint.assignVertexDescription(m_description);
 
-		if (outPoint.isEmptyImpl())
-			outPoint._setToDefault();
-
 		for (int attributeIndex = 0; attributeIndex < m_description
 				.getAttributeCount(); attributeIndex++) {
 			int semantics = m_description._getSemanticsImpl(attributeIndex);
@@ -689,12 +686,26 @@ public abstract class Segment extends Geometry implements Serializable {
 				|| m_yStart != other.m_yStart || m_yEnd != other.m_yEnd)
 			return false;
 		for (int i = 0; i < (m_description.getTotalComponentCount() - 2) * 2; i++)
-			if (m_attributes[i] != other.m_attributes[i])
+			if (!NumberUtils.isEqualNonIEEE(m_attributes[i], other.m_attributes[i]))
 				return false;
 
 		return true;
 	}
 
+	@Override
+	public int hashCode() {
+		int hash = m_description.hashCode();
+		hash = NumberUtils.hash(hash, m_xStart);
+		hash = NumberUtils.hash(hash, m_yStart);
+		hash = NumberUtils.hash(hash, m_xEnd);
+		hash = NumberUtils.hash(hash, m_yEnd);
+		for (int i = 0; i < (m_description.getTotalComponentCount() - 2) * 2; i++) {
+			hash = NumberUtils.hash(hash, m_attributes[i]);
+		}
+
+		return hash;
+	}
+	
 	/**
 	 * Returns true, when this segment is a closed curve (start point is equal
 	 * to end point exactly).

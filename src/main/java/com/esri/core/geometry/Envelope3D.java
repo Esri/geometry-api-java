@@ -320,6 +320,22 @@ public final class Envelope3D implements Serializable{
 		return true;
 	}
 
+	
+	@Override
+	public int hashCode() {
+		if (isEmpty()) {
+			return NumberUtils.hash(NumberUtils.TheNaN);
+		}
+		
+		int hash = NumberUtils.hash(xmin);
+		hash = NumberUtils.hash(hash, xmax);
+		hash = NumberUtils.hash(hash, ymin);
+		hash = NumberUtils.hash(hash, ymax);
+		hash = NumberUtils.hash(hash, zmin);
+		hash = NumberUtils.hash(hash, zmax);
+		return hash;
+	}
+
 	public void construct(Envelope1D xinterval, Envelope1D yinterval,
 			Envelope1D zinterval) {
 		if (xinterval.isEmpty() || yinterval.isEmpty()) {

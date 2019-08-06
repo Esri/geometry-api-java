@@ -68,7 +68,7 @@ public final class SizeOf {
 
 	public static final int SIZE_OF_MULTI_POINT_IMPL = 56;
 
-	public static final int SIZE_OF_POINT = 24;
+	public static final int SIZE_OF_POINT = 40;
 
 	public static final int SIZE_OF_POLYGON = 24;
 

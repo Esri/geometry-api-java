@@ -193,8 +193,6 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 
 		Point outPoint = dst;
 		outPoint.assignVertexDescription(m_description);
-		if (outPoint.isEmpty())
-			outPoint._setToDefault();
 
 		for (int attributeIndex = 0; attributeIndex < m_description
 				.getAttributeCount(); attributeIndex++) {
@@ -958,9 +956,6 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 		_verifyAllStreams();
 
 		outPoint.assignVertexDescription(m_description);
-		if (outPoint.isEmpty())
-			outPoint._setToDefault();
-
 		for (int attributeIndex = 0; attributeIndex < m_description
 				.getAttributeCount(); attributeIndex++) {
 			int semantics = m_description._getSemanticsImpl(attributeIndex);
@@ -991,8 +986,6 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 
 		Point outPoint = new Point();
 		outPoint.assignVertexDescription(m_description);
-		if (outPoint.isEmpty())
-			outPoint._setToDefault();
 
 		for (int attributeIndex = 0; attributeIndex < m_description
 				.getAttributeCount(); attributeIndex++) {
