@@ -718,7 +718,7 @@ final class EditShape {
 
 			mp_impl.setPathFlagsStreamRef(pathFlags);
 			mp_impl.setPathStreamRef(parts);
-			mp_impl.notifyModified(DirtyFlags.dirtyAll);
+			mp_impl.notifyModified(MultiVertexGeometryImpl.DirtyFlags.DirtyAll);
 		} else if (gt == Geometry.GeometryType.MultiPoint) {
 			MultiPointImpl mp_impl = (MultiPointImpl) geom._getImpl();
 			VertexDescription description = geom.getDescription();
@@ -751,7 +751,7 @@ final class EditShape {
 				mp_impl.setAttributeStreamRef(semantics, dst_stream);
 			}
 
-			mp_impl.notifyModified(DirtyFlags.dirtyAll);
+			mp_impl.notifyModified(MultiVertexGeometryImpl.DirtyFlags.DirtyAll);
 		} else {
 			assert (false);
 		}
