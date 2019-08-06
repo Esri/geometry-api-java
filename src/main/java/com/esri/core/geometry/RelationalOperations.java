@@ -4142,19 +4142,12 @@ class RelationalOperations {
 		SegmentIteratorImpl segIterA = ((MultiPathImpl) multipathA._getImpl())
 				.querySegmentIterator();
 
-		boolean bContained = true;
-		boolean bInteriorHitFound = false;
-
 		Envelope2D env_a = new Envelope2D();
 		Envelope2D env_b = new Envelope2D();
 		Envelope2D envInter = new Envelope2D();
 		multipathA.queryEnvelope2D(env_a);
 		multipoint_b.queryEnvelope2D(env_b);
 		env_a.inflate(tolerance, tolerance);
-
-		if (!env_a.contains(env_b)) {
-			bContained = false;
-		}
 
 		env_b.inflate(tolerance, tolerance);
 		envInter.setCoords(env_a);
@@ -4169,6 +4162,7 @@ class RelationalOperations {
 
 		if (accel != null) {
 			quadTreeA = accel.getQuadTree();
+			quadTreePathsA = accel.getQuadTreeForPaths();
 			if (quadTreeA == null) {
 				qtA = InternalUtils.buildQuadTree(
 						(MultiPathImpl) multipathA._getImpl(), envInter);
@@ -4187,7 +4181,6 @@ class RelationalOperations {
             qtIterPathsA = quadTreePathsA.getIterator();
 
 		Point2D ptB = new Point2D(), closest = new Point2D();
-		boolean b_intersects = false;
 		double toleranceSq = tolerance * tolerance;
 
 		for (int i = 0; i < multipoint_b.getPointCount(); i++) {
@@ -5153,9 +5146,9 @@ class RelationalOperations {
 		double m_scalar_a_0;
 		double m_scalar_a_1;
 		int m_ivertex_b;
-		int m_ipath_b;
-		double m_scalar_b_0;
-		double m_scalar_b_1;
+//		int m_ipath_b;
+//		double m_scalar_b_0;
+//		double m_scalar_b_1;
 
 		static OverlapEvent construct(int ivertex_a, int ipath_a,
 				double scalar_a_0, double scalar_a_1, int ivertex_b,
@@ -5166,9 +5159,9 @@ class RelationalOperations {
 			overlapEvent.m_scalar_a_0 = scalar_a_0;
 			overlapEvent.m_scalar_a_1 = scalar_a_1;
 			overlapEvent.m_ivertex_b = ivertex_b;
-			overlapEvent.m_ipath_b = ipath_b;
-			overlapEvent.m_scalar_b_0 = scalar_b_0;
-			overlapEvent.m_scalar_b_1 = scalar_b_1;
+//			overlapEvent.m_ipath_b = ipath_b;
+//			overlapEvent.m_scalar_b_0 = scalar_b_0;
+//			overlapEvent.m_scalar_b_1 = scalar_b_1;
 			return overlapEvent;
 		}
 	}
