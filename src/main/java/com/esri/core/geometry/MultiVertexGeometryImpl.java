@@ -63,52 +63,34 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 	protected abstract void _verifyStreamsImpl();
 
 	public interface DirtyFlags {
-		public static final int DirtyIsKnownSimple = 1; // !<0 when IsWeakSimple
-														// flag is valid
-		public static final int IsWeakSimple = 2; // !<when DirtyIsKnownSimple
-													// is 0, this flag indicates
-													// whether the geometry is
-													// weak simple or not
-		public static final int IsStrongSimple = 4;
-		public static final int DirtyOGCFlags = 8; // !<OGCFlags are set by
-													// Simplify or WKB/WKT
-													// import.
-
-		public static final int DirtyVerifiedStreams = 32; // < at least one
-															// stream is
-															// unverified
-		public static final int DirtyExactIntervals = 64; // < exact envelope is
-															// dirty
-		public static final int DirtyLooseIntervals = 128;
-		public static final int DirtyIntervals = DirtyExactIntervals
-				| DirtyLooseIntervals; // <
-		// loose
-		// and
-		// dirty
-		// envelopes
-		// are
-		// loose
-		public static final int DirtyIsEnvelope = 256; // < the geometry is not
-														// known to be an
-														// envelope
-		public static final int DirtyLength2D = 512; // < the geometry length
-														// needs update
-		// update
-		public static final int DirtyRingAreas2D = 1024; // <
-															// m_cachedRingAreas2D
-															// need update
-		public static final int DirtyCoordinates = DirtyIsKnownSimple
+		/**0 when IsWeakSimple flag is valid*/
+		int DirtyIsKnownSimple = 1;
+		/**when DirtyIsKnownSimple is 0, this flag indicates whether the geometry is weak simple or not*/
+		int IsWeakSimple = 2; 
+		int IsStrongSimple = 4;
+		/**OGCFlags are set by Simplify or WKB/WKT import.*/		
+		int DirtyOGCFlags = 8; 
+		/** At least one stream is unverified*/
+		int DirtyVerifiedStreams = 32;
+		/** exact envelope is dirty*/
+		int DirtyExactIntervals = 64;
+		/** loose envelope is dirty*/
+		int DirtyLooseIntervals = 128;
+		/** loose and dirty envelopes are dirty */
+		int DirtyIntervals = DirtyExactIntervals
+				| DirtyLooseIntervals;
+		/**the geometry is not known to be an envelope*/		
+		int DirtyIsEnvelope = 256;
+		/** The geometry length needs update*/		
+		int DirtyLength2D = 512; 
+		/** m_cachedRingAreas2D need update*/		
+		int DirtyRingAreas2D = 1024; 
+		int DirtyCoordinates = DirtyIsKnownSimple
 				| DirtyIntervals | DirtyIsEnvelope | DirtyLength2D
 				| DirtyRingAreas2D | DirtyOGCFlags;
-		public static final int DirtyAllInternal = 0xFFFF; // there has been no
-															// change to the
-															// streams from
-															// outside.
-		public static final int DirtyAll = 0xFFFFFF; // there has been a change
-														// to one of attribute
-														// streams from the
-														// outside.
-
+		int DirtyAllInternal = 0xFFFF;
+		/** There has been a change to one of attribute streams from the outside.*/
+		int DirtyAll = 0xFFFFFF; 
 	}
 
 	/**
@@ -169,10 +151,6 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 	protected int m_flagsMask;
 	protected double m_simpleTolerance;
 
-	// HEADER DEFINED
-
-	// Cpp
-	// Checked vs. Jan 11, 2011
 	public MultiVertexGeometryImpl() {
 		m_flagsMask = DirtyFlags.DirtyAllInternal;
 		m_pointCount = 0;
@@ -185,9 +163,6 @@ abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
 		if (index < 0 || index >= m_pointCount)
 			// TODO
 			throw new GeometryException("index out of bounds");
-
-		// _ASSERT(!IsEmpty());
-		// _ASSERT(m_vertexAttributes != null);
 
 		_verifyAllStreams();
 
