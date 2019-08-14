@@ -576,6 +576,9 @@ class Bufferer {
 		generateCircleTemplate_();
 		m_geometry = simplify.execute(m_geometry, null, false,
 				m_progress_tracker);
+		if(m_geometry.isEmpty()) {
+			return m_geometry;
+		}
 
 		if (m_distance < 0) {
 			Polygon poly = (Polygon) (m_geometry);
@@ -600,7 +603,12 @@ class Bufferer {
 					.getInstance().getOperator(Operator.Type.Union)).execute(
 					cursor, m_spatialReference, m_progress_tracker);
 			Geometry result = union_cursor.next();
-			return result;
+			if (result != null) {
+				return result;
+			} else {
+				//never return empty.
+				return new Polygon(m_geometry.getDescription());
+			}
 		}
 	}
 

@@ -27,6 +27,8 @@ package com.esri.core.geometry;
 import junit.framework.TestCase;
 import org.junit.Test;
 
+import com.esri.core.geometry.ogc.OGCGeometry;
+
 public class TestBuffer extends TestCase {
 	@Override
 	protected void setUp() throws Exception {
@@ -389,4 +391,27 @@ public class TestBuffer extends TestCase {
 			assertTrue(simplify.isSimpleAsFeature(result, sr, null));
 		}
 	}
+	
+	@Test
+	public static void testTinyBufferOfPoint() {
+		{
+			Geometry result1 = OperatorBuffer.local().execute(new Point(0, 0), SpatialReference.create(4326), 1e-9, null);
+			assertTrue(result1 != null);
+			assertTrue(result1.isEmpty());
+			Geometry geom1 = OperatorImportFromWkt.local().execute(0, Geometry.Type.Unknown, "POLYGON ((177.0 64.0, 177.0000000001 64.0, 177.0000000001 64.0000000001, 177.0 64.0000000001, 177.0 64.0))", null);
+			Geometry result2 = OperatorBuffer.local().execute(geom1, SpatialReference.create(4326), 0.01, null);
+			assertTrue(result2 != null);
+			assertTrue(result2.isEmpty());
+			
+		}
+		
+		{
+			OGCGeometry p = OGCGeometry.fromText(
+					"POLYGON ((177.0 64.0, 177.0000000001 64.0, 177.0000000001 64.0000000001, 177.0 64.0000000001, 177.0 64.0))");
+			OGCGeometry buffered = p.buffer(0.01);
+			assertTrue(buffered != null);
+		}
+		
+		
+	}		
 }
