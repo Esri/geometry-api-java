@@ -132,4 +132,31 @@ public final class Point3D implements Serializable {
 		return NumberUtils.isNaN(x) || NumberUtils.isNaN(y) || NumberUtils.isNaN(z);
 	}
 
+	public boolean equals(Point3D other) {
+		//note that for nan value this returns false.
+		//this is by design for this class.
+		return x == other.x && y == other.y && z == other.z;
+	}
+	
+	@Override
+	public boolean equals(Object other_) {
+		if (other_ == this)
+			return true;
+
+		if (!(other_ instanceof Point3D))
+			return false;
+		
+		Point3D other = (Point3D)other_;
+		//note that for nan value this returns false.
+		//this is by design for this class.
+		return x == other.x && y == other.y && z == other.z;
+	}
+
+	@Override
+	public int hashCode() {
+		int hash = NumberUtils.hash(x);
+		hash = NumberUtils.hash(hash, y);
+		hash = NumberUtils.hash(hash, z);
+		return hash;
+	}
 }

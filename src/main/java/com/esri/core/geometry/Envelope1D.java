@@ -225,7 +225,13 @@ public final class Envelope1D implements Serializable {
 	
 	@Override
 	public int hashCode() {
-		return NumberUtils.hash(NumberUtils.hash(vmin), vmax);
+		if (isEmpty()) {
+			return NumberUtils.hash(NumberUtils.TheNaN);
+		}
+		
+		int hash = NumberUtils.hash(vmin);
+		hash = NumberUtils.hash(hash, vmax);
+		return hash;
 	}
 	
 }

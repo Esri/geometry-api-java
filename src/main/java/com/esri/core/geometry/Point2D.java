@@ -94,6 +94,12 @@ public final class Point2D implements Serializable{
 		
 		return x == v.x && y == v.y;
 	}
+
+	@Override
+	public int hashCode() {
+		return NumberUtils.hash(NumberUtils.hash(x), y);
+	}
+
 	
 	public void sub(Point2D other) {
 		x -= other.x;
@@ -751,11 +757,6 @@ public final class Point2D implements Serializable{
 		}
 	}
 	
-	@Override
-	public int hashCode() {
-		return NumberUtils.hash(NumberUtils.hash(x), y);
-	}
-
 	double getAxis(int ordinate) {
 		assert(ordinate == 0 || ordinate == 1);
 		return (ordinate == 0 ? x : y);

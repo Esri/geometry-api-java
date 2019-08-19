@@ -70,16 +70,20 @@ public class Envelope extends Geometry implements Serializable {
 	public Envelope(VertexDescription vd) {
 		if (vd == null)
 			throw new IllegalArgumentException();
+		
 		m_description = vd;
 		m_envelope.setEmpty();
+		_ensureAttributes();
 	}
 
 	public Envelope(VertexDescription vd, Envelope2D env2D) {
 		if (vd == null)
 			throw new IllegalArgumentException();
+		
 		m_description = vd;
 		m_envelope.setCoords(env2D);
 		m_envelope.normalize();
+		_ensureAttributes();
 	}
 
 	/**
@@ -331,8 +335,8 @@ public class Envelope extends Geometry implements Serializable {
 	}
 
 	void _setFromPoint(Point centerPoint) {
-		m_envelope.setCoords(centerPoint.m_attributes[0],
-				centerPoint.m_attributes[1]);
+		mergeVertexDescription(centerPoint.getDescription());
+		m_envelope.setCoords(centerPoint.getX(), centerPoint.getY());
 		VertexDescription pointVD = centerPoint.m_description;
 		for (int iattrib = 1, nattrib = pointVD.getAttributeCount(); iattrib < nattrib; iattrib++) {
 			int semantics = pointVD._getSemanticsImpl(iattrib);
@@ -610,7 +614,6 @@ public class Envelope extends Geometry implements Serializable {
 			throw new IllegalArgumentException();
 
 		int attribute_index = m_description.getAttributeIndex(semantics);
-		_ensureAttributes();
 		if (attribute_index >= 0) {
 			return m_attributes[getEndPointOffset(m_description, end_point)
 					+ m_description.getPointAttributeOffset_(attribute_index)
@@ -645,7 +648,6 @@ public class Envelope extends Geometry implements Serializable {
 			throw new IllegalArgumentException();
 
 		addAttribute(semantics);
-		_ensureAttributes();
 		int attribute_index = m_description.getAttributeIndex(semantics);
 		m_attributes[getEndPointOffset(m_description, end_point)
 				+ m_description.getPointAttributeOffset_(attribute_index) - 2
@@ -655,32 +657,17 @@ public class Envelope extends Geometry implements Serializable {
 	void _ensureAttributes() {
 		_touch();
 		if (m_attributes == null && m_description.getTotalComponentCount() > 2) {
-			m_attributes = new double[(m_description.getTotalComponentCount() - 2) * 2];
+			int halfLength = m_description.getTotalComponentCount() - 2;
+			m_attributes = new double[halfLength * 2];
 			int offset0 = _getEndPointOffset(m_description, 0);
 			int offset1 = _getEndPointOffset(m_description, 1);
-			
-			int j = 0;
-			for (int i = 1, n = m_description.getAttributeCount(); i < n; i++) {
-				int semantics = m_description.getSemantics(i);
-				int nords = VertexDescription.getComponentCount(semantics);
-				double d = VertexDescription.getDefaultValue(semantics);
-				for (int ord = 0; ord < nords; ord++)
-				{
-					m_attributes[offset0 + j] = d;
-					m_attributes[offset1 + j] = d;
-					j++;
-				}
-			}
+			System.arraycopy(m_description._getDefaultPointAttributes(), 2, m_attributes, offset0, halfLength);
+			System.arraycopy(m_description._getDefaultPointAttributes(), 2, m_attributes, offset1, halfLength);
 		}
 	}
 
 	@Override
 	protected void _assignVertexDescriptionImpl(VertexDescription newDescription) {
-		if (m_attributes == null) {
-			m_description = newDescription;
-			return;
-		}
-		
 		if (newDescription.getTotalComponentCount() > 2) {
 			int[] mapping = VertexDescriptionDesignerImpl.mapAttributes(newDescription, m_description);
 			
@@ -734,8 +721,6 @@ public class Envelope extends Geometry implements Serializable {
 			throw new GeometryException(
 					"This operation was performed on an Empty Geometry.");
 
-		// _ASSERT(endPoint == 0 || endPoint == 1);
-
 		if (semantics == Semantics.POSITION) {
 			if (endPoint != 0) {
 				return ordinate != 0 ? m_envelope.ymax : m_envelope.xmax;
@@ -750,7 +735,6 @@ public class Envelope extends Geometry implements Serializable {
 
 		int attributeIndex = m_description.getAttributeIndex(semantics);
 		if (attributeIndex >= 0) {
-			_ensureAttributes();
 			return m_attributes[_getEndPointOffset(m_description, endPoint)
 					+ m_description._getPointAttributeOffset(attributeIndex)
 					- 2 + ordinate];
@@ -784,14 +768,10 @@ public class Envelope extends Geometry implements Serializable {
 			throw new IndexOutOfBoundsException();
 
 		if (!hasAttribute(semantics)) {
-			if (VertexDescription.isDefaultValue(semantics, value))
-				return;
-			
 			addAttribute(semantics);
 		}
 
 		int attributeIndex = m_description.getAttributeIndex(semantics);
-		_ensureAttributes();
 		m_attributes[_getEndPointOffset(m_description, endPoint)
 				+ m_description._getPointAttributeOffset(attributeIndex) - 2
 				+ ordinate] = value;
@@ -1015,7 +995,7 @@ public class Envelope extends Geometry implements Serializable {
 			return false;
 
 		for (int i = 0, n = (m_description.getTotalComponentCount() - 2) * 2; i < n; i++)
-			if (m_attributes[i] != other.m_attributes[i])
+			if (!NumberUtils.isEqualNonIEEE(m_attributes[i], other.m_attributes[i]))
 				return false;
 
 		return true;
@@ -1030,7 +1010,7 @@ public class Envelope extends Geometry implements Serializable {
 	public int hashCode() {
 		int hashCode = m_description.hashCode();
 		hashCode = NumberUtils.hash(hashCode, m_envelope.hashCode());
-		if (!isEmpty() && m_attributes != null) {
+		if (!isEmpty()) {
 			for (int i = 0, n = (m_description.getTotalComponentCount() - 2) * 2; i < n; i++) {
 				hashCode = NumberUtils.hash(hashCode, m_attributes[i]);
 			}

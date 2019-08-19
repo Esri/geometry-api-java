@@ -548,6 +548,11 @@ public final class Line extends Segment implements Serializable {
 		return _equalsImpl((Segment)other);
 	}
 	
+	@Override
+	public int hashCode() {
+		return super.hashCode();
+	}
+
 	boolean equals(Line other) {
 		if (other == this)
 			return true;

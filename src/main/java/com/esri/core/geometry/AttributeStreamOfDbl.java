@@ -352,7 +352,7 @@ final class AttributeStreamOfDbl extends AttributeStreamBase {
 			end = size;
 
 		for (int i = start; i < end; i++)
-			if (read(i) != _other.read(i))
+			if (!NumberUtils.isEqualNonIEEE(read(i), _other.read(i)))
 				return false;
 
 		return true;

@@ -699,23 +699,14 @@ public final class Envelope2D implements Serializable {
 
 	@Override
 	public int hashCode() {
-
-		long bits = Double.doubleToLongBits(xmin);
-		int hc = (int) (bits ^ (bits >>> 32));
-
-		int hash = NumberUtils.hash(hc);
-
-		bits = Double.doubleToLongBits(xmax);
-		hc = (int) (bits ^ (bits >>> 32));
-		hash = NumberUtils.hash(hash, hc);
-
-		bits = Double.doubleToLongBits(ymin);
-		hc = (int) (bits ^ (bits >>> 32));
-		hash = NumberUtils.hash(hash, hc);
-
-		bits = Double.doubleToLongBits(ymax);
-		hc = (int) (bits ^ (bits >>> 32));
-		hash = NumberUtils.hash(hash, hc);
+		if (isEmpty()) {
+			return NumberUtils.hash(NumberUtils.TheNaN);
+		}
+		
+		int hash = NumberUtils.hash(xmin);
+		hash = NumberUtils.hash(hash, xmax);
+		hash = NumberUtils.hash(hash, ymin);
+		hash = NumberUtils.hash(hash, ymax);
 
 		return hash;
 	}
