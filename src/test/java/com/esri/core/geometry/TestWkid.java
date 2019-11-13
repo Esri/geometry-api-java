@@ -40,7 +40,7 @@ public class TestWkid extends TestCase {
 
 		SpatialReference sr84 = SpatialReference.create(4326);
 		double tol84 = sr84.getTolerance();
-		assertTrue(Math.abs(tol84 - 1e-8) < 1e-8 * 1e-8);
+		assertTrue(Math.abs(tol84 - 8.9831528411952150e-09) < 1e-15);
 	}
 
 
