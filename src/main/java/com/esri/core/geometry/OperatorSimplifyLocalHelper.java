@@ -476,10 +476,12 @@ class OperatorSimplifyLocalHelper {
 					|| (xyindex == path_last);
 			if (m_bOGCRestrictions)
 				vi_prev.boundary = !is_closed_path && vi_prev.end_point;
-			else
+			else {
 				// for regular planar simplify, only the end points are allowed
 				// to coincide
 				vi_prev.boundary = vi_prev.end_point;
+			}
+			
 			vi_prev.ipath = ipath;
 			vi_prev.x = pt.x;
 			vi_prev.y = pt.y;
@@ -506,11 +508,11 @@ class OperatorSimplifyLocalHelper {
 			boolean end_point = (xyindex == path_start)
 					|| (xyindex == path_last);
 			if (m_bOGCRestrictions)
-				boundary = !is_closed_path && vi_prev.end_point;
+				boundary = !is_closed_path && end_point;
 			else
 				// for regular planar simplify, only the end points are allowed
 				// to coincide
-				boundary = vi_prev.end_point;
+				boundary = end_point;
 
 			vi.x = pt.x;
 			vi.y = pt.y;
@@ -522,22 +524,12 @@ class OperatorSimplifyLocalHelper {
 			if (vi.x == vi_prev.x && vi.y == vi_prev.y) {
 				if (m_bOGCRestrictions) {
 					if (!vi.boundary || !vi_prev.boundary) {
+						 // check that this is not the endpoints of a closed path						
 						if ((vi.ipath != vi_prev.ipath)
-								|| (!vi.end_point && !vi_prev.end_point))// check
-																			// that
-																			// this
-																			// is
-																			// not
-																			// the
-																			// endpoints
-																			// of
-																			// a
-																			// closed
-																			// path
-						{
+								|| (!vi.end_point && !vi_prev.end_point)) {
 							// one of coincident vertices is not on the boundary
-							// this is either Non_simple_result::cross_over or
-							// Non_simple_result::ogc_self_tangency.
+							// this is either NonSimpleResult.CrossOver or
+							// NonSimpleResult.OGCPolylineSelfTangency.
 							// too expensive to distinguish between the two.
 							m_nonSimpleResult = new NonSimpleResult(
 									NonSimpleResult.Reason.OGCPolylineSelfTangency,
@@ -546,12 +538,9 @@ class OperatorSimplifyLocalHelper {
 						}
 					}
 				} else {
-					if (!vi.end_point || !vi_prev.end_point) {// one of
-																// coincident
-																// vertices is
-																// not an
-																// endpoint
-						m_nonSimpleResult = new NonSimpleResult(
+					if (!vi.end_point || !vi_prev.end_point) {
+						 //one of coincident vertices is not an endpoint
+						 m_nonSimpleResult = new NonSimpleResult(
 								NonSimpleResult.Reason.CrossOver, vi.ivertex,
 								vi_prev.ivertex);
 						return false;// common point not on the boundary
