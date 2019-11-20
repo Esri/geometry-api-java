@@ -32,15 +32,25 @@ import org.junit.Test;
 public class TestWkid extends TestCase {
 	@Test
 	public void test() {
-		SpatialReference sr = SpatialReference.create(102100);
-		assertTrue(sr.getID() == 102100);
-		assertTrue(sr.getLatestID() == 3857);
-		assertTrue(sr.getOldID() == 102100);
-		assertTrue(sr.getTolerance() == 0.001);
-
-		SpatialReference sr84 = SpatialReference.create(4326);
-		double tol84 = sr84.getTolerance();
-		assertTrue(Math.abs(tol84 - 8.9831528411952150e-09) < 1e-15);
+		{
+			SpatialReference sr = SpatialReference.create(102100);
+			assertTrue(sr.getID() == 102100);
+			assertTrue(sr.getLatestID() == 3857);
+			assertTrue(sr.getOldID() == 102100);
+			assertTrue(sr.getTolerance() == 0.001);
+		}
+		{
+			SpatialReference sr = SpatialReference.create(3857);
+			assertTrue(sr.getID() == 3857);
+			assertTrue(sr.getLatestID() == 3857);
+			assertTrue(sr.getOldID() == 102100);
+			assertTrue(sr.getTolerance() == 0.001);
+		}
+		{
+			SpatialReference sr84 = SpatialReference.create(4326);
+			double tol84 = sr84.getTolerance();
+			assertTrue(Math.abs(tol84 - 8.9831528411952150e-09) < 1e-15);
+		}
 	}
 
 
