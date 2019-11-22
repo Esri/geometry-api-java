@@ -1036,4 +1036,13 @@ public class TestOGC extends TestCase {
 		ogcGeometry = (OGCConcreteGeometryCollection)OGCGeometry.fromText("GEOMETRYCOLLECTION (MULTIPOINT (1 1), MULTILINESTRING ((1 2, 3 4)), MULTIPOLYGON (((1 2, 3 4, 5 6, 1 2))))");
 		assertTrue(ogcGeometry.isFlattened());
 	}
+	
+	@Test
+	public void testIssue247IsSimple() {
+		//https://github.com/Esri/geometry-api-java/issues/247
+		String wkt = "MULTILINESTRING ((-103.4894322 25.6164519, -103.4889647 25.6159054, -103.489434 25.615654), (-103.489434 25.615654, -103.4894322 25.6164519), (-103.4897361 25.6168342, -103.4894322 25.6164519))";
+		OGCGeometry ogcGeom = OGCGeometry.fromText(wkt);
+		boolean b = ogcGeom.isSimple();
+		assertTrue(b);		
+	}
 }
