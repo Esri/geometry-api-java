@@ -29,6 +29,7 @@ import com.esri.core.geometry.Operator.Type;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.Reader;
@@ -182,19 +183,27 @@ public class OperatorFactoryLocal extends OperatorFactory {
 		}
 
 		String jsonString = null;
+		Reader reader = null;
 		try {
 			FileInputStream stream = new FileInputStream(file_name);
-			Reader reader = new BufferedReader(new InputStreamReader(stream));
+			reader = new BufferedReader(new InputStreamReader(stream));
 			StringBuilder builder = new StringBuilder();
 			char[] buffer = new char[8192];
 			int read;
 			while ((read = reader.read(buffer, 0, buffer.length)) > 0) {
 				builder.append(buffer, 0, read);
 			}
-			stream.close();
 
 			jsonString = builder.toString();
 		} catch (Exception ex) {
+		}
+		finally {
+			if (reader != null) {
+				try {
+					reader.close();
+				} catch (IOException e) {
+				}
+			}
 		}
 
 		MapGeometry mapGeom = OperatorImportFromJson.local().execute(Geometry.Type.Unknown, jsonString);
@@ -276,19 +285,27 @@ public class OperatorFactoryLocal extends OperatorFactory {
 		}
 
 		String s = null;
+		Reader reader = null;
 		try {
 			FileInputStream stream = new FileInputStream(file_name);
-			Reader reader = new BufferedReader(new InputStreamReader(stream));
+			reader = new BufferedReader(new InputStreamReader(stream));
 			StringBuilder builder = new StringBuilder();
 			char[] buffer = new char[8192];
 			int read;
 			while ((read = reader.read(buffer, 0, buffer.length)) > 0) {
 				builder.append(buffer, 0, read);
 			}
-			stream.close();
 
 			s = builder.toString();
 		} catch (Exception ex) {
+		}
+		finally {
+			if (reader != null) {
+				try {
+					reader.close();
+				} catch (IOException e) {
+				}
+			}
 		}
 
 		return OperatorImportFromWkt.local().execute(0, Geometry.Type.Unknown, s, null);
