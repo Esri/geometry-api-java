@@ -64,12 +64,20 @@
 			</table>
 
 			<h2>Valid polygons</h2>
-			<p>A valid polygon has no overlapping rings, no self-intersections except possibly
-			at vertices, no dangling segments and, in general, an arbitrary point can always be
-			classified unambiguously as either in the exterior, in the interior or on the
-			boundary of the polygon. A valid polygon is said to be <i>simple</i>.
+			<p>A valid polygon has the following main property:
+				<li>for every polygon segment, the polygon exterior is unambiguously to the left of the segment and
+					the polygon interior is unambiguously to the right of the segment.</li>
+				As a result of the above property the following is also true:
+				<li>segments can touch other segments only at the end points,</li>
+				<li>segments have non-zero length,</li>
+				<li>outer rings are clockwise and holes are counterclockwise,</li>
+				<li>each polygon ring has non-zero area.</li>
+				<li>order of the rings does not matter,</li>
+				<li>rings can be self-tangent,</li>
+				<li>rings can not overlap.</li>
+			A valid polygon is said to be <i>simple</i>.
 			See the <a href="Simplify.html">Simplify operator</a> for a more detailed specification
-			of simple polygons. Note that a simple polygon may not be OGC compliant. See the <a href="SimplifyOGC.html">
+			of simple polygons. Note that a simple polygon may not be <a href="https://www.opengeospatial.org/standards/sfa"> OGC simple</a>. See the <a href="SimplifyOGC.html">
 				Simplify operator with OGC restrictions</a>.
 			</p>
 			<h3>Examples</h3>
