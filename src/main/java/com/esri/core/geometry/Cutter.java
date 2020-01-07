@@ -27,7 +27,6 @@ package com.esri.core.geometry;
 
 import com.esri.core.geometry.OperatorCutLocal;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -138,6 +137,8 @@ class Cutter {
 	private static ArrayList<CutEvent> _getCutEvents(int orderIndex,
 			EditShape editShape) {
 		int pointCount = editShape.getTotalPointCount();
+		if (pointCount == 0)
+			return null;
 
 		// Sort vertices lexicographically
 		// Firstly copy allvertices to an array.
@@ -156,8 +157,6 @@ class Cutter {
 		CompareVertices compareVertices = new CompareVertices(orderIndex,
 				editShape);
 		vertices.Sort(0, pointCount, new CutterVertexComparer(compareVertices));
-		// SORTDYNAMICARRAYEX(vertices, index_type, 0, pointCount,
-		// CutterVertexComparer, compareVertices);
 
 		// Find Cut Events
 		ArrayList<CutEvent> cutEvents = new ArrayList<CutEvent>(0);
