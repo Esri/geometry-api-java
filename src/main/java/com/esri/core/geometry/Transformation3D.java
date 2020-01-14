@@ -33,7 +33,7 @@ package com.esri.core.geometry;
  * are the matrices. This is equivalent to the following line of code:
  * ResultVector = (M1.Mul(M2).Mul(M3)).Transform(Vector)
  */
-final class Transformation3D {
+final public class Transformation3D {
 
 	public double xx, yx, zx, xd, xy, yy, zy, yd, xz, yz, zz, zd;
 
@@ -112,7 +112,7 @@ final class Transformation3D {
 		return env;
 	}
 
-	void transform(Point3D[] pointsIn, int count, Point3D[] pointsOut) {
+	public void transform(Point3D[] pointsIn, int count, Point3D[] pointsOut) {
 		for (int i = 0; i < count; i++) {
 			Point3D res = new Point3D();
 			Point3D src = pointsIn[i];
