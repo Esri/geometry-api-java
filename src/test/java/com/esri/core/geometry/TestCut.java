@@ -51,7 +51,7 @@ public class TestCut extends TestCase {
 
 	}
 
-	public static void testConsiderTouch1(SpatialReference spatialReference) {
+	private static void testConsiderTouch1(SpatialReference spatialReference) {
 		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
 		OperatorCut opCut = (OperatorCut) engine.getOperator(Operator.Type.Cut);
 
@@ -101,7 +101,7 @@ public class TestCut extends TestCase {
 		assertTrue(cut == null);
 	}
 
-	public static void testConsiderTouch2(SpatialReference spatialReference) {
+	private static void testConsiderTouch2(SpatialReference spatialReference) {
 		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
 		OperatorCut opCut = (OperatorCut) engine.getOperator(Operator.Type.Cut);
 
@@ -167,7 +167,7 @@ public class TestCut extends TestCase {
 		assertTrue(cut == null);
 	}
 
-	public static void testPolygon5(SpatialReference spatialReference) {
+	private static void testPolygon5(SpatialReference spatialReference) {
 		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
 		OperatorCut opCut = (OperatorCut) engine.getOperator(Operator.Type.Cut);
 
@@ -201,7 +201,7 @@ public class TestCut extends TestCase {
 		assertTrue(cut == null);
 	}
 
-	public static void testPolygon7(SpatialReference spatialReference) {
+	private static void testPolygon7(SpatialReference spatialReference) {
 		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
 		OperatorCut opCut = (OperatorCut) engine.getOperator(Operator.Type.Cut);
 
@@ -238,7 +238,7 @@ public class TestCut extends TestCase {
 		assertTrue(cut == null);
 	}
 
-	public static void testPolygon8(SpatialReference spatialReference) {
+	private static void testPolygon8(SpatialReference spatialReference) {
 		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
 		OperatorCut opCut = (OperatorCut) engine.getOperator(Operator.Type.Cut);
 
@@ -275,7 +275,7 @@ public class TestCut extends TestCase {
 		assertTrue(cut == null);
 	}
 
-	public static void testPolygon9(SpatialReference spatialReference) {
+	private static void testPolygon9(SpatialReference spatialReference) {
 		OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
 		OperatorCut opCut = (OperatorCut) engine.getOperator(Operator.Type.Cut);
 
@@ -309,7 +309,7 @@ public class TestCut extends TestCase {
 		assertTrue(cut == null);
 	}
 
-	public static void testEngine(SpatialReference spatialReference) {
+	private static void testEngine(SpatialReference spatialReference) {
 		Polygon polygon8 = makePolygon8();
 		Polyline cutter8 = makePolygonCutter8();
 
@@ -337,7 +337,7 @@ public class TestCut extends TestCase {
 		assertTrue(area == 800);
 	}
 
-	public static Polyline makePolyline1() {
+	private static Polyline makePolyline1() {
 		Polyline poly = new Polyline();
 
 		poly.startPath(0, 0);
@@ -355,7 +355,7 @@ public class TestCut extends TestCase {
 		return poly;
 	}
 
-	public static Polyline makePolylineCutter1() {
+	private static Polyline makePolylineCutter1() {
 		Polyline poly = new Polyline();
 
 		poly.startPath(1, 0);
@@ -395,7 +395,7 @@ public class TestCut extends TestCase {
 		return poly;
 	}
 
-	public static Polyline makePolyline2() {
+	private static Polyline makePolyline2() {
 		Polyline poly = new Polyline();
 
 		poly.startPath(-2, 0);
@@ -410,7 +410,7 @@ public class TestCut extends TestCase {
 		return poly;
 	}
 
-	public static Polyline makePolylineCutter2() {
+	private static Polyline makePolylineCutter2() {
 		Polyline poly = new Polyline();
 
 		poly.startPath(-1.5, 0);
@@ -443,7 +443,7 @@ public class TestCut extends TestCase {
 		return poly;
 	}
 
-	public static Polygon makePolygon5() {
+	private static Polygon makePolygon5() {
 		Polygon poly = new Polygon();
 
 		poly.startPath(0, 0);
@@ -454,7 +454,7 @@ public class TestCut extends TestCase {
 		return poly;
 	}
 
-	public static Polyline makePolygonCutter5() {
+	private static Polyline makePolygonCutter5() {
 		Polyline poly = new Polyline();
 
 		poly.startPath(15, 0);
@@ -466,7 +466,7 @@ public class TestCut extends TestCase {
 		return poly;
 	}
 
-	public static Polygon makePolygon7() {
+	private static Polygon makePolygon7() {
 		Polygon poly = new Polygon();
 
 		poly.startPath(0, 0);
@@ -477,7 +477,7 @@ public class TestCut extends TestCase {
 		return poly;
 	}
 
-	public static Polyline makePolygonCutter7() {
+	private static Polyline makePolygonCutter7() {
 		Polyline poly = new Polyline();
 
 		poly.startPath(10, 10);
@@ -489,7 +489,7 @@ public class TestCut extends TestCase {
 		return poly;
 	}
 
-	public static Polygon makePolygon8() {
+	private static Polygon makePolygon8() {
 		Polygon poly = new Polygon();
 
 		poly.startPath(0, 0);
@@ -500,7 +500,7 @@ public class TestCut extends TestCase {
 		return poly;
 	}
 
-	public static Polyline makePolygonCutter8() {
+	private static Polyline makePolygonCutter8() {
 		Polyline poly = new Polyline();
 
 		poly.startPath(10, 10);
@@ -512,7 +512,7 @@ public class TestCut extends TestCase {
 		return poly;
 	}
 
-	public static Polygon makePolygon9() {
+	private static Polygon makePolygon9() {
 		Polygon poly = new Polygon();
 
 		poly.startPath(0, 0);
@@ -533,7 +533,7 @@ public class TestCut extends TestCase {
 		return poly;
 	}
 
-	public static Polyline makePolygonCutter9() {
+	private static Polyline makePolygonCutter9() {
 		Polyline poly = new Polyline();
 
 		poly.startPath(5, -1);
@@ -541,4 +541,20 @@ public class TestCut extends TestCase {
 
 		return poly;
 	}
+	
+	@Test
+	public void testGithubIssue253() {
+		//https://github.com/Esri/geometry-api-java/issues/253
+		SpatialReference spatialReference = SpatialReference.create(3857);
+		Polyline poly1 = new Polyline();
+		poly1.startPath(610, 552);
+		poly1.lineTo(610, 552);
+		Polyline poly2 = new Polyline();
+		poly2.startPath(610, 552);
+		poly2.lineTo(610, 552);
+		GeometryCursor cursor = OperatorCut.local().execute(true, poly1, poly2, spatialReference, null);
+
+		Geometry res = cursor.next();
+		assertTrue(res == null);
+	}	
 }
