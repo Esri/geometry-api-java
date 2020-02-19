@@ -513,6 +513,19 @@ public class Envelope extends Geometry implements Serializable {
 		m_envelope.queryCorners(dst);
 	}
 
+	public void helper(int v, int nattrib, Point ptDst){
+		
+		for (int i = 0; i < nattrib; i++) {
+			int semantics = m_description.getSemantics(i);
+			int ncomp = VertexDescription.getComponentCount(semantics);
+			//branch 3
+			//for every component set attributes to the point
+			for (int iord = 0; iord < ncomp; iord++)
+				ptDst.setAttribute(semantics, iord,
+						_getAttributeAsDbl(v, semantics, iord));
+		}
+	}
+
 	/**
 	 * Sets the point's coordinates to the coordinates of the envelope at the
 	 * given corner.
@@ -534,57 +547,56 @@ public class Envelope extends Geometry implements Serializable {
 	public void queryCornerByVal(int index, Point ptDst) {
 		ptDst.assignVertexDescription(m_description);
 		int nattrib = getDescription().getAttributeCount() - 1;
+		/* The switch tells wich corner of the envelope you want to set the point to. */
 		switch (index) {
+		//Branch 1
+		//lower left corner
 		case 0: {
-			for (int i = 0; i < nattrib; i++) {
-				int semantics = m_description.getSemantics(i);
-				int ncomp = VertexDescription.getComponentCount(semantics);
-				for (int iord = 0; iord < ncomp; iord++)
-					ptDst.setAttribute(semantics, iord,
-							_getAttributeAsDbl(0, semantics, iord));
-			}
+			//Branch 2  
+			//loops up to a counter in geometry
+			helper(0, nattrib, ptDst);
+			//Set the x,y values that is an corner of the envelope to the point
 			ptDst.setXY(m_envelope.xmin, m_envelope.ymin);
 			return;
 		}
-
+		//branch 4
+		//top-left corner
 		case 1: {
-			for (int i = 0; i < nattrib; i++) {
-				int semantics = m_description.getSemantics(i);
-				int ncomp = VertexDescription.getComponentCount(semantics);
-				for (int iord = 0; iord < ncomp; iord++)
-					ptDst.setAttribute(semantics, iord,
-							_getAttributeAsDbl(1, semantics, iord));
-			}
+			//branch 5
+			//loops up to a counter in geometry
+			helper(1, nattrib, ptDst);
+			//Set the x,y values that is an corner of the envelope to the point
 			ptDst.setXY(m_envelope.xmin, m_envelope.ymax);
 			return;
 		}
+		//branch 7
+		//top right corner
 		case 2: {
-			for (int i = 0; i < nattrib; i++) {
-				int semantics = m_description.getSemantics(i);
-				int ncomp = VertexDescription.getComponentCount(semantics);
-				for (int iord = 0; iord < ncomp; iord++)
-					ptDst.setAttribute(semantics, iord,
-							_getAttributeAsDbl(0, semantics, iord));
-			}
+			//branch 8
+			//loops up to a counter in geometry
+			helper(0, nattrib, ptDst);
+			//Set the x,y values that is an corner of the envelope to the point
 			ptDst.setXY(m_envelope.xmax, m_envelope.ymax);
 
 			return;
 		}
+		//branch 10
+		//bottom right
 		case 3: {
-			for (int i = 0; i < nattrib; i++) {
-				int semantics = m_description.getSemantics(i);
-				int ncomp = VertexDescription.getComponentCount(semantics);
-				for (int iord = 0; iord < ncomp; iord++)
-					ptDst.setAttribute(semantics, iord,
-							_getAttributeAsDbl(1, semantics, iord));
-			}
+			//branch 11
+			//loops up to a counter in geometry
+			helper(1, nattrib, ptDst);
+			//Set the x,y values that is an corner of the envelope to the point
 			ptDst.setXY(m_envelope.xmax, m_envelope.ymin);
 			return;
 		}
+		//branch 13
+		//illegal input
 		default:
 			throw new IndexOutOfBoundsException();
 		}
 	}
+
 
 	public void queryCorner(int index, Point2D ptDst) {
 		Point2D p = m_envelope.queryCorner(index);
