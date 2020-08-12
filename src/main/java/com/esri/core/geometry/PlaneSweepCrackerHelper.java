@@ -1212,9 +1212,14 @@ final class PlaneSweepCrackerHelper {
 		// Adjust the vertex coordinates and split the segments in the the edit
 		// shape.
 		applyIntersectorToEditShape_(edgeOrigins1, intersector, 0);
-		if (edge2 != -1)
+		if (edgeOrigins2 != -1)
 			applyIntersectorToEditShape_(edgeOrigins2, intersector, 1);
-
+		else {
+			assert (intersectionCluster != -1);
+			Point2D pt = intersector.getResultPoint().getXY();
+			updateClusterXY(intersectionCluster, pt);
+		}
+		
 		// Produce clusters, and new edges. The new edges are added to
 		// m_edges_to_insert_in_sweep_structure.
 		createEdgesAndClustersFromSplitEdge_(edge1, intersector, 0);
