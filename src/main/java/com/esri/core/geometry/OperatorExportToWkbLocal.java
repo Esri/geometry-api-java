@@ -750,7 +750,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 			if ((exportFlags & WkbExportFlags.wkbExportPoint) == 0) {
 				wkbBuffer.put(offset, byteOrder);
 				offset += 1;
-				wkbBuffer.putInt(offset, WkbGeometryType.wkbMultiPolygonZM);
+				wkbBuffer.putInt(offset, WkbGeometryType.wkbMultiPointZM);
 				offset += 4;
 				wkbBuffer.putInt(offset, point_count);
 				offset += 4;
