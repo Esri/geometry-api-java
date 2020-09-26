@@ -24,6 +24,7 @@
 
 package com.esri.core.geometry;
 
+import com.esri.core.geometry.ogc.OGCGeometry;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import junit.framework.TestCase;
@@ -107,4 +108,12 @@ public class TestWKBSupport extends TestCase {
 
 	}
 
+	@Test
+	public void testWKB3() throws Exception {
+		String multiPointWKT = "MULTIPOINT ZM(10 40 1 23, 40 30 2 45)";
+		OGCGeometry geometry = OGCGeometry.fromText(multiPointWKT);
+		ByteBuffer byteBuffer = geometry.asBinary();
+		OGCGeometry geomFromBinary = OGCGeometry.fromBinary(byteBuffer);
+		assertTrue(geometry.Equals(geomFromBinary));
+	}
 }
