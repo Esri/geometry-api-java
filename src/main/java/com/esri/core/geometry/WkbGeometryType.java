@@ -25,6 +25,9 @@
 package com.esri.core.geometry;
 
 interface WkbGeometryType {
+	int wkbZ = 1000;
+	int wkbM = 2000;
+	int wkbZM = 3000;
 	public static final int wkbPoint = 1;
 
 	public static final int wkbPointZ = 1001;
@@ -82,4 +85,71 @@ interface WkbGeometryType {
 	public static final int wkbGeometryCollectionZM = 3007;
 
 	public static final int wkbMultiPatch = 8;
+
+	// | 0x80000000
+	long eWkbZ = java.lang.Integer.toUnsignedLong(0x80000000);
+
+	int eWkbPointZ = 0x80000001;
+	int eWkbLineStringZ = 0x80000002;
+	int eWkbPolygonZ = 0x80000003;
+	int eWkbMultiPointZ = 0x80000004;
+	int eWkbMultiLineStringZ = 0x80000005;
+	int eWkbMultiPolygonZ = 0x80000006;
+	int eWkbGeometryCollectionZ = 0x80000007;
+
+	// | 0x40000000
+	long eWkbM = java.lang.Integer.toUnsignedLong(0x40000000);
+	int eWkbPointM = 0x40000001;
+	int eWkbLineStringM = 0x40000002;
+	int eWkbPolygonM = 0x40000003;
+	int eWkbMultiPointM = 0x40000004;
+	int eWkbMultiLineStringM = 0x40000005;
+	int eWkbMultiPolygonM = 0x40000006;
+	int eWkbGeometryCollectionM = 0x40000007;
+
+	// | 0x40000000 | 0x80000000
+	int eWkbPointZM = 0xC0000001;
+	int eWkbLineStringZM = 0xC0000002;
+	int eWkbPolygonZM = 0xC0000003;
+	int eWkbMultiPointZM = 0xC0000004;
+	int eWkbMultiLineStringZM = 0xC0000005;
+	int eWkbMultiPolygonZM = 0xC0000006;
+	int eWkbGeometryCollectionZM = 0xC0000007;
+
+	// | 0x20000000
+	int eWkbS = 0x20000000;
+	int eWkbPointS = 0x20000001;
+	int eWkbLineStringS = 0x20000002;
+	int eWkbPolygonS = 0x20000003;
+	int eWkbMultiPointS = 0x20000004;
+	int eWkbMultiLineStringS = 0x20000005;
+	int eWkbMultiPolygonS = 0x20000006;
+	int eWkbGeometryCollectionS = 0x20000007;
+
+	// | 0x20000000 | 0x80000000
+	int eWkbPointZS = 0xA0000001;
+	int eWkbLineStringZS = 0xA0000002;
+	int eWkbPolygonZS = 0xA0000003;
+	int eWkbMultiPointZS = 0xA0000004;
+	int eWkbMultiLineStringZS = 0xA0000005;
+	int eWkbMultiPolygonZS = 0xA0000006;
+	int eWkbGeometryCollectionZS = 0xA0000007;
+
+	// | 0x20000000 | 0x40000000
+	int eWkbPointMS = 0x60000001;
+	int eWkbLineStringMS = 0x60000002;
+	int eWkbPolygonMS = 0x60000003;
+	int eWkbMultiPointMS = 0x60000004;
+	int eWkbMultiLineStringMS = 0x60000005;
+	int eWkbMultiPolygonMS = 0x60000006;
+	int eWkbGeometryCollectionMS = 0x60000007;
+
+	// | 0x20000000 | 0x40000000 | 0x80000000
+	int eWkbPointZMS = 0xE0000001;
+	int eWkbLineStringZMS = 0xE0000002;
+	int eWkbPolygonZMS = 0xE0000003;
+	int eWkbMultiPointZMS = 0xE0000004;
+	int eWkbMultiLineStringZMS = 0xE0000005;
+	int eWkbMultiPolygonZMS = 0xE0000006;
+	int eWkbGeometryCollectionZMS = 0xE0000007;
 }

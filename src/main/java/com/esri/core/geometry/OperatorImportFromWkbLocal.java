@@ -195,175 +195,96 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 		return root;
 	}
 
+	public static boolean hasZ(int geometryType) {
+		// TODO implement if < 4000 for handling ewkb
+		return (WkbGeometryType.wkbZ & geometryType) == WkbGeometryType.wkbZ
+				|| (WkbGeometryType.wkbZM & geometryType) == WkbGeometryType.wkbZM;
+	}
+
+	public static boolean hasM(int geometryType) {
+		// TODO implement if < 4000 for handling ewkb
+		return (WkbGeometryType.wkbM & geometryType) == WkbGeometryType.wkbM
+				|| (WkbGeometryType.wkbZM & geometryType) == WkbGeometryType.wkbZM;
+	}
+
+	public static boolean hasEWkbZ(long geometryType) {
+		return (WkbGeometryType.eWkbZ & geometryType) == WkbGeometryType.eWkbZ;
+	}
+
+	public static boolean hasEWkbM(long geometryType) {
+		return (WkbGeometryType.eWkbM & geometryType) == WkbGeometryType.eWkbM;
+	}
 	private static Geometry importFromWkb(int importFlags, Geometry.Type type,
 			WkbHelper wkbHelper) {
 
 		// read type
 		int wkbType = wkbHelper.getInt(1);
 
-		switch (wkbType) {
-		case WkbGeometryType.wkbPolygon:
-			if (type.value() != Geometry.GeometryType.Polygon
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbPolygon(false, importFlags, false, false,
-					wkbHelper);
+		if (wkbType < 4000 && wkbType > 0) {
+			switch (wkbType % 10) {
+				case WkbGeometryType.wkbPolygon:
+					if (type.value() != Geometry.GeometryType.Polygon && type.value() != Geometry.GeometryType.Unknown)
+						throw new GeometryException("invalid shape type");
+					return importFromWkbPolygon(false, importFlags, hasZ(wkbType), hasM(wkbType), wkbHelper);
+				case WkbGeometryType.wkbMultiPolygon:
+					if (type.value() != Geometry.GeometryType.Polygon && type.value() != Geometry.GeometryType.Unknown)
+						throw new GeometryException("invalid shape type");
+					return importFromWkbPolygon(true, importFlags, hasZ(wkbType), hasM(wkbType), wkbHelper);
+				case WkbGeometryType.wkbLineString:
+					if (type.value() != Geometry.GeometryType.Polyline && type.value() != Geometry.GeometryType.Unknown)
+						throw new GeometryException("invalid shape type");
+					return importFromWkbPolyline(false, importFlags, hasZ(wkbType), hasM(wkbType), wkbHelper);
+				case WkbGeometryType.wkbMultiLineString:
+					if (type.value() != Geometry.GeometryType.Polyline && type.value() != Geometry.GeometryType.Unknown)
+						throw new GeometryException("invalid shape type");
+					return importFromWkbPolyline(true, importFlags, hasZ(wkbType), hasM(wkbType), wkbHelper);
+				case WkbGeometryType.wkbPoint:
+					if (type.value() != Geometry.GeometryType.Point && type.value() != Geometry.GeometryType.Unknown)
+						throw new GeometryException("invalid shape type");
+					return importFromWkbPoint(importFlags, hasZ(wkbType), hasM(wkbType), wkbHelper);
+				case WkbGeometryType.wkbMultiPoint:
+					if (type.value() != Geometry.GeometryType.MultiPoint && type.value() != Geometry.GeometryType.Unknown)
+						throw new GeometryException("invalid shape type");
+					return importFromWkbMultiPoint(importFlags, hasZ(wkbType), hasM(wkbType), wkbHelper);
+				default:
+					throw new GeometryException("invalid shape type");
+			}
+		} else {
 
-		case WkbGeometryType.wkbPolygonM:
-			if (type.value() != Geometry.GeometryType.Polygon
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbPolygon(false, importFlags, false, true,
-					wkbHelper);
+			// has a spatial reference
+			long wkbTypeForced = java.lang.Integer.toUnsignedLong(wkbType);
+			if ((wkbTypeForced | 0x20000000) == wkbTypeForced) {
+				int epsg = wkbHelper.getInt(5);
+				wkbHelper.adjustment += 4;
+			}
 
-		case WkbGeometryType.wkbPolygonZ:
-			if (type.value() != Geometry.GeometryType.Polygon
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbPolygon(false, importFlags, true, false,
-					wkbHelper);
-
-		case WkbGeometryType.wkbPolygonZM:
-			if (type.value() != Geometry.GeometryType.Polygon
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbPolygon(false, importFlags, true, true,
-					wkbHelper);
-
-		case WkbGeometryType.wkbMultiPolygon:
-			if (type.value() != Geometry.GeometryType.Polygon
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbPolygon(true, importFlags, false, false,
-					wkbHelper);
-
-		case WkbGeometryType.wkbMultiPolygonM:
-			if (type.value() != Geometry.GeometryType.Polygon
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbPolygon(true, importFlags, false, true,
-					wkbHelper);
-
-		case WkbGeometryType.wkbMultiPolygonZ:
-			if (type.value() != Geometry.GeometryType.Polygon
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbPolygon(true, importFlags, true, false,
-					wkbHelper);
-
-		case WkbGeometryType.wkbMultiPolygonZM:
-			if (type.value() != Geometry.GeometryType.Polygon
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbPolygon(true, importFlags, true, true,
-					wkbHelper);
-
-		case WkbGeometryType.wkbLineString:
-			if (type.value() != Geometry.GeometryType.Polyline
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbPolyline(false, importFlags, false, false,
-					wkbHelper);
-
-		case WkbGeometryType.wkbLineStringM:
-			if (type.value() != Geometry.GeometryType.Polyline
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbPolyline(false, importFlags, false, true,
-					wkbHelper);
-
-		case WkbGeometryType.wkbLineStringZ:
-			if (type.value() != Geometry.GeometryType.Polyline
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbPolyline(false, importFlags, true, false,
-					wkbHelper);
-
-		case WkbGeometryType.wkbLineStringZM:
-			if (type.value() != Geometry.GeometryType.Polyline
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbPolyline(false, importFlags, true, true,
-					wkbHelper);
-
-		case WkbGeometryType.wkbMultiLineString:
-			if (type.value() != Geometry.GeometryType.Polyline
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbPolyline(true, importFlags, false, false,
-					wkbHelper);
-
-		case WkbGeometryType.wkbMultiLineStringM:
-			if (type.value() != Geometry.GeometryType.Polyline
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbPolyline(true, importFlags, false, true,
-					wkbHelper);
-
-		case WkbGeometryType.wkbMultiLineStringZ:
-			if (type.value() != Geometry.GeometryType.Polyline
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbPolyline(true, importFlags, true, false,
-					wkbHelper);
-
-		case WkbGeometryType.wkbMultiLineStringZM:
-			if (type.value() != Geometry.GeometryType.Polyline
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbPolyline(true, importFlags, true, true,
-					wkbHelper);
-
-		case WkbGeometryType.wkbMultiPoint:
-			if (type.value() != Geometry.GeometryType.MultiPoint
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbMultiPoint(importFlags, false, false, wkbHelper);
-
-		case WkbGeometryType.wkbMultiPointM:
-			if (type.value() != Geometry.GeometryType.MultiPoint
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbMultiPoint(importFlags, false, true, wkbHelper);
-
-		case WkbGeometryType.wkbMultiPointZ:
-			if (type.value() != Geometry.GeometryType.MultiPoint
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbMultiPoint(importFlags, true, false, wkbHelper);
-
-		case WkbGeometryType.wkbMultiPointZM:
-			if (type.value() != Geometry.GeometryType.MultiPoint
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbMultiPoint(importFlags, true, true, wkbHelper);
-
-		case WkbGeometryType.wkbPoint:
-			if (type.value() != Geometry.GeometryType.Point
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbPoint(importFlags, false, false, wkbHelper);
-
-		case WkbGeometryType.wkbPointM:
-			if (type.value() != Geometry.GeometryType.Point
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbPoint(importFlags, false, true, wkbHelper);
-
-		case WkbGeometryType.wkbPointZ:
-			if (type.value() != Geometry.GeometryType.Point
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbPoint(importFlags, true, false, wkbHelper);
-
-		case WkbGeometryType.wkbPointZM:
-			if (type.value() != Geometry.GeometryType.Point
-					&& type.value() != Geometry.GeometryType.Unknown)
-				throw new GeometryException("invalid shape type");
-			return importFromWkbPoint(importFlags, true, true, wkbHelper);
-
-		default:
-			throw new GeometryException("invalid shape type");
+			if ((wkbTypeForced & WkbGeometryType.wkbPolygon) == WkbGeometryType.wkbPolygon) {
+				if (type.value() != Geometry.GeometryType.Polygon && type.value() != Geometry.GeometryType.Unknown)
+					throw new GeometryException("invalid shape type");
+				return importFromWkbPolygon(false, importFlags, hasEWkbZ(wkbTypeForced), hasEWkbM(wkbTypeForced), wkbHelper);
+			} else if ((wkbTypeForced & WkbGeometryType.wkbMultiPolygon) == WkbGeometryType.wkbMultiPolygon) {
+				if (type.value() != Geometry.GeometryType.Polygon && type.value() != Geometry.GeometryType.Unknown)
+					throw new GeometryException("invalid shape type");
+				return importFromWkbPolygon(true, importFlags, hasEWkbZ(wkbTypeForced), hasEWkbM(wkbTypeForced), wkbHelper);
+			} else if ((wkbTypeForced & WkbGeometryType.wkbLineString) == WkbGeometryType.wkbLineString) {
+				if (type.value() != Geometry.GeometryType.Polyline && type.value() != Geometry.GeometryType.Unknown)
+					throw new GeometryException("invalid shape type");
+				return importFromWkbPolyline(false, importFlags, hasEWkbZ(wkbTypeForced), hasEWkbM(wkbTypeForced), wkbHelper);
+			} else if ((wkbTypeForced & WkbGeometryType.wkbMultiLineString) == WkbGeometryType.wkbMultiLineString) {
+				if (type.value() != Geometry.GeometryType.Polyline && type.value() != Geometry.GeometryType.Unknown)
+					throw new GeometryException("invalid shape type");
+				return importFromWkbPolyline(true, importFlags, hasEWkbZ(wkbTypeForced), hasEWkbM(wkbTypeForced), wkbHelper);
+			} else if ((wkbTypeForced & WkbGeometryType.wkbPoint) == WkbGeometryType.wkbPoint) {
+				if (type.value() != Geometry.GeometryType.Point && type.value() != Geometry.GeometryType.Unknown)
+					throw new GeometryException("invalid shape type");
+				return importFromWkbPoint(importFlags, hasEWkbZ(wkbTypeForced), hasEWkbM(wkbTypeForced), wkbHelper);
+			} else if ((wkbTypeForced & WkbGeometryType.wkbMultiPoint) == WkbGeometryType.wkbMultiPoint) {
+				if (type.value() != Geometry.GeometryType.MultiPoint && type.value() != Geometry.GeometryType.Unknown)
+					throw new GeometryException("invalid shape type");
+				return importFromWkbMultiPoint(importFlags, hasEWkbZ(wkbTypeForced), hasEWkbM(wkbTypeForced), wkbHelper);
+			} else {
+					throw new GeometryException("invalid shape type");
+			}
 		}
 	}
 
