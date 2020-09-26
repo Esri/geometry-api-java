@@ -196,13 +196,11 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 	}
 
 	public static boolean hasZ(int geometryType) {
-		// TODO implement if < 4000 for handling ewkb
 		return (WkbGeometryType.wkbZ & geometryType) == WkbGeometryType.wkbZ
 				|| (WkbGeometryType.wkbZM & geometryType) == WkbGeometryType.wkbZM;
 	}
 
 	public static boolean hasM(int geometryType) {
-		// TODO implement if < 4000 for handling ewkb
 		return (WkbGeometryType.wkbM & geometryType) == WkbGeometryType.wkbM
 				|| (WkbGeometryType.wkbZM & geometryType) == WkbGeometryType.wkbZM;
 	}
