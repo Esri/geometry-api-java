@@ -1766,11 +1766,11 @@ public class TestImportExport extends TestCase {
 
 		for (String shapely : shapelyHex) {
 			byte[] ewkb =  hexStringToByteArray(shapely);
-			OperatorImportFromWkb operatorImportFromWkb = (OperatorImportFromWkb)OperatorFactoryLocal.getInstance().getOperator(Operator.Type.ImportFromWkb);
-			OperatorExportToWkb operatorExportToWkb = (OperatorExportToWkb)OperatorFactoryLocal.getInstance().getOperator(Operator.Type.ExportToWkb);
+			OperatorImportFromEWkb operatorImportFromEWkb = (OperatorImportFromEWkb)OperatorFactoryLocal.getInstance().getOperator(Operator.Type.ImportFromEWkb);
+			OperatorExportToEWkb operatorExportToWkb = (OperatorExportToEWkb)OperatorFactoryLocal.getInstance().getOperator(Operator.Type.ExportToEWkb);
 			ByteBuffer byteBuffer = ByteBuffer.wrap(ewkb);
-			Geometry geometry = operatorImportFromWkb.execute(0, Geometry.Type.Unknown, byteBuffer, null);
-			ByteBuffer result = operatorExportToWkb.execute(WkbExportFlags.wkbExportAsExtendedWkb, geometry, null);
+			MapGeometry mapGeometry = operatorImportFromEWkb.execute(0, Geometry.Type.Unknown, byteBuffer, null);
+			ByteBuffer result = operatorExportToWkb.execute(WkbExportFlags.wkbExportAsExtendedWkb, mapGeometry.getGeometry(), null, null);
 
 			ByteBuffer expected = ByteBuffer.wrap(ewkb);
 			// endianness

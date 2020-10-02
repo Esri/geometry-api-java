@@ -29,33 +29,31 @@ import java.nio.ByteBuffer;
 import com.esri.core.geometry.Operator.Type;
 
 /**
- *Import from Extended WKB format.
+ *Import from PostGIS specific Extended WKB format.
+ *See also {@link OperatorExportFromEWkb} for export.
+ *
+ *For ISO WKB, use {@link OperatorImportFromWkb} instead.
  */
 public abstract class OperatorImportFromEWkb extends Operator {
-	SpatialReference m_spatialReference = null;
-
 	@Override
 	public Type getType() {
 		return Type.ImportFromEWkb;
 	}
 
-	public abstract SpatialReference getSpatialReference();
-
 	/**
 	 * Performs the ImportFromWKB operation.
 	 * @param importFlags Use the {@link WkbImportFlags} interface.
-	 * @param type Use the {@link Geometry.Type} enum. 
-	 * @param eWkbBuffer The buffer holding the Geometry in extended wkb format.
-	 * @return Returns the imported Geometry.
+	 * @param type Use the {@link Geometry.Type} enum.
+	 * @param eWkbBuffer The buffer holding the Geometry in EWKB format.
+	 * @return Returns the imported MapGeometry. SpatialReference field can be NULL, if EKWB does not contain SRID.
 	 */
-	public abstract Geometry execute(int importFlags,
-	                                 Geometry.Type type,
-	                                 ByteBuffer eWkbBuffer,
-	                                 ProgressTracker progress_tracker);
+	public abstract MapGeometry execute(int importFlags,
+	                                    Geometry.Type type,
+	                                    ByteBuffer eWkbBuffer,
+	                                    ProgressTracker progress_tracker);
 
 	public static OperatorImportFromEWkb local() {
 		return (OperatorImportFromEWkb) OperatorFactoryLocal.getInstance()
 				.getOperator(Type.ImportFromEWkb);
 	}
-
 }

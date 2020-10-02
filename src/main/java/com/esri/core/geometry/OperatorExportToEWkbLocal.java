@@ -7,19 +7,6 @@ import static com.esri.core.geometry.OperatorExportToWkbLocal.exportToWKB;
 
 public class OperatorExportToEWkbLocal extends OperatorExportToEWkb {
 	@Override
-	public ByteBuffer execute(int exportFlags, Geometry geometry, ProgressTracker progressTracker) {
-		int size = exportToWKB(exportFlags, geometry, null, 0);
-		ByteBuffer wkbBuffer = ByteBuffer.allocate(size).order(ByteOrder.nativeOrder());
-		exportToWKB(exportFlags, geometry, wkbBuffer, 0);
-		return wkbBuffer;
-	}
-
-	@Override
-	public int execute(int exportFlags, Geometry geometry, ByteBuffer wkbBuffer, ProgressTracker progressTracker) {
-		return exportToWKB(exportFlags, geometry, wkbBuffer, 0);
-	}
-
-	@Override
 	public ByteBuffer execute(int exportFlags, Geometry geometry, SpatialReference spatialReference, ProgressTracker progressTracker) {
 		int srid = getSrid(spatialReference);
 
@@ -30,7 +17,7 @@ public class OperatorExportToEWkbLocal extends OperatorExportToEWkb {
 	}
 
 	@Override
-	public int execute(int exportFlags, Geometry geometry, ByteBuffer wkbBuffer, SpatialReference spatialReference, ProgressTracker progressTracker) {
+	public int execute(int exportFlags, Geometry geometry, SpatialReference spatialReference, ByteBuffer wkbBuffer, ProgressTracker progressTracker) {
 		int srid = 0;
 		if (spatialReference != null) {
 			srid = spatialReference.getID();

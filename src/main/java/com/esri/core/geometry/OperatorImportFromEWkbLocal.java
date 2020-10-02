@@ -4,10 +4,10 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class OperatorImportFromEWkbLocal extends OperatorImportFromEWkb {
-	public SpatialReference getSpatialReference() { return m_spatialReference; }
+	SpatialReference m_spatialReference = null;
 
 	@Override
-	public Geometry execute(int importFlags, Geometry.Type type, ByteBuffer eWkbBuffer, ProgressTracker progress_tracker) {
+	public MapGeometry execute(int importFlags, Geometry.Type type, ByteBuffer eWkbBuffer, ProgressTracker progress_tracker) {
 		ByteOrder initialOrder = eWkbBuffer.order();
 
 		// read byte ordering
@@ -21,7 +21,8 @@ public class OperatorImportFromEWkbLocal extends OperatorImportFromEWkb {
 		OperatorImportFromWkbLocal.WkbHelper wkbHelper = new OperatorImportFromWkbLocal.WkbHelper(eWkbBuffer);
 
 		try {
-			return importFromEWkb(importFlags, type, wkbHelper);
+			Geometry geometry = importFromEWkb(importFlags, type, wkbHelper);
+			return new MapGeometry(geometry, m_spatialReference);
 		} finally {
 			eWkbBuffer.order(initialOrder);
 		}
