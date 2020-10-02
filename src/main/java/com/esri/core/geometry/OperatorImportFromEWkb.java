@@ -39,9 +39,8 @@ public abstract class OperatorImportFromEWkb extends Operator {
 	public Type getType() {
 		return Type.ImportFromEWkb;
 	}
-
 	/**
-	 * Performs the ImportFromWKB operation.
+	 * Performs the Import from EWKB operation. Expects Extended WKB (not ISO WKB)
 	 * @param importFlags Use the {@link WkbImportFlags} interface.
 	 * @param type Use the {@link Geometry.Type} enum.
 	 * @param eWkbBuffer The buffer holding the Geometry in EWKB format.

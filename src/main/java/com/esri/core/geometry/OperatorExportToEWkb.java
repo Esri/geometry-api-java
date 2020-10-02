@@ -14,7 +14,6 @@ public abstract class OperatorExportToEWkb extends Operator {
 		return Type.ExportToWkb;
 	}
 
-
 	/**
 	 * Performs the Export To EWKB operation.
 	 * @param exportFlags Use the {@link WkbExportFlags} interface.
