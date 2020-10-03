@@ -56,11 +56,6 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 	}
 
 	@Override
-	public GeometryCursor execute(int importFlags, ByteBufferCursor wkbBuffers, ProgressTracker progressTracker) {
-		return new OperatorImportFromWkbCursor(importFlags, wkbBuffers);
-	}
-
-	@Override
 	public Geometry execute(int importFlags, Geometry.Type type,
 			ByteBuffer wkbBuffer, ProgressTracker progress_tracker) {
 

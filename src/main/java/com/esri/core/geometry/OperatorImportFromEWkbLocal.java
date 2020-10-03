@@ -5,11 +5,6 @@ import java.nio.ByteOrder;
 
 public class OperatorImportFromEWkbLocal extends OperatorImportFromEWkb {
 	@Override
-	public MapGeometryCursor execute(int importFlags, ByteBufferCursor eWkbBuffers, ProgressTracker progressTracker) {
-		return new OperatorImportFromEWkbCursor(importFlags, eWkbBuffers);
-	}
-
-	@Override
 	public MapGeometry execute(int importFlags, Geometry.Type type, ByteBuffer eWkbBuffer, ProgressTracker progress_tracker) {
 		ByteOrder initialOrder = eWkbBuffer.order();
 
