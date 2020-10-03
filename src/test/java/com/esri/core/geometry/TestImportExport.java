@@ -30,6 +30,8 @@ import java.nio.ByteOrder;
 import junit.framework.TestCase;
 import org.junit.Test;
 
+import static com.esri.core.geometry.WkbExportFlags.wkbExportStripSrid;
+
 public class TestImportExport extends TestCase {
 
 	@Override
@@ -550,6 +552,7 @@ public class TestImportExport extends TestCase {
 		OperatorExportToEWkb exporterWKB = (OperatorExportToEWkb) OperatorFactoryLocal.getInstance().getOperator(Operator.Type.ExportToEWkb);
 		OperatorExportToWkt exporterWKT = (OperatorExportToWkt) OperatorFactoryLocal.getInstance().getOperator(Operator.Type.ExportToWkt);
 		OperatorImportFromEWkb importerWKB = (OperatorImportFromEWkb) OperatorFactoryLocal.getInstance().getOperator(Operator.Type.ImportFromEWkb);
+		SpatialReference spatialReference = SpatialReference.create(4326);
 
 		// Test Import Polygon with bad rings
 		int offset = 0;
@@ -664,45 +667,47 @@ public class TestImportExport extends TestCase {
 		Polygon polygon = makePolygon();
 
 		// Test Import Polygon from Polygon8
-		ByteBuffer polygonWKBBuffer = exporterWKB.execute(0, polygon, null, null);
+		ByteBuffer polygonWKBBuffer = exporterWKB.execute(0, polygon, spatialReference, null);
 		long wkbType = java.lang.Integer.toUnsignedLong(polygonWKBBuffer.getInt(1));
-		long expectedType = java.lang.Integer.toUnsignedLong(WkbGeometryType.eWkbMultiPolygonZM);
-		assertTrue(wkbType == expectedType);
+		long expectedType = java.lang.Integer.toUnsignedLong(WkbGeometryType.eWkbMultiPolygonZMS);
+		assertEquals(wkbType, expectedType);
 		MapGeometry polygonWKBGeometry = importerWKB.execute(0, Geometry.Type.Polygon, polygonWKBBuffer, null);
+		assertEquals(spatialReference.getID(), polygonWKBGeometry.getSpatialReference().getID());
 		TestCommonMethods.compareGeometryContent((MultiVertexGeometry) polygonWKBGeometry.getGeometry(), polygon);
 
 		// Test WKB_export_multi_polygon on nonempty single part polygon
 		Polygon polygon2 = makePolygon2();
-		assertTrue(polygon2.getPathCount() == 1);
-		polygonWKBBuffer = exporterWKB.execute(WkbExportFlags.wkbExportMultiPolygon, polygon2, null, null);
+		assertEquals(1, polygon2.getPathCount());
+		polygonWKBBuffer = exporterWKB.execute(WkbExportFlags.wkbExportMultiPolygon | wkbExportStripSrid, polygon2, null, null);
 		polygonWKBGeometry = importerWKB.execute(0, Geometry.Type.Polygon, polygonWKBBuffer, null);
 		TestCommonMethods.compareGeometryContent((MultiVertexGeometry) polygonWKBGeometry.getGeometry(), polygon2);
 		wkbType = java.lang.Integer.toUnsignedLong(polygonWKBBuffer.getInt(1));
-		assertTrue(wkbType == expectedType);
+		expectedType = java.lang.Integer.toUnsignedLong(WkbGeometryType.eWkbMultiPolygonZM);
+		assertEquals(wkbType, expectedType);
 
 		// Test WKB_export_polygon on nonempty single part polygon
-		assertTrue(polygon2.getPathCount() == 1);
+		assertEquals(1, polygon2.getPathCount());
 		polygonWKBBuffer = exporterWKB.execute(WkbExportFlags.wkbExportPolygon, polygon2, null, null);
 		polygonWKBGeometry = importerWKB.execute(0, Geometry.Type.Polygon, polygonWKBBuffer, null);
 		TestCommonMethods.compareGeometryContent((MultiVertexGeometry) polygonWKBGeometry.getGeometry(), polygon2);
 		wkbType = java.lang.Integer.toUnsignedLong(polygonWKBBuffer.getInt(1));
 		expectedType = java.lang.Integer.toUnsignedLong(WkbGeometryType.eWkbPolygonZM);
-		assertTrue(wkbType == expectedType);
+		assertEquals(wkbType, expectedType);
 
 		// Test WKB_export_polygon on empty polygon
 		Polygon polygon3 = new Polygon();
 		polygonWKBBuffer = exporterWKB.execute(WkbExportFlags.wkbExportPolygon, polygon3, null, null);
 		polygonWKBGeometry = importerWKB.execute(0, Geometry.Type.Polygon, polygonWKBBuffer, null);
-		assertTrue(polygonWKBGeometry.getGeometry().isEmpty() == true);
+		assertTrue(polygonWKBGeometry.getGeometry().isEmpty());
 		wkbType = polygonWKBBuffer.getInt(1);
-		assertTrue(wkbType == WkbGeometryType.wkbPolygon);
+		assertEquals(wkbType, WkbGeometryType.wkbPolygon);
 
 		// Test WKB_export_defaults on empty polygon
 		polygonWKBBuffer = exporterWKB.execute(0, polygon3, null, null);
 		polygonWKBGeometry = importerWKB.execute(0, Geometry.Type.Polygon, polygonWKBBuffer, null);
-		assertTrue(polygonWKBGeometry.getGeometry().isEmpty() == true);
+		assertTrue(polygonWKBGeometry.getGeometry().isEmpty());
 		wkbType = polygonWKBBuffer.getInt(1);
-		assertTrue(wkbType == WkbGeometryType.wkbMultiPolygon);
+		assertEquals(wkbType, WkbGeometryType.wkbMultiPolygon);
 	}
 
 	@Test
@@ -882,8 +887,8 @@ public class TestImportExport extends TestCase {
 		Polyline p = (Polyline) (importerEWKB.execute(0, Geometry.Type.Polyline, wkbBuffer, null).getGeometry());
 		int pc = p.getPointCount();
 		int pac = p.getPathCount();
-		assertTrue(p.getPointCount() == 7);
-		assertTrue(p.getPathCount() == 3);
+		assertEquals(7, p.getPointCount());
+		assertEquals(3, p.getPathCount());
 
 		String wktString = exporterWKT.execute(0, p, null);
 		assertTrue(wktString.equals("MULTILINESTRING ((36 17, 36 17), (19 19, 19 19), (88 29, 13 43, 59 88))"));
@@ -892,41 +897,49 @@ public class TestImportExport extends TestCase {
 		polyline.dropAttribute(VertexDescription.Semantics.ID);
 
 		// Test Import Polyline from Polyline
-		ByteBuffer polylineEWKBBuffer = exporterEWKB.execute(0, polyline, null, null);
+		ByteBuffer polylineEWKBBuffer = exporterEWKB.execute(0, polyline, SpatialReference.create(4326), null);
 		int wkbType = polylineEWKBBuffer.getInt(1);
-		assertTrue(wkbType == WkbGeometryType.eWkbMultiLineStringZM);
-		Geometry polylineEWKBGeometry = importerEWKB.execute(0, Geometry.Type.Polyline, polylineEWKBBuffer, null).getGeometry();
-		TestCommonMethods.compareGeometryContent((MultiVertexGeometry) polylineEWKBGeometry, polyline);
+		assertEquals(wkbType, WkbGeometryType.eWkbMultiLineStringZMS);
+		MapGeometry polylineEWKBMapGeometry = importerEWKB.execute(0, Geometry.Type.Polyline, polylineEWKBBuffer, null);
+		TestCommonMethods.compareGeometryContent((MultiVertexGeometry) polylineEWKBMapGeometry.getGeometry(), polyline);
+		assertEquals(4326, polylineEWKBMapGeometry.getSpatialReference().getID());
+
+		polylineEWKBBuffer = exporterEWKB.execute(WkbExportFlags.wkbExportMultiLineString | wkbExportStripSrid, polylineEWKBMapGeometry.getGeometry(), polylineEWKBMapGeometry.getSpatialReference(),null);
+		MapGeometry polylineEWKBMapGeometry2 = importerEWKB.execute(0, Geometry.Type.Polyline, polylineEWKBBuffer, null);
+		assertNull(polylineEWKBMapGeometry2.getSpatialReference());
+		TestCommonMethods.compareGeometryContent((MultiVertexGeometry) polylineEWKBMapGeometry.getGeometry(), (MultiVertexGeometry)polylineEWKBMapGeometry2.getGeometry());
+		wkbType = polylineEWKBBuffer.getInt(1);
+		assertEquals(wkbType, WkbGeometryType.eWkbMultiLineStringZM);
 
 		// Test wkbExportMultiPolyline on nonempty single part polyline
 		Polyline polyline2 = makePolyline2();
-		assertTrue(polyline2.getPathCount() == 1);
+		assertEquals(1, polyline2.getPathCount());
 		polylineEWKBBuffer = exporterEWKB.execute(WkbExportFlags.wkbExportMultiLineString, polyline2, null,null);
-		polylineEWKBGeometry = importerEWKB.execute(0, Geometry.Type.Polyline, polylineEWKBBuffer, null).getGeometry();
-		TestCommonMethods.compareGeometryContent((MultiVertexGeometry) polylineEWKBGeometry, polyline2);
+		polylineEWKBMapGeometry = importerEWKB.execute(0, Geometry.Type.Polyline, polylineEWKBBuffer, null);
+		TestCommonMethods.compareGeometryContent((MultiVertexGeometry) polylineEWKBMapGeometry.getGeometry(), polyline2);
 		wkbType = polylineEWKBBuffer.getInt(1);
-		assertTrue(wkbType == WkbGeometryType.eWkbMultiLineStringZM);
+		assertEquals(wkbType, WkbGeometryType.eWkbMultiLineStringZM);
 
 		// Test wkbExportPolyline on nonempty single part polyline
-		assertTrue(polyline2.getPathCount() == 1);
+		assertEquals(1, polyline2.getPathCount());
 		polylineEWKBBuffer = exporterEWKB.execute(WkbExportFlags.wkbExportLineString, polyline2, null, null);
-		polylineEWKBGeometry = importerEWKB.execute(0, Geometry.Type.Polyline, polylineEWKBBuffer, null).getGeometry();
-		TestCommonMethods.compareGeometryContent((MultiVertexGeometry) polylineEWKBGeometry, polyline2);
+		polylineEWKBMapGeometry = importerEWKB.execute(0, Geometry.Type.Polyline, polylineEWKBBuffer, null);
+		TestCommonMethods.compareGeometryContent((MultiVertexGeometry) polylineEWKBMapGeometry.getGeometry(), polyline2);
 		wkbType = polylineEWKBBuffer.getInt(1);
-		assertTrue(wkbType == WkbGeometryType.eWkbLineStringZM);
+		assertEquals(wkbType, WkbGeometryType.eWkbLineStringZM);
 
 		// Test wkbExportPolyline on empty polyline
 		Polyline polyline3 = new Polyline();
 		polylineEWKBBuffer = exporterEWKB.execute(WkbExportFlags.wkbExportLineString, polyline3, null, null);
-		polylineEWKBGeometry = importerEWKB.execute(0, Geometry.Type.Polyline, polylineEWKBBuffer, null).getGeometry();
-		assertTrue(polylineEWKBGeometry.isEmpty() == true);
+		polylineEWKBMapGeometry = importerEWKB.execute(0, Geometry.Type.Polyline, polylineEWKBBuffer, null);
+		assertEquals(true, polylineEWKBMapGeometry.getGeometry().isEmpty());
 		wkbType = polylineEWKBBuffer.getInt(1);
-		assertTrue(wkbType == WkbGeometryType.wkbLineString);
+		assertEquals(wkbType, WkbGeometryType.wkbLineString);
 
 		// Test EWKB_export_defaults on empty polyline
 		polylineEWKBBuffer = exporterEWKB.execute(0, polyline3, null, null);
-		polylineEWKBGeometry = importerEWKB.execute(0, Geometry.Type.Polyline, polylineEWKBBuffer, null).getGeometry();
-		assertTrue(polylineEWKBGeometry.isEmpty() == true);
+		polylineEWKBMapGeometry = importerEWKB.execute(0, Geometry.Type.Polyline, polylineEWKBBuffer, null);
+		assertTrue(polylineEWKBMapGeometry.getGeometry().isEmpty() == true);
 		wkbType = polylineEWKBBuffer.getInt(1);
 		assertTrue(wkbType == WkbGeometryType.wkbMultiLineString);
 	}
@@ -940,11 +953,12 @@ public class TestImportExport extends TestCase {
 		multipoint.dropAttribute(VertexDescription.Semantics.ID);
 
 		// Test Import Multi_point from Multi_point
-		ByteBuffer multipointEWKBBuffer = exporterEWKB.execute(0, multipoint, null,null);
+		ByteBuffer multipointEWKBBuffer = exporterEWKB.execute(0, multipoint, SpatialReference.create(4326),null);
 		int wkbType = multipointEWKBBuffer.getInt(1);
-		assertTrue(wkbType == WkbGeometryType.eWkbMultiPointZ);
-		MultiPoint multipointEWKBGeometry = (MultiPoint) (importerEWKB.execute(0, Geometry.Type.MultiPoint, multipointEWKBBuffer, null).getGeometry());
-		TestCommonMethods.compareGeometryContent((MultiVertexGeometry) multipointEWKBGeometry, multipoint);
+		assertEquals(wkbType, WkbGeometryType.eWkbMultiPointZS);
+		MapGeometry multipointEWKBMapGeometry = importerEWKB.execute(0, Geometry.Type.MultiPoint, multipointEWKBBuffer, null);
+		TestCommonMethods.compareGeometryContent((MultiVertexGeometry) multipointEWKBMapGeometry.getGeometry(), multipoint);
+		assertEquals(4326, multipointEWKBMapGeometry.getSpatialReference().getID());
 
 		// Test EWKB_export_point on nonempty single point Multi_point
 		MultiPoint multipoint2 = makeMultiPoint2();
@@ -968,7 +982,7 @@ public class TestImportExport extends TestCase {
 
 		// Test EWKB_export_defaults on empty Multi_point
 		multipointEWKBBuffer = exporterEWKB.execute(0, multipoint3, null, null);
-		multipointEWKBGeometry = (MultiPoint) (importerEWKB.execute(0, Geometry.Type.MultiPoint, multipointEWKBBuffer, null).getGeometry());
+		MultiPoint multipointEWKBGeometry = (MultiPoint) (importerEWKB.execute(0, Geometry.Type.MultiPoint, multipointEWKBBuffer, null).getGeometry());
 		assertTrue(multipointEWKBGeometry.isEmpty() == true);
 		wkbType = multipointEWKBBuffer.getInt(1);
 		assertTrue(wkbType == WkbGeometryType.wkbMultiPoint);
@@ -1027,51 +1041,51 @@ public class TestImportExport extends TestCase {
 		// Test Import Point from Point
 		ByteBuffer pointWKBBuffer = exporterWKB.execute(0, point, null);
 		int wkbType = pointWKBBuffer.getInt(1);
-		assertTrue(wkbType == WkbGeometryType.wkbPointZM);
+		assertEquals(wkbType, WkbGeometryType.wkbPointZM);
 		Point pointWKBGeometry = (Point) (importerWKB.execute(0, Geometry.Type.Point, pointWKBBuffer, null));
 
 		double x_1 = point.getX();
 		double x2 = pointWKBGeometry.getX();
-		assertTrue(x_1 == x2);
+		assertEquals(x_1, x2);
 
 		double y1 = point.getY();
 		double y2 = pointWKBGeometry.getY();
-		assertTrue(y1 == y2);
+		assertEquals(y1, y2);
 
 		double z_1 = point.getZ();
 		double z_2 = pointWKBGeometry.getZ();
-		assertTrue(z_1 == z_2);
+		assertEquals(z_1, z_2);
 
 		double m1 = point.getM();
 		double m2 = pointWKBGeometry.getM();
-		assertTrue(m1 == m2);
+		assertEquals(m1, m2);
 
 		// Test WKB_export_defaults on empty point
 		Point point2 = new Point();
 		pointWKBBuffer = exporterWKB.execute(0, point2, null);
 		pointWKBGeometry = (Point) (importerWKB.execute(0, Geometry.Type.Point, pointWKBBuffer, null));
-		assertTrue(pointWKBGeometry.isEmpty() == true);
+		assertTrue(pointWKBGeometry.isEmpty());
 		wkbType = pointWKBBuffer.getInt(1);
-		assertTrue(wkbType == WkbGeometryType.wkbPoint);
+		assertEquals(wkbType, WkbGeometryType.wkbPoint);
 
 		// Test WKB_export_point on empty point
 		pointWKBBuffer = exporterWKB.execute(WkbExportFlags.wkbExportPoint, point2, null);
 		pointWKBGeometry = (Point) (importerWKB.execute(0, Geometry.Type.Point, pointWKBBuffer, null));
-		assertTrue(pointWKBGeometry.isEmpty() == true);
+		assertTrue(pointWKBGeometry.isEmpty());
 		wkbType = pointWKBBuffer.getInt(1);
-		assertTrue(wkbType == WkbGeometryType.wkbPoint);
+		assertEquals(wkbType, WkbGeometryType.wkbPoint);
 
 		// Test WKB_export_multi_point on empty point
 		MultiPoint multipoint = new MultiPoint();
 		ByteBuffer multipointWKBBuffer = exporterWKB.execute(WkbExportFlags.wkbExportMultiPoint, multipoint, null);
 		MultiPoint multipointWKBGeometry = (MultiPoint) (importerWKB.execute(0, Geometry.Type.MultiPoint, multipointWKBBuffer, null));
-		assertTrue(multipointWKBGeometry.isEmpty() == true);
+		assertTrue(multipointWKBGeometry.isEmpty());
 		wkbType = multipointWKBBuffer.getInt(1);
-		assertTrue(wkbType == WkbGeometryType.wkbMultiPoint);
+		assertEquals(wkbType, WkbGeometryType.wkbMultiPoint);
 
 		// Test WKB_export_point on nonempty single point Multi_point
 		MultiPoint multipoint2 = makeMultiPoint2();
-		assertTrue(multipoint2.getPointCount() == 1);
+		assertEquals(1, multipoint2.getPointCount());
 		pointWKBBuffer = exporterWKB.execute(WkbExportFlags.wkbExportPoint, multipoint2, null);
 		pointWKBGeometry = (Point) (importerWKB.execute(0, Geometry.Type.Point, pointWKBBuffer, null));
 		Point3D point3d, mpoint3d;
@@ -1079,7 +1093,7 @@ public class TestImportExport extends TestCase {
 		mpoint3d = multipoint2.getXYZ(0);
 		assertTrue(point3d.x == mpoint3d.x && point3d.y == mpoint3d.y && point3d.z == mpoint3d.z);
 		wkbType = pointWKBBuffer.getInt(1);
-		assertTrue(wkbType == WkbGeometryType.wkbPointZ);
+		assertEquals(wkbType, WkbGeometryType.wkbPointZ);
 	}
 
 	@Test
@@ -1091,10 +1105,12 @@ public class TestImportExport extends TestCase {
 		Point point = makePoint();
 
 		// Test Import Point from Point
-		ByteBuffer pointEWKBBuffer = exporterEWKB.execute(0, point, null, null);
+		ByteBuffer pointEWKBBuffer = exporterEWKB.execute(0, point, SpatialReference.create(4326), null);
 		int wkbType = pointEWKBBuffer.getInt(1);
-		assertTrue(wkbType == WkbGeometryType.eWkbPointZM);
-		Point pointEWKBGeometry = (Point) (importerEWKB.execute(0, Geometry.Type.Point, pointEWKBBuffer, null).getGeometry());
+		assertEquals(wkbType, WkbGeometryType.eWkbPointZMS);
+		MapGeometry pointEWKBMapGeometry = importerEWKB.execute(0, Geometry.Type.Point, pointEWKBBuffer, null);
+		assertEquals(4326, pointEWKBMapGeometry.getSpatialReference().getID());
+		Point pointEWKBGeometry = (Point) pointEWKBMapGeometry.getGeometry();
 
 		double x_1 = point.getX();
 		double x2 = pointEWKBGeometry.getX();
@@ -1159,10 +1175,10 @@ public class TestImportExport extends TestCase {
 
 		ByteBuffer polygonEWKBBuffer = exporterEWKB.execute(0, envelope, null,null);
 		int wkbType = polygonEWKBBuffer.getInt(1);
-		assertTrue(wkbType == WkbGeometryType.eWkbPolygonZM);
+		assertEquals(wkbType, WkbGeometryType.eWkbPolygonZM);
 		Polygon polygon = (Polygon) (importerEWKB.execute(0, Geometry.Type.Polygon, polygonEWKBBuffer, null).getGeometry());
 		int point_count = polygon.getPointCount();
-		assertTrue(point_count == 4);
+		assertEquals(4, point_count);
 
 		Envelope2D env = new Envelope2D();
 		Envelope1D interval;
@@ -1181,21 +1197,21 @@ public class TestImportExport extends TestCase {
 
 		interval = envelope.queryInterval(VertexDescription.Semantics.M, 0);
 		double m = polygon.getAttributeAsDbl(VertexDescription.Semantics.M, 0, 0);
-		assertTrue(m == interval.vmin);
+		assertEquals(m, interval.vmin);
 		m = polygon.getAttributeAsDbl(VertexDescription.Semantics.M, 1, 0);
-		assertTrue(m == interval.vmax);
+		assertEquals(m, interval.vmax);
 		m = polygon.getAttributeAsDbl(VertexDescription.Semantics.M, 2, 0);
-		assertTrue(m == interval.vmin);
+		assertEquals(m, interval.vmin);
 		m = polygon.getAttributeAsDbl(VertexDescription.Semantics.M, 3, 0);
-		assertTrue(m == interval.vmax);
+		assertEquals(m, interval.vmax);
 
 		// Test EWKB_export_multi_polygon on nonempty Envelope
 		polygonEWKBBuffer = exporterEWKB.execute(WkbExportFlags.wkbExportMultiPolygon, envelope, null, null);
 		wkbType = polygonEWKBBuffer.getInt(1);
-		assertTrue(wkbType == WkbGeometryType.eWkbMultiPolygonZM);
+		assertEquals(wkbType, WkbGeometryType.eWkbMultiPolygonZM);
 		polygon = (Polygon) (importerEWKB.execute(0, Geometry.Type.Polygon, polygonEWKBBuffer, null).getGeometry());
 		point_count = polygon.getPointCount();
-		assertTrue(point_count == 4);
+		assertEquals(4, point_count);
 
 		envelope.queryEnvelope2D(env);
 		interval = envelope.queryInterval(VertexDescription.Semantics.Z, 0);
@@ -2219,6 +2235,99 @@ public class TestImportExport extends TestCase {
 
 		assertTrue(mapGeometry4326.equals(mapGeometry3857) == false);
 		assertTrue(mapGeometry4326.getGeometry().equals(mapGeometry3857.getGeometry()));
+	}
+
+	@Test
+	public void testImportExportEWKBFromWKT() {
+		String [] testWkts = {
+				"MULTIPOINT ZM(-116.4 45.2 46.0 0.2, -118.0 47.0 41.0 0.0, -120.0 49.0 41.0 0.3)",
+				"MULTILINESTRING ((-116.4 45.2, -118.0 47.0))",
+				"MULTILINESTRING ((100.00 0.00, 101.00 1.00))",
+				"MULTILINESTRING ((100.00 0.00, 101.00 1.00, 120.00 5.00))",
+				"MULTILINESTRING Z((0.00 0.00 10.00, 2.00 1.00 20.00, 4.00 2.00 30.00, 5.00 4.00 40.00))",
+				"MULTILINESTRING ZM((0.00 0.00 10.00 5.00, 2.00 1.00 20.00 5.00, 4.00 2.00 30.00 5.00, 5.00 4.00 40.00 5.00))",
+				"MULTILINESTRING ((-116.4 45.2, -118.0 47.0))",
+				"MULTILINESTRING ((-116.4 45.2, -118.0 47.0, -120.0 49.0))",
+				"MULTILINESTRING Z((-116.4 45.2 46.0, -118.0 47.0 41.0, -120.0 49.0 41.0))",
+				"MULTILINESTRING M((-116.4 45.2 46.0, -118.0 47.0 41.0, -120.0 49.0 41.0))",
+				"MULTILINESTRING ZM((-116.4 45.2 46.0 0.2, -118.0 47.0 41.0 0.0, -120.0 49.0 41.0 0.3))",
+				"MULTILINESTRING ((-116.4 45.2, -118.0 47.0))",
+				"MULTILINESTRING ((-116.4 45.2, -118.0 47.0, -120.0 49.0))",
+				"MULTIPOLYGON Z(((45.20 49.00 41.00, 47.00 46.00 41.00, 46.00 47.00 41.00, 45.20 49.00 41.00)))",
+				"MULTIPOLYGON M(((45.20 49.00 41.00, 47.00 46.00 41.00, 46.00 47.00 41.00, 45.20 49.00 41.00)))",
+				"MULTIPOLYGON ZM(((-116.40 45.20 46.00 0.20, -118.00 47.00 41.00 0.00, -120.00 49.00 41.00 0.30, -116.40 45.20 46.00 0.20)))",
+				"MULTILINESTRING ((100.00 0.00, 101.00 1.00))",
+				"MULTILINESTRING Z((100.00 0.00 1.00, 101.00 0.00 1.00, 101.00 1.00 1.00, 100.00 0.00 1.00))",
+				"MULTILINESTRING M((100.00 0.00 1.00, 101.00 0.00 1.00, 101.00 1.00 1.00, 100.00 0.00 1.00))",
+				"MULTILINESTRING ZM((100.00 0.00 1.00 40.00, 101.00 0.00 1.00 44.00, 101.00 1.00 1.00 45.00, 100.00 0.00 1.00 49.00))",
+				"LINESTRING (-116.4 45.2, -118.0 47.0)",
+				"LINESTRING (100.00 0.00, 101.00 1.00)",
+				"LINESTRING (100.00 0.00, 101.00 1.00, 120.00 5.00)",
+				"LINESTRING Z(0.00 0.00 10.00, 2.00 1.00 20.00, 4.00 2.00 30.00, 5.00 4.00 40.00)",
+				"LINESTRING ZM(0.00 0.00 10.00 5.00, 2.00 1.00 20.00 5.00, 4.00 2.00 30.00 5.00, 5.00 4.00 40.00 5.00)",
+				"LINESTRING (-116.4 45.2, -118.0 47.0)",
+				"LINESTRING (-116.4 45.2, -118.0 47.0, -120.0 49.0)",
+				"LINESTRING Z(-116.4 45.2 46.0, -118.0 47.0 41.0, -120.0 49.0 41.0)",
+				"LINESTRING M(-116.4 45.2 46.0, -118.0 47.0 41.0, -120.0 49.0 41.0)",
+				"LINESTRING ZM(-116.4 45.2 46.0 0.2, -118.0 47.0 41.0 0.0, -120.0 49.0 41.0 0.3)",
+				"LINESTRING (-116.4 45.2, -118.0 47.0)",
+				"LINESTRING (-116.4 45.2, -118.0 47.0, -120.0 49.0)",
+				"POLYGON Z((45.20 49.00 41.00, 47.00 46.00 41.00, 46.00 47.00 41.00, 45.20 49.00 41.00))",
+				"POLYGON M((45.20 49.00 41.00, 47.00 46.00 41.00, 46.00 47.00 41.00, 45.20 49.00 41.00))",
+				"POLYGON ZM((-116.40 45.20 46.00 0.20, -118.00 47.00 41.00 0.00, -120.00 49.00 41.00 0.30, -116.40 45.20 46.00 0.20))",
+				"LINESTRING (100.00 0.00, 101.00 1.00)",
+				"LINESTRING Z(100.00 0.00 1.00, 101.00 0.00 1.00, 101.00 1.00 1.00, 100.00 0.00 1.00)",
+				"LINESTRING M(100.00 0.00 1.00, 101.00 0.00 1.00, 101.00 1.00 1.00, 100.00 0.00 1.00)",
+				"LINESTRING ZM(100.00 0.00 1.00 40.00, 101.00 0.00 1.00 44.00, 101.00 1.00 1.00 45.00, 100.00 0.00 1.00 49.00)",
+				"MULTIPOINT Z(-116.4 45.2 46.0, -118.0 47.0 41.0, -120.0 49.0 41.0)",
+				"MULTIPOINT M(-116.4 45.2 46.0, -118.0 47.0 41.0, -120.0 49.0 41.0)",
+				"POINT Z(-116.4 45.2 46.0)",
+				"POINT M(-116.4 45.2 46.0)",
+				"POINT ZM(-116.4 45.2 46.0 0.2)"};
+
+		for (String testWkt : testWkts) {
+			try {
+				OperatorImportFromWkt operator = (OperatorImportFromWkt) OperatorFactoryLocal.getInstance().getOperator(Operator.Type.ImportFromWkt);
+				Geometry geometryWkt = operator.execute(0, Geometry.Type.Unknown, testWkt, null);
+
+				SimpleGeometryCursor geometryCursorWktToWkb = new SimpleGeometryCursor(geometryWkt);
+				OperatorExportToWkbCursor operatorExportToWkbCursor1 = new OperatorExportToWkbCursor(0, geometryCursorWktToWkb);
+				OperatorImportFromWkbCursor operatorImportFromWkbCursor1 = new OperatorImportFromWkbCursor(0, operatorExportToWkbCursor1);
+				OperatorExportToEWkbCursor operatorExportToEWkbCursor1 = new OperatorExportToEWkbCursor(0, operatorImportFromWkbCursor1, null);
+				OperatorImportFromEWkbCursor operatorImportFromEWkbCursor1 = new OperatorImportFromEWkbCursor(0, operatorExportToEWkbCursor1);
+
+				SimpleGeometryCursor geometryCursorWktToEWkb = new SimpleGeometryCursor(geometryWkt);
+				OperatorExportToEWkbCursor operatorExportToEWkbCursor2 = new OperatorExportToEWkbCursor(0, geometryCursorWktToEWkb, null);
+				OperatorImportFromEWkbCursor operatorImportFromEWkbCursor2 = new OperatorImportFromEWkbCursor(0, operatorExportToEWkbCursor2);
+				OperatorExportToWkbCursor operatorExportToWkbCursor2 = new OperatorExportToWkbCursor(0, new SimpleGeometryCursor(operatorImportFromEWkbCursor2));
+				OperatorImportFromWkbCursor operatorImportFromWkbCursor2 = new OperatorImportFromWkbCursor(0, operatorExportToWkbCursor2);
+
+				assertTrue(testWkt, GeometryEngine.equals(geometryWkt, operatorImportFromEWkbCursor1.next().getGeometry(), SpatialReference.create(4326)));
+				assertTrue(testWkt, GeometryEngine.equals(geometryWkt, operatorImportFromWkbCursor2.next(), SpatialReference.create(4326)));
+			} catch (Exception e) {
+				fail(String.format("%s %s", testWkt, e.getMessage()));
+			}
+		}
+
+		for (String testWkt : testWkts) {
+			try {
+				OperatorImportFromWkt operator = (OperatorImportFromWkt) OperatorFactoryLocal.getInstance().getOperator(Operator.Type.ImportFromWkt);
+				Geometry geometryWkt = operator.execute(0, Geometry.Type.Unknown, testWkt, null);
+
+				SimpleGeometryCursor geometryCursorWktToWkb = new SimpleGeometryCursor(geometryWkt);
+				OperatorExportToWkbCursor operatorExportToWkbCursor1 = new OperatorExportToWkbCursor(0, geometryCursorWktToWkb);
+				OperatorImportFromWkbCursor operatorImportFromWkbCursor1 = new OperatorImportFromWkbCursor(0, operatorExportToWkbCursor1);
+
+				SimpleGeometryCursor geometryCursorWktToEWkb = new SimpleGeometryCursor(geometryWkt);
+				OperatorExportToEWkbCursor operatorExportToEWkbCursor2 = new OperatorExportToEWkbCursor(0, geometryCursorWktToEWkb, null);
+				OperatorImportFromEWkbCursor operatorImportFromEWkbCursor2 = new OperatorImportFromEWkbCursor(0, operatorExportToEWkbCursor2);
+
+				assertTrue(testWkt, GeometryEngine.equals(geometryWkt, operatorImportFromWkbCursor1.next(), SpatialReference.create(4326)));
+				assertTrue(testWkt, GeometryEngine.equals(geometryWkt, operatorImportFromEWkbCursor2.next().getGeometry(), SpatialReference.create(4326)));
+			} catch (Exception e) {
+				fail(String.format("%s %s", testWkt, e.getMessage()));
+			}
+		}
 	}
 
 	@Test

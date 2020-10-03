@@ -4,7 +4,10 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class OperatorImportFromEWkbLocal extends OperatorImportFromEWkb {
-	SpatialReference m_spatialReference = null;
+	@Override
+	public MapGeometryCursor execute(int importFlags, ByteBufferCursor eWkbBuffers, ProgressTracker progressTracker) {
+		return new OperatorImportFromEWkbCursor(importFlags, eWkbBuffers);
+	}
 
 	@Override
 	public MapGeometry execute(int importFlags, Geometry.Type type, ByteBuffer eWkbBuffer, ProgressTracker progress_tracker) {
@@ -21,27 +24,34 @@ public class OperatorImportFromEWkbLocal extends OperatorImportFromEWkb {
 		OperatorImportFromWkbLocal.WkbHelper wkbHelper = new OperatorImportFromWkbLocal.WkbHelper(eWkbBuffer);
 
 		try {
+			// must happen first as it changes the wkbHelper's skip size (default was 5 before srid)
+			SpatialReference sr = extractSr(wkbHelper);
+            // then we parse the geometry with the correct skip size (default was 5 before srid)
 			Geometry geometry = importFromEWkb(importFlags, type, wkbHelper);
-			return new MapGeometry(geometry, m_spatialReference);
+			return new MapGeometry(geometry, sr);
 		} finally {
 			eWkbBuffer.order(initialOrder);
 		}
+	}
+
+	private static SpatialReference extractSr(OperatorImportFromWkbLocal.WkbHelper wkbHelper) {
+		SpatialReference spatialReference = null;
+		// has a spatial reference
+		long wkbTypeForced = java.lang.Integer.toUnsignedLong(wkbHelper.getInt(1));
+		if ((wkbTypeForced | 0x20000000) == wkbTypeForced) {
+			int srid = wkbHelper.getInt(5);
+			spatialReference = SpatialReference.create(srid);
+			// offset for SRID
+			wkbHelper.increaseSkipSize(4);
+		}
+		return spatialReference;
 	}
 
 	private Geometry importFromEWkb(int importFlags,
 	                                Geometry.Type type,
 	                                OperatorImportFromWkbLocal.WkbHelper wkbHelper) {
 		// read type
-		int wkbType = wkbHelper.getInt(1);
-
-		// has a spatial reference
-		long wkbTypeForced = java.lang.Integer.toUnsignedLong(wkbType);
-		if ((wkbTypeForced | 0x20000000) == wkbTypeForced) {
-			int srid = wkbHelper.getInt(5);
-			m_spatialReference = SpatialReference.create(srid);
-			// offset for SRID
-			wkbHelper.adjustment += 4;
-		}
+		long wkbTypeForced = java.lang.Integer.toUnsignedLong(wkbHelper.getInt(1));
 
 		boolean bEWkbZ = OperatorImportFromWkbLocal.hasEWkbZ(wkbTypeForced);
 		boolean bEWkbM = OperatorImportFromWkbLocal.hasEWkbM(wkbTypeForced);

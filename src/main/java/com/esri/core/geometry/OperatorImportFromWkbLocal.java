@@ -37,6 +37,7 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 		WkbHelper(ByteBuffer buffer) {
 			wkbBuffer = buffer;
 			adjustment = 0;
+			skipSize = 5;
 		}
 
 		int getInt(int offset) {
@@ -47,8 +48,16 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 			return wkbBuffer.getDouble(adjustment + offset);
 		}
 
+		void increaseSkipSize(int increaseBy) { skipSize += increaseBy; }
+
 		ByteBuffer wkbBuffer;
 		int adjustment;
+		int skipSize;
+	}
+
+	@Override
+	public GeometryCursor execute(int importFlags, ByteBufferCursor wkbBuffers, ProgressTracker progressTracker) {
+		return new OperatorImportFromWkbCursor(importFlags, wkbBuffers);
 	}
 
 	@Override
@@ -169,8 +178,8 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 					}
 				}
 				if (ogcType == 7) {
-					int count = wkbHelper.getInt(5);
-					wkbHelper.adjustment += 9;
+					int count = wkbHelper.getInt(wkbHelper.skipSize);
+					wkbHelper.adjustment += 4 + wkbHelper.skipSize;
 
 					OGCStructure next = new OGCStructure();
 					next.m_type = ogcType;
@@ -251,14 +260,13 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 		}
 	}
 
-	protected static Geometry importFromWkbPolygon(boolean bMultiPolygon,
-			int importFlags, boolean bZs, boolean bMs, WkbHelper wkbHelper) {
+	protected static Geometry importFromWkbPolygon(boolean bMultiPolygon, int importFlags, boolean bZs, boolean bMs, WkbHelper wkbHelper) {
 		int offset;
 		int polygonCount;
 
 		if (bMultiPolygon) {
-			polygonCount = wkbHelper.getInt(5);
-			offset = 9;
+			polygonCount = wkbHelper.getInt(wkbHelper.skipSize);
+			offset = 4 + wkbHelper.skipSize;
 		} else {
 			polygonCount = 1;
 			offset = 0;
@@ -269,7 +277,7 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 		int partCount = 0;
 		int tempOffset = offset;
 		for (int ipolygon = 0; ipolygon < polygonCount; ipolygon++) {
-			tempOffset += 5; // skip redundant byte order and type fields
+			tempOffset += wkbHelper.skipSize; // skip redundant byte order and type fields (and maybe srid)
 			int ipartcount = wkbHelper.getInt(tempOffset);
 			tempOffset += 4;
 
@@ -404,7 +412,7 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 
 		// read Coordinates
 		for (int ipolygon = 0; ipolygon < polygonCount; ipolygon++) {
-			offset += 5; // skip redundant byte order and type fields
+			offset += wkbHelper.skipSize; // skip redundant byte order and type fields (and maybe srid)
 			int ipartcount = wkbHelper.getInt(offset);
 			offset += 4;
 			int ipolygonstart = ipolygonend;
@@ -604,14 +612,13 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 		return newPolygon;
 	}
 
-	protected static Geometry importFromWkbPolyline(boolean bMultiPolyline,
-			int importFlags, boolean bZs, boolean bMs, WkbHelper wkbHelper) {
+	protected static Geometry importFromWkbPolyline(boolean bMultiPolyline, int importFlags, boolean bZs, boolean bMs, WkbHelper wkbHelper) {
 		int offset;
 		int originalPartCount;
 
 		if (bMultiPolyline) {
-			originalPartCount = wkbHelper.getInt(5);
-			offset = 9;
+			originalPartCount = wkbHelper.getInt(wkbHelper.skipSize);
+			offset = 4 + wkbHelper.skipSize;
 		} else {
 			originalPartCount = 1;
 			offset = 0;
@@ -622,7 +629,7 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 		int partCount = 0;
 		int tempOffset = offset;
 		for (int ipart = 0; ipart < originalPartCount; ipart++) {
-			tempOffset += 5; // skip redundant byte order and type fields
+			tempOffset += wkbHelper.skipSize; // skip redundant byte order and type fields (and maybe srid)
 			int ipointcount = wkbHelper.getInt(tempOffset);
 			tempOffset += 4;
 
@@ -689,7 +696,7 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 
 		// read Coordinates
 		for (int ipart = 0; ipart < originalPartCount; ipart++) {
-			offset += 5; // skip redundant byte order and type fields
+			offset += wkbHelper.skipSize; // skip redundant byte order and type fields (and maybe srid)
 
 			int ipointcount = wkbHelper.getInt(offset);
 			offset += 4;
@@ -787,9 +794,8 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 		return newpolyline;
 	}
 
-	protected static Geometry importFromWkbMultiPoint(int importFlags,
-			boolean bZs, boolean bMs, WkbHelper wkbHelper) {
-		int offset = 5; // skip byte order and type
+	protected static Geometry importFromWkbMultiPoint(int importFlags, boolean bZs, boolean bMs, WkbHelper wkbHelper) {
+		int offset = wkbHelper.skipSize; // skip redundant byte order and type fields (and maybe srid)
 
 		// set point count
 		int point_count = wkbHelper.getInt(offset);
@@ -829,7 +835,7 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 
 		boolean bCreateMs = false, bCreateZs = false;
 		for (int i = 0; i < point_count; i++) {
-			offset += 5; // skip redundant byte order and type fields
+			offset += wkbHelper.skipSize; // skip redundant byte order and type fields (and maybe srid)
 
 			// read xy coordinates
 			double x = wkbHelper.getDouble(offset);
@@ -892,9 +898,8 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 		return newmultipoint;
 	}
 
-	protected static Geometry importFromWkbPoint(int importFlags, boolean bZs,
-			boolean bMs, WkbHelper wkbHelper) {
-		int offset = 5; // skip byte order and type
+	protected static Geometry importFromWkbPoint(int importFlags, boolean bZs, boolean bMs, WkbHelper wkbHelper) {
+		int offset = wkbHelper.skipSize; // skip redundant byte order and type fields (and maybe srid)
 
 		// set xy coordinate
 		double x = wkbHelper.getDouble(offset);
