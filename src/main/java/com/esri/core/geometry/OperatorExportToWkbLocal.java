@@ -45,8 +45,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 		return exportToWKB(exportFlags, geometry, wkbBuffer, 0);
 	}
 
-	protected static int exportToWKB(int exportFlags, Geometry geometry,
-	                                 ByteBuffer wkbBuffer, int srid) {
+	protected static int exportToWKB(int exportFlags, Geometry geometry, ByteBuffer wkbBuffer, int srid) {
 		if (geometry == null)
 			return 0;
 
@@ -60,7 +59,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 						|| (exportFlags & WkbExportFlags.wkbExportMultiPoint) != 0)
 					throw new GeometryException("invalid argument");
 				if (type == Geometry.GeometryType.Envelope)
-					return exportEnvelopeToWKB(exportFlags, (Envelope) geometry, wkbBuffer);
+					return exportEnvelopeToWKB(exportFlags, (Envelope) geometry, wkbBuffer, srid);
 				return exportPolygonToWKB(exportFlags, (Polygon) geometry, wkbBuffer, srid);
 			case Geometry.GeometryType.Polyline:
 				if ((exportFlags & WkbExportFlags.wkbExportPolygon) != 0
@@ -86,8 +85,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 		}
 	}
 
-	private static int exportPolygonToWKB(int exportFlags, Polygon _polygon,
-	                                      ByteBuffer wkbBuffer, int srid) {
+	private static int exportPolygonToWKB(int exportFlags, Polygon _polygon, ByteBuffer wkbBuffer, int srid) {
 		MultiPathImpl polygon = (MultiPathImpl) _polygon._getImpl();
 
 		if ((exportFlags & (int) WkbExportFlags.wkbExportFailIfNotSimple) != 0) {
@@ -158,7 +156,6 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 				: WkbByteOrder.wkbXDR);
 
 		// Determine the wkb type
-		// write type
 		long exteriorType = getWkbGeometryType(WkbGeometryType.wkbPolygon, exportFlags, false, bExportMs, bExportZs, bExportAsEWkb, bExportSrid);
 		long interiorType = getWkbGeometryType(WkbGeometryType.wkbPolygon, exportFlags, true, bExportMs, bExportZs, bExportAsEWkb, bExportSrid);
 
@@ -167,10 +164,12 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 			offset += 1;
 			wkbBuffer.putInt(offset, (int)exteriorType);
 			offset += 4;
+
 			if (srid > 0) {
 				wkbBuffer.putInt(offset, srid);
 				offset += 4;
 			}
+
 			wkbBuffer.putInt(offset, polygonCount);
 			offset += 4;
 		} else if (polygonCount == 0) {
@@ -178,10 +177,12 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 			offset += 1;
 			wkbBuffer.putInt(offset, (int)interiorType);
 			offset += 4;
+
 			if (srid > 0) {
 				wkbBuffer.putInt(offset, srid);
 				offset += 4;
 			}
+
 			wkbBuffer.putInt(offset, polygonCount);
 			offset += 4;
 		}
@@ -322,8 +323,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 		return offset;
 	}
 
-	private static int exportPolylineToWKB(int exportFlags, Polyline _polyline,
-	                                       ByteBuffer wkbBuffer, int srid) {
+	private static int exportPolylineToWKB(int exportFlags, Polyline _polyline, ByteBuffer wkbBuffer, int srid) {
 		MultiPathImpl polyline = (MultiPathImpl) _polyline._getImpl();
 
 		if ((exportFlags & WkbExportFlags.wkbExportFailIfNotSimple) != 0) {
@@ -544,8 +544,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 		return offset;
 	}
 
-	private static int exportMultiPointToWKB(int exportFlags,
-	                                         MultiPoint _multipoint, ByteBuffer wkbBuffer, int srid) {
+	private static int exportMultiPointToWKB(int exportFlags, MultiPoint _multipoint, ByteBuffer wkbBuffer, int srid) {
 		MultiPointImpl multipoint = (MultiPointImpl) _multipoint._getImpl();
 
 		boolean bExportZs = multipoint
@@ -716,8 +715,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 		return offset;
 	}
 
-	private static int exportPointToWKB(int exportFlags, Point point,
-	                                    ByteBuffer wkbBuffer, int srid) {
+	private static int exportPointToWKB(int exportFlags, Point point, ByteBuffer wkbBuffer, int srid) {
 		boolean bExportZs = point.hasAttribute(VertexDescription.Semantics.Z)
 				&& (exportFlags & WkbExportFlags.wkbExportStripZs) == 0;
 		boolean bExportMs = point.hasAttribute(VertexDescription.Semantics.M)
@@ -848,14 +846,13 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 		return offset;
 	}
 
-	private static int exportEnvelopeToWKB(int exportFlags, Envelope envelope,
-	                                       ByteBuffer wkbBuffer) {
-		boolean bExportZs = envelope
-				.hasAttribute(VertexDescription.Semantics.Z)
+	private static int exportEnvelopeToWKB(int exportFlags, Envelope envelope, ByteBuffer wkbBuffer, int srid) {
+		boolean bExportZs = envelope.hasAttribute(VertexDescription.Semantics.Z)
 				&& (exportFlags & WkbExportFlags.wkbExportStripZs) == 0;
-		boolean bExportMs = envelope
-				.hasAttribute(VertexDescription.Semantics.M)
+		boolean bExportMs = envelope.hasAttribute(VertexDescription.Semantics.M)
 				&& (exportFlags & WkbExportFlags.wkbExportStripMs) == 0;
+		boolean bExportAsEWkb = (exportFlags & WkbExportFlags.wkbExportAsExtendedWkb) != 0;
+
 		boolean bEmpty = envelope.isEmpty();
 
 		int partCount = bEmpty ? 0 : 1;
@@ -865,16 +862,22 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 
 		// get size for buffer
 		int size = 0;
-		if ((exportFlags & WkbExportFlags.wkbExportMultiPolygon) != 0
-				|| partCount == 0)
+		if ((exportFlags & WkbExportFlags.wkbExportMultiPolygon) != 0 || partCount == 0)
 			size += 1 /* byte order */ + 4 /* wkbType */ + 4 /* numPolygons */;
+
+		boolean bExportSrid = false;
+		if ((exportFlags & WkbExportFlags.wkbExportStripSrid) == WkbExportFlags.wkbExportStripSrid) {
+			// if stripping srid set it to 0
+			srid = 0;
+		} else if (srid > 0) {
+			size += 4; /* add srid into wkbExtended export */
+			size += partCount * 4;
+			bExportSrid = true;
+		}
 
 		size += partCount
 				* (1 /* byte order */ + 4 /* wkbType */ + 4/* numRings */)
-				+ partCount * (4 /* num_points */) + point_count * (2 * 8 /*
-		 * xy
-		 * coordinates
-		 */);
+				+ partCount * (4 /* num_points */) + point_count * (2 * 8 /* xy coordinates */);
 
 		if (bExportZs)
 			size += (point_count * 8 /* zs */);
@@ -895,79 +898,35 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 				: WkbByteOrder.wkbXDR);
 
 		// Determine the wkb type
-		int type;
-		if (!bExportZs && !bExportMs) {
-			type = WkbGeometryType.wkbPolygon;
+		long exteriorType = getWkbGeometryType(WkbGeometryType.wkbPolygon, exportFlags, false, bExportMs, bExportZs, bExportAsEWkb, bExportSrid);
+		long interiorType = getWkbGeometryType(WkbGeometryType.wkbPolygon, exportFlags, true, bExportMs, bExportZs, bExportAsEWkb, bExportSrid);
 
-			if ((exportFlags & WkbExportFlags.wkbExportMultiPolygon) != 0) {
-				wkbBuffer.put(offset, byteOrder);
-				offset += 1;
-				wkbBuffer.putInt(offset, WkbGeometryType.wkbMultiPolygon);
-				offset += 4;
-				wkbBuffer.putInt(offset, (int) partCount);
-				offset += 4;
-			} else if (partCount == 0) {
-				wkbBuffer.put(offset, byteOrder);
-				offset += 1;
-				wkbBuffer.putInt(offset, WkbGeometryType.wkbPolygon);
-				offset += 4;
-				wkbBuffer.putInt(offset, 0);
+		if ((exportFlags & WkbExportFlags.wkbExportMultiPolygon) != 0) {
+			wkbBuffer.put(offset, byteOrder);
+			offset += 1;
+			wkbBuffer.putInt(offset, (int)exteriorType);
+			offset += 4;
+
+			if (srid > 0) {
+				wkbBuffer.putInt(offset, srid);
 				offset += 4;
 			}
-		} else if (bExportZs && !bExportMs) {
-			type = WkbGeometryType.wkbPolygonZ;
 
-			if ((exportFlags & WkbExportFlags.wkbExportPolygon) != 0) {
-				wkbBuffer.put(offset, byteOrder);
-				offset += 1;
-				wkbBuffer.putInt(offset, WkbGeometryType.wkbMultiPolygonZ);
-				offset += 4;
-				wkbBuffer.putInt(offset, partCount);
-				offset += 4;
-			} else if (partCount == 0) {
-				wkbBuffer.put(offset, byteOrder);
-				offset += 1;
-				wkbBuffer.putInt(offset, WkbGeometryType.wkbPolygonZ);
-				offset += 4;
-				wkbBuffer.putInt(offset, 0);
+			wkbBuffer.putInt(offset, partCount);
+			offset += 4;
+		} else if (partCount == 0) {
+			wkbBuffer.put(offset, byteOrder);
+			offset += 1;
+			wkbBuffer.putInt(offset, (int)interiorType);
+			offset += 4;
+
+			if (srid > 0) {
+				wkbBuffer.putInt(offset, srid);
 				offset += 4;
 			}
-		} else if (bExportMs && !bExportZs) {
-			type = WkbGeometryType.wkbPolygonM;
 
-			if ((exportFlags & WkbExportFlags.wkbExportMultiPolygon) != 0) {
-				wkbBuffer.put(offset, byteOrder);
-				offset += 1;
-				wkbBuffer.putInt(offset, WkbGeometryType.wkbMultiPolygonM);
-				offset += 4;
-				wkbBuffer.putInt(offset, partCount);
-				offset += 4;
-			} else if (partCount == 0) {
-				wkbBuffer.put(offset, byteOrder);
-				offset += 1;
-				wkbBuffer.putInt(offset, WkbGeometryType.wkbPolygonM);
-				offset += 4;
-				wkbBuffer.putInt(offset, 0);
-				offset += 4;
-			}
-		} else {
-			type = WkbGeometryType.wkbPolygonZM;
-
-			if ((exportFlags & WkbExportFlags.wkbExportMultiPolygon) != 0) {
-				wkbBuffer.put(offset, byteOrder);
-				offset += 1;
-				wkbBuffer.putInt(offset, WkbGeometryType.wkbMultiPolygonZM);
-				offset += 4;
-				wkbBuffer.putInt(offset, partCount);
-				offset += 4;
-			} else if (partCount == 0) {
-				wkbBuffer.put(offset, byteOrder);
-				offset += 1;
-				wkbBuffer.putInt(offset, WkbGeometryType.wkbPolygonZM);
-				offset += 4;
-				wkbBuffer.putInt(offset, 0);
-				offset += 4;
-			}
+			wkbBuffer.putInt(offset, partCount);
+			offset += 4;
 		}
 
 		if (partCount == 0)
@@ -978,8 +937,13 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 		offset += 1;
 
 		// write type
-		wkbBuffer.putInt(offset, type);
+		wkbBuffer.putInt(offset, (int)interiorType);
 		offset += 4;
+
+		if (srid > 0) {
+			wkbBuffer.putInt(offset, srid);
+			offset += 4;
+		}
 
 		// write numRings
 		wkbBuffer.putInt(offset, 1);
@@ -1135,5 +1099,4 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 			return interiorTypeBase;
 		return exteriorType;
 	}
-
 }
