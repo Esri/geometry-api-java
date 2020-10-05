@@ -44,15 +44,6 @@ public class TestImportExport extends TestCase {
 
 	@Test
 	public static void testImportExportShapePolygon() {
-//		{
-//			String s = "MULTIPOLYGON (((-1.4337158203098852 53.42590083930004, -1.4346462383651897 53.42590083930004, -1.4349713164114632 53.42426406667512, -1.4344808816770183 53.42391134176576, -1.4337158203098852 53.424339319373516, -1.4337158203098852 53.42590083930004, -1.4282226562499147 53.42590083930004, -1.4282226562499147 53.42262754610009, -1.423659941537096 53.42262754610009, -1.4227294921872726 53.42418897437618, -1.4199829101572732 53.42265258737483, -1.4172363281222147 53.42418897437334, -1.4144897460898278 53.42265258737625, -1.4144897460898278 53.42099079900008, -1.4117431640598568 53.42099079712516, -1.4117431640598568 53.41849780932388, -1.4112778948070286 53.41771711805022, -1.4114404909237805 53.41689867267529, -1.411277890108579 53.416080187950215, -1.4117431640598568 53.4152995338453, -1.4117431657531654 53.40953184824072, -1.41723632610001 53.40953184402311, -1.4172363281199125 53.406257299700044, -1.4227294921899158 53.406257299700044, -1.4227294921899158 53.40789459668797, -1.4254760767598498 53.40789460061099, -1.4262193642339867 53.40914148401417, -1.4273828468095076 53.409531853100034, -1.4337158203098852 53.409531790075235, -1.4337158203098852 53.41280609140024, -1.4392089843723568 53.41280609140024, -1.439208984371362 53.41608014067522, -1.441160015802268 53.41935368587538, -1.4427511170075604 53.41935368587538, -1.4447021484373863 53.42099064750012, -1.4501953124999432 53.42099064750012, -1.4501953124999432 53.43214683850347, -1.4513643355446106 53.434108816701794, -1.4502702625278232 53.43636597733034, -1.4494587195580948 53.437354845300334, -1.4431075935937656 53.437354845300334, -1.4372459179209045 53.43244635455021, -1.433996276212838 53.42917388040006, -1.4337158203098852 53.42917388040006, -1.4337158203098852 53.42590083930004)))";
-//			Geometry g = OperatorImportFromWkt.local().execute(0,  Geometry.Type.Unknown, s, null);
-//			boolean result1 = OperatorSimplify.local().isSimpleAsFeature(g, null, null);
-//			boolean result2 = OperatorSimplifyOGC.local().isSimpleOGC(g, null, true, null, null);
-//			Geometry simple = OperatorSimplifyOGC.local().execute(g, null, true, null);
-//			OperatorFactoryLocal.saveToWKTFileDbg("c:/temp/simplifiedeeee",  simple, null);
-//			int i = 0;
-//		}
 		OperatorExportToESRIShape exporterShape = (OperatorExportToESRIShape) OperatorFactoryLocal.getInstance().getOperator(Operator.Type.ExportToESRIShape);
 		OperatorImportFromESRIShape importerShape = (OperatorImportFromESRIShape) OperatorFactoryLocal.getInstance().getOperator(Operator.Type.ImportFromESRIShape);
 
@@ -1754,6 +1745,20 @@ public class TestImportExport extends TestCase {
 		assertTrue(mapGeometry4326.getGeometry().equals(mapGeometry3857.getGeometry()));
 	}
 
+	@Test
+	public void testZeroRingWkb() {
+		//https://github.com/Esri/geometry-api-java/issues/275
+		Polygon poly = new Polygon();
+		poly.startPath(0, 0);
+		poly.lineTo(0, 10);
+		poly.lineTo(0, 10);
+		poly.addEnvelope(new Envelope(1, 1, 3, 3), false);
+		
+		ByteBuffer bb = OperatorExportToWkb.local().execute(0, poly, null);
+		Geometry res = OperatorImportFromWkb.local().execute(0, Geometry.Type.Unknown, bb, null);
+		assertTrue(res.equals(poly));
+	}
+	
 	public static Polygon makePolygon() {
 		Polygon poly = new Polygon();
 		poly.startPath(0, 0);

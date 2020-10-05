@@ -2133,25 +2133,33 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 	protected void _updateOGCFlags() {
 		if (_hasDirtyFlag(DirtyFlags.DirtyOGCFlags)) {
 			_updateRingAreas2D();
-
-			int pathCount = getPathCount();
-			if (pathCount > 0 && (m_pathFlags == null || m_pathFlags.size() < pathCount))
-				m_pathFlags = (AttributeStreamOfInt8) AttributeStreamBase
-						.createByteStream(pathCount + 1);
-
-			int firstSign = 1;
-			for (int ipath = 0; ipath < pathCount; ipath++) {
-				double area = m_cachedRingAreas2D.read(ipath);
-				if (ipath == 0)
-					firstSign = area > 0 ? 1 : -1;
-				if (area * firstSign > 0.0)
-					m_pathFlags.setBits(ipath,
-							(byte) PathFlags.enumOGCStartPolygon);
-				else
-					m_pathFlags.clearBits(ipath,
-							(byte) PathFlags.enumOGCStartPolygon);
-			}
+			_updateOGCFlagsHelper();
 			_setDirtyFlag(DirtyFlags.DirtyOGCFlags, false);
+		}
+	}
+	
+	private void _updateOGCFlagsHelper() {
+		int pathCount = getPathCount();
+		if (pathCount > 0 && (m_pathFlags == null || m_pathFlags.size() < pathCount))
+			m_pathFlags = (AttributeStreamOfInt8) AttributeStreamBase.createByteStream(pathCount + 1);
+
+		// firstSign is the sign of first ring.
+		// a first ring with non zero area defines the
+		// value. First zero area rings are written out as enumOGCStartPolygon.
+		int firstSign = 0;
+		for (int ipath = 0; ipath < pathCount; ipath++) {
+			double area = m_cachedRingAreas2D.read(ipath);
+			if (firstSign == 0) {
+				// if the first ring is inverted we assume that the
+				// inverted we assume that
+				//whole polygon is inverted.	
+				firstSign = MathUtils.sign(area);
+			}
+			
+			if (area * firstSign > 0.0 || firstSign == 0)
+				m_pathFlags.setBits(ipath, (byte) PathFlags.enumOGCStartPolygon);
+			else
+				m_pathFlags.clearBits(ipath, (byte) PathFlags.enumOGCStartPolygon);
 		}
 	}
 
