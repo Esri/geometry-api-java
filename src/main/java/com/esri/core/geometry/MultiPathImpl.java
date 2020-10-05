@@ -2151,11 +2151,10 @@ final class MultiPathImpl extends MultiVertexGeometryImpl {
 			double area = m_cachedRingAreas2D.read(ipath);
 			if (firstSign == 0) {
 				// if the first ring is inverted we assume that the
-				// inverted we assume that
-				//whole polygon is inverted.	
+				// whole polygon is inverted.
 				firstSign = MathUtils.sign(area);
 			}
-			
+
 			if (area * firstSign > 0.0 || firstSign == 0)
 				m_pathFlags.setBits(ipath, (byte) PathFlags.enumOGCStartPolygon);
 			else
