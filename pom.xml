@@ -129,6 +129,13 @@
 			<version>${jol.version}</version>
 			<scope>test</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>org.openclover</groupId>
+			<artifactId>clover-maven-plugin</artifactId>
+			<version>4.4.1</version>
+			<type>maven-plugin</type>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -150,6 +157,13 @@
 			</testResource>
 		</testResources>
 		<plugins>
+
+			<plugin>
+				<groupId>org.openclover</groupId>
+				<artifactId>clover-maven-plugin</artifactId>
+				<version>4.4.1</version>     
+			</plugin>
+			
 			<plugin>
 					<artifactId>maven-compiler-plugin</artifactId>
 					<version>${compiler.plugin.version}</version>
