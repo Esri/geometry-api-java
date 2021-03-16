@@ -3,8 +3,6 @@ package com.esri.core.geometry;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import static com.esri.core.geometry.OperatorExportToWkbLocal.exportToWKB;
-
 public class OperatorExportToEWkbLocal extends OperatorExportToEWkb {
 	@Override
 	public ByteBuffer execute(int exportFlags, Geometry geometry, SpatialReference spatialReference, ProgressTracker progressTracker) {
@@ -31,6 +29,6 @@ public class OperatorExportToEWkbLocal extends OperatorExportToEWkb {
 	}
 
 	private static int exportToEWKB(int exportFlags, Geometry geometry, ByteBuffer wkbBuffer, int srid) {
-		return exportToWKB(exportFlags | WkbExportFlags.wkbExportAsExtendedWkb, geometry, wkbBuffer, srid);
+		return OperatorExportToWkbLocal.exportToWKB(exportFlags | OperatorExportToWkbLocal.wkbExportAsExtendedWkb, geometry, wkbBuffer, srid);
 	}
 }

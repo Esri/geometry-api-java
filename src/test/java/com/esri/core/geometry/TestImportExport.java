@@ -30,7 +30,7 @@ import java.nio.ByteOrder;
 import junit.framework.TestCase;
 import org.junit.Test;
 
-import static com.esri.core.geometry.WkbExportFlags.wkbExportStripSrid;
+import static com.esri.core.geometry.WkbExportFlags.ewkbExportStripSrid;
 
 public class TestImportExport extends TestCase {
 

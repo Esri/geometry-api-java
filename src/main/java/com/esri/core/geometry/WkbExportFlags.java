@@ -37,7 +37,6 @@ public interface WkbExportFlags {
 	public static final int wkbExportMultiPolygon = 32;
 	public static final int wkbExportStripZs = 64;
 	public static final int wkbExportStripMs = 128;
-	public static final int wkbExportAsExtendedWkb = 256;
-	public static final int wkbExportStripSrid = 512;
+	public static final int ewkbExportStripSrid = 512;
 	public static final int wkbExportFailIfNotSimple = 4096;
 }

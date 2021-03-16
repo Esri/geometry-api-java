@@ -29,6 +29,8 @@ import java.nio.ByteOrder;
 
 class OperatorExportToWkbLocal extends OperatorExportToWkb {
 
+	static protected int wkbExportAsExtendedWkb = 256;
+	
 	@Override
 	public ByteBuffer execute(int exportFlags, Geometry geometry,
 	                          ProgressTracker progressTracker) {
@@ -99,7 +101,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 				&& (exportFlags & (int) WkbExportFlags.wkbExportStripZs) == 0;
 		boolean bExportMs = polygon.hasAttribute(VertexDescription.Semantics.M)
 				&& (exportFlags & (int) WkbExportFlags.wkbExportStripMs) == 0;
-		boolean bExportAsEWkb = (exportFlags & WkbExportFlags.wkbExportAsExtendedWkb) != 0;
+		boolean bExportAsEWkb = (exportFlags & OperatorExportToWkbLocal.wkbExportAsExtendedWkb) != 0;
 
 		int polygonCount = polygon.getOGCPolygonCount();
 		if ((exportFlags & (int) WkbExportFlags.wkbExportPolygon) != 0
@@ -123,7 +125,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 
 
 		boolean bExportSrid = false;
-		if ((exportFlags & WkbExportFlags.wkbExportStripSrid) == WkbExportFlags.wkbExportStripSrid) {
+		if ((exportFlags & WkbExportFlags.ewkbExportStripSrid) == WkbExportFlags.ewkbExportStripSrid) {
 			// if stripping srid set it to 0
 			srid = 0;
 		} else if (srid > 0) {
@@ -339,7 +341,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 		boolean bExportMs = polyline
 				.hasAttribute(VertexDescription.Semantics.M)
 				&& (exportFlags & WkbExportFlags.wkbExportStripMs) == 0;
-		boolean bExportAsEWkb = (exportFlags & WkbExportFlags.wkbExportAsExtendedWkb) != 0;
+		boolean bExportAsEWkb = (exportFlags & OperatorExportToWkbLocal.wkbExportAsExtendedWkb) != 0;
 
 		int partCount = polyline.getPathCount();
 		if ((exportFlags & WkbExportFlags.wkbExportLineString) != 0
@@ -371,7 +373,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 			size += (point_count * 8 /* ms */);
 
 		boolean bExportSrid = false;
-		if ((exportFlags & WkbExportFlags.wkbExportStripSrid) == WkbExportFlags.wkbExportStripSrid) {
+		if ((exportFlags & WkbExportFlags.ewkbExportStripSrid) == WkbExportFlags.ewkbExportStripSrid) {
 			// if stripping srid set it to 0
 			srid = 0;
 		} else if (srid > 0) {
@@ -553,7 +555,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 		boolean bExportMs = multipoint
 				.hasAttribute(VertexDescription.Semantics.M)
 				&& (exportFlags & WkbExportFlags.wkbExportStripMs) == 0;
-		boolean bExportAsEWkb = (exportFlags & WkbExportFlags.wkbExportAsExtendedWkb) != 0;
+		boolean bExportAsEWkb = (exportFlags & OperatorExportToWkbLocal.wkbExportAsExtendedWkb) != 0;
 
 		int point_count = multipoint.getPointCount();
 		if ((exportFlags & WkbExportFlags.wkbExportPoint) != 0
@@ -580,7 +582,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 		}
 
 		boolean bExportSrid = false;
-		if ((exportFlags & WkbExportFlags.wkbExportStripSrid) == WkbExportFlags.wkbExportStripSrid) {
+		if ((exportFlags & WkbExportFlags.ewkbExportStripSrid) == WkbExportFlags.ewkbExportStripSrid) {
 			// if stripping srid set it to 0
 			srid = 0;
 		} else if (srid > 0) {
@@ -720,7 +722,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 				&& (exportFlags & WkbExportFlags.wkbExportStripZs) == 0;
 		boolean bExportMs = point.hasAttribute(VertexDescription.Semantics.M)
 				&& (exportFlags & WkbExportFlags.wkbExportStripMs) == 0;
-		boolean bExportAsEWkb = (exportFlags & WkbExportFlags.wkbExportAsExtendedWkb) != 0;
+		boolean bExportAsEWkb = (exportFlags & OperatorExportToWkbLocal.wkbExportAsExtendedWkb) != 0;
 
 		boolean bEmpty = point.isEmpty();
 		int point_count = bEmpty ? 0 : 1;
@@ -745,7 +747,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 		}
 
 		boolean bExportSrid = false;
-		if ((exportFlags & WkbExportFlags.wkbExportStripSrid) == WkbExportFlags.wkbExportStripSrid) {
+		if ((exportFlags & WkbExportFlags.ewkbExportStripSrid) == WkbExportFlags.ewkbExportStripSrid) {
 			// if stripping srid set it to 0
 			srid = 0;
 		} else if (srid > 0) {
@@ -851,7 +853,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 				&& (exportFlags & WkbExportFlags.wkbExportStripZs) == 0;
 		boolean bExportMs = envelope.hasAttribute(VertexDescription.Semantics.M)
 				&& (exportFlags & WkbExportFlags.wkbExportStripMs) == 0;
-		boolean bExportAsEWkb = (exportFlags & WkbExportFlags.wkbExportAsExtendedWkb) != 0;
+		boolean bExportAsEWkb = (exportFlags & OperatorExportToWkbLocal.wkbExportAsExtendedWkb) != 0;
 
 		boolean bEmpty = envelope.isEmpty();
 
@@ -866,7 +868,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 			size += 1 /* byte order */ + 4 /* wkbType */ + 4 /* numPolygons */;
 
 		boolean bExportSrid = false;
-		if ((exportFlags & WkbExportFlags.wkbExportStripSrid) == WkbExportFlags.wkbExportStripSrid) {
+		if ((exportFlags & WkbExportFlags.ewkbExportStripSrid) == WkbExportFlags.ewkbExportStripSrid) {
 			// if stripping srid set it to 0
 			srid = 0;
 		} else if (srid > 0) {

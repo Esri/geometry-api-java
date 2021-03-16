@@ -199,22 +199,22 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 		return root;
 	}
 
-	public static boolean hasZ(int geometryType) {
-		return (WkbGeometryType.wkbZ & geometryType) == WkbGeometryType.wkbZ
-				|| (WkbGeometryType.wkbZM & geometryType) == WkbGeometryType.wkbZM;
+	protected static boolean hasZ(int wkbGeometryType) {
+		return (wkbGeometryType >= WkbGeometryType.wkbZ && wkbGeometryType <= WkbGeometryType.wkbZ + WkbGeometryType.wkbGeometryCollection) ||
+				(wkbGeometryType >= WkbGeometryType.wkbZM && wkbGeometryType <= WkbGeometryType.wkbZM + WkbGeometryType.wkbGeometryCollection);
 	}
 
-	public static boolean hasM(int geometryType) {
-		return (WkbGeometryType.wkbM & geometryType) == WkbGeometryType.wkbM
-				|| (WkbGeometryType.wkbZM & geometryType) == WkbGeometryType.wkbZM;
+	protected static boolean hasM(int wkbGeometryType) {
+		return (wkbGeometryType >= WkbGeometryType.wkbM && wkbGeometryType <= WkbGeometryType.wkbM + WkbGeometryType.wkbGeometryCollection) ||
+				(wkbGeometryType >= WkbGeometryType.wkbZM && wkbGeometryType <= WkbGeometryType.wkbZM + WkbGeometryType.wkbGeometryCollection);
 	}
 
-	public static boolean hasEWkbZ(long geometryType) {
-		return (WkbGeometryType.eWkbZ & geometryType) == WkbGeometryType.eWkbZ;
+	public static boolean hasEWkbZ(long ewkbGeometryType) {
+		return (WkbGeometryType.eWkbZ & ewkbGeometryType) == WkbGeometryType.eWkbZ;
 	}
 
-	public static boolean hasEWkbM(long geometryType) {
-		return (WkbGeometryType.eWkbM & geometryType) == WkbGeometryType.eWkbM;
+	public static boolean hasEWkbM(long ewkbGeometryType) {
+		return (WkbGeometryType.eWkbM & ewkbGeometryType) == WkbGeometryType.eWkbM;
 	}
 
 	private static Geometry importFromWkb(int importFlags, Geometry.Type type,
