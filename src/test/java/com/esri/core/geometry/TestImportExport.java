@@ -669,7 +669,7 @@ public class TestImportExport extends TestCase {
 		// Test WKB_export_multi_polygon on nonempty single part polygon
 		Polygon polygon2 = makePolygon2();
 		assertEquals(1, polygon2.getPathCount());
-		polygonWKBBuffer = exporterWKB.execute(WkbExportFlags.wkbExportMultiPolygon | wkbExportStripSrid, polygon2, null, null);
+		polygonWKBBuffer = exporterWKB.execute(WkbExportFlags.wkbExportMultiPolygon |  WkbExportFlags.ewkbExportStripSrid, polygon2, null, null);
 		polygonWKBGeometry = importerWKB.execute(0, Geometry.Type.Polygon, polygonWKBBuffer, null);
 		TestCommonMethods.compareGeometryContent((MultiVertexGeometry) polygonWKBGeometry.getGeometry(), polygon2);
 		wkbType = java.lang.Integer.toUnsignedLong(polygonWKBBuffer.getInt(1));
@@ -895,7 +895,7 @@ public class TestImportExport extends TestCase {
 		TestCommonMethods.compareGeometryContent((MultiVertexGeometry) polylineEWKBMapGeometry.getGeometry(), polyline);
 		assertEquals(4326, polylineEWKBMapGeometry.getSpatialReference().getID());
 
-		polylineEWKBBuffer = exporterEWKB.execute(WkbExportFlags.wkbExportMultiLineString | wkbExportStripSrid, polylineEWKBMapGeometry.getGeometry(), polylineEWKBMapGeometry.getSpatialReference(),null);
+		polylineEWKBBuffer = exporterEWKB.execute(WkbExportFlags.wkbExportMultiLineString |  WkbExportFlags.ewkbExportStripSrid, polylineEWKBMapGeometry.getGeometry(), polylineEWKBMapGeometry.getSpatialReference(),null);
 		MapGeometry polylineEWKBMapGeometry2 = importerEWKB.execute(0, Geometry.Type.Polyline, polylineEWKBBuffer, null);
 		assertNull(polylineEWKBMapGeometry2.getSpatialReference());
 		TestCommonMethods.compareGeometryContent((MultiVertexGeometry) polylineEWKBMapGeometry.getGeometry(), (MultiVertexGeometry)polylineEWKBMapGeometry2.getGeometry());
