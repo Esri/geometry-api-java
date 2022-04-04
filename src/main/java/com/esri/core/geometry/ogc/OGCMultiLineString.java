@@ -64,7 +64,7 @@ public class OGCMultiLineString extends OGCMultiCurve {
 	public String asGeoJson() {
 		OperatorExportToGeoJson op = (OperatorExportToGeoJson) OperatorFactoryLocal.getInstance()
 				.getOperator(Operator.Type.ExportToGeoJson);
-		return op.execute(GeoJsonExportFlags.geoJsonExportPreferMultiGeometry, null, getEsriGeometry());
+		return op.execute(GeoJsonExportFlags.geoJsonExportPreferMultiGeometry, esriSR, getEsriGeometry());
 	}
 	
 	@Override

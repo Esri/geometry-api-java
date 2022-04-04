@@ -22,14 +22,9 @@
 
 package com.esri.core.geometry;
 
-import com.esri.core.geometry.ogc.OGCGeometry;
-import com.esri.core.geometry.ogc.OGCPoint;
-import com.esri.core.geometry.ogc.OGCMultiPoint;
-import com.esri.core.geometry.ogc.OGCLineString;
-import com.esri.core.geometry.ogc.OGCPolygon;
+import com.esri.core.geometry.ogc.*;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
-import com.esri.core.geometry.ogc.OGCConcreteGeometryCollection;
 import junit.framework.TestCase;
 import org.junit.Test;
 
@@ -162,6 +157,20 @@ public class TestGeomToGeoJson extends TestCase {
 	}
 
 	@Test
+	public void testOGCMultiLineStringCRS() throws IOException {
+		Polyline p = new Polyline();
+		p.startPath(100.0, 0.0);
+		p.lineTo(101.0, 0.0);
+		p.lineTo(101.0, 1.0);
+		p.lineTo(100.0, 1.0);
+
+		OGCMultiLineString multiLineString = new OGCMultiLineString(p, SpatialReference.create(4326));
+
+		String result = multiLineString.asGeoJson();
+		assertEquals("{\"type\":\"MultiLineString\",\"coordinates\":[[[100,0],[101,0],[101,1],[100,1]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}}", result);
+	}
+
+	@Test
 	public void testPolygon() {
 		Polygon p = new Polygon();
 		p.startPath(100.0, 0.0);
@@ -239,6 +248,24 @@ public class TestGeomToGeoJson extends TestCase {
 		//String result = exporter.execute(parsedPoly.getGeometry());
 		String result = exporter.execute(poly);
 		assertEquals("{\"type\":\"MultiPolygon\",\"coordinates\":[[[[-100,-100],[100,-100],[100,100],[-100,100],[-100,-100]],[[-90,-90],[90,-90],[-90,90],[90,90],[-90,-90]]],[[[-10,-10],[10,-10],[10,10],[-10,10],[-10,-10]]]]}", result);
+	}
+
+	@Test
+	public void testOGCMultiPolygonCRS() throws IOException {
+		JsonFactory jsonFactory = new JsonFactory();
+
+		String esriJsonPolygon = "{\"rings\": [[[-100, -100], [-100, 100], [100, 100], [100, -100], [-100, -100]], [[-90, -90], [90, 90], [-90, 90], [90, -90], [-90, -90]], [[-10, -10], [-10, 10], [10, 10], [10, -10], [-10, -10]]]}";
+
+		JsonParser parser = jsonFactory.createParser(esriJsonPolygon);
+		MapGeometry parsedPoly = GeometryEngine.jsonToGeometry(parser);
+
+		parsedPoly.setSpatialReference(SpatialReference.create(4326));
+		Polygon poly = (Polygon) parsedPoly.getGeometry();
+		OGCMultiPolygon multiPolygon = new OGCMultiPolygon(poly, parsedPoly.getSpatialReference());
+
+
+		String result = multiPolygon.asGeoJson();
+		assertEquals("{\"type\":\"MultiPolygon\",\"coordinates\":[[[[-100,-100],[100,-100],[100,100],[-100,100],[-100,-100]],[[-90,-90],[90,-90],[-90,90],[90,90],[-90,-90]]],[[[-10,-10],[10,-10],[10,10],[-10,10],[-10,-10]]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}}", result);
 	}
 
 
@@ -332,6 +359,29 @@ public class TestGeomToGeoJson extends TestCase {
 		OGCPolygon ogcPolygon = new OGCPolygon(p, null);
 		String result = ogcPolygon.asGeoJson();
 		assertEquals("{\"type\":\"Polygon\",\"coordinates\":[[[100,0],[101,0],[101,1],[100,1],[100,0]],[[100.2,0.2],[100.2,0.8],[100.8,0.8],[100.8,0.2],[100.2,0.2]]],\"crs\":null}", result);
+	}
+
+	@Test
+	public void testOGCPolygonWithHoleCRS() {
+		Polygon p = new Polygon();
+
+		p.startPath(100.0, 0.0);
+		p.lineTo(100.0, 1.0);
+		p.lineTo(101.0, 1.0);
+		p.lineTo(101.0, 0.0);
+		p.closePathWithLine();
+
+		p.startPath(100.2, 0.2);
+		p.lineTo(100.8, 0.2);
+		p.lineTo(100.8, 0.8);
+		p.lineTo(100.2, 0.8);
+		p.closePathWithLine();
+
+		SpatialReference sr = SpatialReference.create(4326);
+
+		OGCPolygon ogcPolygon = new OGCPolygon(p, sr);
+		String result = ogcPolygon.asGeoJson();
+		assertEquals("{\"type\":\"Polygon\",\"coordinates\":[[[100,0],[101,0],[101,1],[100,1],[100,0]],[[100.2,0.2],[100.2,0.8],[100.8,0.8],[100.8,0.2],[100.2,0.2]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}}", result);
 	}
 
 	@Test
