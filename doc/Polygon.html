@@ -64,10 +64,9 @@
 			</table>
 
 			<h2>Valid polygons</h2>
-			<p>A valid polygon has the following main property:
-				<li>for every polygon segment, the polygon exterior is unambiguously to the left of the segment and
-					the polygon interior is unambiguously to the right of the segment.</li>
-				As a result of the above property the following is also true:
+			<p>A valid polygon has the main property such that for every polygon segment the polygon exterior is unambiguously to the left of the segment, and the polygon interior is unambiguously to the right of the segment.</p>
+				<p>As a result of the above property the following is also true:
+				<ul>
 				<li>segments can touch other segments only at the end points,</li>
 				<li>segments have non-zero length,</li>
 				<li>outer rings are clockwise and holes are counterclockwise,</li>
@@ -75,10 +74,12 @@
 				<li>order of the rings does not matter,</li>
 				<li>rings can be self-tangent,</li>
 				<li>rings can not overlap.</li>
-			A valid polygon is said to be <i>simple</i>.
-			See the <a href="Simplify.html">Simplify operator</a> for a more detailed specification
+				</ul>
+				</p>
+			<p>A valid polygon is said to be <i>simple</i>.
+			See the <a href="https://github.com/Esri/geometry-api-java/wiki/What-is-a-simple-polygon">What is a simple polygon?</a> for a more detailed specification
 			of simple polygons. Note that a simple polygon may not be <a href="https://www.opengeospatial.org/standards/sfa"> OGC simple</a>. See the <a href="https://esri.github.io/geometry-api-java/javadoc/com/esri/core/geometry/OperatorSimplifyOGC.html">
-				Simplify operator with OGC restrictions</a>.
+				Simplify operator with OGC restrictions</a>.</p>
 			</p>
 			<h3>Examples</h3>
 			<p>
