@@ -37,7 +37,7 @@ The project is also available as a [Maven](http://maven.apache.org/) dependency:
 
 ## Documentation
 * [geometry-api-java/Wiki](https://github.com/Esri/geometry-api-java/wiki/)
-* [geometry-api-java/Javadoc](http://esri.github.com/geometry-api-java/javadoc/)
+* [geometry-api-java/Javadoc](http://Esri.github.io/geometry-api-java/javadoc/)
 
 ## Resources
 
