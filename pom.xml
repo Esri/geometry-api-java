@@ -101,14 +101,23 @@
 		<jackson.version>2.9.6</jackson.version>
 		<junit.version>4.12</junit.version>
 		<jol.version>0.9</jol.version>
+		<osgi.core.version>7.0.0</osgi.core.version>
 
 		<!-- plugin versions -->
 		<compiler.plugin.version>2.3.1</compiler.plugin.version>
 		<source.plugin.version>2.2.1</source.plugin.version>
 		<javadoc.plugin.version>3.0.0-M1</javadoc.plugin.version>
+		<jar.plugin.version>3.3.0</jar.plugin.version>
+		<bnd.version>6.4.0</bnd.version>
 	</properties>
 
 	<dependencies>
+		<dependency>
+			<groupId>org.osgi</groupId>
+			<artifactId>osgi.annotation</artifactId>
+			<version>${osgi.core.version}</version>
+			<scope>provided</scope>
+		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-core</artifactId>
@@ -151,12 +160,49 @@
 		</testResources>
 		<plugins>
 			<plugin>
-					<artifactId>maven-compiler-plugin</artifactId>
-					<version>${compiler.plugin.version}</version>
-					<configuration>
-						<source>${java.source.version}</source>
-						<target>${java.target.version}</target>
-					</configuration>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>${compiler.plugin.version}</version>
+				<configuration>
+					<source>${java.source.version}</source>
+					<target>${java.target.version}</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>biz.aQute.bnd</groupId>
+				<artifactId>bnd-maven-plugin</artifactId>
+				<version>${bnd.version}</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>bnd-process</goal>
+						</goals>
+						<configuration>
+							<bnd>
+						<![CDATA[
+					  Bundle-Copyright: Copyright (c) (${now;YYYY}) Esri
+					  Bundle-Description: ${project.description}
+					  Bundle-SymbolicName: ${project.groupId}.${project.artifactId}
+					  Git-Descriptor: ${system-allow-fail;git describe --dirty --always --abbrev=9}
+					  Git-SHA: ${system-allow-fail;git rev-list -1 --no-abbrev-commit HEAD}
+					  -noextraheaders: true
+					  -reproducible: true
+					  ]]>
+							</bnd>
+							<bndfile>bnd.bnd</bndfile>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>${jar.plugin.version}</version>
+				<configuration>
+					<archive>
+						<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+					</archive>
+					<skipIfEmpty>true</skipIfEmpty>
+				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
