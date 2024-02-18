@@ -24,6 +24,24 @@ for each project, along with reason(s) why you changed to a different one.
 
 ## Complexity
 
+Choice of functions:
+
+1. _Cut (Cutter.java) (nloc: 509 , cc: 106)
+2. geodesic_distance_ngs (GeoDist.java) (nloc: 270, cc: 53)
+3. exportMultiPathToESRIShape (OperatorExportToESRIShapeCursor.java) (nloc: 247, cc: 85)
+4. importFromWkbPolygon (OperatorImportFromWkbLocal.java) (nloc: 271, cc: 81)
+5. tryFastIntersectPolylinePolygon_ (OperatorIntersectionCursor.java) (nloc: 278, cc: 48)
+
+### Results
+
+1. 
+2. 
+3.
+4.
+5.
+
+### Questions
+
 1. What are your results for five complex functions?
    * Did all methods (tools vs. manual count) get the same result?
    * Are the results clear?
