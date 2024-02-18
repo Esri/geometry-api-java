@@ -266,4 +266,5 @@ n = 29 maybe?
 M = 52 - 29 + 2 = 25?
 
 seems to be quite off from the correct answer. for loops should probably be counted more 
+also if you have a while loop with || the program seem to count it twice.
 

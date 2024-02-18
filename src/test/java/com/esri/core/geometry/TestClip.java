@@ -27,14 +27,19 @@ package com.esri.core.geometry;
 import junit.framework.TestCase;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class TestClip extends TestCase {
 	@Override
 	protected void setUp() throws Exception {
+		//TestSingleton.getInstance().print();
 		super.setUp();
 	}
 
 	@Override
 	protected void tearDown() throws Exception {
+		//TestSingleton.getInstance().print();
 		super.tearDown();
 	}
 
