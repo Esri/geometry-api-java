@@ -6,11 +6,11 @@ has to be delivered in a standard, cross-platform format.
 
 ## Project
 
-Name:
+Name: Esri Geometry API Java
 
-URL:
+URL: https://github.com/Esri/geometry-api-java
 
-One or two sentences describing it
+The Esri Geometry API for Java enables developers to write custom applications for analysis of spatial data. This API is used in the Esri GIS Tools for Hadoop and other 3rd-party data processing solutions.
 
 ## Onboarding experience
 
