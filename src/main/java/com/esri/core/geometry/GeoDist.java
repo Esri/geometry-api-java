@@ -92,6 +92,12 @@ final class GeoDist {
 				* PE_PI2;
 	}
 
+	/**
+	 * Cyclomatic complexity:
+	 * Decisions: if: 39, &&: 6, ||: 2, ?: 4 , while: 1, for: 0 = 52 
+	 * Exit points: return: 5, Throws: 0, Exceptions: 0
+	 * Total: 52 - 5 + 2 = 49
+	 */
 	static public void geodesic_distance_ngs(double a, double e2, double lam1,
 			double phi1, double lam2, double phi2, PeDouble p_dist,
 			PeDouble p_az12, PeDouble p_az21) {
