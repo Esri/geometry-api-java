@@ -4,8 +4,10 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.text.DecimalFormat;
 
 public class CoverageSummary{
+    private static final DecimalFormat df = new DecimalFormat("0.00");
     
     private void checkCoverageFromFile(String filePath, int numberOfBranches, String methodName) {
         System.out.println("--------Checking coverage for " + methodName + "--------");
@@ -34,8 +36,11 @@ public class CoverageSummary{
         }
         if (uncheckedBranches == 0) {
             System.out.println("All branches are covered! :)");
+            System.out.println("Coverage for " + methodName + "is 100%");
         } else {
-            System.out.println("Not all branches are checked");
+            System.out.println("Not all branches are checked!");
+            float percent = (((float)numberOfBranches - (float)uncheckedBranches)/numberOfBranches)*100;
+            System.out.println("Coverage for " + methodName + " is  " + df.format(percent) + "%");
             System.out.println("Total unchecked branches: " + String.valueOf(uncheckedBranches));
             System.out.println("Total checked branches: " + String.valueOf(numberOfBranches - uncheckedBranches));
         }
