@@ -368,7 +368,6 @@ class OperatorImportFromWkbLocal extends OperatorImportFromWkb {
 	}
 
 	// ----------------- Cyclomatic Complexity Count --------------------
-	// Jonatan:
 	// Decisions: If: 48, ?: 0, For: 6, While: 0, ||: 12, &&: 14, case: 0 = 80
 	// Exit points: return: 1, throw: 0
 	// CC: 80 - 1 + 2 = 81
