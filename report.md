@@ -36,7 +36,7 @@ Choice of functions:
 1.
 2.
 3.
-4. 81 (Jonatan)
+4. 81
 5.
 
 ### Questions
