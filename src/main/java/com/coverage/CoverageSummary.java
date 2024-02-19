@@ -40,7 +40,7 @@ public class CoverageSummary{
         } else {
             System.out.println("Not all branches are checked!");
             float percent = (((float)numberOfBranches - (float)uncheckedBranches)/numberOfBranches)*100;
-            System.out.println("Coverage for " + methodName + " is  " + df.format(percent) + "%");
+            System.out.println("Coverage for " + methodName + " is: " + df.format(percent) + "%");
             System.out.println("Total unchecked branches: " + String.valueOf(uncheckedBranches));
             System.out.println("Total checked branches: " + String.valueOf(numberOfBranches - uncheckedBranches));
         }
