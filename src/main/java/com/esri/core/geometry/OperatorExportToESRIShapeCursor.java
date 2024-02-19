@@ -597,6 +597,12 @@ class OperatorExportToESRIShapeCursor extends ByteBufferCursor {
 		return offset;
 	}
 
+	/**
+	 * Cyclomatic Complexity
+	 * Decisions: if: 42, &&: 6, ||: 9, ?: 14, while: 0, for: 13 = 84
+	 * Exit points: return: 2, throw 2
+	 * Result: 84 - 4 + 2 = 82
+	 */
 	private static int exportMultiPathToESRIShape(boolean bPolygon,
 			int exportFlags, MultiPath multipath, ByteBuffer shapeBuffer) {
 		MultiPathImpl multipathImpl = (MultiPathImpl) multipath._getImpl();
