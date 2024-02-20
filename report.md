@@ -35,7 +35,7 @@ Choice of functions:
 
 1. 
 2. 49
-3.
+3. 82
 4.
 5. 44
 
