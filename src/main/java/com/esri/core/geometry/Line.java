@@ -27,6 +27,8 @@ package com.esri.core.geometry;
 
 import com.esri.core.geometry.VertexDescription.Semantics;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.Serializable;
 
 import static com.esri.core.geometry.SizeOf.SIZE_OF_LINE;
@@ -36,6 +38,35 @@ import static com.esri.core.geometry.SizeOf.SIZE_OF_LINE;
  * 
  */
 public final class Line extends Segment implements Serializable {
+
+	static private void coverageHelper(String id) {
+		String tempFilePath = "target/temp/coverage_intersectionWithAxis2D.txt";
+
+		// Create a File object with the specified path
+		File tempFile = new File(tempFilePath);
+
+		try {
+			// Check if the file exists
+			if (!tempFile.exists()) {
+				// Create the file if it doesn't exist
+				if (tempFile.getParentFile() != null) {
+					tempFile.getParentFile().mkdirs(); // Create parent directories if necessary
+				}
+				tempFile.createNewFile(); // Create the file
+				System.out.println("Temporary file created at: " + tempFile.getAbsolutePath());
+			}
+			FileWriter writer = new FileWriter(tempFile, true);
+			// Write the new content to the file
+			writer.write(id);
+			writer.write(System.lineSeparator()); // Add a newline after the new content
+
+			// Close the FileWriter
+			writer.close();
+
+		} catch (Exception e) {
+			System.err.println(e.getMessage());
+		}
+	}
 
 	@Override
 	public Geometry.Type getType() {
@@ -297,40 +328,60 @@ public final class Line extends Segment implements Serializable {
 	public int intersectionWithAxis2D(boolean b_axis_x, double ordinate,
 			double[] result_ordinates, double[] parameters) {
 		if (b_axis_x) {
+			coverageHelper("0");
 			double a = (m_yEnd - m_yStart);
 
-			if (a == 0)
-				return (ordinate == m_yEnd) ? -1 : 0;
+			if (a == 0){
+				coverageHelper("1");
+				return (ordinate == m_yEnd) ? -1 : 0;}
 
 			double t = (ordinate - m_yStart) / a;
 
-			if (t < 0.0 || t > 1.0)
-				return 0;
+			if (t < 0.0 || t > 1.0){
+				coverageHelper("2");
+				return 0;}
 
-			if (result_ordinates != null)
-				(result_ordinates)[0] = getCoordX_(t);
+			if (result_ordinates != null){
+				coverageHelper("3");
+				(result_ordinates)[0] = getCoordX_(t);}
+			else{
+				coverageHelper("4");
+			}
 
-			if (parameters != null)
-				(parameters)[0] = t;
-
+			if (parameters != null){
+				coverageHelper("5");
+				(parameters)[0] = t;}
+			else{
+				coverageHelper("6");
+			}
 			return 1;
 		} else {
+			coverageHelper("7");
 			double a = (m_xEnd - m_xStart);
 
-			if (a == 0)
-				return (ordinate == m_xEnd) ? -1 : 0;
+			if (a == 0){
+				coverageHelper("8");
+				return (ordinate == m_xEnd) ? -1 : 0;}
 
 			double t = (ordinate - m_xStart) / a;
 
-			if (t < 0.0 || t > 1.0)
-				return 0;
+			if (t < 0.0 || t > 1.0){
+				coverageHelper("9");
+				return 0;}
 
-			if (result_ordinates != null)
-				(result_ordinates)[0] = getCoordY_(t);
+			if (result_ordinates != null){
+				coverageHelper("10");
+				(result_ordinates)[0] = getCoordY_(t);}
+			else{
+				coverageHelper("11");
+			}
 
-			if (parameters != null)
-				(parameters)[0] = t;
-
+			if (parameters != null){
+				coverageHelper("12");
+				(parameters)[0] = t;}
+			else{
+				coverageHelper("13");
+			}
 			return 1;
 		}
 	}
