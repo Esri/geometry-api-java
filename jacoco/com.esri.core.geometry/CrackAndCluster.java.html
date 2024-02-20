@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CrackAndCluster.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">CrackAndCluster.java</span></div><h1>CrackAndCluster.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+//Implementation of the cracking and clustering algorithm.
+//Cracks and clusters all segments and vertices in the EditShape.
+
+<span class="fc" id="L29">final class CrackAndCluster {</span>
+<span class="fc" id="L30">	private EditShape m_shape = null;</span>
+<span class="fc" id="L31">	private ProgressTracker m_progressTracker = null;</span>
+	private double m_tolerance;
+<span class="fc" id="L33">	private boolean m_filter_degenerate_segments = true;</span>
+
+<span class="fc" id="L35">	private CrackAndCluster(ProgressTracker progressTracker) {</span>
+<span class="fc" id="L36">		m_progressTracker = progressTracker;</span>
+<span class="fc" id="L37">	}</span>
+
+    static boolean non_empty_points_need_to_cluster(double tolerance, Point pt1, Point pt2)
+    {
+<span class="nc" id="L41">      double tolerance_for_clustering = InternalUtils.adjust_tolerance_for_TE_clustering(tolerance);</span>
+<span class="nc" id="L42">      return Clusterer.isClusterCandidate_(pt1.getX(), pt1.getY(), pt2.getX(), pt2.getY(), MathUtils.sqr(tolerance_for_clustering));</span>
+    }
+
+    static Point cluster_non_empty_points(Point pt1, Point pt2, double w1, int rank1, double w2, int rank2)
+    {
+<span class="nc bnc" id="L47" title="All 2 branches missed.">      if (rank1 &gt; rank2)</span>
+      {
+<span class="nc" id="L49">        return pt1;</span>
+      }
+<span class="nc bnc" id="L51" title="All 2 branches missed.">      else if (rank2 &lt; rank1)</span>
+      {
+<span class="nc" id="L53">        return pt2;</span>
+      }
+
+<span class="nc" id="L56">      int [] rank = null;</span>
+<span class="nc" id="L57">      double [] w = null;</span>
+<span class="nc" id="L58">      Point pt = new Point();</span>
+<span class="nc" id="L59">      Clusterer.mergeVertices(pt1, pt2, w1, rank1, w2, rank2, pt, w, rank);</span>
+<span class="nc" id="L60">      return pt;</span>
+    }
+	
+	public static boolean execute(EditShape shape, double tolerance,
+			ProgressTracker progressTracker, boolean filter_degenerate_segments) {
+<span class="fc" id="L65">		CrackAndCluster cracker = new CrackAndCluster(progressTracker);</span>
+<span class="fc" id="L66">		cracker.m_shape = shape;</span>
+<span class="fc" id="L67">		cracker.m_tolerance = tolerance;</span>
+<span class="fc" id="L68">		cracker.m_filter_degenerate_segments = filter_degenerate_segments;</span>
+<span class="fc" id="L69">		return cracker._do();</span>
+	}
+
+	private boolean _cluster(double toleranceCluster) {
+<span class="fc" id="L73">		boolean res = Clusterer.executeNonReciprocal(m_shape, toleranceCluster);</span>
+<span class="fc" id="L74">		return res;</span>
+	}
+
+	private boolean _crack(double tolerance_for_cracking) {
+<span class="fc" id="L78">		boolean res = Cracker.execute(m_shape, tolerance_for_cracking, m_progressTracker);</span>
+<span class="fc" id="L79">		return res;</span>
+	}
+
+	private boolean _do() {
+<span class="fc" id="L83">		double tol = m_tolerance;</span>
+
+		// Use same tolerances as ArcObjects (2 * sqrt(2) * tolerance for
+		// clustering)
+		// sqrt(2) * tolerance for cracking.
+		// Also, inflate the tolerances slightly to insure the simplified result
+		// would not change after small rounding issues.
+
+<span class="fc" id="L91">		final double c_factor = 1e-5;</span>
+<span class="fc" id="L92">		final double c_factor_for_needs_cracking = 1e-6;</span>
+<span class="fc" id="L93">		double tolerance_for_clustering = InternalUtils</span>
+<span class="fc" id="L94">				.adjust_tolerance_for_TE_clustering(tol);</span>
+<span class="fc" id="L95">		double tolerance_for_needs_cracking = InternalUtils</span>
+<span class="fc" id="L96">				.adjust_tolerance_for_TE_cracking(tol);</span>
+<span class="fc" id="L97">		double tolerance_for_cracking = tolerance_for_needs_cracking</span>
+				* (1.0 + c_factor);
+<span class="fc" id="L99">		tolerance_for_needs_cracking *= (1.0 + c_factor_for_needs_cracking);</span>
+
+		// Require tolerance_for_clustering &gt; tolerance_for_cracking &gt;
+		// tolerance_for_needs_cracking
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">		assert (tolerance_for_clustering &gt; tolerance_for_cracking);</span>
+<span class="pc bpc" id="L104" title="1 of 2 branches missed.">		assert (tolerance_for_cracking &gt; tolerance_for_needs_cracking);</span>
+
+		// double toleranceCluster = m_tolerance * Math.sqrt(2.0) * 1.00001;
+<span class="fc" id="L107">		boolean bChanged = false;</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">		int max_iter = m_shape.getTotalPointCount() + 10 &gt; 30 ? 1000 : (m_shape</span>
+<span class="fc" id="L109">				.getTotalPointCount() + 10)</span>
+<span class="fc" id="L110">				* (m_shape.getTotalPointCount() + 10);</span>
+<span class="fc" id="L111">		int iter = 0;</span>
+<span class="fc" id="L112">		boolean has_point_features = m_shape.hasPointFeatures();</span>
+<span class="fc" id="L113">		for (;; iter++) {</span>
+<span class="pc bpc" id="L114" title="1 of 2 branches missed.">			if (iter &gt; max_iter)</span>
+<span class="nc" id="L115">				throw new GeometryException(</span>
+						&quot;Internal Error: max number of iterations exceeded&quot;);// too
+																				// many
+																				// iterations
+
+<span class="fc" id="L120">			boolean bClustered = _cluster(tolerance_for_clustering); // find</span>
+																		// close
+			// vertices and
+			// clamp them
+			// together.
+<span class="fc" id="L125">			bChanged |= bClustered;</span>
+			
+<span class="fc bfc" id="L127" title="All 2 branches covered.">			if (m_filter_degenerate_segments) {</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">				boolean bFiltered = (m_shape.filterClosePoints(</span>
+						tolerance_for_clustering, true, false) != 0); // remove all
+																// degenerate
+																// segments.
+<span class="fc" id="L132">				bChanged |= bFiltered;</span>
+			}
+
+<span class="fc" id="L135">			boolean b_cracked = false;</span>
+<span class="fc bfc" id="L136" title="All 4 branches covered.">			if (iter == 0</span>
+					|| has_point_features
+<span class="fc bfc" id="L138" title="All 2 branches covered.">					|| Cracker.needsCracking(true, m_shape,</span>
+							tolerance_for_needs_cracking, null,
+							m_progressTracker)) {
+				// Cracks only if shape contains segments.
+<span class="fc" id="L142">				b_cracked = _crack(tolerance_for_cracking); // crack all</span>
+															// segments at
+															// intersection
+															// points and touch
+															// points. If
+															// Cracked, then the
+															// iteration will be
+															// repeated.
+<span class="fc" id="L150">				bChanged |= b_cracked;</span>
+			}
+
+<span class="fc bfc" id="L153" title="All 2 branches covered.">			if (!b_cracked)</span>
+<span class="fc" id="L154">				break;// was not cracked, so we can bail out.</span>
+			else {
+				// Loop while cracking happens.
+			}
+
+<span class="fc" id="L159">			ProgressTracker.checkAndThrow(m_progressTracker);</span>
+		}
+
+<span class="fc" id="L162">		return bChanged;</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

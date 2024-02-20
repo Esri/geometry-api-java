@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PolygonUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">PolygonUtils.java</span></div><h1>PolygonUtils.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+<span class="nc" id="L27">final class PolygonUtils {</span>
+
+<span class="fc" id="L29">	public enum PiPResult {</span>
+<span class="fc" id="L30">		PiPOutside, PiPInside, PiPBoundary</span>
+	};
+
+	// enum_class PiPResult { PiPOutside = 0, PiPInside = 1, PiPBoundary = 2};
+	/**
+	 * Tests if Point is inside the Polygon. Returns PiPOutside if not in
+	 * polygon, PiPInside if in the polygon, PiPBoundary is if on the border. It
+	 * tests border only if the tolerance is greater than 0, otherwise PiPBoundary cannot
+	 * be returned. Note: If the tolerance is not 0, the test is more expensive
+	 * because it calculates closest distance from a point to each segment.
+	 * 
+	 * O(n) complexity, where n is the number of polygon segments.
+	 */
+	public static PiPResult isPointInPolygon2D(Polygon polygon,
+			Point inputPoint, double tolerance) {
+<span class="fc" id="L45">		int res = PointInPolygonHelper.isPointInPolygon(polygon, inputPoint,</span>
+				tolerance);
+<span class="fc bfc" id="L47" title="All 2 branches covered.">		if (res == 0)</span>
+<span class="fc" id="L48">			return PiPResult.PiPOutside;</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">		if (res == 1)</span>
+<span class="fc" id="L50">			return PiPResult.PiPInside;</span>
+
+<span class="fc" id="L52">		return PiPResult.PiPBoundary;</span>
+	}
+
+	public static PiPResult isPointInPolygon2D(Polygon polygon,
+			Point2D inputPoint, double tolerance) {
+<span class="fc" id="L57">		int res = PointInPolygonHelper.isPointInPolygon(polygon, inputPoint,</span>
+				tolerance);
+<span class="fc bfc" id="L59" title="All 2 branches covered.">		if (res == 0)</span>
+<span class="fc" id="L60">			return PiPResult.PiPOutside;</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">		if (res == 1)</span>
+<span class="fc" id="L62">			return PiPResult.PiPInside;</span>
+
+<span class="fc" id="L64">		return PiPResult.PiPBoundary;</span>
+	}
+
+	static PiPResult isPointInPolygon2D(Polygon polygon, double inputPointXVal,
+			double inputPointYVal, double tolerance) {
+<span class="nc" id="L69">		int res = PointInPolygonHelper.isPointInPolygon(polygon,</span>
+				inputPointXVal, inputPointYVal, tolerance);
+<span class="nc bnc" id="L71" title="All 2 branches missed.">		if (res == 0)</span>
+<span class="nc" id="L72">			return PiPResult.PiPOutside;</span>
+<span class="nc bnc" id="L73" title="All 2 branches missed.">		if (res == 1)</span>
+<span class="nc" id="L74">			return PiPResult.PiPInside;</span>
+
+<span class="nc" id="L76">		return PiPResult.PiPBoundary;</span>
+	}
+
+	/**
+	 * Tests if Point is inside the Polygon's ring. Returns PiPOutside if not in
+	 * ring, PiPInside if in the ring, PiPBoundary is if on the border. It tests
+	 * border only if the tolerance is greater than 0, otherwise PiPBoundary cannot be
+	 * returned. Note: If the tolerance is not 0, the test is more expensive
+	 * because it calculates closest distance from a point to each segment.
+	 * 
+	 * O(n) complexity, where n is the number of ring segments.
+	 */
+	public static PiPResult isPointInRing2D(Polygon polygon, int iRing,
+			Point2D inputPoint, double tolerance) {
+<span class="nc" id="L90">		MultiPathImpl polygonImpl = (MultiPathImpl) polygon._getImpl();</span>
+<span class="nc" id="L91">		int res = PointInPolygonHelper.isPointInRing(polygonImpl, iRing,</span>
+				inputPoint, tolerance, null);
+<span class="nc bnc" id="L93" title="All 2 branches missed.">		if (res == 0)</span>
+<span class="nc" id="L94">			return PiPResult.PiPOutside;</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">		if (res == 1)</span>
+<span class="nc" id="L96">			return PiPResult.PiPInside;</span>
+
+		// return PiPResult.PiPBoundary;
+<span class="nc" id="L99">		return PiPResult.PiPInside; // we do not return PiPBoundary. Overwise,</span>
+									// we would have to do more complex
+									// calculations to differentiat between
+									// internal and external boundaries.
+	}
+
+	/**
+	 * Tests if Point is inside of the any outer ring of a Polygon. Returns
+	 * PiPOutside if not in any outer ring, PiPInside if in the any outer ring,
+	 * or on the boundary. PiPBoundary is never returned. Note: If the tolerance
+	 * is not 0, the test is more expensive because it calculates closest
+	 * distance from a point to each segment.
+	 * 
+	 * O(n) complexity, where n is the number of polygon segments.
+	 */
+	public static PiPResult isPointInAnyOuterRing(Polygon polygon,
+			Point2D inputPoint, double tolerance) {
+<span class="fc" id="L116">		int res = PointInPolygonHelper.isPointInAnyOuterRing(polygon,</span>
+				inputPoint, tolerance);
+<span class="fc bfc" id="L118" title="All 2 branches covered.">		if (res == 0)</span>
+<span class="fc" id="L119">			return PiPResult.PiPOutside;</span>
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">		if (res == 1)</span>
+<span class="fc" id="L121">			return PiPResult.PiPInside;</span>
+
+		// return PiPResult.PiPBoundary;
+<span class="nc" id="L124">		return PiPResult.PiPInside; // we do not return PiPBoundary. Overwise,</span>
+									// we would have to do more complex
+									// calculations to differentiat between
+									// internal and external boundaries.
+	}
+
+	/**
+	 * Tests point is inside the Polygon for an array of points. Returns
+	 * PiPOutside if not in polygon, PiPInside if in the polygon, PiPBoundary is
+	 * if on the border. It tests border only if the tolerance is greater than 0, otherwise
+	 * PiPBoundary cannot be returned. Note: If the tolerance is not 0, the test
+	 * is more expensive.
+	 * 
+	 * O(n*m) complexity, where n is the number of polygon segments, m is the
+	 * number of input points.
+	 */
+	public static void testPointsInPolygon2D(Polygon polygon,
+			Point2D[] inputPoints, int count, double tolerance,
+			PiPResult[] testResults) {
+<span class="pc bpc" id="L143" title="2 of 4 branches missed.">		if (inputPoints.length &lt; count || testResults.length &lt; count)</span>
+<span class="nc" id="L144">			throw new IllegalArgumentException();// GEOMTHROW(invalid_argument);</span>
+
+<span class="fc bfc" id="L146" title="All 2 branches covered.">		for (int i = 0; i &lt; count; i++)</span>
+<span class="fc" id="L147">			testResults[i] = isPointInPolygon2D(polygon, inputPoints[i],</span>
+					tolerance);
+<span class="fc" id="L149">	}</span>
+
+	static void testPointsInPolygon2D(Polygon polygon, double[] xyStreamBuffer,
+			int pointCount, double tolerance, PiPResult[] testResults) {
+<span class="nc bnc" id="L153" title="All 4 branches missed.">		if (xyStreamBuffer.length / 2 &lt; pointCount</span>
+				|| testResults.length &lt; pointCount)
+<span class="nc" id="L155">			throw new IllegalArgumentException();// GEOMTHROW(invalid_argument);</span>
+
+<span class="nc bnc" id="L157" title="All 2 branches missed.">		for (int i = 0; i &lt; pointCount; i++)</span>
+<span class="nc" id="L158">			testResults[i] = isPointInPolygon2D(polygon, xyStreamBuffer[i * 2],</span>
+					xyStreamBuffer[i * 2 + 1], tolerance);
+<span class="nc" id="L160">	}</span>
+
+	/**
+	 * Tests point is inside an Area Geometry (Envelope, Polygon) for an array
+	 * of points. Returns PiPOutside if not in area, PiPInside if in the area,
+	 * PiPBoundary is if on the border. It tests border only if the tolerance is
+	 * greater than 0, otherwise PiPBoundary cannot be returned. Note: If the tolerance is
+	 * not 0, the test is more expensive.
+	 * 
+	 * O(n*m) complexity, where n is the number of polygon segments, m is the
+	 * number of input points.
+	 */
+	public static void testPointsInArea2D(Geometry polygon,
+			Point2D[] inputPoints, int count, double tolerance,
+			PiPResult[] testResults) {
+<span class="pc bpc" id="L175" title="1 of 2 branches missed.">		if (polygon.getType() == Geometry.Type.Polygon)</span>
+<span class="fc" id="L176">			testPointsInPolygon2D((Polygon) polygon, inputPoints, count,</span>
+					tolerance, testResults);
+<span class="nc bnc" id="L178" title="All 2 branches missed.">		else if (polygon.getType() == Geometry.Type.Envelope) {</span>
+<span class="nc" id="L179">			Envelope2D env2D = new Envelope2D();</span>
+<span class="nc" id="L180">			((Envelope) polygon).queryEnvelope2D(env2D);</span>
+<span class="nc" id="L181">			_testPointsInEnvelope2D(env2D, inputPoints, count, tolerance,</span>
+					testResults);
+<span class="nc" id="L183">		} else</span>
+<span class="nc" id="L184">			throw new GeometryException(&quot;invalid_call&quot;);// GEOMTHROW(invalid_call);</span>
+<span class="fc" id="L185">	}</span>
+
+	public static void testPointsInArea2D(Geometry polygon,
+			double[] xyStreamBuffer, int count, double tolerance,
+			PiPResult[] testResults) {
+<span class="nc bnc" id="L190" title="All 2 branches missed.">		if (polygon.getType() == Geometry.Type.Polygon)</span>
+<span class="nc" id="L191">			testPointsInPolygon2D((Polygon) polygon, xyStreamBuffer, count,</span>
+					tolerance, testResults);
+<span class="nc bnc" id="L193" title="All 2 branches missed.">		else if (polygon.getType() == Geometry.Type.Envelope) {</span>
+<span class="nc" id="L194">			Envelope2D env2D = new Envelope2D();</span>
+<span class="nc" id="L195">			((Envelope) polygon).queryEnvelope2D(env2D);</span>
+<span class="nc" id="L196">			_testPointsInEnvelope2D(env2D, xyStreamBuffer, count, tolerance,</span>
+					testResults);
+<span class="nc" id="L198">		} else</span>
+<span class="nc" id="L199">			throw new GeometryException(&quot;invalid_call&quot;);// GEOMTHROW(invalid_call);</span>
+<span class="nc" id="L200">	}</span>
+
+	private static void _testPointsInEnvelope2D(Envelope2D env2D,
+			Point2D[] inputPoints, int count, double tolerance,
+			PiPResult[] testResults) {
+<span class="nc bnc" id="L205" title="All 4 branches missed.">		if (inputPoints.length &lt; count || testResults.length &lt; count)</span>
+<span class="nc" id="L206">			throw new IllegalArgumentException();</span>
+
+<span class="nc bnc" id="L208" title="All 2 branches missed.">		if (env2D.isEmpty()) {</span>
+<span class="nc bnc" id="L209" title="All 2 branches missed.">			for (int i = 0; i &lt; count; i++)</span>
+<span class="nc" id="L210">				testResults[i] = PiPResult.PiPOutside;</span>
+<span class="nc" id="L211">			return;</span>
+		}
+
+<span class="nc" id="L214">		Envelope2D envIn = env2D; // note for java port - assignement by value</span>
+<span class="nc" id="L215">		envIn.inflate(-tolerance * 0.5, -tolerance * 0.5);</span>
+<span class="nc" id="L216">		Envelope2D envOut = env2D;// note for java port - assignement by value</span>
+<span class="nc" id="L217">		envOut.inflate(tolerance * 0.5, tolerance * 0.5);</span>
+<span class="nc bnc" id="L218" title="All 2 branches missed.">		for (int i = 0; i &lt; count; i++) {</span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">			if (envIn.contains(inputPoints[i]))</span>
+<span class="nc" id="L220">				testResults[i] = PiPResult.PiPInside;</span>
+<span class="nc bnc" id="L221" title="All 2 branches missed.">			else if (!envOut.contains(inputPoints[i]))</span>
+<span class="nc" id="L222">				testResults[i] = PiPResult.PiPOutside;</span>
+			else
+<span class="nc" id="L224">				testResults[i] = PiPResult.PiPBoundary;</span>
+		}
+<span class="nc" id="L226">	}</span>
+
+	private static void _testPointsInEnvelope2D(Envelope2D env2D,
+			double[] xyStreamBuffer, int pointCount, double tolerance,
+			PiPResult[] testResults) {
+<span class="nc bnc" id="L231" title="All 4 branches missed.">		if (xyStreamBuffer.length / 2 &lt; pointCount</span>
+				|| testResults.length &lt; pointCount)
+<span class="nc" id="L233">			throw new IllegalArgumentException();</span>
+
+<span class="nc bnc" id="L235" title="All 2 branches missed.">		if (env2D.isEmpty()) {</span>
+<span class="nc bnc" id="L236" title="All 2 branches missed.">			for (int i = 0; i &lt; pointCount; i++)</span>
+<span class="nc" id="L237">				testResults[i] = PiPResult.PiPOutside;</span>
+<span class="nc" id="L238">			return;</span>
+		}
+
+<span class="nc" id="L241">		Envelope2D envIn = env2D; // note for java port - assignement by value</span>
+<span class="nc" id="L242">		envIn.inflate(-tolerance * 0.5, -tolerance * 0.5);</span>
+<span class="nc" id="L243">		Envelope2D envOut = env2D;// note for java port - assignement by value</span>
+<span class="nc" id="L244">		envOut.inflate(tolerance * 0.5, tolerance * 0.5);</span>
+<span class="nc bnc" id="L245" title="All 2 branches missed.">		for (int i = 0; i &lt; pointCount; i++) {</span>
+<span class="nc" id="L246">			if (envIn</span>
+<span class="nc bnc" id="L247" title="All 2 branches missed.">					.contains(xyStreamBuffer[i * 2], xyStreamBuffer[i * 2 + 1]))</span>
+<span class="nc" id="L248">				testResults[i] = PiPResult.PiPInside;</span>
+<span class="nc bnc" id="L249" title="All 2 branches missed.">			else if (!envIn.contains(xyStreamBuffer[i * 2],</span>
+					xyStreamBuffer[i * 2 + 1]))
+<span class="nc" id="L251">				testResults[i] = PiPResult.PiPOutside;</span>
+			else
+<span class="nc" id="L253">				testResults[i] = PiPResult.PiPBoundary;</span>
+		}
+<span class="nc" id="L255">	}</span>
+
+	static void testPointsOnSegment_(Segment seg, Point2D[] input_points,
+			int count, double tolerance, PolygonUtils.PiPResult[] test_results) {
+<span class="nc bnc" id="L259" title="All 2 branches missed.">		for (int i = 0; i &lt; count; i++) {</span>
+<span class="nc bnc" id="L260" title="All 2 branches missed.">			if (seg.isIntersecting(input_points[i], tolerance))</span>
+<span class="nc" id="L261">				test_results[i] = PiPResult.PiPBoundary;</span>
+			else
+<span class="nc" id="L263">				test_results[i] = PiPResult.PiPOutside;</span>
+		}
+<span class="nc" id="L265">	}</span>
+
+	static void testPointsOnPolyline2D_(Polyline poly, Point2D[] input_points,
+			int count, double tolerance, PolygonUtils.PiPResult[] test_results) {
+<span class="fc" id="L269">		MultiPathImpl mp_impl = (MultiPathImpl) poly._getImpl();</span>
+<span class="fc" id="L270">		GeometryAccelerators accel = mp_impl._getAccelerators();</span>
+<span class="fc" id="L271">		RasterizedGeometry2D rgeom = null;</span>
+<span class="pc bpc" id="L272" title="1 of 2 branches missed.">		if (accel != null) {</span>
+<span class="nc" id="L273">			rgeom = accel.getRasterizedGeometry();</span>
+		}
+
+<span class="fc" id="L276">		int pointsLeft = count;</span>
+<span class="fc bfc" id="L277" title="All 2 branches covered.">		for (int i = 0; i &lt; count; i++) {</span>
+<span class="fc" id="L278">			test_results[i] = PiPResult.PiPInside;// set to impossible value</span>
+
+<span class="pc bpc" id="L280" title="1 of 2 branches missed.">			if (rgeom != null) {</span>
+<span class="nc" id="L281">				Point2D input_point = input_points[i];</span>
+<span class="nc" id="L282">				RasterizedGeometry2D.HitType hit = rgeom.queryPointInGeometry(</span>
+						input_point.x, input_point.y);
+<span class="nc bnc" id="L284" title="All 2 branches missed.">				if (hit == RasterizedGeometry2D.HitType.Outside) {</span>
+<span class="nc" id="L285">					test_results[i] = PiPResult.PiPOutside;</span>
+<span class="nc" id="L286">					pointsLeft--;</span>
+				}
+			}
+		}
+
+<span class="pc bpc" id="L291" title="1 of 2 branches missed.">		if (pointsLeft != 0) {</span>
+<span class="fc" id="L292">			SegmentIteratorImpl iter = mp_impl.querySegmentIterator();</span>
+<span class="pc bpc" id="L293" title="1 of 4 branches missed.">			while (iter.nextPath() &amp;&amp; pointsLeft != 0) {</span>
+<span class="fc bfc" id="L294" title="All 4 branches covered.">				while (iter.hasNextSegment() &amp;&amp; pointsLeft != 0) {</span>
+<span class="fc" id="L295">					Segment segment = iter.nextSegment();</span>
+<span class="pc bpc" id="L296" title="1 of 4 branches missed.">					for (int i = 0; i &lt; count &amp;&amp; pointsLeft != 0; i++) {</span>
+<span class="fc bfc" id="L297" title="All 2 branches covered.">						if (test_results[i] == PiPResult.PiPInside) {</span>
+<span class="fc bfc" id="L298" title="All 2 branches covered.">							if (segment.isIntersecting(input_points[i],</span>
+									tolerance)) {
+<span class="fc" id="L300">								test_results[i] = PiPResult.PiPBoundary;</span>
+<span class="fc" id="L301">								pointsLeft--;</span>
+							}
+						}
+					}
+<span class="fc" id="L305">				}</span>
+			}
+		}
+
+<span class="fc bfc" id="L309" title="All 2 branches covered.">		for (int i = 0; i &lt; count; i++) {</span>
+<span class="fc bfc" id="L310" title="All 2 branches covered.">			if (test_results[i] == PiPResult.PiPInside)</span>
+<span class="fc" id="L311">				test_results[i] = PiPResult.PiPOutside;</span>
+		}
+<span class="fc" id="L313">	}</span>
+
+	static void testPointsOnLine2D(Geometry line, Point2D[] input_points,
+			int count, double tolerance, PolygonUtils.PiPResult[] test_results) {
+<span class="fc" id="L317">		Geometry.Type gt = line.getType();</span>
+<span class="pc bpc" id="L318" title="1 of 2 branches missed.">		if (gt == Geometry.Type.Polyline)</span>
+<span class="fc" id="L319">			testPointsOnPolyline2D_((Polyline) line, input_points, count,</span>
+					tolerance, test_results);
+<span class="nc bnc" id="L321" title="All 2 branches missed.">		else if (Geometry.isSegment(gt.value())) {</span>
+<span class="nc" id="L322">			testPointsOnSegment_((Segment) line, input_points, count,</span>
+					tolerance, test_results);
+		} else
+<span class="nc" id="L325">			throw new GeometryException(&quot;Invalid call.&quot;);</span>
+<span class="fc" id="L326">	}</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

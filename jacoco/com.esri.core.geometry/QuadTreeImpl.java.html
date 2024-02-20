@@ -1,0 +1,1381 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>QuadTreeImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">QuadTreeImpl.java</span></div><h1>QuadTreeImpl.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2018 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+import java.io.IOException;
+import java.io.InvalidObjectException;
+import java.io.ObjectStreamException;
+import java.io.Serializable;
+import java.util.ArrayList;
+
+import static com.esri.core.geometry.SizeOf.SIZE_OF_DATA;
+import static com.esri.core.geometry.SizeOf.SIZE_OF_QUAD_TREE_IMPL;
+import static com.esri.core.geometry.SizeOf.sizeOfObjectArray;
+
+<span class="fc" id="L36">class QuadTreeImpl implements Serializable {</span>
+	private static final long serialVersionUID = 1L;
+	
+<span class="fc" id="L39">	static final class QuadTreeIteratorImpl {</span>
+		/**
+		 * Resets the iterator to an starting state on the Quad_tree_impl. If
+		 * the input Geometry is a Line segment, then the query will be the
+		 * segment. Otherwise the query will be the Envelope_2D bounding the
+		 * Geometry. \param query The Geometry used for the query. \param
+		 * tolerance The tolerance used for the intersection tests. \param
+		 * tolerance The tolerance used for the intersection tests.
+		 */
+		void resetIterator(Geometry query, double tolerance) {
+<span class="fc" id="L49">			m_quads_stack.resize(0);</span>
+<span class="fc" id="L50">			m_extents_stack.clear();</span>
+<span class="fc" id="L51">			m_current_element_handle = -1;</span>
+<span class="fc" id="L52">			query.queryLooseEnvelope2D(m_query_box);</span>
+<span class="fc" id="L53">			m_query_box.inflate(tolerance, tolerance);</span>
+
+<span class="pc bpc" id="L55" title="2 of 4 branches missed.">			if (m_quad_tree.m_root != -1 &amp;&amp; m_query_box.isIntersecting(m_quad_tree.m_extent)) {</span>
+<span class="fc" id="L56">				int type = query.getType().value();</span>
+<span class="fc" id="L57">				m_b_linear = Geometry.isSegment(type);</span>
+
+<span class="pc bpc" id="L59" title="1 of 2 branches missed.">				if (m_b_linear) {</span>
+<span class="fc" id="L60">					Segment segment = (Segment) query;</span>
+<span class="fc" id="L61">					m_query_start = segment.getStartXY();</span>
+<span class="fc" id="L62">					m_query_end = segment.getEndXY();</span>
+<span class="fc" id="L63">					m_tolerance = tolerance;</span>
+<span class="fc" id="L64">				} else {</span>
+<span class="nc" id="L65">					m_tolerance = NumberUtils.NaN(); // we don't need it</span>
+				}
+
+<span class="fc" id="L68">				m_quads_stack.add(m_quad_tree.m_root);</span>
+<span class="fc" id="L69">				m_extents_stack.add(m_quad_tree.m_extent);</span>
+<span class="fc" id="L70">				m_next_element_handle = m_quad_tree.get_first_element_(m_quad_tree.m_root);</span>
+<span class="fc" id="L71">			} else</span>
+<span class="nc" id="L72">				m_next_element_handle = -1;</span>
+<span class="fc" id="L73">		}</span>
+
+		/**
+		 * Resets the iterator to a starting state on the Quad_tree_impl using
+		 * the input Envelope_2D as the query. \param query The Envelope_2D used
+		 * for the query. \param tolerance The tolerance used for the
+		 * intersection tests.
+		 */
+		void resetIterator(Envelope2D query, double tolerance) {
+<span class="fc" id="L82">			m_quads_stack.resize(0);</span>
+<span class="fc" id="L83">			m_extents_stack.clear();</span>
+<span class="fc" id="L84">			m_current_element_handle = -1;</span>
+<span class="fc" id="L85">			m_query_box.setCoords(query);</span>
+<span class="fc" id="L86">			m_query_box.inflate(tolerance, tolerance);</span>
+<span class="fc" id="L87">			m_tolerance = NumberUtils.NaN(); // we don't need it</span>
+
+<span class="fc bfc" id="L89" title="All 4 branches covered.">			if (m_quad_tree.m_root != -1 &amp;&amp; m_query_box.isIntersecting(m_quad_tree.m_extent)) {</span>
+<span class="fc" id="L90">				m_quads_stack.add(m_quad_tree.m_root);</span>
+<span class="fc" id="L91">				m_extents_stack.add(m_quad_tree.m_extent);</span>
+<span class="fc" id="L92">				m_next_element_handle = m_quad_tree.get_first_element_(m_quad_tree.m_root);</span>
+<span class="fc" id="L93">				m_b_linear = false;</span>
+			} else
+<span class="fc" id="L95">				m_next_element_handle = -1;</span>
+<span class="fc" id="L96">		}</span>
+
+		/**
+		 * Moves the iterator to the next int and returns the int.
+		 */
+		int next() {
+			// If the node stack is empty, then we've exhausted our search
+
+<span class="fc bfc" id="L104" title="All 2 branches covered.">			if (m_quads_stack.size() == 0)</span>
+<span class="fc" id="L105">				return -1;</span>
+
+<span class="fc" id="L107">			m_current_element_handle = m_next_element_handle;</span>
+
+<span class="fc" id="L109">			Point2D start = null;</span>
+<span class="fc" id="L110">			Point2D end = null;</span>
+			Envelope2D bounding_box;
+<span class="fc" id="L112">			Envelope2D extent_inf = null;</span>
+<span class="fc" id="L113">			Envelope2D[] child_extents = null;</span>
+
+<span class="fc bfc" id="L115" title="All 2 branches covered.">			if (m_b_linear) {</span>
+<span class="fc" id="L116">				start = new Point2D();</span>
+<span class="fc" id="L117">				end = new Point2D();</span>
+<span class="fc" id="L118">				extent_inf = new Envelope2D();</span>
+			}
+
+<span class="fc" id="L121">			boolean b_found_hit = false;</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">			while (!b_found_hit) {</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">				while (m_current_element_handle != -1) {</span>
+<span class="fc" id="L124">					int current_data_handle = m_quad_tree.get_data_(m_current_element_handle);</span>
+<span class="fc" id="L125">					bounding_box = m_quad_tree.get_bounding_box_value_(current_data_handle);</span>
+
+<span class="fc bfc" id="L127" title="All 2 branches covered.">					if (bounding_box.isIntersecting(m_query_box)) {</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">						if (m_b_linear) {</span>
+<span class="fc" id="L129">							start.setCoords(m_query_start);</span>
+<span class="fc" id="L130">							end.setCoords(m_query_end);</span>
+<span class="fc" id="L131">							extent_inf.setCoords(bounding_box);</span>
+
+<span class="fc" id="L133">							extent_inf.inflate(m_tolerance, m_tolerance);</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">							if (extent_inf.clipLine(start, end) &gt; 0) {</span>
+<span class="fc" id="L135">								b_found_hit = true;</span>
+<span class="fc" id="L136">								break;</span>
+							}
+						} else {
+<span class="fc" id="L139">							b_found_hit = true;</span>
+<span class="fc" id="L140">							break;</span>
+						}
+					}
+
+					// get next element_handle
+<span class="fc" id="L145">					m_current_element_handle = m_quad_tree.get_next_element_(m_current_element_handle);</span>
+<span class="fc" id="L146">				}</span>
+
+				// If m_current_element_handle equals -1, then we've exhausted our search in the current quadtree node
+<span class="fc bfc" id="L149" title="All 2 branches covered.">				if (m_current_element_handle == -1) {</span>
+					// get the last node from the stack and add the children whose extent intersects m_query_box
+<span class="fc" id="L151">					int current_quad = m_quads_stack.getLast();</span>
+<span class="fc" id="L152">					Envelope2D current_extent = m_extents_stack.get(m_extents_stack.size() - 1);</span>
+
+<span class="fc bfc" id="L154" title="All 2 branches covered.">					if (child_extents == null) {</span>
+<span class="fc" id="L155">						child_extents = new Envelope2D[4];</span>
+<span class="fc" id="L156">						child_extents[0] = new Envelope2D();</span>
+<span class="fc" id="L157">						child_extents[1] = new Envelope2D();</span>
+<span class="fc" id="L158">						child_extents[2] = new Envelope2D();</span>
+<span class="fc" id="L159">						child_extents[3] = new Envelope2D();</span>
+					}
+
+<span class="fc" id="L162">					set_child_extents_(current_extent, child_extents);</span>
+<span class="fc" id="L163">					m_quads_stack.removeLast();</span>
+<span class="fc" id="L164">					m_extents_stack.remove(m_extents_stack.size() - 1);</span>
+
+<span class="fc bfc" id="L166" title="All 2 branches covered.">					for (int quadrant = 0; quadrant &lt; 4; quadrant++) {</span>
+<span class="fc" id="L167">						int child_handle = m_quad_tree.get_child_(current_quad, quadrant);</span>
+
+<span class="pc bpc" id="L169" title="1 of 4 branches missed.">						if (child_handle != -1 &amp;&amp; m_quad_tree.getSubTreeElementCount(child_handle) &gt; 0) {</span>
+<span class="fc bfc" id="L170" title="All 2 branches covered.">							if (child_extents[quadrant].isIntersecting(m_query_box)) {</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">								if (m_b_linear) {</span>
+<span class="fc" id="L172">									start.setCoords(m_query_start);</span>
+<span class="fc" id="L173">									end.setCoords(m_query_end);</span>
+
+<span class="fc" id="L175">									extent_inf.setCoords(child_extents[quadrant]);</span>
+<span class="fc" id="L176">									extent_inf.inflate(m_tolerance, m_tolerance);</span>
+<span class="pc bpc" id="L177" title="1 of 2 branches missed.">									if (extent_inf.clipLine(start, end) &gt; 0) {</span>
+<span class="fc" id="L178">										Envelope2D child_extent = new Envelope2D();</span>
+<span class="fc" id="L179">										child_extent.setCoords(child_extents[quadrant]);</span>
+<span class="fc" id="L180">										m_quads_stack.add(child_handle);</span>
+<span class="fc" id="L181">										m_extents_stack.add(child_extent);</span>
+<span class="fc" id="L182">									}</span>
+								} else {
+<span class="fc" id="L184">									Envelope2D child_extent = new Envelope2D();</span>
+<span class="fc" id="L185">									child_extent.setCoords(child_extents[quadrant]);</span>
+<span class="fc" id="L186">									m_quads_stack.add(child_handle);</span>
+<span class="fc" id="L187">									m_extents_stack.add(child_extent);</span>
+								}
+							}
+						}
+					}
+
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">					assert (m_quads_stack.size() &lt;= 4 * (m_quad_tree.m_height - 1));</span>
+
+<span class="fc bfc" id="L195" title="All 2 branches covered.">					if (m_quads_stack.size() == 0)</span>
+<span class="fc" id="L196">						return -1;</span>
+
+<span class="fc" id="L198">					m_current_element_handle = m_quad_tree.get_first_element_(m_quads_stack.get(m_quads_stack.size() - 1));</span>
+<span class="fc" id="L199">				}</span>
+			}
+
+			// We did not exhaust our search in the current node, so we return
+			// the element at m_current_element_handle in m_element_nodes
+
+<span class="fc" id="L205">			m_next_element_handle = m_quad_tree.get_next_element_(m_current_element_handle);</span>
+<span class="fc" id="L206">			return m_current_element_handle;</span>
+		}
+
+		// Creates an iterator on the input Quad_tree_impl. The query will be
+		// the Envelope_2D bounding the input Geometry.
+<span class="nc" id="L211">		QuadTreeIteratorImpl(QuadTreeImpl quad_tree_impl, Geometry query, double tolerance) {</span>
+<span class="nc" id="L212">			m_quad_tree = quad_tree_impl;</span>
+<span class="nc" id="L213">			m_query_box = new Envelope2D();</span>
+<span class="nc" id="L214">			m_quads_stack = new AttributeStreamOfInt32(0);</span>
+<span class="nc" id="L215">			m_extents_stack = new ArrayList&lt;Envelope2D&gt;(0);</span>
+<span class="nc" id="L216">			resetIterator(query, tolerance);</span>
+<span class="nc" id="L217">		}</span>
+
+		// Creates an iterator on the input Quad_tree_impl using the input
+		// Envelope_2D as the query.
+<span class="fc" id="L221">		QuadTreeIteratorImpl(QuadTreeImpl quad_tree_impl, Envelope2D query, double tolerance) {</span>
+<span class="fc" id="L222">			m_quad_tree = quad_tree_impl;</span>
+<span class="fc" id="L223">			m_query_box = new Envelope2D();</span>
+<span class="fc" id="L224">			m_quads_stack = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L225">			m_extents_stack = new ArrayList&lt;Envelope2D&gt;(0);</span>
+<span class="fc" id="L226">			resetIterator(query, tolerance);</span>
+<span class="fc" id="L227">		}</span>
+
+		// Creates an iterator on the input Quad_tree_impl.
+<span class="fc" id="L230">		QuadTreeIteratorImpl(QuadTreeImpl quad_tree_impl) {</span>
+<span class="fc" id="L231">			m_quad_tree = quad_tree_impl;</span>
+<span class="fc" id="L232">			m_query_box = new Envelope2D();</span>
+<span class="fc" id="L233">			m_quads_stack = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L234">			m_extents_stack = new ArrayList&lt;Envelope2D&gt;(0);</span>
+<span class="fc" id="L235">		}</span>
+
+		private boolean m_b_linear;
+		private Point2D m_query_start;
+		private Point2D m_query_end;
+		private Envelope2D m_query_box;
+		private double m_tolerance;
+		private int m_current_element_handle;
+		private int m_next_element_handle;
+		private QuadTreeImpl m_quad_tree;
+		private AttributeStreamOfInt32 m_quads_stack;
+		private ArrayList&lt;Envelope2D&gt; m_extents_stack; // this won't grow bigger than 4 * (m_quad_tree-&gt;m_height - 1)
+	}
+
+	static final class QuadTreeSortedIteratorImpl {
+		/**
+		 * Resets the iterator to a starting state on the Quad_tree_impl. If the input Geometry is a Line segment, then the query will be the segment. Otherwise the query will be the Envelope_2D bounding the Geometry.
+		 * \param query The Geometry used for the query.
+		 * \param tolerance The tolerance used for the intersection tests.
+		 * \param tolerance The tolerance used for the intersection tests.
+		 */
+		void resetIterator(Geometry query, double tolerance) {
+<span class="nc" id="L257">			m_quad_tree_iterator_impl.resetIterator(query, tolerance);</span>
+<span class="nc" id="L258">			m_sorted_handles.resize(0);</span>
+<span class="nc" id="L259">			m_index = -1;</span>
+<span class="nc" id="L260">		}</span>
+
+		/**
+		 * Resets the iterator to a starting state on the Quad_tree_impl using the input Envelope_2D as the query.
+		 * \param query The Envelope_2D used for the query.
+		 * \param tolerance The tolerance used for the intersection tests.
+		 */
+		void resetIterator(Envelope2D query, double tolerance) {
+<span class="fc" id="L268">			m_quad_tree_iterator_impl.resetIterator(query, tolerance);</span>
+<span class="fc" id="L269">			m_sorted_handles.resize(0);</span>
+<span class="fc" id="L270">			m_index = -1;</span>
+<span class="fc" id="L271">		}</span>
+
+		/**
+		 * Moves the iterator to the next Element_handle and returns the Element_handle.
+		 */
+		int next() {
+<span class="fc bfc" id="L277" title="All 2 branches covered.">			if (m_index == -1) {</span>
+<span class="fc" id="L278">				int element_handle = -1;</span>
+<span class="fc bfc" id="L279" title="All 2 branches covered.">				while ((element_handle = m_quad_tree_iterator_impl.next()) != -1)</span>
+<span class="fc" id="L280">					m_sorted_handles.add(element_handle);</span>
+
+<span class="fc" id="L282">				m_bucket_sort.sort(m_sorted_handles, 0, m_sorted_handles.size(), new Sorter(m_quad_tree_iterator_impl.m_quad_tree));</span>
+			}
+
+<span class="fc bfc" id="L285" title="All 2 branches covered.">			if (m_index == m_sorted_handles.size() - 1)</span>
+<span class="fc" id="L286">				return -1;</span>
+
+<span class="fc" id="L288">			m_index++;</span>
+<span class="fc" id="L289">			return m_sorted_handles.get(m_index);</span>
+		}
+
+		//Creates a sorted iterator on the input Quad_tree_iterator_impl
+<span class="fc" id="L293">		QuadTreeSortedIteratorImpl(QuadTreeIteratorImpl quad_tree_iterator_impl) {</span>
+<span class="fc" id="L294">			m_bucket_sort = new BucketSort();</span>
+<span class="fc" id="L295">			m_sorted_handles = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L296">			m_quad_tree_iterator_impl = quad_tree_iterator_impl;</span>
+<span class="fc" id="L297">			m_index = -1;</span>
+<span class="fc" id="L298">		}</span>
+
+		private class Sorter extends ClassicSort {
+<span class="fc" id="L301">			public Sorter(QuadTreeImpl quad_tree) {</span>
+<span class="fc" id="L302">				m_quad_tree = quad_tree;</span>
+<span class="fc" id="L303">			}</span>
+
+			@Override
+			public void userSort(int begin, int end, AttributeStreamOfInt32 indices) {
+<span class="fc" id="L307">				indices.sort(begin, end);</span>
+<span class="fc" id="L308">			}</span>
+
+			@Override
+			public double getValue(int e) {
+<span class="fc" id="L312">				return m_quad_tree.getElement(e);</span>
+			}
+
+			private QuadTreeImpl m_quad_tree;
+		}
+
+		private BucketSort m_bucket_sort;
+		private AttributeStreamOfInt32 m_sorted_handles;
+		private QuadTreeIteratorImpl m_quad_tree_iterator_impl;
+		int m_index;
+	}
+
+	/**
+	 * Creates a Quad_tree_impl with the root having the extent of the input Envelope_2D, and height of the input height, where the root starts at height 0.
+	 * \param extent The extent of the Quad_tree_impl.
+	 * \param height The max height of the Quad_tree_impl.
+	 */
+<span class="fc" id="L329">	QuadTreeImpl(Envelope2D extent, int height) {</span>
+<span class="fc" id="L330">		m_quad_tree_nodes = new StridedIndexTypeCollection(10);</span>
+<span class="fc" id="L331">		m_element_nodes = new StridedIndexTypeCollection(4);</span>
+<span class="fc" id="L332">		m_data = new ArrayList&lt;Data&gt;(0);</span>
+<span class="fc" id="L333">		m_free_data = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L334">		m_b_store_duplicates = false;</span>
+
+<span class="fc" id="L336">		m_extent = new Envelope2D();</span>
+<span class="fc" id="L337">		m_data_extent = new Envelope2D();</span>
+
+<span class="fc" id="L339">		reset_(extent, height);</span>
+<span class="fc" id="L340">	}</span>
+
+	/**
+	 * Creates a Quad_tree_impl with the root having the extent of the input Envelope_2D, and height of the input height, where the root starts at height 0.
+	 * \param extent The extent of the Quad_tree_impl.
+	 * \param height The max height of the Quad_tree_impl.
+	 * \param b_store_duplicates Put true to place elements deeper into the quad tree at intesecting quads, duplicates will be stored. Put false to only place elements into quads that can contain it.
+	 */
+<span class="fc" id="L348">	QuadTreeImpl(Envelope2D extent, int height, boolean b_store_duplicates) {</span>
+<span class="fc bfc" id="L349" title="All 2 branches covered.">		m_quad_tree_nodes = (b_store_duplicates ? new StridedIndexTypeCollection(11) : new StridedIndexTypeCollection(10));</span>
+<span class="fc" id="L350">		m_element_nodes = new StridedIndexTypeCollection(4);</span>
+<span class="fc" id="L351">		m_data = new ArrayList&lt;Data&gt;(0);</span>
+<span class="fc" id="L352">		m_free_data = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L353">		m_b_store_duplicates = b_store_duplicates;</span>
+
+<span class="fc" id="L355">		m_extent = new Envelope2D();</span>
+<span class="fc" id="L356">		m_data_extent = new Envelope2D();</span>
+
+<span class="fc" id="L358">		reset_(extent, height);</span>
+<span class="fc" id="L359">	}</span>
+
+	/**
+	 * Resets the Quad_tree_impl to the given extent and height.
+	 * \param extent The extent of the Quad_tree_impl.
+	 * \param height The max height of the Quad_tree_impl.
+	 */
+	void reset(Envelope2D extent, int height) {
+<span class="nc" id="L367">		m_quad_tree_nodes.deleteAll(false);</span>
+<span class="nc" id="L368">		m_element_nodes.deleteAll(false);</span>
+<span class="nc" id="L369">		m_data.clear();</span>
+<span class="nc" id="L370">		m_free_data.clear(false);</span>
+<span class="nc" id="L371">		reset_(extent, height);</span>
+<span class="nc" id="L372">	}</span>
+
+	/**
+	 * Inserts the element and bounding_box into the Quad_tree_impl.
+	 * Note that this will invalidate any active iterator on the Quad_tree_impl.
+	 * Returns an Element_handle corresponding to the element and bounding_box.
+	 * \param element The element of the Geometry to be inserted.
+	 * \param bounding_box The bounding_box of the Geometry to be inserted.
+	 */
+	int insert(int element, Envelope2D bounding_box) {
+<span class="fc bfc" id="L382" title="All 2 branches covered.">		if (m_root == -1)</span>
+<span class="fc" id="L383">			create_root_();</span>
+
+<span class="pc bpc" id="L385" title="1 of 2 branches missed.">		if (m_b_store_duplicates) {</span>
+<span class="nc" id="L386">			int success = insert_duplicates_(element, bounding_box, 0, m_extent, m_root, false, -1);</span>
+
+<span class="nc bnc" id="L388" title="All 2 branches missed.">			if (success != -1) {</span>
+<span class="nc bnc" id="L389" title="All 2 branches missed.">				if (m_data_extent.isEmpty())</span>
+<span class="nc" id="L390">					m_data_extent.setCoords(bounding_box);</span>
+				else
+<span class="nc" id="L392">					m_data_extent.merge(bounding_box);</span>
+			}
+
+<span class="nc" id="L395">			return success;</span>
+		}
+
+<span class="fc" id="L398">		int element_handle = insert_(element, bounding_box, 0, m_extent, m_root, false, -1);</span>
+
+<span class="pc bpc" id="L400" title="1 of 2 branches missed.">		if (element_handle != -1) {</span>
+<span class="fc bfc" id="L401" title="All 2 branches covered.">			if (m_data_extent.isEmpty())</span>
+<span class="fc" id="L402">				m_data_extent.setCoords(bounding_box);</span>
+			else
+<span class="fc" id="L404">				m_data_extent.merge(bounding_box);</span>
+		}
+
+<span class="fc" id="L407">		return element_handle;</span>
+	}
+
+	/**
+	 * Inserts the element and bounding_box into the Quad_tree_impl at the given quad_handle.
+	 * Note that this will invalidate any active iterator on the Quad_tree_impl.
+	 * Returns an Element_handle corresponding to the element and bounding_box.
+	 * \param element The element of the Geometry to be inserted.
+	 * \param bounding_box The bounding_box of the Geometry to be inserted.
+	 * \param hint_index A handle used as a hint where to place the element. This can be a handle obtained from a previous insertion and is useful on data having strong locality such as segments of a Polygon.
+	 */
+	int insert(int element, Envelope2D bounding_box, int hint_index) {
+<span class="fc bfc" id="L419" title="All 2 branches covered.">		if (m_root == -1)</span>
+<span class="fc" id="L420">			create_root_();</span>
+
+<span class="fc bfc" id="L422" title="All 2 branches covered.">		if (m_b_store_duplicates) {</span>
+<span class="fc" id="L423">			int success = insert_duplicates_(element, bounding_box, 0, m_extent, m_root, false, -1);</span>
+
+<span class="pc bpc" id="L425" title="1 of 2 branches missed.">			if (success != -1) {</span>
+<span class="fc bfc" id="L426" title="All 2 branches covered.">				if (m_data_extent.isEmpty())</span>
+<span class="fc" id="L427">					m_data_extent.setCoords(bounding_box);</span>
+				else
+<span class="fc" id="L429">					m_data_extent.merge(bounding_box);</span>
+			}
+<span class="fc" id="L431">			return success;</span>
+		}
+
+		int quad_handle;
+
+<span class="fc bfc" id="L436" title="All 2 branches covered.">		if (hint_index == -1)</span>
+<span class="fc" id="L437">			quad_handle = m_root;</span>
+		else
+<span class="fc" id="L439">			quad_handle = get_quad_(hint_index);</span>
+
+<span class="fc" id="L441">		int quad_height = getHeight(quad_handle);</span>
+<span class="fc" id="L442">		Envelope2D quad_extent = getExtent(quad_handle);</span>
+
+<span class="fc" id="L444">		int element_handle = insert_(element, bounding_box, quad_height, quad_extent, quad_handle, false, -1);</span>
+
+<span class="pc bpc" id="L446" title="1 of 2 branches missed.">		if (element_handle != -1) {</span>
+<span class="fc bfc" id="L447" title="All 2 branches covered.">			if (m_data_extent.isEmpty())</span>
+<span class="fc" id="L448">				m_data_extent.setCoords(bounding_box);</span>
+			else
+<span class="fc" id="L450">				m_data_extent.merge(bounding_box);</span>
+		}
+
+<span class="fc" id="L453">		return element_handle;</span>
+	}
+
+	/**
+	 * Removes the element and bounding_box at the given element_handle.
+	 * Note that this will invalidate any active iterator on the Quad_tree_impl.
+	 * \param element_handle The handle corresponding to the element and bounding_box to be removed.
+	 */
+	void removeElement(int element_handle) {
+<span class="pc bpc" id="L462" title="1 of 2 branches missed.">		if (m_b_store_duplicates)</span>
+<span class="nc" id="L463">			throw new GeometryException(&quot;invalid call&quot;);</span>
+
+<span class="fc" id="L465">		int quad_handle = get_quad_(element_handle);</span>
+<span class="fc" id="L466">		disconnect_element_handle_(element_handle);</span>
+<span class="fc" id="L467">		free_element_and_box_node_(element_handle);</span>
+
+<span class="fc" id="L469">		int q = quad_handle;</span>
+
+<span class="fc bfc" id="L471" title="All 2 branches covered.">		while (q != -1) {</span>
+<span class="fc" id="L472">			set_sub_tree_element_count_(q, get_sub_tree_element_count_(q) - 1);</span>
+<span class="fc" id="L473">			int parent = get_parent_(q);</span>
+
+<span class="fc bfc" id="L475" title="All 2 branches covered.">			if (get_sub_tree_element_count_(q) == 0) {</span>
+<span class="pc bpc" id="L476" title="1 of 2 branches missed.">				assert (get_local_element_count_(q) == 0);</span>
+
+<span class="fc bfc" id="L478" title="All 2 branches covered.">				if (q != m_root) {</span>
+<span class="fc" id="L479">					int quadrant = get_quadrant_(q);</span>
+<span class="fc" id="L480">					m_quad_tree_nodes.deleteElement(q);</span>
+<span class="fc" id="L481">					set_child_(parent, quadrant, -1);</span>
+				}
+			}
+
+<span class="fc" id="L485">			q = parent;</span>
+<span class="fc" id="L486">		}</span>
+<span class="fc" id="L487">	}</span>
+
+	/**
+	 * Returns the element at the given element_handle.
+	 * \param element_handle The handle corresponding to the element to be retrieved.
+	 */
+	int getElement(int element_handle) {
+<span class="fc" id="L494">		return get_element_value_(get_data_(element_handle));</span>
+	}
+
+	/**
+	 * Returns the ith unique element.
+	 * \param i The index corresponding to the ith unique element.
+	 */
+	int getElementAtIndex(int i) {
+<span class="nc" id="L502">		return m_data.get(i).element;</span>
+	}
+
+	/**
+	 * Returns the element extent at the given element_handle.
+	 * \param element_handle The handle corresponding to the element extent to be retrieved.
+	 */
+	Envelope2D getElementExtent(int element_handle) {
+<span class="nc" id="L510">		int data_handle = get_data_(element_handle);</span>
+<span class="nc" id="L511">		return get_bounding_box_value_(data_handle);</span>
+	}
+
+	/**
+	 * Returns the extent of the ith unique element.
+	 * \param i The index corresponding to the ith unique element.
+	 */
+	Envelope2D getElementExtentAtIndex(int i) {
+<span class="nc" id="L519">		return m_data.get(i).box;</span>
+	}
+
+	/**
+	 * Returns the extent of all elements in the quad tree.
+	 */
+	Envelope2D getDataExtent() {
+<span class="fc" id="L526">		return m_data_extent;</span>
+	}
+
+	/**
+	 * Returns the extent of the quad tree.
+	 */
+	Envelope2D getQuadTreeExtent() {
+<span class="nc" id="L533">		return m_extent;</span>
+	}
+
+	/**
+	 * Returns the height of the quad at the given quad_handle.
+	 * \param quad_handle The handle corresponding to the quad.
+	 */
+	int getHeight(int quad_handle) {
+<span class="fc" id="L541">		return get_height_(quad_handle);</span>
+	}
+
+	int getMaxHeight() {
+<span class="nc" id="L545">		return m_height;</span>
+	}
+
+	/**
+	 * Returns the extent of the quad at the given quad_handle.
+	 * \param quad_handle The handle corresponding to the quad.
+	 */
+	Envelope2D getExtent(int quad_handle) {
+<span class="fc" id="L553">		Envelope2D quad_extent = new Envelope2D();</span>
+<span class="fc" id="L554">		quad_extent.setCoords(m_extent);</span>
+
+<span class="fc bfc" id="L556" title="All 2 branches covered.">		if (quad_handle == m_root)</span>
+<span class="fc" id="L557">			return quad_extent;</span>
+
+<span class="fc" id="L559">		AttributeStreamOfInt32 quadrants = new AttributeStreamOfInt32(0);</span>
+
+<span class="fc" id="L561">		int q = quad_handle;</span>
+
+		do {
+<span class="fc" id="L564">			quadrants.add(get_quadrant_(q));</span>
+<span class="fc" id="L565">			q = get_parent_(q);</span>
+
+<span class="fc bfc" id="L567" title="All 2 branches covered.">		} while (q != m_root);</span>
+
+<span class="fc" id="L569">		int sz = quadrants.size();</span>
+<span class="pc bpc" id="L570" title="1 of 2 branches missed.">		assert (sz == getHeight(quad_handle));</span>
+
+<span class="fc bfc" id="L572" title="All 2 branches covered.">		for (int i = 0; i &lt; sz; i++) {</span>
+<span class="fc" id="L573">			int child = quadrants.getLast();</span>
+<span class="fc" id="L574">			quadrants.removeLast();</span>
+
+<span class="fc bfc" id="L576" title="All 2 branches covered.">			if (child == 0) {//northeast</span>
+<span class="fc" id="L577">				quad_extent.xmin = 0.5 * (quad_extent.xmin + quad_extent.xmax);</span>
+<span class="fc" id="L578">				quad_extent.ymin = 0.5 * (quad_extent.ymin + quad_extent.ymax);</span>
+<span class="fc bfc" id="L579" title="All 2 branches covered.">			} else if (child == 1) {//northwest</span>
+<span class="fc" id="L580">				quad_extent.xmax = 0.5 * (quad_extent.xmin + quad_extent.xmax);</span>
+<span class="fc" id="L581">				quad_extent.ymin = 0.5 * (quad_extent.ymin + quad_extent.ymax);</span>
+<span class="fc bfc" id="L582" title="All 2 branches covered.">			} else if (child == 2) {//southwest</span>
+<span class="fc" id="L583">				quad_extent.xmax = 0.5 * (quad_extent.xmin + quad_extent.xmax);</span>
+<span class="fc" id="L584">				quad_extent.ymax = 0.5 * (quad_extent.ymin + quad_extent.ymax);</span>
+			} else {//southeast
+<span class="fc" id="L586">				quad_extent.xmin = 0.5 * (quad_extent.xmin + quad_extent.xmax);</span>
+<span class="fc" id="L587">				quad_extent.ymax = 0.5 * (quad_extent.ymin + quad_extent.ymax);</span>
+			}
+		}
+
+<span class="fc" id="L591">		return quad_extent;</span>
+	}
+
+	/**
+	 * Returns the Quad_handle of the quad containing the given element_handle.
+	 * \param element_handle The handle corresponding to the element.
+	 */
+	int getQuad(int element_handle) {
+<span class="fc" id="L599">		return get_quad_(element_handle);</span>
+	}
+
+	/**
+	 * Returns the number of elements in the Quad_tree_impl.
+	 */
+	int getElementCount() {
+<span class="fc bfc" id="L606" title="All 2 branches covered.">		if (m_root == -1)</span>
+<span class="fc" id="L607">			return 0;</span>
+
+<span class="pc bpc" id="L609" title="1 of 2 branches missed.">		assert (get_sub_tree_element_count_(m_root) == m_data.size());</span>
+<span class="fc" id="L610">		return get_sub_tree_element_count_(m_root);</span>
+	}
+
+	/**
+	 * Returns the number of elements in the subtree rooted at the given quad_handle.
+	 * \param quad_handle The handle corresponding to the quad.
+	 */
+	int getSubTreeElementCount(int quad_handle) {
+<span class="fc" id="L618">		return get_sub_tree_element_count_(quad_handle);</span>
+	}
+
+	/**
+	 * Returns the number of elements contained in the subtree rooted at the given quad_handle.
+	 * \param quad_handle The handle corresponding to the quad.
+	 */
+	int getContainedSubTreeElementCount(int quad_handle) {
+<span class="pc bpc" id="L626" title="1 of 2 branches missed.">		if (!m_b_store_duplicates)</span>
+<span class="nc" id="L627">			return get_sub_tree_element_count_(quad_handle);</span>
+
+<span class="fc" id="L629">		return get_contained_sub_tree_element_count_(quad_handle);</span>
+	}
+
+	/**
+	 * Returns the number of elements in the quad tree that intersect the qiven query. Some elements may be duplicated if the quad tree stores duplicates.
+	 * \param query The Envelope_2D used for the query.
+	 * \param tolerance The tolerance used for the intersection tests.
+	 * \param max_count If the intersection count becomes greater than or equal to the max_count, then max_count is returned.
+	 */
+	int getIntersectionCount(Envelope2D query, double tolerance, int max_count) {
+<span class="fc bfc" id="L639" title="All 2 branches covered.">		if (m_root == -1)</span>
+<span class="fc" id="L640">			return 0;</span>
+
+<span class="fc" id="L642">		Envelope2D query_inflated = new Envelope2D();</span>
+<span class="fc" id="L643">		query_inflated.setCoords(query);</span>
+<span class="fc" id="L644">		query_inflated.inflate(tolerance, tolerance);</span>
+
+<span class="fc" id="L646">		AttributeStreamOfInt32 quads_stack = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L647">		ArrayList&lt;Envelope2D&gt; extents_stack = new ArrayList&lt;Envelope2D&gt;(0);</span>
+<span class="fc" id="L648">		quads_stack.add(m_root);</span>
+<span class="fc" id="L649">		extents_stack.add(new Envelope2D(m_extent.xmin, m_extent.ymin, m_extent.xmax, m_extent.ymax));</span>
+
+<span class="fc" id="L651">		Envelope2D[] child_extents = new Envelope2D[4];</span>
+<span class="fc" id="L652">		child_extents[0] = new Envelope2D();</span>
+<span class="fc" id="L653">		child_extents[1] = new Envelope2D();</span>
+<span class="fc" id="L654">		child_extents[2] = new Envelope2D();</span>
+<span class="fc" id="L655">		child_extents[3] = new Envelope2D();</span>
+
+<span class="fc" id="L657">		Envelope2D current_extent = new Envelope2D();</span>
+
+<span class="fc" id="L659">		int intersection_count = 0;</span>
+
+<span class="fc bfc" id="L661" title="All 2 branches covered.">		while (quads_stack.size() &gt; 0) {</span>
+<span class="fc" id="L662">			boolean b_subdivide = false;</span>
+
+<span class="fc" id="L664">			int current_quad_handle = quads_stack.getLast();</span>
+<span class="fc" id="L665">			current_extent.setCoords(extents_stack.get(extents_stack.size() - 1));</span>
+
+<span class="fc" id="L667">			quads_stack.removeLast();</span>
+<span class="fc" id="L668">			extents_stack.remove(extents_stack.size() - 1);</span>
+
+
+<span class="fc bfc" id="L671" title="All 2 branches covered.">			if (query_inflated.contains(current_extent)) {</span>
+<span class="fc" id="L672">				intersection_count += getSubTreeElementCount(current_quad_handle);</span>
+
+<span class="pc bpc" id="L674" title="3 of 4 branches missed.">				if (max_count &gt; 0 &amp;&amp; intersection_count &gt;= max_count)</span>
+<span class="nc" id="L675">					return max_count;</span>
+			} else {
+<span class="fc bfc" id="L677" title="All 2 branches covered.">				if (query_inflated.isIntersecting(current_extent)) {</span>
+<span class="fc bfc" id="L678" title="All 2 branches covered.">					for (int element_handle = get_first_element_(current_quad_handle); element_handle != -1; element_handle = get_next_element_(element_handle)) {</span>
+<span class="fc" id="L679">						int data_handle = get_data_(element_handle);</span>
+<span class="fc" id="L680">						Envelope2D env = get_bounding_box_value_(data_handle);</span>
+
+<span class="fc bfc" id="L682" title="All 2 branches covered.">						if (env.isIntersecting(query_inflated)) {</span>
+<span class="fc" id="L683">							intersection_count++;</span>
+
+<span class="pc bpc" id="L685" title="1 of 4 branches missed.">							if (max_count &gt; 0 &amp;&amp; intersection_count &gt;= max_count)</span>
+<span class="fc" id="L686">								return max_count;</span>
+						}
+					}
+
+<span class="pc bpc" id="L690" title="1 of 2 branches missed.">					b_subdivide = getHeight(current_quad_handle) + 1 &lt;= m_height;</span>
+				}
+			}
+
+<span class="fc bfc" id="L694" title="All 2 branches covered.">			if (b_subdivide) {</span>
+<span class="fc" id="L695">				set_child_extents_(current_extent, child_extents);</span>
+
+<span class="fc bfc" id="L697" title="All 2 branches covered.">				for (int i = 0; i &lt; 4; i++) {</span>
+<span class="fc" id="L698">					int child_handle = get_child_(current_quad_handle, i);</span>
+
+<span class="pc bpc" id="L700" title="1 of 4 branches missed.">					if (child_handle != -1 &amp;&amp; getSubTreeElementCount(child_handle) &gt; 0) {</span>
+<span class="fc" id="L701">						boolean b_is_intersecting = query_inflated.isIntersecting(child_extents[i]);</span>
+
+<span class="fc bfc" id="L703" title="All 2 branches covered.">						if (b_is_intersecting) {</span>
+<span class="fc" id="L704">							quads_stack.add(child_handle);</span>
+<span class="fc" id="L705">							extents_stack.add(new Envelope2D(child_extents[i].xmin, child_extents[i].ymin, child_extents[i].xmax, child_extents[i].ymax));</span>
+						}
+					}
+				}
+			}
+<span class="fc" id="L710">		}</span>
+
+<span class="fc" id="L712">		return intersection_count;</span>
+	}
+
+	/**
+	 * Returns true if the quad tree has data intersecting the given query.
+	 * \param query The Envelope_2D used for the query.
+	 * \param tolerance The tolerance used for the intersection tests.
+	 */
+	boolean hasData(Envelope2D query, double tolerance) {
+<span class="fc" id="L721">		int count = getIntersectionCount(query, tolerance, 1);</span>
+<span class="fc bfc" id="L722" title="All 2 branches covered.">		return count &gt;= 1;</span>
+	}
+
+	/**
+	 * Gets an iterator on the Quad_tree_impl. The query will be the Envelope_2D
+	 * that bounds the input Geometry. To reuse the existing iterator on the
+	 * same Quad_tree_impl but with a new query, use the reset_iterator function
+	 * on the Quad_tree_iterator_impl. \param query The Geometry used for the
+	 * query. If the Geometry is a Line segment, then the query will be the
+	 * segment. Otherwise the query will be the Envelope_2D bounding the
+	 * Geometry. \param tolerance The tolerance used for the intersection tests.
+	 */
+	QuadTreeIteratorImpl getIterator(Geometry query, double tolerance) {
+<span class="nc" id="L735">		return new QuadTreeIteratorImpl(this, query, tolerance);</span>
+	}
+
+	/**
+	 * Gets an iterator on the Quad_tree_impl using the input Envelope_2D as the
+	 * query. To reuse the existing iterator on the same Quad_tree_impl but with
+	 * a new query, use the reset_iterator function on the
+	 * Quad_tree_iterator_impl. \param query The Envelope_2D used for the query.
+	 * \param tolerance The tolerance used for the intersection tests.
+	 */
+	QuadTreeIteratorImpl getIterator(Envelope2D query, double tolerance) {
+<span class="fc" id="L746">		return new QuadTreeIteratorImpl(this, query, tolerance);</span>
+	}
+
+	/**
+	 * Gets an iterator on the Quad_tree.
+	 */
+	QuadTreeIteratorImpl getIterator() {
+<span class="fc" id="L753">		return new QuadTreeIteratorImpl(this);</span>
+	}
+
+	/**
+	 * Gets a sorted iterator on the Quad_tree_impl. The Element_handles will be returned in increasing order of their corresponding Element_types.
+	 * The query will be the Envelope_2D that bounds the input Geometry.
+	 * To reuse the existing iterator on the same Quad_tree_impl but with a new query, use the reset_iterator function on the Quad_tree_sorted_iterator_impl.
+	 * \param query The Geometry used for the query. If the Geometry is a Line segment, then the query will be the segment. Otherwise the query will be the Envelope_2D bounding the Geometry.
+	 * \param tolerance The tolerance used for the intersection tests.
+	 */
+	QuadTreeSortedIteratorImpl getSortedIterator(Geometry query, double tolerance) {
+<span class="nc" id="L764">		return new QuadTreeSortedIteratorImpl(getIterator(query, tolerance));</span>
+	}
+
+	/**
+	 * Gets a sorted iterator on the Quad_tree_impl using the input Envelope_2D as the query. The Element_handles will be returned in increasing order of their corresponding Element_types.
+	 * To reuse the existing iterator on the same Quad_tree_impl but with a new query, use the reset_iterator function on the Quad_tree_iterator_impl.
+	 * \param query The Envelope_2D used for the query.
+	 * \param tolerance The tolerance used for the intersection tests.
+	 */
+	QuadTreeSortedIteratorImpl getSortedIterator(Envelope2D query, double tolerance) {
+<span class="nc" id="L774">		return new QuadTreeSortedIteratorImpl(getIterator(query, tolerance));</span>
+	}
+
+	/**
+	 * Gets a sorted iterator on the Quad_tree. The Element_handles will be returned in increasing order of their corresponding Element_types
+	 */
+	QuadTreeSortedIteratorImpl getSortedIterator() {
+<span class="fc" id="L781">		return new QuadTreeSortedIteratorImpl(getIterator());</span>
+	}
+
+	public long estimateMemorySize()
+	{
+<span class="nc" id="L786">		long size = SIZE_OF_QUAD_TREE_IMPL +</span>
+<span class="nc bnc" id="L787" title="All 2 branches missed.">				(m_extent != null ? m_extent.estimateMemorySize() : 0) +</span>
+<span class="nc bnc" id="L788" title="All 2 branches missed.">				(m_data_extent != null ? m_data_extent.estimateMemorySize() : 0) +</span>
+<span class="nc bnc" id="L789" title="All 2 branches missed.">				(m_quad_tree_nodes != null ? m_quad_tree_nodes.estimateMemorySize() : 0) +</span>
+<span class="nc bnc" id="L790" title="All 2 branches missed.">				(m_element_nodes != null ? m_element_nodes.estimateMemorySize() : 0) +</span>
+<span class="nc bnc" id="L791" title="All 2 branches missed.">				(m_free_data != null ? m_free_data.estimateMemorySize() : 0);</span>
+
+<span class="nc bnc" id="L793" title="All 2 branches missed.">		if (m_data != null) {</span>
+<span class="nc" id="L794">			size += sizeOfObjectArray(m_data.size()) + m_data.size() * SIZE_OF_DATA;</span>
+		}
+
+<span class="nc" id="L797">		return size;</span>
+	}
+
+	private void reset_(Envelope2D extent, int height) {
+<span class="pc bpc" id="L801" title="2 of 4 branches missed.">		if (height &lt; 0 || height &gt; 127)</span>
+<span class="nc" id="L802">			throw new IllegalArgumentException(&quot;invalid height&quot;);</span>
+
+<span class="fc" id="L804">		m_height = height;</span>
+<span class="fc" id="L805">		m_extent.setCoords(extent);</span>
+<span class="fc" id="L806">		m_root = m_quad_tree_nodes.newElement();</span>
+<span class="fc" id="L807">		m_data_extent.setEmpty();</span>
+<span class="fc" id="L808">		m_root = -1;</span>
+<span class="fc" id="L809">	}</span>
+
+	private int insert_(int element, Envelope2D bounding_box, int height, Envelope2D quad_extent, int quad_handle, boolean b_flushing, int flushed_element_handle) {
+<span class="fc bfc" id="L812" title="All 2 branches covered.">		if (!quad_extent.contains(bounding_box)) {</span>
+<span class="pc bpc" id="L813" title="1 of 2 branches missed.">			assert (!b_flushing);</span>
+
+<span class="pc bpc" id="L815" title="1 of 2 branches missed.">			if (height == 0)</span>
+<span class="nc" id="L816">				return -1;</span>
+
+<span class="fc" id="L818">			return insert_(element, bounding_box, 0, m_extent, m_root, b_flushing, flushed_element_handle);</span>
+		}
+
+<span class="fc bfc" id="L821" title="All 2 branches covered.">		if (!b_flushing) {</span>
+<span class="fc bfc" id="L822" title="All 2 branches covered.">			for (int q = quad_handle; q != -1; q = get_parent_(q))</span>
+<span class="fc" id="L823">				set_sub_tree_element_count_(q, get_sub_tree_element_count_(q) + 1);</span>
+		}
+
+<span class="fc" id="L826">		Envelope2D current_extent = new Envelope2D();</span>
+<span class="fc" id="L827">		current_extent.setCoords(quad_extent);</span>
+
+<span class="fc" id="L829">		int current_quad_handle = quad_handle;</span>
+
+<span class="fc" id="L831">		Envelope2D[] child_extents = new Envelope2D[4];</span>
+<span class="fc" id="L832">		child_extents[0] = new Envelope2D();</span>
+<span class="fc" id="L833">		child_extents[1] = new Envelope2D();</span>
+<span class="fc" id="L834">		child_extents[2] = new Envelope2D();</span>
+<span class="fc" id="L835">		child_extents[3] = new Envelope2D();</span>
+
+		int current_height;
+<span class="pc bpc" id="L838" title="1 of 4 branches missed.">		for (current_height = height; current_height &lt; m_height &amp;&amp; can_push_down_(current_quad_handle); current_height++) {</span>
+<span class="fc" id="L839">			set_child_extents_(current_extent, child_extents);</span>
+
+<span class="fc" id="L841">			boolean b_contains = false;</span>
+
+<span class="fc bfc" id="L843" title="All 2 branches covered.">			for (int i = 0; i &lt; 4; i++) {</span>
+<span class="fc bfc" id="L844" title="All 2 branches covered.">				if (child_extents[i].contains(bounding_box)) {</span>
+<span class="fc" id="L845">					b_contains = true;</span>
+
+<span class="fc" id="L847">					int child_handle = get_child_(current_quad_handle, i);</span>
+<span class="fc bfc" id="L848" title="All 2 branches covered.">					if (child_handle == -1)</span>
+<span class="fc" id="L849">						child_handle = create_child_(current_quad_handle, i);</span>
+
+<span class="fc" id="L851">					set_sub_tree_element_count_(child_handle, get_sub_tree_element_count_(child_handle) + 1);</span>
+
+<span class="fc" id="L853">					current_quad_handle = child_handle;</span>
+<span class="fc" id="L854">					current_extent.setCoords(child_extents[i]);</span>
+<span class="fc" id="L855">					break;</span>
+				}
+			}
+
+<span class="fc bfc" id="L859" title="All 2 branches covered.">			if (!b_contains)</span>
+<span class="fc" id="L860">				break;</span>
+		}
+
+<span class="fc" id="L863">		return insert_at_quad_(element, bounding_box, current_height, current_extent, current_quad_handle, b_flushing, quad_handle, flushed_element_handle, -1);</span>
+	}
+
+	private int insert_duplicates_(int element, Envelope2D bounding_box, int height, Envelope2D quad_extent, int quad_handle, boolean b_flushing, int flushed_element_handle) {
+<span class="pc bpc" id="L867" title="1 of 4 branches missed.">		assert (b_flushing || m_root == quad_handle);</span>
+
+<span class="fc bfc" id="L869" title="All 2 branches covered.">		if (!b_flushing) // If b_flushing is true, then the sub tree element counts are already accounted for since the element already lies in the current incoming quad</span>
+		{
+<span class="pc bpc" id="L871" title="1 of 2 branches missed.">			if (!quad_extent.contains(bounding_box))</span>
+<span class="nc" id="L872">				return -1;</span>
+
+<span class="fc" id="L874">			set_sub_tree_element_count_(quad_handle, get_sub_tree_element_count_(quad_handle) + 1);</span>
+<span class="fc" id="L875">			set_contained_sub_tree_element_count_(quad_handle, get_contained_sub_tree_element_count_(quad_handle) + 1);</span>
+		}
+
+<span class="fc" id="L878">		double bounding_box_max_dim = Math.max(bounding_box.getWidth(), bounding_box.getHeight());</span>
+
+<span class="fc" id="L880">		int element_handle = -1;</span>
+<span class="fc" id="L881">		AttributeStreamOfInt32 quads_stack = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L882">		ArrayList&lt;Envelope2D&gt; extents_stack = new ArrayList&lt;Envelope2D&gt;(0);</span>
+<span class="fc" id="L883">		AttributeStreamOfInt32 heights_stack = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L884">		quads_stack.add(quad_handle);</span>
+<span class="fc" id="L885">		extents_stack.add(new Envelope2D(quad_extent.xmin, quad_extent.ymin, quad_extent.xmax, quad_extent.ymax));</span>
+<span class="fc" id="L886">		heights_stack.add(height);</span>
+
+<span class="fc" id="L888">		Envelope2D[] child_extents = new Envelope2D[4];</span>
+<span class="fc" id="L889">		child_extents[0] = new Envelope2D();</span>
+<span class="fc" id="L890">		child_extents[1] = new Envelope2D();</span>
+<span class="fc" id="L891">		child_extents[2] = new Envelope2D();</span>
+<span class="fc" id="L892">		child_extents[3] = new Envelope2D();</span>
+
+<span class="fc" id="L894">		Envelope2D current_extent = new Envelope2D();</span>
+
+<span class="fc bfc" id="L896" title="All 2 branches covered.">		while (quads_stack.size() &gt; 0) {</span>
+<span class="fc" id="L897">			boolean b_subdivide = false;</span>
+
+<span class="fc" id="L899">			int current_quad_handle = quads_stack.getLast();</span>
+<span class="fc" id="L900">			current_extent.setCoords(extents_stack.get(extents_stack.size() - 1));</span>
+<span class="fc" id="L901">			int current_height = heights_stack.getLast();</span>
+
+<span class="fc" id="L903">			quads_stack.removeLast();</span>
+<span class="fc" id="L904">			extents_stack.remove(extents_stack.size() - 1);</span>
+<span class="fc" id="L905">			heights_stack.removeLast();</span>
+
+<span class="fc bfc" id="L907" title="All 4 branches covered.">			if (current_height + 1 &lt; m_height &amp;&amp; can_push_down_(current_quad_handle)) {</span>
+<span class="fc" id="L908">				double current_extent_max_dim = Math.max(current_extent.getWidth(), current_extent.getHeight());</span>
+
+<span class="fc bfc" id="L910" title="All 2 branches covered.">				if (bounding_box_max_dim &lt;= current_extent_max_dim / 2.0)</span>
+<span class="fc" id="L911">					b_subdivide = true;</span>
+			}
+
+<span class="fc bfc" id="L914" title="All 2 branches covered.">			if (b_subdivide) {</span>
+<span class="fc" id="L915">				set_child_extents_(current_extent, child_extents);</span>
+
+<span class="fc" id="L917">				boolean b_contains = false;</span>
+
+<span class="fc bfc" id="L919" title="All 2 branches covered.">				for (int i = 0; i &lt; 4; i++) {</span>
+<span class="fc" id="L920">					b_contains = child_extents[i].contains(bounding_box);</span>
+
+<span class="fc bfc" id="L922" title="All 2 branches covered.">					if (b_contains) {</span>
+<span class="fc" id="L923">						int child_handle = get_child_(current_quad_handle, i);</span>
+<span class="fc bfc" id="L924" title="All 2 branches covered.">						if (child_handle == -1)</span>
+<span class="fc" id="L925">							child_handle = create_child_(current_quad_handle, i);</span>
+
+<span class="fc" id="L927">						quads_stack.add(child_handle);</span>
+<span class="fc" id="L928">						extents_stack.add(new Envelope2D(child_extents[i].xmin, child_extents[i].ymin, child_extents[i].xmax, child_extents[i].ymax));</span>
+<span class="fc" id="L929">						heights_stack.add(current_height + 1);</span>
+
+<span class="fc" id="L931">						set_sub_tree_element_count_(child_handle, get_sub_tree_element_count_(child_handle) + 1);</span>
+<span class="fc" id="L932">						set_contained_sub_tree_element_count_(child_handle, get_contained_sub_tree_element_count_(child_handle) + 1);</span>
+<span class="fc" id="L933">						break;</span>
+					}
+				}
+
+<span class="fc bfc" id="L937" title="All 2 branches covered.">				if (!b_contains) {</span>
+<span class="fc bfc" id="L938" title="All 2 branches covered.">					for (int i = 0; i &lt; 4; i++) {</span>
+<span class="fc" id="L939">						boolean b_intersects = child_extents[i].isIntersecting(bounding_box);</span>
+
+<span class="fc bfc" id="L941" title="All 2 branches covered.">						if (b_intersects) {</span>
+<span class="fc" id="L942">							int child_handle = get_child_(current_quad_handle, i);</span>
+<span class="fc bfc" id="L943" title="All 2 branches covered.">							if (child_handle == -1)</span>
+<span class="fc" id="L944">								child_handle = create_child_(current_quad_handle, i);</span>
+
+<span class="fc" id="L946">							quads_stack.add(child_handle);</span>
+<span class="fc" id="L947">							extents_stack.add(new Envelope2D(child_extents[i].xmin, child_extents[i].ymin, child_extents[i].xmax, child_extents[i].ymax));</span>
+<span class="fc" id="L948">							heights_stack.add(current_height + 1);</span>
+
+<span class="fc" id="L950">							set_sub_tree_element_count_(child_handle, get_sub_tree_element_count_(child_handle) + 1);</span>
+						}
+					}
+				}
+<span class="fc" id="L954">			} else {</span>
+<span class="fc" id="L955">				element_handle = insert_at_quad_(element, bounding_box, current_height, current_extent, current_quad_handle, b_flushing, quad_handle, flushed_element_handle, element_handle);</span>
+<span class="fc" id="L956">				b_flushing = false; // flushing is false after the first inserted element has been flushed down, all subsequent inserts will be new</span>
+			}
+<span class="fc" id="L958">		}</span>
+
+<span class="fc" id="L960">		return 0;</span>
+	}
+
+	private int insert_at_quad_(int element, Envelope2D bounding_box, int current_height, Envelope2D current_extent, int current_quad_handle, boolean b_flushing, int quad_handle, int flushed_element_handle, int duplicate_element_handle) {
+		// If the bounding box is not contained in any of the current_node's children, or if the current_height is m_height, then insert the element and
+		// bounding box into the current_node
+
+<span class="fc" id="L967">		int head_element_handle = get_first_element_(current_quad_handle);</span>
+<span class="fc" id="L968">		int tail_element_handle = get_last_element_(current_quad_handle);</span>
+<span class="fc" id="L969">		int element_handle = -1;</span>
+
+<span class="fc bfc" id="L971" title="All 2 branches covered.">		if (b_flushing) {</span>
+<span class="pc bpc" id="L972" title="1 of 2 branches missed.">			assert (flushed_element_handle != -1);</span>
+
+<span class="fc bfc" id="L974" title="All 2 branches covered.">			if (current_quad_handle == quad_handle)</span>
+<span class="fc" id="L975">				return flushed_element_handle;</span>
+
+<span class="fc" id="L977">			disconnect_element_handle_(flushed_element_handle); // Take it out of the incoming quad_handle, and place in current_quad_handle</span>
+<span class="fc" id="L978">			element_handle = flushed_element_handle;</span>
+		} else {
+<span class="fc bfc" id="L980" title="All 2 branches covered.">			if (duplicate_element_handle == -1) {</span>
+<span class="fc" id="L981">				element_handle = create_element_();</span>
+<span class="fc" id="L982">				set_data_values_(get_data_(element_handle), element, bounding_box);</span>
+			} else {
+<span class="pc bpc" id="L984" title="1 of 2 branches missed.">				assert (m_b_store_duplicates);</span>
+<span class="fc" id="L985">				element_handle = create_element_from_duplicate_(duplicate_element_handle);</span>
+			}
+		}
+
+<span class="pc bpc" id="L989" title="1 of 4 branches missed.">		assert (!b_flushing || element_handle == flushed_element_handle);</span>
+
+<span class="fc" id="L991">		set_quad_(element_handle, current_quad_handle); // set parent quad (needed for removal of element)</span>
+
+		// assign the prev pointer of the new tail to point at the old tail (tail_element_handle)
+		// assign the next pointer of the old tail to point at the new tail (next_element_handle)
+<span class="fc bfc" id="L995" title="All 2 branches covered.">		if (tail_element_handle != -1) {</span>
+<span class="fc" id="L996">			set_prev_element_(element_handle, tail_element_handle);</span>
+<span class="fc" id="L997">			set_next_element_(tail_element_handle, element_handle);</span>
+		} else {
+<span class="pc bpc" id="L999" title="1 of 2 branches missed.">			assert (head_element_handle == -1);</span>
+<span class="fc" id="L1000">			set_first_element_(current_quad_handle, element_handle);</span>
+		}
+
+		// assign the new tail
+<span class="fc" id="L1004">		set_last_element_(current_quad_handle, element_handle);</span>
+
+<span class="fc" id="L1006">		set_local_element_count_(current_quad_handle, get_local_element_count_(current_quad_handle) + 1);</span>
+
+<span class="fc bfc" id="L1008" title="All 2 branches covered.">		if (can_flush_(current_quad_handle))</span>
+<span class="fc" id="L1009">			flush_(current_height, current_extent, current_quad_handle);</span>
+
+<span class="fc" id="L1011">		return element_handle;</span>
+	}
+
+	private static void set_child_extents_(Envelope2D current_extent, Envelope2D[] child_extents) {
+<span class="fc" id="L1015">		double x_mid = 0.5 * (current_extent.xmin + current_extent.xmax);</span>
+<span class="fc" id="L1016">		double y_mid = 0.5 * (current_extent.ymin + current_extent.ymax);</span>
+
+<span class="fc" id="L1018">		child_extents[0].setCoords(x_mid, y_mid, current_extent.xmax, current_extent.ymax); // northeast</span>
+<span class="fc" id="L1019">		child_extents[1].setCoords(current_extent.xmin, y_mid, x_mid, current_extent.ymax); // northwest</span>
+<span class="fc" id="L1020">		child_extents[2].setCoords(current_extent.xmin, current_extent.ymin, x_mid, y_mid); // southwest</span>
+<span class="fc" id="L1021">		child_extents[3].setCoords(x_mid, current_extent.ymin, current_extent.xmax, y_mid); // southeast</span>
+<span class="fc" id="L1022">	}</span>
+
+	private void disconnect_element_handle_(int element_handle) {
+<span class="pc bpc" id="L1025" title="1 of 2 branches missed.">		assert (element_handle != -1);</span>
+<span class="fc" id="L1026">		int quad_handle = get_quad_(element_handle);</span>
+<span class="fc" id="L1027">		int head_element_handle = get_first_element_(quad_handle);</span>
+<span class="fc" id="L1028">		int tail_element_handle = get_last_element_(quad_handle);</span>
+<span class="fc" id="L1029">		int prev_element_handle = get_prev_element_(element_handle);</span>
+<span class="fc" id="L1030">		int next_element_handle = get_next_element_(element_handle);</span>
+<span class="pc bpc" id="L1031" title="2 of 4 branches missed.">		assert (head_element_handle != -1 &amp;&amp; tail_element_handle != -1);</span>
+
+<span class="fc bfc" id="L1033" title="All 2 branches covered.">		if (head_element_handle == element_handle) {</span>
+<span class="fc bfc" id="L1034" title="All 2 branches covered.">			if (next_element_handle != -1)</span>
+<span class="fc" id="L1035">				set_prev_element_(next_element_handle, -1);</span>
+			else {
+<span class="pc bpc" id="L1037" title="1 of 2 branches missed.">				assert (head_element_handle == tail_element_handle);</span>
+<span class="pc bpc" id="L1038" title="1 of 2 branches missed.">				assert (get_local_element_count_(quad_handle) == 1);</span>
+<span class="fc" id="L1039">				set_last_element_(quad_handle, -1);</span>
+			}
+
+<span class="fc" id="L1042">			set_first_element_(quad_handle, next_element_handle);</span>
+<span class="fc bfc" id="L1043" title="All 2 branches covered.">		} else if (tail_element_handle == element_handle) {</span>
+<span class="pc bpc" id="L1044" title="1 of 2 branches missed.">			assert (prev_element_handle != -1);</span>
+<span class="pc bpc" id="L1045" title="1 of 2 branches missed.">			assert (get_local_element_count_(quad_handle) &gt;= 2);</span>
+<span class="fc" id="L1046">			set_next_element_(prev_element_handle, -1);</span>
+<span class="fc" id="L1047">			set_last_element_(quad_handle, prev_element_handle);</span>
+		} else {
+<span class="pc bpc" id="L1049" title="2 of 4 branches missed.">			assert (next_element_handle != -1 &amp;&amp; prev_element_handle != -1);</span>
+<span class="pc bpc" id="L1050" title="1 of 2 branches missed.">			assert (get_local_element_count_(quad_handle) &gt;= 3);</span>
+<span class="fc" id="L1051">			set_prev_element_(next_element_handle, prev_element_handle);</span>
+<span class="fc" id="L1052">			set_next_element_(prev_element_handle, next_element_handle);</span>
+		}
+
+<span class="fc" id="L1055">		set_prev_element_(element_handle, -1);</span>
+<span class="fc" id="L1056">		set_next_element_(element_handle, -1);</span>
+
+<span class="fc" id="L1058">		set_local_element_count_(quad_handle, get_local_element_count_(quad_handle) - 1);</span>
+<span class="pc bpc" id="L1059" title="1 of 2 branches missed.">		assert (get_local_element_count_(quad_handle) &gt;= 0);</span>
+<span class="fc" id="L1060">	}</span>
+
+	private boolean can_flush_(int quad_handle) {
+<span class="fc bfc" id="L1063" title="All 4 branches covered.">		return get_local_element_count_(quad_handle) == m_flushing_count &amp;&amp; !has_children_(quad_handle);</span>
+	}
+
+	private void flush_(int height, Envelope2D extent, int quad_handle) {
+		int element;
+<span class="fc" id="L1068">		Envelope2D bounding_box = new Envelope2D();</span>
+
+<span class="pc bpc" id="L1070" title="1 of 2 branches missed.">		assert (quad_handle != -1);</span>
+
+<span class="fc" id="L1072">		int element_handle = get_first_element_(quad_handle), next_handle = -1;</span>
+<span class="fc" id="L1073">		int data_handle = -1;</span>
+<span class="pc bpc" id="L1074" title="1 of 2 branches missed.">		assert (element_handle != -1);</span>
+
+		do {
+<span class="fc" id="L1077">			data_handle = get_data_(element_handle);</span>
+<span class="fc" id="L1078">			element = get_element_value_(data_handle);</span>
+<span class="fc" id="L1079">			bounding_box.setCoords(get_bounding_box_value_(data_handle));</span>
+
+<span class="fc" id="L1081">			next_handle = get_next_element_(element_handle);</span>
+
+<span class="fc bfc" id="L1083" title="All 2 branches covered.">			if (!m_b_store_duplicates)</span>
+<span class="fc" id="L1084">				insert_(element, bounding_box, height, extent, quad_handle, true, element_handle);</span>
+			else
+<span class="fc" id="L1086">				insert_duplicates_(element, bounding_box, height, extent, quad_handle, true, element_handle);</span>
+
+<span class="fc" id="L1088">			element_handle = next_handle;</span>
+
+<span class="fc bfc" id="L1090" title="All 2 branches covered.">		} while (element_handle != -1);</span>
+<span class="fc" id="L1091">	}</span>
+
+	private boolean can_push_down_(int quad_handle) {
+<span class="fc bfc" id="L1094" title="All 4 branches covered.">		return get_local_element_count_(quad_handle) &gt;= m_flushing_count || has_children_(quad_handle);</span>
+	}
+
+	private boolean has_children_(int parent) {
+<span class="fc bfc" id="L1098" title="All 8 branches covered.">		return get_child_(parent, 0) != -1 || get_child_(parent, 1) != -1 || get_child_(parent, 2) != -1 || get_child_(parent, 3) != -1;</span>
+	}
+
+	private int create_child_(int parent, int quadrant) {
+<span class="fc" id="L1102">		int child = m_quad_tree_nodes.newElement();</span>
+<span class="fc" id="L1103">		set_child_(parent, quadrant, child);</span>
+<span class="fc" id="L1104">		set_sub_tree_element_count_(child, 0);</span>
+<span class="fc" id="L1105">		set_local_element_count_(child, 0);</span>
+<span class="fc" id="L1106">		set_parent_(child, parent);</span>
+<span class="fc" id="L1107">		set_height_and_quadrant_(child, get_height_(parent) + 1, quadrant);</span>
+
+<span class="fc bfc" id="L1109" title="All 2 branches covered.">		if (m_b_store_duplicates)</span>
+<span class="fc" id="L1110">			set_contained_sub_tree_element_count_(child, 0);</span>
+
+<span class="fc" id="L1112">		return child;</span>
+	}
+
+	private void create_root_() {
+<span class="fc" id="L1116">		m_root = m_quad_tree_nodes.newElement();</span>
+<span class="fc" id="L1117">		set_sub_tree_element_count_(m_root, 0);</span>
+<span class="fc" id="L1118">		set_local_element_count_(m_root, 0);</span>
+<span class="fc" id="L1119">		set_height_and_quadrant_(m_root, 0, 0);</span>
+
+<span class="fc bfc" id="L1121" title="All 2 branches covered.">		if (m_b_store_duplicates)</span>
+<span class="fc" id="L1122">			set_contained_sub_tree_element_count_(m_root, 0);</span>
+<span class="fc" id="L1123">	}</span>
+
+	private int create_element_() {
+<span class="fc" id="L1126">		int element_handle = m_element_nodes.newElement();</span>
+		int data_handle;
+
+<span class="pc bpc" id="L1129" title="1 of 2 branches missed.">		if (m_free_data.size() &gt; 0) {</span>
+<span class="nc" id="L1130">			data_handle = m_free_data.get(m_free_data.size() - 1);</span>
+<span class="nc" id="L1131">			m_free_data.removeLast();</span>
+		} else {
+<span class="fc" id="L1133">			data_handle = m_data.size();</span>
+<span class="fc" id="L1134">			m_data.add(null);</span>
+		}
+
+<span class="fc" id="L1137">		set_data_(element_handle, data_handle);</span>
+<span class="fc" id="L1138">		return element_handle;</span>
+	}
+
+	private int create_element_from_duplicate_(int duplicate_element_handle) {
+<span class="fc" id="L1142">		int element_handle = m_element_nodes.newElement();</span>
+<span class="fc" id="L1143">		int data_handle = get_data_(duplicate_element_handle);</span>
+<span class="fc" id="L1144">		set_data_(element_handle, data_handle);</span>
+<span class="fc" id="L1145">		return element_handle;</span>
+	}
+
+	private void free_element_and_box_node_(int element_handle) {
+<span class="fc" id="L1149">		int data_handle = get_data_(element_handle);</span>
+<span class="fc" id="L1150">		m_free_data.add(data_handle);</span>
+<span class="fc" id="L1151">		m_element_nodes.deleteElement(element_handle);</span>
+<span class="fc" id="L1152">	}</span>
+
+	private int get_child_(int quad_handle, int quadrant) {
+<span class="fc" id="L1155">		return m_quad_tree_nodes.getField(quad_handle, quadrant);</span>
+	}
+
+	private void set_child_(int parent, int quadrant, int child) {
+<span class="fc" id="L1159">		m_quad_tree_nodes.setField(parent, quadrant, child);</span>
+<span class="fc" id="L1160">	}</span>
+
+	private int get_first_element_(int quad_handle) {
+<span class="fc" id="L1163">		return m_quad_tree_nodes.getField(quad_handle, 4);</span>
+	}
+
+	private void set_first_element_(int quad_handle, int head) {
+<span class="fc" id="L1167">		m_quad_tree_nodes.setField(quad_handle, 4, head);</span>
+<span class="fc" id="L1168">	}</span>
+
+	private int get_last_element_(int quad_handle) {
+<span class="fc" id="L1171">		return m_quad_tree_nodes.getField(quad_handle, 5);</span>
+	}
+
+	private void set_last_element_(int quad_handle, int tail) {
+<span class="fc" id="L1175">		m_quad_tree_nodes.setField(quad_handle, 5, tail);</span>
+<span class="fc" id="L1176">	}</span>
+
+
+	private int get_quadrant_(int quad_handle) {
+<span class="fc" id="L1180">		int height_quadrant_hybrid = m_quad_tree_nodes.getField(quad_handle, 6);</span>
+<span class="fc" id="L1181">		int quadrant = height_quadrant_hybrid &amp; m_quadrant_mask;</span>
+<span class="fc" id="L1182">		return quadrant;</span>
+	}
+
+	private int get_height_(int quad_handle) {
+<span class="fc" id="L1186">		int height_quadrant_hybrid = m_quad_tree_nodes.getField(quad_handle, 6);</span>
+<span class="fc" id="L1187">		int height = height_quadrant_hybrid &gt;&gt; m_height_bit_shift;</span>
+<span class="fc" id="L1188">		return height;</span>
+	}
+
+	private void set_height_and_quadrant_(int quad_handle, int height, int quadrant) {
+<span class="pc bpc" id="L1192" title="2 of 4 branches missed.">		assert (quadrant &gt;= 0 &amp;&amp; quadrant &lt;= 3);</span>
+<span class="fc" id="L1193">		int height_quadrant_hybrid = (int) ((height &lt;&lt; m_height_bit_shift) | quadrant);</span>
+<span class="fc" id="L1194">		m_quad_tree_nodes.setField(quad_handle, 6, height_quadrant_hybrid);</span>
+<span class="fc" id="L1195">	}</span>
+
+	private int get_local_element_count_(int quad_handle) {
+<span class="fc" id="L1198">		return m_quad_tree_nodes.getField(quad_handle, 7);</span>
+	}
+
+	private void set_local_element_count_(int quad_handle, int count) {
+<span class="fc" id="L1202">		m_quad_tree_nodes.setField(quad_handle, 7, count);</span>
+<span class="fc" id="L1203">	}</span>
+
+	private int get_sub_tree_element_count_(int quad_handle) {
+<span class="fc" id="L1206">		return m_quad_tree_nodes.getField(quad_handle, 8);</span>
+	}
+
+	private void set_sub_tree_element_count_(int quad_handle, int count) {
+<span class="fc" id="L1210">		m_quad_tree_nodes.setField(quad_handle, 8, count);</span>
+<span class="fc" id="L1211">	}</span>
+
+	private int get_parent_(int child) {
+<span class="fc" id="L1214">		return m_quad_tree_nodes.getField(child, 9);</span>
+	}
+
+	private void set_parent_(int child, int parent) {
+<span class="fc" id="L1218">		m_quad_tree_nodes.setField(child, 9, parent);</span>
+<span class="fc" id="L1219">	}</span>
+
+	private int get_contained_sub_tree_element_count_(int quad_handle) {
+<span class="fc" id="L1222">		return m_quad_tree_nodes.getField(quad_handle, 10);</span>
+	}
+
+	private void set_contained_sub_tree_element_count_(int quad_handle, int count) {
+<span class="fc" id="L1226">		m_quad_tree_nodes.setField(quad_handle, 10, count);</span>
+<span class="fc" id="L1227">	}</span>
+
+	private int get_data_(int element_handle) {
+<span class="fc" id="L1230">		return m_element_nodes.getField(element_handle, 0);</span>
+	}
+
+	private void set_data_(int element_handle, int data_handle) {
+<span class="fc" id="L1234">		m_element_nodes.setField(element_handle, 0, data_handle);</span>
+<span class="fc" id="L1235">	}</span>
+
+	private int get_prev_element_(int element_handle) {
+<span class="fc" id="L1238">		return m_element_nodes.getField(element_handle, 1);</span>
+	}
+
+	private int get_next_element_(int element_handle) {
+<span class="fc" id="L1242">		return m_element_nodes.getField(element_handle, 2);</span>
+	}
+
+	private void set_prev_element_(int element_handle, int prev_handle) {
+<span class="fc" id="L1246">		m_element_nodes.setField(element_handle, 1, prev_handle);</span>
+<span class="fc" id="L1247">	}</span>
+
+	private void set_next_element_(int element_handle, int next_handle) {
+<span class="fc" id="L1250">		m_element_nodes.setField(element_handle, 2, next_handle);</span>
+<span class="fc" id="L1251">	}</span>
+
+	private int get_quad_(int element_handle) {
+<span class="fc" id="L1254">		return m_element_nodes.getField(element_handle, 3);</span>
+	}
+
+	private void set_quad_(int element_handle, int parent) {
+<span class="fc" id="L1258">		m_element_nodes.setField(element_handle, 3, parent);</span>
+<span class="fc" id="L1259">	}</span>
+
+	private int get_element_value_(int data_handle) {
+<span class="fc" id="L1262">		return m_data.get(data_handle).element;</span>
+	}
+
+	private Envelope2D get_bounding_box_value_(int data_handle) {
+<span class="fc" id="L1266">		return m_data.get(data_handle).box;</span>
+	}
+
+	private void set_data_values_(int data_handle, int element, Envelope2D bounding_box) {
+<span class="fc" id="L1270">		m_data.set(data_handle, new Data(element, bounding_box));</span>
+<span class="fc" id="L1271">	}</span>
+
+	private Envelope2D m_extent;
+	private Envelope2D m_data_extent;
+	private StridedIndexTypeCollection m_quad_tree_nodes;
+	private StridedIndexTypeCollection m_element_nodes;
+	transient private ArrayList&lt;Data&gt; m_data;
+	private AttributeStreamOfInt32 m_free_data;
+	private int m_root;
+	private int m_height;
+	private boolean m_b_store_duplicates;
+
+	final static private int m_quadrant_mask = 3;
+	final static private int m_height_bit_shift = 2;
+	final static private int m_flushing_count = 5;
+
+	static final class Data {
+		int element;
+		Envelope2D box;
+		
+<span class="fc" id="L1291">		Data(int element_, double x1, double y1, double x2, double y2) {</span>
+<span class="fc" id="L1292">			element = element_;</span>
+<span class="fc" id="L1293">			box = new Envelope2D();</span>
+<span class="fc" id="L1294">			box.setCoords(x1, y1, x2, y2);</span>
+<span class="fc" id="L1295">		}</span>
+
+<span class="fc" id="L1297">		Data(int element_, Envelope2D box_) {</span>
+<span class="fc" id="L1298">			element = element_;</span>
+<span class="fc" id="L1299">			box = new Envelope2D();</span>
+<span class="fc" id="L1300">			box.setCoords(box_);</span>
+<span class="fc" id="L1301">		}</span>
+	}
+
+	private void writeObject(java.io.ObjectOutputStream stream)
+			throws IOException {
+<span class="fc" id="L1306">		stream.defaultWriteObject();</span>
+<span class="fc" id="L1307">		stream.writeInt(m_data.size());</span>
+<span class="fc bfc" id="L1308" title="All 2 branches covered.">		for (int i = 0, n = m_data.size(); i &lt; n; ++i) {</span>
+<span class="fc" id="L1309">			Data d = m_data.get(i);</span>
+<span class="pc bpc" id="L1310" title="1 of 2 branches missed.">			if (d != null) {</span>
+<span class="fc" id="L1311">				stream.writeByte(1);</span>
+<span class="fc" id="L1312">				stream.writeInt(d.element);</span>
+<span class="fc" id="L1313">				stream.writeDouble(d.box.xmin);</span>
+<span class="fc" id="L1314">				stream.writeDouble(d.box.ymin);</span>
+<span class="fc" id="L1315">				stream.writeDouble(d.box.xmax);</span>
+<span class="fc" id="L1316">				stream.writeDouble(d.box.ymax);</span>
+			}
+			else {
+<span class="nc" id="L1319">				stream.writeByte(0);</span>
+			}
+				
+		}
+<span class="fc" id="L1323">	}</span>
+
+	private void readObject(java.io.ObjectInputStream stream)
+			throws IOException, ClassNotFoundException {
+<span class="fc" id="L1327">		stream.defaultReadObject();</span>
+<span class="fc" id="L1328">		int dataSize = stream.readInt();</span>
+<span class="fc" id="L1329">		m_data = new ArrayList&lt;Data&gt;(dataSize);</span>
+<span class="fc bfc" id="L1330" title="All 2 branches covered.">		for (int i = 0, n = dataSize; i &lt; n; ++i) {</span>
+<span class="fc" id="L1331">			int b = stream.readByte();</span>
+<span class="pc bpc" id="L1332" title="1 of 2 branches missed.">			if (b == 1) {</span>
+<span class="fc" id="L1333">				int elm = stream.readInt();</span>
+<span class="fc" id="L1334">				double x1 = stream.readDouble();</span>
+<span class="fc" id="L1335">				double y1 = stream.readDouble();</span>
+<span class="fc" id="L1336">				double x2 = stream.readDouble();</span>
+<span class="fc" id="L1337">				double y2 = stream.readDouble();</span>
+<span class="fc" id="L1338">				Data d = new Data(elm, x1, y1, x2, y2);</span>
+<span class="fc" id="L1339">				m_data.add(d);</span>
+<span class="fc" id="L1340">			}</span>
+<span class="nc bnc" id="L1341" title="All 2 branches missed.">			else if (b == 0) {</span>
+<span class="nc" id="L1342">				m_data.add(null);</span>
+			}
+			else {
+<span class="nc" id="L1345">				throw new IOException();</span>
+			}
+		}
+<span class="fc" id="L1348">	}</span>
+	
+	@SuppressWarnings(&quot;unused&quot;)
+	private void readObjectNoData() throws ObjectStreamException {
+<span class="nc" id="L1352">		throw new InvalidObjectException(&quot;Stream data required&quot;);</span>
+	}
+
+    /* m_quad_tree_nodes
+    * 0: m_north_east_child
+    * 1: m_north_west_child
+    * 2: m_south_west_child
+    * 3: m_south_east_child
+    * 4: m_head_element
+    * 5: m_tail_element
+    * 6: m_quadrant_and_height
+    * 7: m_local_element_count
+    * 8: m_sub_tree_element_count
+    * 9: m_parent_quad
+    * 10: m_height
+    */
+
+    /* m_element_nodes
+    * 0: m_data_handle
+    * 1: m_prev
+    * 2: m_next
+    * 3: m_parent_quad
+    */
+
+    /* m_data
+    * element
+    * box
+    */
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

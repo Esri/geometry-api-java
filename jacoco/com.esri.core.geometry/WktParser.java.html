@@ -1,0 +1,711 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WktParser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">WktParser.java</span></div><h1>WktParser.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+final class WktParser {
+	interface WktToken {
+		static final int not_available = 0;
+		static final int empty = 50;
+		static final int left_paren = 51;
+		static final int right_paren = 52;
+		static final int x_literal = 0x80000000;
+		static final int y_literal = 0x40000000;
+		static final int z_literal = 0x20000000;
+		static final int m_literal = 0x10000000;
+		static final int point = 1;
+		static final int linestring = 2;
+		static final int polygon = 3;
+		static final int multipoint = 4;
+		static final int multilinestring = 5;
+		static final int multipolygon = 6;
+		static final int geometrycollection = 7;
+		static final int attribute_z = 1000;
+		static final int attribute_m = 2000;
+		static final int attribute_zm = 3000;
+	}
+
+<span class="fc" id="L48">	WktParser() {</span>
+<span class="fc" id="L49">	}</span>
+
+<span class="fc" id="L51">	WktParser(String string) {</span>
+<span class="fc" id="L52">		resetParser(string);</span>
+<span class="fc" id="L53">	}</span>
+
+	void resetParser(String string) {
+<span class="fc bfc" id="L56" title="All 2 branches covered.">		if (m_function_stack == null)</span>
+<span class="fc" id="L57">			m_function_stack = new AttributeStreamOfInt32(0);</span>
+
+<span class="fc" id="L59">		reset_();</span>
+<span class="fc" id="L60">		m_wkt_string = string;</span>
+<span class="fc" id="L61">	}</span>
+
+	int nextToken() {
+<span class="pc bpc" id="L64" title="1 of 23 branches missed.">		switch (m_function_stack.getLast()) {</span>
+		case State.xLiteral:
+<span class="fc" id="L66">			xLiteral_();</span>
+<span class="fc" id="L67">			break;</span>
+		case State.yLiteral:
+<span class="fc" id="L69">			yLiteral_();</span>
+<span class="fc" id="L70">			break;</span>
+		case State.zLiteral:
+<span class="fc" id="L72">			zLiteral_();</span>
+<span class="fc" id="L73">			break;</span>
+		case State.mLiteral:
+<span class="fc" id="L75">			mLiteral_();</span>
+<span class="fc" id="L76">			break;</span>
+		case State.pointStart:
+<span class="fc" id="L78">			pointStart_();</span>
+<span class="fc" id="L79">			break;</span>
+		case State.pointStartAlt:
+<span class="fc" id="L81">			pointStartAlt_();</span>
+<span class="fc" id="L82">			break;</span>
+		case State.pointEnd:
+<span class="fc" id="L84">			pointEnd_();</span>
+<span class="fc" id="L85">			break;</span>
+		case State.lineStringStart:
+<span class="fc" id="L87">			lineStringStart_();</span>
+<span class="fc" id="L88">			break;</span>
+		case State.lineStringEnd:
+<span class="fc" id="L90">			lineStringEnd_();</span>
+<span class="fc" id="L91">			break;</span>
+		case State.multiPointStart:
+<span class="fc" id="L93">			multiPointStart_();</span>
+<span class="fc" id="L94">			break;</span>
+		case State.multiPointEnd:
+<span class="fc" id="L96">			multiPointEnd_();</span>
+<span class="fc" id="L97">			break;</span>
+		case State.polygonStart:
+<span class="fc" id="L99">			polygonStart_();</span>
+<span class="fc" id="L100">			break;</span>
+		case State.polygonEnd:
+<span class="fc" id="L102">			polygonEnd_();</span>
+<span class="fc" id="L103">			break;</span>
+		case State.multiLineStringStart:
+<span class="fc" id="L105">			multiLineStringStart_();</span>
+<span class="fc" id="L106">			break;</span>
+		case State.multiLineStringEnd:
+<span class="fc" id="L108">			multiLineStringEnd_();</span>
+<span class="fc" id="L109">			break;</span>
+		case State.multiPolygonStart:
+<span class="fc" id="L111">			multiPolygonStart_();</span>
+<span class="fc" id="L112">			break;</span>
+		case State.multiPolygonEnd:
+<span class="fc" id="L114">			multiPolygonEnd_();</span>
+<span class="fc" id="L115">			break;</span>
+		case State.geometryCollectionStart:
+<span class="fc" id="L117">			geometryCollectionStart_();</span>
+<span class="fc" id="L118">			break;</span>
+		case State.geometryCollectionEnd:
+<span class="fc" id="L120">			geometryCollectionEnd_();</span>
+<span class="fc" id="L121">			break;</span>
+		case State.accept:
+<span class="fc" id="L123">			accept_();</span>
+<span class="fc" id="L124">			break;</span>
+		case State.geometry:
+<span class="fc" id="L126">			geometry_();</span>
+<span class="fc" id="L127">			break;</span>
+		case State.attributes:
+<span class="fc" id="L129">			attributes_();</span>
+			break;
+		}
+
+<span class="fc" id="L133">		return m_current_token_type;</span>
+	}
+
+	double currentNumericLiteral() {
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">		if (((int) m_current_token_type &amp; (int) Number.signed_numeric_literal) == 0)</span>
+<span class="nc" id="L138">			throw new GeometryException(&quot;runtime error&quot;);</span>
+
+<span class="pc bpc" id="L140" title="1 of 2 branches missed.">		if (m_b_nan)</span>
+<span class="nc" id="L141">			return NumberUtils.TheNaN;</span>
+
+<span class="fc" id="L143">		double value = Double.parseDouble(m_wkt_string.substring(m_start_token,</span>
+				m_end_token));
+<span class="fc" id="L145">		return value;</span>
+	}
+
+	int currentToken() {
+<span class="fc" id="L149">		return m_current_token_type;</span>
+	}
+
+	boolean hasZs() {
+<span class="fc" id="L153">		return m_b_has_zs;</span>
+	}
+
+	boolean hasMs() {
+<span class="fc" id="L157">		return m_b_has_ms;</span>
+	}
+
+	private String m_wkt_string;
+	private int m_start_token;
+	private int m_end_token;
+	private int m_current_token_type;
+
+	private boolean m_b_has_zs;
+	private boolean m_b_has_ms;
+	private boolean m_b_check_consistent_attributes;
+	private boolean m_b_nan;
+
+	private AttributeStreamOfInt32 m_function_stack;
+
+	private interface State {
+		static final int xLiteral = 0;
+		static final int yLiteral = 1;
+		static final int zLiteral = 2;
+		static final int mLiteral = 3;
+		static final int pointStart = 4;
+		static final int pointStartAlt = 5;
+		static final int pointEnd = 6;
+		static final int lineStringStart = 7;
+		static final int lineStringEnd = 8;
+		static final int multiPointStart = 9;
+		static final int multiPointEnd = 10;
+		static final int polygonStart = 11;
+		static final int polygonEnd = 12;
+		static final int multiLineStringStart = 13;
+		static final int multiLineStringEnd = 14;
+		static final int multiPolygonStart = 15;
+		static final int multiPolygonEnd = 16;
+		static final int geometryCollectionStart = 17;
+		static final int geometryCollectionEnd = 18;
+		static final int accept = 19;
+		static final int geometry = 20;
+		static final int attributes = 21;
+	}
+
+	private interface Number {
+		static final int signed_numeric_literal = WktToken.x_literal
+				| WktToken.y_literal | WktToken.z_literal | WktToken.m_literal;
+	}
+
+	private void reset_() {
+<span class="fc" id="L203">		m_function_stack.add(State.accept);</span>
+<span class="fc" id="L204">		m_function_stack.add(State.geometry);</span>
+<span class="fc" id="L205">		m_start_token = -1;</span>
+<span class="fc" id="L206">		m_end_token = 0;</span>
+<span class="fc" id="L207">		m_current_token_type = WktToken.not_available;</span>
+<span class="fc" id="L208">		m_b_has_zs = false;</span>
+<span class="fc" id="L209">		m_b_has_ms = false;</span>
+<span class="fc" id="L210">		m_b_check_consistent_attributes = false;</span>
+<span class="fc" id="L211">		m_b_nan = false;</span>
+<span class="fc" id="L212">	}</span>
+
+	private void accept_() {
+<span class="fc" id="L215">		m_start_token = m_end_token;</span>
+<span class="fc" id="L216">		m_current_token_type = WktToken.not_available;</span>
+<span class="fc" id="L217">	}</span>
+
+	private void geometry_() {
+<span class="fc" id="L220">		skipWhiteSpace_();</span>
+<span class="fc" id="L221">		m_start_token = m_end_token;</span>
+<span class="fc" id="L222">		m_function_stack.removeLast();</span>
+
+<span class="pc bpc" id="L224" title="1 of 2 branches missed.">		if (m_start_token + 5 &lt;= m_wkt_string.length()</span>
+<span class="fc bfc" id="L225" title="All 2 branches covered.">				&amp;&amp; m_wkt_string.regionMatches(true, m_start_token, &quot;point&quot;, 0,</span>
+						5)) {
+<span class="fc" id="L227">			m_end_token = m_start_token + 5;</span>
+<span class="fc" id="L228">			m_current_token_type = WktToken.point;</span>
+<span class="fc" id="L229">			m_function_stack.add(State.pointStart);</span>
+<span class="pc bpc" id="L230" title="1 of 2 branches missed.">		} else if (m_start_token + 10 &lt;= m_wkt_string.length()</span>
+<span class="fc bfc" id="L231" title="All 2 branches covered.">				&amp;&amp; m_wkt_string.regionMatches(true, m_start_token,</span>
+						&quot;linestring&quot;, 0, 10)) {
+<span class="fc" id="L233">			m_end_token = m_start_token + 10;</span>
+<span class="fc" id="L234">			m_current_token_type = WktToken.linestring;</span>
+<span class="fc" id="L235">			m_function_stack.add(State.lineStringStart);</span>
+<span class="pc bpc" id="L236" title="1 of 2 branches missed.">		} else if (m_start_token + 10 &lt;= m_wkt_string.length()</span>
+<span class="fc bfc" id="L237" title="All 2 branches covered.">				&amp;&amp; m_wkt_string.regionMatches(true, m_start_token,</span>
+						&quot;multipoint&quot;, 0, 10)) {
+<span class="fc" id="L239">			m_end_token = m_start_token + 10;</span>
+<span class="fc" id="L240">			m_current_token_type = WktToken.multipoint;</span>
+<span class="fc" id="L241">			m_function_stack.add(State.multiPointStart);</span>
+<span class="pc bpc" id="L242" title="1 of 2 branches missed.">		} else if (m_start_token + 7 &lt;= m_wkt_string.length()</span>
+<span class="fc bfc" id="L243" title="All 2 branches covered.">				&amp;&amp; m_wkt_string.regionMatches(true, m_start_token, &quot;polygon&quot;,</span>
+						0, 7)) {
+<span class="fc" id="L245">			m_end_token = m_start_token + 7;</span>
+<span class="fc" id="L246">			m_current_token_type = WktToken.polygon;</span>
+<span class="fc" id="L247">			m_function_stack.add(State.polygonStart);</span>
+<span class="pc bpc" id="L248" title="1 of 2 branches missed.">		} else if (m_start_token + 15 &lt;= m_wkt_string.length()</span>
+<span class="fc bfc" id="L249" title="All 2 branches covered.">				&amp;&amp; m_wkt_string.regionMatches(true, m_start_token,</span>
+						&quot;multilinestring&quot;, 0, 15)) {
+<span class="fc" id="L251">			m_end_token = m_start_token + 15;</span>
+<span class="fc" id="L252">			m_current_token_type = WktToken.multilinestring;</span>
+<span class="fc" id="L253">			m_function_stack.add(State.multiLineStringStart);</span>
+<span class="pc bpc" id="L254" title="1 of 2 branches missed.">		} else if (m_start_token + 12 &lt;= m_wkt_string.length()</span>
+<span class="fc bfc" id="L255" title="All 2 branches covered.">				&amp;&amp; m_wkt_string.regionMatches(true, m_start_token,</span>
+						&quot;multipolygon&quot;, 0, 12)) {
+<span class="fc" id="L257">			m_end_token = m_start_token + 12;</span>
+<span class="fc" id="L258">			m_current_token_type = WktToken.multipolygon;</span>
+<span class="fc" id="L259">			m_function_stack.add(State.multiPolygonStart);</span>
+<span class="pc bpc" id="L260" title="1 of 2 branches missed.">		} else if (m_start_token + 18 &lt;= m_wkt_string.length()</span>
+<span class="pc bpc" id="L261" title="1 of 2 branches missed.">				&amp;&amp; m_wkt_string.regionMatches(true, m_start_token,</span>
+						&quot;geometrycollection&quot;, 0, 18)) {
+<span class="fc" id="L263">			m_end_token = m_start_token + 18;</span>
+<span class="fc" id="L264">			m_current_token_type = WktToken.geometrycollection;</span>
+<span class="fc" id="L265">			m_function_stack.add(State.geometryCollectionStart);</span>
+		} else {
+			//String snippet = (m_wkt_string.length() &gt; 200 ? m_wkt_string
+			//		.substring(0, 200) + &quot;...&quot; : m_wkt_string);
+			//throw new IllegalArgumentException(
+			//		&quot;Could not parse Well-Known Text: &quot; + snippet);
+<span class="nc" id="L271">			throw new IllegalArgumentException(</span>
+					&quot;Could not parse Well-Known Text around position: &quot; + m_end_token);
+		}
+
+<span class="fc" id="L275">		m_function_stack.add(State.attributes);</span>
+<span class="fc" id="L276">	}</span>
+
+	private void attributes_() {
+<span class="fc" id="L279">		skipWhiteSpace_();</span>
+<span class="fc" id="L280">		m_start_token = m_end_token;</span>
+<span class="fc" id="L281">		m_function_stack.removeLast();</span>
+
+		// Z and M is not allowed to have a space between them
+<span class="fc" id="L284">		boolean b_has_zs = false, b_has_ms = false;</span>
+
+<span class="fc bfc" id="L286" title="All 2 branches covered.">		if (m_wkt_string.charAt(m_end_token) == 'z'</span>
+<span class="fc bfc" id="L287" title="All 2 branches covered.">				|| m_wkt_string.charAt(m_end_token) == 'Z') {</span>
+<span class="fc" id="L288">			b_has_zs = true;</span>
+
+<span class="pc bpc" id="L290" title="1 of 2 branches missed.">			if (++m_end_token &gt;= m_wkt_string.length())</span>
+<span class="nc" id="L291">				throw new IllegalArgumentException();</span>
+		}
+
+<span class="fc bfc" id="L294" title="All 2 branches covered.">		if (m_wkt_string.charAt(m_end_token) == 'm'</span>
+<span class="fc bfc" id="L295" title="All 2 branches covered.">				|| m_wkt_string.charAt(m_end_token) == 'M') {</span>
+<span class="fc" id="L296">			b_has_ms = true;</span>
+
+<span class="pc bpc" id="L298" title="1 of 2 branches missed.">			if (++m_end_token &gt;= m_wkt_string.length())</span>
+<span class="nc" id="L299">				throw new IllegalArgumentException();</span>
+		}
+
+<span class="fc bfc" id="L302" title="All 2 branches covered.">		if (m_b_check_consistent_attributes) {</span>
+<span class="pc bpc" id="L303" title="2 of 4 branches missed.">			if (b_has_zs != m_b_has_zs || b_has_ms != m_b_has_ms)</span>
+<span class="nc" id="L304">				throw new IllegalArgumentException();</span>
+		}
+
+<span class="fc" id="L307">		m_b_has_zs = b_has_zs;</span>
+<span class="fc" id="L308">		m_b_has_ms = b_has_ms;</span>
+
+<span class="fc bfc" id="L310" title="All 4 branches covered.">		if (m_b_has_zs || m_b_has_ms) {</span>
+<span class="fc bfc" id="L311" title="All 4 branches covered.">			if (m_b_has_zs &amp;&amp; !m_b_has_ms)</span>
+<span class="fc" id="L312">				m_current_token_type = WktToken.attribute_z;</span>
+<span class="pc bpc" id="L313" title="1 of 4 branches missed.">			else if (m_b_has_ms &amp;&amp; !m_b_has_zs)</span>
+<span class="fc" id="L314">				m_current_token_type = WktToken.attribute_m;</span>
+			else
+<span class="fc" id="L316">				m_current_token_type = WktToken.attribute_zm;</span>
+		} else {
+<span class="fc" id="L318">			nextToken();</span>
+		}
+<span class="fc" id="L320">	}</span>
+
+	private void geometryCollectionStart_() {
+<span class="fc" id="L323">		skipWhiteSpace_();</span>
+<span class="fc" id="L324">		m_start_token = m_end_token;</span>
+<span class="fc" id="L325">		m_b_check_consistent_attributes = true;</span>
+
+<span class="fc bfc" id="L327" title="All 2 branches covered.">		if (empty_()) {</span>
+<span class="fc" id="L328">			m_function_stack.removeLast();</span>
+<span class="pc bpc" id="L329" title="1 of 2 branches missed.">		} else if (leftParen_()) {</span>
+<span class="fc" id="L330">			m_function_stack.removeLast();</span>
+<span class="fc" id="L331">			m_function_stack.add(State.geometryCollectionEnd);</span>
+<span class="fc" id="L332">			m_function_stack.add(State.geometry);</span>
+		} else {
+<span class="nc" id="L334">			throw new IllegalArgumentException();</span>
+		}
+<span class="fc" id="L336">	}</span>
+
+	private void geometryCollectionEnd_() {
+<span class="fc" id="L339">		skipWhiteSpace_();</span>
+<span class="fc" id="L340">		m_start_token = m_end_token;</span>
+
+<span class="fc bfc" id="L342" title="All 2 branches covered.">		if (comma_()) {</span>
+<span class="fc" id="L343">			m_function_stack.add(State.geometry);</span>
+<span class="fc" id="L344">			geometry_();</span>
+<span class="pc bpc" id="L345" title="1 of 2 branches missed.">		} else if (rightParen_()) {</span>
+<span class="fc" id="L346">			m_function_stack.removeLast();</span>
+		} else {
+<span class="nc" id="L348">			throw new IllegalArgumentException();</span>
+		}
+<span class="fc" id="L350">	}</span>
+
+	private void multiPolygonStart_() {
+<span class="fc" id="L353">		skipWhiteSpace_();</span>
+<span class="fc" id="L354">		m_start_token = m_end_token;</span>
+
+<span class="fc bfc" id="L356" title="All 2 branches covered.">		if (empty_()) {</span>
+<span class="fc" id="L357">			m_function_stack.removeLast();</span>
+<span class="pc bpc" id="L358" title="1 of 2 branches missed.">		} else if (leftParen_()) {</span>
+<span class="fc" id="L359">			m_function_stack.removeLast();</span>
+<span class="fc" id="L360">			m_function_stack.add(State.multiPolygonEnd);</span>
+<span class="fc" id="L361">			m_function_stack.add(State.polygonStart);</span>
+		} else {
+<span class="nc" id="L363">			throw new IllegalArgumentException();</span>
+		}
+<span class="fc" id="L365">	}</span>
+
+	private void multiPolygonEnd_() {
+<span class="fc" id="L368">		skipWhiteSpace_();</span>
+<span class="fc" id="L369">		m_start_token = m_end_token;</span>
+
+<span class="fc bfc" id="L371" title="All 2 branches covered.">		if (comma_()) {</span>
+<span class="fc" id="L372">			m_function_stack.add(State.polygonStart);</span>
+<span class="fc" id="L373">			polygonStart_();</span>
+<span class="pc bpc" id="L374" title="1 of 2 branches missed.">		} else if (rightParen_()) {</span>
+<span class="fc" id="L375">			m_function_stack.removeLast();</span>
+		} else {
+<span class="nc" id="L377">			throw new IllegalArgumentException();</span>
+		}
+<span class="fc" id="L379">	}</span>
+
+	private void multiLineStringStart_() {
+<span class="fc" id="L382">		skipWhiteSpace_();</span>
+<span class="fc" id="L383">		m_start_token = m_end_token;</span>
+
+<span class="fc bfc" id="L385" title="All 2 branches covered.">		if (empty_()) {</span>
+<span class="fc" id="L386">			m_function_stack.removeLast();</span>
+<span class="pc bpc" id="L387" title="1 of 2 branches missed.">		} else if (leftParen_()) {</span>
+<span class="fc" id="L388">			m_function_stack.removeLast();</span>
+<span class="fc" id="L389">			m_function_stack.add(State.multiLineStringEnd);</span>
+<span class="fc" id="L390">			m_function_stack.add(State.lineStringStart);</span>
+		} else {
+<span class="nc" id="L392">			throw new IllegalArgumentException();</span>
+		}
+<span class="fc" id="L394">	}</span>
+
+	private void multiLineStringEnd_() {
+<span class="fc" id="L397">		skipWhiteSpace_();</span>
+<span class="fc" id="L398">		m_start_token = m_end_token;</span>
+
+<span class="fc bfc" id="L400" title="All 2 branches covered.">		if (comma_()) {</span>
+<span class="fc" id="L401">			m_function_stack.add(State.lineStringStart);</span>
+<span class="fc" id="L402">			lineStringStart_();</span>
+<span class="pc bpc" id="L403" title="1 of 2 branches missed.">		} else if (rightParen_()) {</span>
+<span class="fc" id="L404">			m_function_stack.removeLast();</span>
+		} else {
+<span class="nc" id="L406">			throw new IllegalArgumentException();</span>
+		}
+<span class="fc" id="L408">	}</span>
+
+	private void multiPointStart_() {
+<span class="fc" id="L411">		skipWhiteSpace_();</span>
+<span class="fc" id="L412">		m_start_token = m_end_token;</span>
+
+<span class="fc bfc" id="L414" title="All 2 branches covered.">		if (empty_()) {</span>
+<span class="fc" id="L415">			m_function_stack.removeLast();</span>
+<span class="pc bpc" id="L416" title="1 of 2 branches missed.">		} else if (leftParen_()) {</span>
+<span class="fc" id="L417">			m_function_stack.removeLast();</span>
+<span class="fc" id="L418">			m_function_stack.add(State.multiPointEnd);</span>
+<span class="fc" id="L419">			m_function_stack.add(State.pointStartAlt);</span>
+		} else {
+<span class="nc" id="L421">			throw new IllegalArgumentException();</span>
+		}
+<span class="fc" id="L423">	}</span>
+
+	private void multiPointEnd_() {
+<span class="fc" id="L426">		skipWhiteSpace_();</span>
+<span class="fc" id="L427">		m_start_token = m_end_token;</span>
+
+<span class="fc bfc" id="L429" title="All 2 branches covered.">		if (comma_()) {</span>
+<span class="fc" id="L430">			m_function_stack.add(State.pointStart);</span>
+<span class="fc" id="L431">			pointStart_();</span>
+<span class="pc bpc" id="L432" title="1 of 2 branches missed.">		} else if (rightParen_()) {</span>
+<span class="fc" id="L433">			m_function_stack.removeLast();</span>
+		} else {
+<span class="nc" id="L435">			throw new IllegalArgumentException();</span>
+		}
+<span class="fc" id="L437">	}</span>
+
+	private void polygonStart_() {
+<span class="fc" id="L440">		skipWhiteSpace_();</span>
+<span class="fc" id="L441">		m_start_token = m_end_token;</span>
+
+<span class="fc bfc" id="L443" title="All 2 branches covered.">		if (empty_()) {</span>
+<span class="fc" id="L444">			m_function_stack.removeLast();</span>
+<span class="pc bpc" id="L445" title="1 of 2 branches missed.">		} else if (leftParen_()) {</span>
+<span class="fc" id="L446">			m_function_stack.removeLast();</span>
+<span class="fc" id="L447">			m_function_stack.add(State.polygonEnd);</span>
+<span class="fc" id="L448">			m_function_stack.add(State.lineStringStart);</span>
+		} else {
+<span class="nc" id="L450">			throw new IllegalArgumentException();</span>
+		}
+<span class="fc" id="L452">	}</span>
+
+	private void polygonEnd_() {
+<span class="fc" id="L455">		skipWhiteSpace_();</span>
+<span class="fc" id="L456">		m_start_token = m_end_token;</span>
+
+<span class="fc bfc" id="L458" title="All 2 branches covered.">		if (comma_()) {</span>
+<span class="fc" id="L459">			m_function_stack.add(State.lineStringStart);</span>
+<span class="fc" id="L460">			lineStringStart_();</span>
+<span class="pc bpc" id="L461" title="1 of 2 branches missed.">		} else if (rightParen_()) {</span>
+<span class="fc" id="L462">			m_function_stack.removeLast();</span>
+		} else {
+<span class="nc" id="L464">			throw new IllegalArgumentException();</span>
+		}
+<span class="fc" id="L466">	}</span>
+
+	private void lineStringStart_() {
+<span class="fc" id="L469">		skipWhiteSpace_();</span>
+<span class="fc" id="L470">		m_start_token = m_end_token;</span>
+
+<span class="fc bfc" id="L472" title="All 2 branches covered.">		if (empty_()) {</span>
+<span class="fc" id="L473">			m_function_stack.removeLast();</span>
+<span class="pc bpc" id="L474" title="1 of 2 branches missed.">		} else if (leftParen_()) {</span>
+<span class="fc" id="L475">			m_function_stack.removeLast();</span>
+<span class="fc" id="L476">			m_function_stack.add(State.lineStringEnd);</span>
+<span class="fc" id="L477">			m_function_stack.add(State.xLiteral);</span>
+		} else {
+<span class="nc" id="L479">			throw new IllegalArgumentException();</span>
+		}
+<span class="fc" id="L481">	}</span>
+
+	private void lineStringEnd_() {
+<span class="fc" id="L484">		skipWhiteSpace_();</span>
+<span class="fc" id="L485">		m_start_token = m_end_token;</span>
+
+<span class="fc bfc" id="L487" title="All 2 branches covered.">		if (comma_()) {</span>
+<span class="fc" id="L488">			m_function_stack.add(State.xLiteral);</span>
+<span class="fc" id="L489">			xLiteral_();</span>
+<span class="pc bpc" id="L490" title="1 of 2 branches missed.">		} else if (rightParen_()) {</span>
+<span class="fc" id="L491">			m_function_stack.removeLast();</span>
+		} else {
+<span class="nc" id="L493">			throw new IllegalArgumentException();</span>
+		}
+<span class="fc" id="L495">	}</span>
+
+	private void pointStart_() {
+<span class="fc" id="L498">		skipWhiteSpace_();</span>
+<span class="fc" id="L499">		m_start_token = m_end_token;</span>
+
+<span class="fc bfc" id="L501" title="All 2 branches covered.">		if (empty_()) {</span>
+<span class="fc" id="L502">			m_function_stack.removeLast();</span>
+<span class="pc bpc" id="L503" title="1 of 2 branches missed.">		} else if (leftParen_()) {</span>
+<span class="fc" id="L504">			m_function_stack.removeLast();</span>
+<span class="fc" id="L505">			m_function_stack.add(State.pointEnd);</span>
+<span class="fc" id="L506">			m_function_stack.add(State.xLiteral);</span>
+		} else {
+<span class="nc" id="L508">			throw new IllegalArgumentException();</span>
+		}
+<span class="fc" id="L510">	}</span>
+
+	private void pointStartAlt_() {
+<span class="fc" id="L513">		skipWhiteSpace_();</span>
+<span class="fc" id="L514">		m_start_token = m_end_token;</span>
+
+<span class="fc bfc" id="L516" title="All 2 branches covered.">		if (empty_()) {// ogc standard</span>
+<span class="fc" id="L517">			m_function_stack.removeLast();</span>
+<span class="fc bfc" id="L518" title="All 2 branches covered.">		} else if (leftParen_()) {// ogc standard</span>
+<span class="fc" id="L519">			m_function_stack.removeLast();</span>
+<span class="fc" id="L520">			m_function_stack.add(State.pointEnd);</span>
+<span class="fc" id="L521">			m_function_stack.add(State.xLiteral);</span>
+		} else {// not ogc standard. treat as linestring
+<span class="fc" id="L523">			m_function_stack.removeLast();</span>
+<span class="fc" id="L524">			m_function_stack.removeLast();</span>
+<span class="fc" id="L525">			m_function_stack.add(State.lineStringEnd);</span>
+<span class="fc" id="L526">			m_function_stack.add(State.xLiteral);</span>
+<span class="fc" id="L527">			nextToken();</span>
+		}
+<span class="fc" id="L529">	}</span>
+
+	private void pointEnd_() {
+<span class="fc" id="L532">		skipWhiteSpace_();</span>
+<span class="fc" id="L533">		m_start_token = m_end_token;</span>
+
+<span class="pc bpc" id="L535" title="1 of 2 branches missed.">		if (rightParen_()) {</span>
+<span class="fc" id="L536">			m_function_stack.removeLast();</span>
+		} else {
+<span class="nc" id="L538">			throw new IllegalArgumentException();</span>
+		}
+<span class="fc" id="L540">	}</span>
+
+	private void xLiteral_() {
+<span class="fc" id="L543">		signedNumericLiteral_();</span>
+<span class="fc" id="L544">		m_current_token_type = WktToken.x_literal;</span>
+<span class="fc" id="L545">		m_function_stack.removeLast();</span>
+<span class="fc" id="L546">		m_function_stack.add(State.yLiteral);</span>
+<span class="fc" id="L547">	}</span>
+
+	private void yLiteral_() {
+<span class="fc" id="L550">		signedNumericLiteral_();</span>
+<span class="fc" id="L551">		m_current_token_type = WktToken.y_literal;</span>
+<span class="fc" id="L552">		m_function_stack.removeLast();</span>
+
+<span class="fc bfc" id="L554" title="All 2 branches covered.">		if (m_b_has_zs)</span>
+<span class="fc" id="L555">			m_function_stack.add(State.zLiteral);</span>
+<span class="fc bfc" id="L556" title="All 2 branches covered.">		else if (m_b_has_ms)</span>
+<span class="fc" id="L557">			m_function_stack.add(State.mLiteral);</span>
+<span class="fc" id="L558">	}</span>
+
+	private void zLiteral_() {
+<span class="fc" id="L561">		signedNumericLiteral_();</span>
+<span class="fc" id="L562">		m_current_token_type = WktToken.z_literal;</span>
+<span class="fc" id="L563">		m_function_stack.removeLast();</span>
+
+<span class="fc bfc" id="L565" title="All 2 branches covered.">		if (m_b_has_ms)</span>
+<span class="fc" id="L566">			m_function_stack.add(State.mLiteral);</span>
+<span class="fc" id="L567">	}</span>
+
+	private void mLiteral_() {
+<span class="fc" id="L570">		signedNumericLiteral_();</span>
+<span class="fc" id="L571">		m_current_token_type = WktToken.m_literal;</span>
+<span class="fc" id="L572">		m_function_stack.removeLast();</span>
+<span class="fc" id="L573">	}</span>
+
+	private boolean nan_() {
+<span class="pc bpc" id="L576" title="1 of 2 branches missed.">		if (m_wkt_string.regionMatches(true, m_start_token, &quot;nan&quot;, 0, 3)) {</span>
+<span class="nc" id="L577">			m_end_token += 3;</span>
+<span class="nc" id="L578">			m_b_nan = true;</span>
+<span class="nc" id="L579">			return true;</span>
+		}
+
+<span class="fc" id="L582">		m_b_nan = false;</span>
+<span class="fc" id="L583">		return false;</span>
+	}
+
+	private void sign_() {
+		// Optional - or + sign
+<span class="fc bfc" id="L588" title="All 2 branches covered.">		if (m_wkt_string.charAt(m_end_token) == '-'</span>
+<span class="fc bfc" id="L589" title="All 2 branches covered.">				|| m_wkt_string.charAt(m_end_token) == '+') {</span>
+<span class="pc bpc" id="L590" title="1 of 2 branches missed.">			if (++m_end_token &gt;= m_wkt_string.length())</span>
+<span class="nc" id="L591">				throw new IllegalArgumentException();</span>
+		}
+<span class="fc" id="L593">	}</span>
+
+	private void signedNumericLiteral_() {
+<span class="fc" id="L596">		skipWhiteSpace_();</span>
+<span class="fc" id="L597">		m_start_token = m_end_token;</span>
+
+<span class="pc bpc" id="L599" title="1 of 2 branches missed.">		if (nan_())</span>
+<span class="nc" id="L600">			return;</span>
+
+<span class="fc" id="L602">		sign_(); // Optional</span>
+<span class="fc" id="L603">		unsignedNumericLiteral_();</span>
+<span class="fc" id="L604">	}</span>
+
+	private void unsignedNumericLiteral_() {
+<span class="fc" id="L607">		exactNumericLiteral_();</span>
+<span class="fc" id="L608">		exp_(); // Optional</span>
+<span class="fc" id="L609">	}</span>
+
+	private void exactNumericLiteral_() {
+<span class="fc bfc" id="L612" title="All 2 branches covered.">		if (Character.isDigit(m_wkt_string.charAt(m_end_token))) {</span>
+<span class="fc" id="L613">			digits_();</span>
+
+			// Optional
+<span class="fc bfc" id="L616" title="All 2 branches covered.">			if (m_wkt_string.charAt(m_end_token) == '.') {</span>
+<span class="pc bpc" id="L617" title="1 of 2 branches missed.">				if (++m_end_token &gt;= m_wkt_string.length())</span>
+<span class="nc" id="L618">					throw new IllegalArgumentException();</span>
+
+				// Optional
+<span class="fc bfc" id="L621" title="All 2 branches covered.">				if (Character.isDigit(m_wkt_string.charAt(m_end_token)))</span>
+<span class="fc" id="L622">					digits_();</span>
+			}
+<span class="pc bpc" id="L624" title="1 of 2 branches missed.">		} else if (m_wkt_string.charAt(m_end_token) == '.') {</span>
+<span class="pc bpc" id="L625" title="1 of 2 branches missed.">			if (++m_end_token &gt;= m_wkt_string.length())</span>
+<span class="nc" id="L626">				throw new IllegalArgumentException();</span>
+
+<span class="pc bpc" id="L628" title="1 of 2 branches missed.">			if (!Character.isDigit(m_wkt_string.charAt(m_end_token)))</span>
+<span class="nc" id="L629">				throw new IllegalArgumentException();</span>
+
+<span class="fc" id="L631">			digits_();</span>
+		} else {
+<span class="nc" id="L633">			throw new IllegalArgumentException();</span>
+		}
+<span class="fc" id="L635">	}</span>
+
+	private void digits_() {
+		do {
+<span class="pc bpc" id="L639" title="1 of 2 branches missed.">			if (++m_end_token &gt;= m_wkt_string.length())</span>
+<span class="nc" id="L640">				throw new IllegalArgumentException();</span>
+
+<span class="fc bfc" id="L642" title="All 2 branches covered.">		} while (Character.isDigit(m_wkt_string.charAt(m_end_token)));</span>
+<span class="fc" id="L643">	}</span>
+
+	private void exp_() {
+		// This is an optional state
+<span class="fc bfc" id="L647" title="All 2 branches covered.">		if (m_wkt_string.charAt(m_end_token) == 'e'</span>
+<span class="fc bfc" id="L648" title="All 2 branches covered.">				|| m_wkt_string.charAt(m_end_token) == 'E') {</span>
+<span class="pc bpc" id="L649" title="1 of 2 branches missed.">			if (++m_end_token &gt;= m_wkt_string.length())</span>
+<span class="nc" id="L650">				throw new IllegalArgumentException();</span>
+
+<span class="fc" id="L652">			sign_(); // optional</span>
+
+<span class="pc bpc" id="L654" title="1 of 2 branches missed.">			if (!Character.isDigit(m_wkt_string.charAt(m_end_token)))</span>
+<span class="nc" id="L655">				throw new IllegalArgumentException();</span>
+
+<span class="fc" id="L657">			digits_();</span>
+		}
+<span class="fc" id="L659">	}</span>
+
+	private void skipWhiteSpace_() {
+<span class="pc bpc" id="L662" title="1 of 2 branches missed.">		if (m_end_token &gt;= m_wkt_string.length())</span>
+<span class="nc" id="L663">			throw new IllegalArgumentException();</span>
+
+<span class="fc bfc" id="L665" title="All 2 branches covered.">		while (Character.isWhitespace(m_wkt_string.charAt(m_end_token))) {</span>
+<span class="pc bpc" id="L666" title="1 of 2 branches missed.">			if (++m_end_token &gt;= m_wkt_string.length())</span>
+<span class="nc" id="L667">				throw new IllegalArgumentException();</span>
+		}
+<span class="fc" id="L669">	}</span>
+
+	private boolean empty_() {
+<span class="fc bfc" id="L672" title="All 2 branches covered.">		if (m_wkt_string.regionMatches(true, m_start_token, &quot;empty&quot;, 0, 5)) {</span>
+<span class="fc" id="L673">			m_end_token += 5;</span>
+<span class="fc" id="L674">			m_current_token_type = WktToken.empty;</span>
+<span class="fc" id="L675">			return true;</span>
+		}
+
+<span class="fc" id="L678">		return false;</span>
+	}
+
+	private boolean comma_() {
+<span class="fc bfc" id="L682" title="All 2 branches covered.">		if (m_wkt_string.charAt(m_end_token) == ',') {</span>
+<span class="fc" id="L683">			m_end_token++;</span>
+<span class="fc" id="L684">			return true;</span>
+		}
+
+<span class="fc" id="L687">		return false;</span>
+	}
+
+	private boolean leftParen_() {
+<span class="fc bfc" id="L691" title="All 2 branches covered.">		if (m_wkt_string.charAt(m_end_token) == '(') {</span>
+<span class="fc" id="L692">			m_end_token++;</span>
+<span class="fc" id="L693">			m_current_token_type = WktToken.left_paren;</span>
+<span class="fc" id="L694">			return true;</span>
+		}
+
+<span class="fc" id="L697">		return false;</span>
+	}
+
+	private boolean rightParen_() {
+<span class="pc bpc" id="L701" title="1 of 2 branches missed.">		if (m_wkt_string.charAt(m_end_token) == ')') {</span>
+<span class="fc" id="L702">			m_end_token++;</span>
+<span class="fc" id="L703">			m_current_token_type = WktToken.right_paren;</span>
+<span class="fc" id="L704">			return true;</span>
+		}
+
+<span class="nc" id="L707">		return false;</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

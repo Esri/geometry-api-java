@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Envelope1D.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Envelope1D.java</span></div><h1>Envelope1D.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+
+package com.esri.core.geometry;
+
+import java.io.Serializable;
+
+/**
+ * A 1-dimensional interval.
+ */
+public final class Envelope1D implements Serializable {
+	private static final long serialVersionUID = 1L;
+
+	public double vmin;
+
+	public double vmax;
+
+<span class="fc" id="L40">	public Envelope1D() {</span>
+
+<span class="fc" id="L42">	}</span>
+
+<span class="fc" id="L44">	public Envelope1D(double _vmin, double _vmax) {</span>
+<span class="fc" id="L45">		setCoords(_vmin, _vmax);</span>
+<span class="fc" id="L46">	}</span>
+
+<span class="nc" id="L48">	public Envelope1D(Envelope1D other) {</span>
+<span class="nc" id="L49">		setCoords(other);</span>
+<span class="nc" id="L50">	}</span>
+	
+	public void setCoords(double _vmin, double _vmax) {
+<span class="fc" id="L53">		vmin = _vmin;</span>
+<span class="fc" id="L54">		vmax = _vmax;</span>
+<span class="fc" id="L55">		normalize();</span>
+<span class="fc" id="L56">	}</span>
+
+	public void setCoords(Envelope1D other) {
+<span class="nc" id="L59">		setCoords(other.vmin, other.vmax);</span>
+<span class="nc" id="L60">	}</span>
+	
+	public void normalize() {
+<span class="fc bfc" id="L63" title="All 2 branches covered.">		if (NumberUtils.isNaN(vmin))</span>
+<span class="fc" id="L64">			return;</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">		if (vmin &gt; vmax) {</span>
+<span class="fc" id="L66">			double v = vmin;</span>
+<span class="fc" id="L67">			vmin = vmax;</span>
+<span class="fc" id="L68">			vmax = v;</span>
+		}
+<span class="pc bpc" id="L70" title="1 of 2 branches missed.">		if (NumberUtils.isNaN(vmax))// vmax can be NAN</span>
+		{
+<span class="nc" id="L72">			setEmpty();</span>
+		}
+<span class="fc" id="L74">	}</span>
+
+	public void setEmpty() {
+<span class="fc" id="L77">		vmin = NumberUtils.NaN();</span>
+<span class="fc" id="L78">		vmax = NumberUtils.NaN();</span>
+<span class="fc" id="L79">	}</span>
+
+	public boolean isEmpty() {
+<span class="pc bpc" id="L82" title="1 of 4 branches missed.">		return NumberUtils.isNaN(vmin) || NumberUtils.isNaN(vmax);</span>
+	}
+
+	public void setInfinite() {
+<span class="nc" id="L86">		vmin = NumberUtils.negativeInf();</span>
+<span class="nc" id="L87">		vmax = NumberUtils.positiveInf();</span>
+<span class="nc" id="L88">	}</span>
+
+	public void merge(double v) {
+<span class="fc bfc" id="L91" title="All 2 branches covered.">		if (isEmpty()) {</span>
+<span class="fc" id="L92">			vmin = v;</span>
+<span class="fc" id="L93">			vmax = v;</span>
+<span class="fc" id="L94">			return;</span>
+		}
+
+		// no need to check for NaN, because all comparisons with NaN are false.
+<span class="fc" id="L98">		mergeNE(v);</span>
+<span class="fc" id="L99">	}</span>
+
+	public void merge(Envelope1D other) {
+<span class="nc bnc" id="L102" title="All 2 branches missed.">		if (other.isEmpty())</span>
+<span class="nc" id="L103">			return;</span>
+
+<span class="nc bnc" id="L105" title="All 2 branches missed.">		if (isEmpty()) {</span>
+<span class="nc" id="L106">			vmin = other.vmin;</span>
+<span class="nc" id="L107">			vmax = other.vmax;</span>
+<span class="nc" id="L108">			return;</span>
+		}
+
+<span class="nc bnc" id="L111" title="All 2 branches missed.">		if (vmin &gt; other.vmin)</span>
+<span class="nc" id="L112">			vmin = other.vmin;</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">		if (vmax &lt; other.vmax)</span>
+<span class="nc" id="L114">			vmax = other.vmax;</span>
+
+<span class="nc bnc" id="L116" title="All 2 branches missed.">		if (vmin &gt; vmax)</span>
+<span class="nc" id="L117">			setEmpty();</span>
+<span class="nc" id="L118">	}</span>
+
+	public void mergeNE(double v) {
+		// Note, if v is NaN, vmin and vmax are unchanged
+<span class="fc bfc" id="L122" title="All 2 branches covered.">		if (v &lt; vmin)</span>
+<span class="fc" id="L123">			vmin = v;</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">		else if (v &gt; vmax)</span>
+<span class="fc" id="L125">			vmax = v;</span>
+<span class="fc" id="L126">	}</span>
+
+	public boolean contains(double v) {
+		// If vmin is NaN, return false. No need to check for isEmpty.
+<span class="pc bpc" id="L130" title="2 of 4 branches missed.">		return v &gt;= vmin &amp;&amp; v &lt;= vmax;</span>
+	}
+
+	/**
+	 * Returns True if the envelope contains the other envelope (boundary
+	 * inclusive). Note: Will return false if either envelope is empty.
+	 * @param other The other envelope.
+	 * @return Return true if this contains the other.
+	 */
+	public boolean contains(Envelope1D other)
+	{
+<span class="nc bnc" id="L141" title="All 4 branches missed.">		return other.vmin &gt;= vmin &amp;&amp; other.vmax &lt;= vmax;</span>
+	}
+
+	public void intersect(Envelope1D other) {
+<span class="nc bnc" id="L145" title="All 4 branches missed.">		if (isEmpty() || other.isEmpty()) {</span>
+<span class="nc" id="L146">			setEmpty();</span>
+<span class="nc" id="L147">			return;</span>
+		}
+
+<span class="nc bnc" id="L150" title="All 2 branches missed.">		if (vmin &lt; other.vmin)</span>
+<span class="nc" id="L151">			vmin = other.vmin;</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">		if (vmax &gt; other.vmax)</span>
+<span class="nc" id="L153">			vmax = other.vmax;</span>
+
+<span class="nc bnc" id="L155" title="All 2 branches missed.">		if (vmin &gt; vmax)</span>
+<span class="nc" id="L156">			setEmpty();</span>
+<span class="nc" id="L157">	}</span>
+
+	public void inflate(double delta) {
+<span class="nc bnc" id="L160" title="All 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L161">			return;</span>
+
+<span class="nc" id="L163">		vmin -= delta;</span>
+<span class="nc" id="L164">		vmax += delta;</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">		if (vmax &lt; vmin)</span>
+<span class="nc" id="L166">			setEmpty();</span>
+<span class="nc" id="L167">	}</span>
+
+	double _calculateToleranceFromEnvelope() {
+<span class="nc bnc" id="L170" title="All 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L171">			return NumberUtils.doubleEps() * 100.0; // GEOMTERYX_EPSFACTOR</span>
+													// 100.0;
+<span class="nc" id="L173">		double r = Math.abs(vmin) + Math.abs(vmax) + 1;</span>
+<span class="nc" id="L174">		return r * NumberUtils.doubleEps() * 100.0; // GEOMTERYX_EPSFACTOR</span>
+													// 100.0;
+	}
+
+	void normalizeNoNaN_() {
+<span class="fc bfc" id="L179" title="All 2 branches covered.">		if (vmin &gt; vmax) {</span>
+<span class="fc" id="L180">			double v = vmin;</span>
+<span class="fc" id="L181">			vmin = vmax;</span>
+<span class="fc" id="L182">			vmax = v;</span>
+		}
+<span class="fc" id="L184">	}</span>
+
+	void setCoordsNoNaN_(double vmin_, double vmax_) {
+<span class="fc" id="L187">		vmin = vmin_;</span>
+<span class="fc" id="L188">		vmax = vmax_;</span>
+<span class="fc" id="L189">		normalizeNoNaN_();</span>
+<span class="fc" id="L190">	}</span>
+
+	public double snapClip(double v) /* const */
+	{
+<span class="nc" id="L194">		return NumberUtils.snap(v, vmin, vmax);</span>
+	}
+
+	public double getWidth() /* const */
+	{
+<span class="nc" id="L199">		return vmax - vmin;</span>
+	}
+
+	public double getCenter() /* const */
+	{
+<span class="nc" id="L204">		return 0.5 * (vmin + vmax);</span>
+	}
+	
+	@Override
+    public boolean equals(Object _other)
+    {
+<span class="pc bpc" id="L210" title="1 of 2 branches missed.">		if (_other == this)</span>
+<span class="nc" id="L211">			return true;</span>
+
+<span class="pc bpc" id="L213" title="1 of 2 branches missed.">		if (!(_other instanceof Envelope1D))</span>
+<span class="nc" id="L214">			return false;</span>
+
+<span class="fc" id="L216">		Envelope1D other = (Envelope1D) _other;</span>
+<span class="pc bpc" id="L217" title="1 of 4 branches missed.">		if (isEmpty() &amp;&amp; other.isEmpty())</span>
+<span class="fc" id="L218">			return true;</span>
+
+<span class="pc bpc" id="L220" title="1 of 4 branches missed.">		if (vmin != other.vmin || vmax != other.vmax)</span>
+<span class="fc" id="L221">			return false;</span>
+
+<span class="fc" id="L223">		return true;</span>
+    }
+	
+	@Override
+	public int hashCode() {
+<span class="nc bnc" id="L228" title="All 2 branches missed.">		if (isEmpty()) {</span>
+<span class="nc" id="L229">			return NumberUtils.hash(NumberUtils.TheNaN);</span>
+		}
+		
+<span class="nc" id="L232">		int hash = NumberUtils.hash(vmin);</span>
+<span class="nc" id="L233">		hash = NumberUtils.hash(hash, vmax);</span>
+<span class="nc" id="L234">		return hash;</span>
+	}
+	
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

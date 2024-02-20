@@ -1,0 +1,1273 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Clipper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Clipper.java</span></div><h1>Clipper.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+<span class="fc" id="L26">class Clipper {</span>
+	Envelope2D m_extent;
+	EditShape m_shape;
+	int m_geometry;
+	int m_vertices_on_extent_index;
+	AttributeStreamOfInt32 m_vertices_on_extent;
+
+	int checkSegmentIntersection_(Envelope2D seg_env, int side,
+			double clip_value) {
+<span class="pc bpc" id="L35" title="1 of 5 branches missed.">		switch (side) {</span>
+		case 0:
+<span class="fc bfc" id="L37" title="All 4 branches covered.">			if (seg_env.xmin &lt; clip_value &amp;&amp; seg_env.xmax &lt;= clip_value) {</span>
+<span class="fc" id="L38">				return 0; // outside (or on the border)</span>
+<span class="fc bfc" id="L39" title="All 2 branches covered.">			} else if (seg_env.xmin &gt;= clip_value) {</span>
+<span class="fc" id="L40">				return 1;// inside</span>
+			} else
+<span class="fc" id="L42">				return -1; // intersects</span>
+		case 1:
+<span class="fc bfc" id="L44" title="All 4 branches covered.">			if (seg_env.ymin &lt; clip_value &amp;&amp; seg_env.ymax &lt;= clip_value) {</span>
+<span class="fc" id="L45">				return 0;</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">			} else if (seg_env.ymin &gt;= clip_value) {</span>
+<span class="fc" id="L47">				return 1;</span>
+			} else
+<span class="fc" id="L49">				return -1;</span>
+		case 2:
+<span class="fc bfc" id="L51" title="All 4 branches covered.">			if (seg_env.xmin &gt;= clip_value &amp;&amp; seg_env.xmax &gt; clip_value) {</span>
+<span class="fc" id="L52">				return 0;</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">			} else if (seg_env.xmax &lt;= clip_value) {</span>
+<span class="fc" id="L54">				return 1;</span>
+			} else
+<span class="fc" id="L56">				return -1;</span>
+		case 3:
+<span class="pc bpc" id="L58" title="1 of 4 branches missed.">			if (seg_env.ymin &gt;= clip_value &amp;&amp; seg_env.ymax &gt; clip_value) {</span>
+<span class="fc" id="L59">				return 0;</span>
+<span class="fc bfc" id="L60" title="All 2 branches covered.">			} else if (seg_env.ymax &lt;= clip_value) {</span>
+<span class="fc" id="L61">				return 1;</span>
+			} else
+<span class="fc" id="L63">				return -1;</span>
+		}
+<span class="nc" id="L65">		assert (false);// cannot be here</span>
+<span class="nc" id="L66">		return 0;</span>
+	}
+
+	MultiPath clipMultiPath2_(MultiPath multi_path_in, double tolerance,
+			double densify_dist) {
+<span class="fc bfc" id="L71" title="All 2 branches covered.">		boolean b_is_polygon = multi_path_in.getType() == Geometry.Type.Polygon;</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">		if (b_is_polygon)</span>
+<span class="fc" id="L73">			return clipPolygon2_((Polygon) multi_path_in, tolerance,</span>
+					densify_dist);
+		else
+<span class="fc" id="L76">			return clipPolyline_((Polyline) multi_path_in, tolerance);</span>
+	}
+
+	MultiPath clipPolygon2_(Polygon polygon_in, double tolerance,
+			double densify_dist) {
+		// If extent is degenerate, return 0.
+<span class="pc bpc" id="L82" title="2 of 4 branches missed.">		if (m_extent.getWidth() == 0 || m_extent.getHeight() == 0)</span>
+<span class="nc" id="L83">			return (MultiPath) polygon_in.createInstance();</span>
+
+<span class="fc" id="L85">		Envelope2D orig_env2D = new Envelope2D();</span>
+<span class="fc" id="L86">		polygon_in.queryLooseEnvelope(orig_env2D);</span>
+
+		// m_shape = GCNEW Edit_shape();
+<span class="fc" id="L89">		m_geometry = m_shape.addGeometry(polygon_in);</span>
+
+		// Forward decl for java port
+<span class="fc" id="L92">		Envelope2D seg_env = new Envelope2D();</span>
+<span class="fc" id="L93">		Envelope2D sub_seg_env = new Envelope2D();</span>
+<span class="fc" id="L94">		Point2D pt_1 = new Point2D();</span>
+<span class="fc" id="L95">		Point2D pt_2 = new Point2D();</span>
+<span class="fc" id="L96">		double[] result_ordinates = new double[9];</span>
+<span class="fc" id="L97">		double[] parameters = new double[9];</span>
+<span class="fc" id="L98">		SegmentBuffer sub_segment_buffer = new SegmentBuffer();</span>
+<span class="fc" id="L99">		Line line = new Line();</span>
+<span class="fc" id="L100">		AttributeStreamOfInt32 delete_candidates = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L101">		delete_candidates.reserve(Math.min(100, polygon_in.getPointCount()));</span>
+		// clip the polygon successively by each plane
+<span class="fc" id="L103">		boolean b_all_outside = false;</span>
+<span class="pc bpc" id="L104" title="1 of 4 branches missed.">		for (int iclip_plane = 0; !b_all_outside &amp;&amp; iclip_plane &lt; 4; iclip_plane++) {</span>
+<span class="fc" id="L105">			boolean b_intersects_plane = false;</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">			boolean b_axis_x = (iclip_plane &amp; 1) != 0;</span>
+<span class="fc" id="L107">			double clip_value = 0;</span>
+<span class="pc bpc" id="L108" title="1 of 5 branches missed.">			switch (iclip_plane) {</span>
+			case 0:
+<span class="fc" id="L110">				clip_value = m_extent.xmin;</span>
+<span class="pc bpc" id="L111" title="1 of 4 branches missed.">				b_intersects_plane = orig_env2D.xmin &lt;= clip_value</span>
+						&amp;&amp; orig_env2D.xmax &gt;= clip_value;
+<span class="pc bpc" id="L113" title="1 of 4 branches missed.">				assert (b_intersects_plane || clip_value &lt; orig_env2D.xmin);</span>
+				break;
+			case 1:
+<span class="fc" id="L116">				clip_value = m_extent.ymin;</span>
+<span class="pc bpc" id="L117" title="1 of 4 branches missed.">				b_intersects_plane = orig_env2D.ymin &lt;= clip_value</span>
+						&amp;&amp; orig_env2D.ymax &gt;= clip_value;
+<span class="pc bpc" id="L119" title="1 of 4 branches missed.">				assert (b_intersects_plane || clip_value &lt; orig_env2D.ymin);</span>
+				break;
+			case 2:
+<span class="fc" id="L122">				clip_value = m_extent.xmax;</span>
+<span class="pc bpc" id="L123" title="1 of 4 branches missed.">				b_intersects_plane = orig_env2D.xmin &lt;= clip_value</span>
+						&amp;&amp; orig_env2D.xmax &gt;= clip_value;
+<span class="pc bpc" id="L125" title="1 of 4 branches missed.">				assert (b_intersects_plane || clip_value &gt; orig_env2D.xmax);</span>
+				break;
+			case 3:
+<span class="fc" id="L128">				clip_value = m_extent.ymax;</span>
+<span class="pc bpc" id="L129" title="1 of 4 branches missed.">				b_intersects_plane = orig_env2D.ymin &lt;= clip_value</span>
+						&amp;&amp; orig_env2D.ymax &gt;= clip_value;
+<span class="pc bpc" id="L131" title="1 of 4 branches missed.">				assert (b_intersects_plane || clip_value &gt; orig_env2D.ymax);</span>
+				break;
+			}
+
+<span class="fc bfc" id="L135" title="All 2 branches covered.">			if (!b_intersects_plane)</span>
+<span class="fc" id="L136">				continue;// Optimize for common case when only few sides of the</span>
+							// clipper envelope intersect the geometry.
+
+<span class="fc" id="L139">			b_all_outside = true;</span>
+<span class="fc bfc" id="L140" title="All 2 branches covered.">			for (int path = m_shape.getFirstPath(m_geometry); path != -1;) {</span>
+<span class="fc" id="L141">				int inside = -1;</span>
+<span class="fc" id="L142">				int firstinside = -1;</span>
+<span class="fc" id="L143">				int first = m_shape.getFirstVertex(path);</span>
+<span class="fc" id="L144">				int vertex = first;</span>
+				do {
+<span class="fc" id="L146">					Segment segment = m_shape.getSegment(vertex);</span>
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">					if (segment == null) {</span>
+<span class="fc" id="L148">						segment = line;</span>
+<span class="fc" id="L149">						m_shape.getXY(vertex, pt_1);</span>
+<span class="fc" id="L150">						segment.setStartXY(pt_1);</span>
+<span class="fc" id="L151">						m_shape.getXY(m_shape.getNextVertex(vertex), pt_2);</span>
+<span class="fc" id="L152">						segment.setEndXY(pt_2);</span>
+					}
+<span class="fc" id="L154">					segment.queryEnvelope2D(seg_env);</span>
+<span class="fc" id="L155">					int seg_plane_intersection_status = checkSegmentIntersection_(</span>
+							seg_env, iclip_plane, clip_value);
+<span class="fc" id="L157">					int split_count = 0;</span>
+<span class="fc" id="L158">					int next_vertex = -1;</span>
+
+<span class="fc bfc" id="L160" title="All 2 branches covered.">					if (seg_plane_intersection_status == -1) // intersects plane</span>
+					{
+<span class="fc" id="L162">						int count = segment.intersectionWithAxis2D(b_axis_x,</span>
+								clip_value, result_ordinates, parameters);
+<span class="pc bpc" id="L164" title="1 of 2 branches missed.">						if (count &gt; 0) {</span>
+<span class="fc" id="L165">							split_count = m_shape.splitSegment(vertex,</span>
+									parameters, count);
+						} else {
+<span class="nc bnc" id="L168" title="All 2 branches missed.">							assert (count == 0);// might be -1 when the segment</span>
+												// is almost parallel to the
+												// clip lane. Just to see this
+												// happens.
+<span class="nc" id="L172">							split_count = 0;</span>
+						}
+
+						// add +1 to ensure we check the original segment if no
+						// split produced due to degeneracy.
+						// Also +1 is necessary to check the last segment of the
+						// split
+<span class="fc" id="L179">						split_count += 1;// split_count will never be 0 after</span>
+											// this if-block.
+
+<span class="fc" id="L182">						int split_vert = vertex;</span>
+<span class="fc" id="L183">						int next_split_vert = m_shape.getNextVertex(split_vert);</span>
+<span class="fc bfc" id="L184" title="All 2 branches covered.">						for (int i = 0; i &lt; split_count; i++) {</span>
+<span class="fc" id="L185">							m_shape.getXY(split_vert, pt_1);</span>
+<span class="fc" id="L186">							m_shape.getXY(next_split_vert, pt_2);</span>
+
+<span class="fc" id="L188">							Segment sub_seg = m_shape.getSegment(split_vert);</span>
+<span class="pc bpc" id="L189" title="1 of 2 branches missed.">							if (sub_seg == null) {</span>
+<span class="fc" id="L190">								sub_seg = line;</span>
+<span class="fc" id="L191">								sub_seg.setStartXY(pt_1);</span>
+<span class="fc" id="L192">								sub_seg.setEndXY(pt_2);</span>
+							}
+
+<span class="fc" id="L195">							sub_seg.queryEnvelope2D(sub_seg_env);</span>
+<span class="fc" id="L196">							int sub_segment_plane_intersection_status = checkSegmentIntersection_(</span>
+									sub_seg_env, iclip_plane, clip_value);
+<span class="fc bfc" id="L198" title="All 2 branches covered.">							if (sub_segment_plane_intersection_status == -1) {</span>
+								// subsegment is intertsecting the plane. We
+								// need to snap one of the endpoints to ensure
+								// no intersection.
+								// TODO: ensure this works for curves. For
+								// curves we have to adjust the curve shape.
+<span class="fc bfc" id="L204" title="All 2 branches covered.">								if (!b_axis_x) {</span>
+<span class="pc bpc" id="L205" title="3 of 8 branches missed.">									assert ((pt_1.x &lt; clip_value &amp;&amp; pt_2.x &gt; clip_value) || (pt_1.x &gt; clip_value &amp;&amp; pt_2.x &lt; clip_value));</span>
+<span class="fc" id="L206">									double d_1 = Math.abs(pt_1.x - clip_value);</span>
+<span class="fc" id="L207">									double d_2 = Math.abs(pt_2.x - clip_value);</span>
+<span class="fc bfc" id="L208" title="All 2 branches covered.">									if (d_1 &lt; d_2) {</span>
+<span class="fc" id="L209">										pt_1.x = clip_value;</span>
+<span class="fc" id="L210">										m_shape.setXY(split_vert, pt_1);</span>
+									} else {
+<span class="fc" id="L212">										pt_2.x = clip_value;</span>
+<span class="fc" id="L213">										m_shape.setXY(next_split_vert, pt_2);</span>
+									}
+<span class="fc" id="L215">								} else {</span>
+<span class="pc bpc" id="L216" title="3 of 8 branches missed.">									assert ((pt_1.y &lt; clip_value &amp;&amp; pt_2.y &gt; clip_value) || (pt_1.y &gt; clip_value &amp;&amp; pt_2.y &lt; clip_value));</span>
+<span class="fc" id="L217">									double d_1 = Math.abs(pt_1.y - clip_value);</span>
+<span class="fc" id="L218">									double d_2 = Math.abs(pt_2.y - clip_value);</span>
+<span class="fc bfc" id="L219" title="All 2 branches covered.">									if (d_1 &lt; d_2) {</span>
+<span class="fc" id="L220">										pt_1.y = clip_value;</span>
+<span class="fc" id="L221">										m_shape.setXY(split_vert, pt_1);</span>
+									} else {
+<span class="fc" id="L223">										pt_2.y = clip_value;</span>
+<span class="fc" id="L224">										m_shape.setXY(next_split_vert, pt_2);</span>
+									}
+								}
+
+								// after the endpoint has been adjusted, recheck
+								// the segment.
+<span class="fc" id="L230">								sub_seg = m_shape.getSegment(split_vert);</span>
+<span class="pc bpc" id="L231" title="1 of 2 branches missed.">								if (sub_seg == null) {</span>
+<span class="fc" id="L232">									sub_seg = line;</span>
+<span class="fc" id="L233">									sub_seg.setStartXY(pt_1);</span>
+<span class="fc" id="L234">									sub_seg.setEndXY(pt_2);</span>
+								}
+<span class="fc" id="L236">								sub_seg.queryEnvelope2D(sub_seg_env);</span>
+<span class="fc" id="L237">								sub_segment_plane_intersection_status = checkSegmentIntersection_(</span>
+										sub_seg_env, iclip_plane, clip_value);
+							}
+
+<span class="pc bpc" id="L241" title="1 of 2 branches missed.">							assert (sub_segment_plane_intersection_status != -1);</span>
+
+<span class="fc" id="L243">							int old_inside = inside;</span>
+<span class="fc" id="L244">							inside = sub_segment_plane_intersection_status;</span>
+<span class="fc bfc" id="L245" title="All 2 branches covered.">							if (firstinside == -1)</span>
+<span class="fc" id="L246">								firstinside = inside;</span>
+
+							// add connections along the clipping plane line
+<span class="fc bfc" id="L249" title="All 4 branches covered.">							if (old_inside == 0 &amp;&amp; inside == 1) {</span>
+								// going from outside to inside. Do nothing
+<span class="fc bfc" id="L251" title="All 4 branches covered.">							} else if (old_inside == 1 &amp;&amp; inside == 0) {</span>
+								// going from inside to outside
+<span class="pc bpc" id="L253" title="1 of 4 branches missed.">							} else if (old_inside == 0 &amp;&amp; inside == 0) {</span>
+								// staying outside
+								// remember the start point of the outside
+								// segment to be deleted.
+<span class="fc" id="L257">								delete_candidates.add(split_vert); // is a</span>
+																	// candidate
+																	// to be
+																	// deleted
+							}
+
+<span class="fc bfc" id="L263" title="All 2 branches covered.">							if (inside == 1) {</span>
+<span class="fc" id="L264">								b_all_outside = false;</span>
+							}
+
+<span class="fc" id="L267">							split_vert = next_split_vert;</span>
+<span class="fc" id="L268">							next_vertex = split_vert;</span>
+<span class="fc" id="L269">							next_split_vert = m_shape</span>
+<span class="fc" id="L270">									.getNextVertex(next_split_vert);</span>
+						}
+					}
+
+<span class="fc bfc" id="L274" title="All 2 branches covered.">					if (split_count == 0) {</span>
+<span class="pc bpc" id="L275" title="1 of 2 branches missed.">						assert (seg_plane_intersection_status != -1);// cannot</span>
+																		// happen.
+<span class="fc" id="L277">						int old_inside = inside;</span>
+<span class="fc" id="L278">						inside = seg_plane_intersection_status;</span>
+<span class="fc bfc" id="L279" title="All 2 branches covered.">						if (firstinside == -1)</span>
+<span class="fc" id="L280">							firstinside = inside;</span>
+
+<span class="pc bpc" id="L282" title="1 of 4 branches missed.">						if (old_inside == 0 &amp;&amp; inside == 1) {</span>
+							// going from outside to inside.
+<span class="pc bpc" id="L284" title="1 of 4 branches missed.">						} else if (old_inside == 1 &amp;&amp; inside == 0) {</span>
+							// going from inside to outside
+<span class="pc bpc" id="L286" title="1 of 4 branches missed.">						} else if (old_inside == 0 &amp;&amp; inside == 0) {</span>
+							// remember the start point of the outside segment
+							// to be deleted.
+<span class="fc" id="L289">							delete_candidates.add(vertex); // is a candidate to</span>
+															// be deleted
+						}
+
+<span class="fc bfc" id="L293" title="All 2 branches covered.">						if (inside == 1) {</span>
+<span class="fc" id="L294">							b_all_outside = false;</span>
+						}
+
+<span class="fc" id="L297">						next_vertex = m_shape.getNextVertex(vertex);</span>
+					}
+<span class="fc" id="L299">					vertex = next_vertex;</span>
+<span class="fc bfc" id="L300" title="All 2 branches covered.">				} while (vertex != first);</span>
+
+<span class="fc bfc" id="L302" title="All 4 branches covered.">				if (firstinside == 0 &amp;&amp; inside == 0) {// first vertex need to be</span>
+														// deleted.
+<span class="fc" id="L304">					delete_candidates.add(first); // is a candidate to be</span>
+													// deleted
+				}
+
+<span class="fc bfc" id="L308" title="All 2 branches covered.">				for (int i = 0, n = delete_candidates.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L309">					int delete_vert = delete_candidates.get(i);</span>
+<span class="fc" id="L310">					m_shape.removeVertex(delete_vert, false);</span>
+				}
+<span class="fc" id="L312">				delete_candidates.clear(false);</span>
+<span class="pc bpc" id="L313" title="1 of 2 branches missed.">				if (m_shape.getPathSize(path) &lt; 3) {</span>
+<span class="nc" id="L314">					path = m_shape.removePath(path);</span>
+				} else {
+<span class="fc" id="L316">					path = m_shape.getNextPath(path);</span>
+				}
+<span class="fc" id="L318">			}</span>
+		}
+
+<span class="pc bpc" id="L321" title="1 of 2 branches missed.">		if (b_all_outside)</span>
+<span class="nc" id="L322">			return (MultiPath) polygon_in.createInstance();</span>
+
+		// After the clipping, we could have produced unwanted segment overlaps
+		// along the clipping envelope boundary.
+		// Detect and resolve that case if possible.
+<span class="fc" id="L327">		resolveBoundaryOverlaps_();</span>
+<span class="pc bpc" id="L328" title="1 of 2 branches missed.">		if (densify_dist &gt; 0)</span>
+<span class="nc" id="L329">			densifyAlongClipExtent_(densify_dist);</span>
+
+<span class="fc" id="L331">		return (MultiPath) m_shape.getGeometry(m_geometry);</span>
+	}
+
+	MultiPath clipPolyline_(Polyline polyline_in, double tolerance) {
+		// Forward decl for java port
+<span class="fc" id="L336">		Envelope2D seg_env = new Envelope2D();</span>
+<span class="fc" id="L337">		Envelope2D sub_seg_env = new Envelope2D();</span>
+<span class="fc" id="L338">		double[] result_ordinates = new double[9];</span>
+<span class="fc" id="L339">		double[] parameters = new double[9];</span>
+<span class="fc" id="L340">		SegmentBuffer sub_segment_buffer = new SegmentBuffer();</span>
+<span class="fc" id="L341">		MultiPath result_poly = polyline_in;</span>
+<span class="fc" id="L342">		Envelope2D orig_env2D = new Envelope2D();</span>
+<span class="fc" id="L343">		polyline_in.queryLooseEnvelope(orig_env2D);</span>
+<span class="fc bfc" id="L344" title="All 2 branches covered.">		for (int iclip_plane = 0; iclip_plane &lt; 4; iclip_plane++) {</span>
+<span class="fc" id="L345">			boolean b_intersects_plane = false;</span>
+<span class="fc bfc" id="L346" title="All 2 branches covered.">			boolean b_axis_x = (iclip_plane &amp; 1) != 0;</span>
+<span class="fc" id="L347">			double clip_value = 0;</span>
+<span class="pc bpc" id="L348" title="1 of 5 branches missed.">			switch (iclip_plane) {</span>
+			case 0:
+<span class="fc" id="L350">				clip_value = m_extent.xmin;</span>
+<span class="pc bpc" id="L351" title="1 of 4 branches missed.">				b_intersects_plane = orig_env2D.xmin &lt;= clip_value</span>
+						&amp;&amp; orig_env2D.xmax &gt;= clip_value;
+<span class="pc bpc" id="L353" title="1 of 4 branches missed.">				assert (b_intersects_plane || clip_value &lt; orig_env2D.xmin);</span>
+				break;
+			case 1:
+<span class="fc" id="L356">				clip_value = m_extent.ymin;</span>
+<span class="pc bpc" id="L357" title="1 of 4 branches missed.">				b_intersects_plane = orig_env2D.ymin &lt;= clip_value</span>
+						&amp;&amp; orig_env2D.ymax &gt;= clip_value;
+<span class="pc bpc" id="L359" title="1 of 4 branches missed.">				assert (b_intersects_plane || clip_value &lt; orig_env2D.ymin);</span>
+				break;
+			case 2:
+<span class="fc" id="L362">				clip_value = m_extent.xmax;</span>
+<span class="pc bpc" id="L363" title="1 of 4 branches missed.">				b_intersects_plane = orig_env2D.xmin &lt;= clip_value</span>
+						&amp;&amp; orig_env2D.xmax &gt;= clip_value;
+<span class="pc bpc" id="L365" title="1 of 4 branches missed.">				assert (b_intersects_plane || clip_value &gt; orig_env2D.xmax);</span>
+				break;
+			case 3:
+<span class="fc" id="L368">				clip_value = m_extent.ymax;</span>
+<span class="pc bpc" id="L369" title="1 of 4 branches missed.">				b_intersects_plane = orig_env2D.ymin &lt;= clip_value</span>
+						&amp;&amp; orig_env2D.ymax &gt;= clip_value;
+<span class="pc bpc" id="L371" title="1 of 4 branches missed.">				assert (b_intersects_plane || clip_value &gt; orig_env2D.ymax);</span>
+				break;
+			}
+
+<span class="fc bfc" id="L375" title="All 2 branches covered.">			if (!b_intersects_plane)</span>
+<span class="fc" id="L376">				continue;// Optimize for common case when only few sides of the</span>
+							// clipper envelope intersect the geometry.
+
+<span class="fc" id="L379">			MultiPath src_poly = result_poly;</span>
+<span class="fc" id="L380">			result_poly = (MultiPath) polyline_in.createInstance();</span>
+
+<span class="fc" id="L382">			MultiPathImpl mp_impl_src = (MultiPathImpl) src_poly._getImpl();</span>
+<span class="fc" id="L383">			SegmentIteratorImpl seg_iter = mp_impl_src.querySegmentIterator();</span>
+<span class="fc" id="L384">			seg_iter.resetToFirstPath();</span>
+			Point2D pt_prev;
+<span class="fc" id="L386">			Point2D pt = new Point2D();</span>
+<span class="fc bfc" id="L387" title="All 2 branches covered.">			while (seg_iter.nextPath()) {</span>
+<span class="fc" id="L388">				int inside = -1;</span>
+<span class="fc" id="L389">				boolean b_start_new_path = true;</span>
+<span class="fc bfc" id="L390" title="All 2 branches covered.">				while (seg_iter.hasNextSegment()) {</span>
+<span class="fc" id="L391">					Segment segment = seg_iter.nextSegment();</span>
+<span class="fc" id="L392">					segment.queryEnvelope2D(seg_env);</span>
+<span class="fc" id="L393">					int seg_plane_intersection_status = checkSegmentIntersection_(</span>
+							seg_env, iclip_plane, clip_value);
+<span class="fc bfc" id="L395" title="All 2 branches covered.">					if (seg_plane_intersection_status == -1) // intersects plane</span>
+					{
+<span class="fc" id="L397">						int count = segment.intersectionWithAxis2D(b_axis_x,</span>
+								clip_value, result_ordinates, parameters);
+<span class="pc bpc" id="L399" title="1 of 2 branches missed.">						if (count &gt; 0) {</span>
+<span class="fc" id="L400">							double t0 = 0.0;</span>
+<span class="fc" id="L401">							pt_prev = segment.getStartXY();</span>
+<span class="fc bfc" id="L402" title="All 2 branches covered.">							for (int i = 0; i &lt;= count; i++) {</span>
+<span class="fc bfc" id="L403" title="All 2 branches covered.">								double t = i &lt; count ? parameters[i] : 1.0;</span>
+<span class="pc bpc" id="L404" title="1 of 2 branches missed.">								if (t0 == t)</span>
+<span class="nc" id="L405">									continue;</span>
+
+<span class="fc" id="L407">								segment.cut(t0, t, sub_segment_buffer);</span>
+<span class="fc" id="L408">								Segment sub_seg = sub_segment_buffer.get();</span>
+<span class="fc" id="L409">								sub_seg.setStartXY(pt_prev);</span>
+<span class="fc bfc" id="L410" title="All 2 branches covered.">								if (i &lt; count) {// snap to plane</span>
+<span class="fc bfc" id="L411" title="All 2 branches covered.">									if (b_axis_x) {</span>
+<span class="fc" id="L412">										pt.x = result_ordinates[i];</span>
+<span class="fc" id="L413">										pt.y = clip_value;</span>
+									} else {
+<span class="fc" id="L415">										pt.x = clip_value;</span>
+<span class="fc" id="L416">										pt.y = result_ordinates[i];</span>
+									}
+<span class="fc" id="L418">									sub_seg.setEndXY(pt);</span>
+								}
+
+<span class="fc" id="L421">								sub_seg.queryEnvelope2D(sub_seg_env);</span>
+<span class="fc" id="L422">								int sub_segment_plane_intersection_status = checkSegmentIntersection_(</span>
+										sub_seg_env, iclip_plane, clip_value);
+
+<span class="pc bpc" id="L425" title="1 of 2 branches missed.">								if (sub_segment_plane_intersection_status == -1) {</span>
+									// subsegment is intertsecting the plane. We
+									// need to snap one of the endpoints to
+									// ensure no intersection.
+									// TODO: ensure this works for curves. For
+									// curves we have to adjust the curve shape.
+<span class="nc" id="L431">									Point2D pt_1 = sub_seg.getStartXY();</span>
+<span class="nc" id="L432">									Point2D pt_2 = sub_seg.getEndXY();</span>
+<span class="nc bnc" id="L433" title="All 2 branches missed.">									if (!b_axis_x) {</span>
+<span class="nc bnc" id="L434" title="All 8 branches missed.">										assert ((pt_1.x &lt; clip_value &amp;&amp; pt_2.x &gt; clip_value) || (pt_1.x &gt; clip_value &amp;&amp; pt_2.x &lt; clip_value));</span>
+<span class="nc" id="L435">										double d_1 = Math.abs(pt_1.x</span>
+												- clip_value);
+<span class="nc" id="L437">										double d_2 = Math.abs(pt_2.x</span>
+												- clip_value);
+<span class="nc bnc" id="L439" title="All 2 branches missed.">										if (d_1 &lt; d_2) {</span>
+<span class="nc" id="L440">											pt_1.x = clip_value;</span>
+<span class="nc" id="L441">											sub_seg.setStartXY(pt_1);</span>
+										} else {
+<span class="nc" id="L443">											pt_2.x = clip_value;</span>
+<span class="nc" id="L444">											sub_seg.setEndXY(pt_2);</span>
+										}
+<span class="nc" id="L446">									} else {</span>
+<span class="nc bnc" id="L447" title="All 8 branches missed.">										assert ((pt_1.y &lt; clip_value &amp;&amp; pt_2.y &gt; clip_value) || (pt_1.y &gt; clip_value &amp;&amp; pt_2.y &lt; clip_value));</span>
+<span class="nc" id="L448">										double d_1 = Math.abs(pt_1.y</span>
+												- clip_value);
+<span class="nc" id="L450">										double d_2 = Math.abs(pt_2.y</span>
+												- clip_value);
+<span class="nc bnc" id="L452" title="All 2 branches missed.">										if (d_1 &lt; d_2) {</span>
+<span class="nc" id="L453">											pt_1.y = clip_value;</span>
+<span class="nc" id="L454">											sub_seg.setStartXY(pt_1);</span>
+										} else {
+<span class="nc" id="L456">											pt_2.y = clip_value;</span>
+<span class="nc" id="L457">											sub_seg.setEndXY(pt_2);</span>
+										}
+									}
+
+									// after the endpoint has been adjusted,
+									// recheck the segment.
+<span class="nc" id="L463">									sub_seg.queryEnvelope2D(sub_seg_env);</span>
+<span class="nc" id="L464">									sub_segment_plane_intersection_status = checkSegmentIntersection_(</span>
+											sub_seg_env, iclip_plane,
+											clip_value);
+								}
+
+<span class="pc bpc" id="L469" title="1 of 2 branches missed.">								assert (sub_segment_plane_intersection_status != -1);</span>
+
+<span class="fc" id="L471">								pt_prev = sub_seg.getEndXY();</span>
+<span class="fc" id="L472">								t0 = t;</span>
+
+<span class="fc" id="L474">								inside = sub_segment_plane_intersection_status;</span>
+<span class="fc bfc" id="L475" title="All 2 branches covered.">								if (inside == 1) {</span>
+<span class="fc" id="L476">									result_poly.addSegment(sub_seg,</span>
+											b_start_new_path);
+<span class="fc" id="L478">									b_start_new_path = false;</span>
+								} else
+<span class="fc" id="L480">									b_start_new_path = true;</span>
+							}
+						}
+<span class="fc" id="L483">					} else {</span>
+<span class="fc" id="L484">						inside = seg_plane_intersection_status;</span>
+<span class="fc bfc" id="L485" title="All 2 branches covered.">						if (inside == 1) {</span>
+<span class="fc" id="L486">							result_poly.addSegment(segment, b_start_new_path);</span>
+<span class="fc" id="L487">							b_start_new_path = false;</span>
+						} else
+<span class="fc" id="L489">							b_start_new_path = true;</span>
+					}
+<span class="fc" id="L491">				}</span>
+<span class="fc" id="L492">			}</span>
+		}
+
+<span class="fc" id="L495">		return result_poly;</span>
+	}
+
+	void resolveBoundaryOverlaps_() {
+<span class="fc" id="L499">		m_vertices_on_extent_index = -1;</span>
+<span class="fc" id="L500">		splitSegments_(false, m_extent.xmin);</span>
+<span class="fc" id="L501">		splitSegments_(false, m_extent.xmax);</span>
+<span class="fc" id="L502">		splitSegments_(true, m_extent.ymin);</span>
+<span class="fc" id="L503">		splitSegments_(true, m_extent.ymax);</span>
+
+<span class="fc" id="L505">		m_vertices_on_extent.resize(0);</span>
+<span class="fc" id="L506">		m_vertices_on_extent.reserve(100);</span>
+<span class="fc" id="L507">		m_vertices_on_extent_index = m_shape.createUserIndex();</span>
+
+<span class="fc" id="L509">		Point2D pt = new Point2D();</span>
+<span class="fc bfc" id="L510" title="All 2 branches covered.">		for (int path = m_shape.getFirstPath(m_geometry); path != -1; path = m_shape</span>
+<span class="fc" id="L511">				.getNextPath(path)) {</span>
+<span class="fc" id="L512">			int vertex = m_shape.getFirstVertex(path);</span>
+<span class="fc bfc" id="L513" title="All 2 branches covered.">			for (int ivert = 0, nvert = m_shape.getPathSize(path); ivert &lt; nvert; ivert++, vertex = m_shape</span>
+<span class="fc" id="L514">					.getNextVertex(vertex)) {</span>
+<span class="fc" id="L515">				m_shape.getXY(vertex, pt);</span>
+<span class="fc bfc" id="L516" title="All 8 branches covered.">				if (m_extent.xmin == pt.x || m_extent.xmax == pt.x</span>
+						|| m_extent.ymin == pt.y || m_extent.ymax == pt.y) {
+<span class="fc" id="L518">					m_shape.setUserIndex(vertex, m_vertices_on_extent_index,</span>
+<span class="fc" id="L519">							m_vertices_on_extent.size());</span>
+<span class="fc" id="L520">					m_vertices_on_extent.add(vertex);</span>
+				}
+			}
+		}
+		// dbg_check_path_first_();
+<span class="fc" id="L525">		resolveOverlaps_(false, m_extent.xmin);</span>
+		// dbg_check_path_first_();
+<span class="fc" id="L527">		resolveOverlaps_(false, m_extent.xmax);</span>
+		// dbg_check_path_first_();
+<span class="fc" id="L529">		resolveOverlaps_(true, m_extent.ymin);</span>
+		// dbg_check_path_first_();
+<span class="fc" id="L531">		resolveOverlaps_(true, m_extent.ymax);</span>
+<span class="fc" id="L532">		fixPaths_();</span>
+<span class="fc" id="L533">	}</span>
+
+	void densifyAlongClipExtent_(double densify_dist) {
+<span class="nc bnc" id="L536" title="All 2 branches missed.">		assert (densify_dist &gt; 0);</span>
+<span class="nc" id="L537">		Point2D pt_1 = new Point2D();</span>
+<span class="nc" id="L538">		Point2D pt_2 = new Point2D();</span>
+<span class="nc" id="L539">		double[] split_scalars = new double[2048];</span>
+<span class="nc bnc" id="L540" title="All 2 branches missed.">		for (int path = m_shape.getFirstPath(m_geometry); path != -1; path = m_shape</span>
+<span class="nc" id="L541">				.getNextPath(path)) {</span>
+<span class="nc" id="L542">			int first_vertex = m_shape.getFirstVertex(path);</span>
+<span class="nc" id="L543">			int vertex = first_vertex;</span>
+			do {
+<span class="nc" id="L545">				int next_vertex = m_shape.getNextVertex(vertex);</span>
+<span class="nc" id="L546">				m_shape.getXY(vertex, pt_1);</span>
+<span class="nc" id="L547">				int b_densify_x = -1;</span>
+<span class="nc bnc" id="L548" title="All 2 branches missed.">				if (pt_1.x == m_extent.xmin) {</span>
+<span class="nc" id="L549">					m_shape.getXY(next_vertex, pt_2);</span>
+<span class="nc bnc" id="L550" title="All 2 branches missed.">					if (pt_2.x == m_extent.xmin) {</span>
+<span class="nc" id="L551">						b_densify_x = 1;</span>
+					}
+<span class="nc bnc" id="L553" title="All 2 branches missed.">				} else if (pt_1.x == m_extent.xmax) {</span>
+<span class="nc" id="L554">					m_shape.getXY(next_vertex, pt_2);</span>
+<span class="nc bnc" id="L555" title="All 2 branches missed.">					if (pt_2.x == m_extent.xmax) {</span>
+<span class="nc" id="L556">						b_densify_x = 1;</span>
+					}
+				}
+
+<span class="nc bnc" id="L560" title="All 2 branches missed.">				if (pt_1.y == m_extent.ymin) {</span>
+<span class="nc" id="L561">					m_shape.getXY(next_vertex, pt_2);</span>
+<span class="nc bnc" id="L562" title="All 2 branches missed.">					if (pt_2.y == m_extent.ymin) {</span>
+<span class="nc" id="L563">						b_densify_x = 0;</span>
+					}
+<span class="nc bnc" id="L565" title="All 2 branches missed.">				} else if (pt_1.y == m_extent.ymax) {</span>
+<span class="nc" id="L566">					m_shape.getXY(next_vertex, pt_2);</span>
+<span class="nc bnc" id="L567" title="All 2 branches missed.">					if (pt_2.y == m_extent.ymax) {</span>
+<span class="nc" id="L568">						b_densify_x = 0;</span>
+					}
+				}
+
+<span class="nc bnc" id="L572" title="All 2 branches missed.">				if (b_densify_x == -1) {</span>
+<span class="nc" id="L573">					vertex = next_vertex;</span>
+<span class="nc" id="L574">					continue;</span>
+				}
+
+<span class="nc" id="L577">				double len = Point2D.distance(pt_1, pt_2);</span>
+<span class="nc" id="L578">				int num = (int) Math.min(Math.ceil(len / densify_dist), 2048.0);</span>
+<span class="nc bnc" id="L579" title="All 2 branches missed.">				if (num &lt;= 1) {</span>
+<span class="nc" id="L580">					vertex = next_vertex;</span>
+<span class="nc" id="L581">					continue;</span>
+				}
+
+<span class="nc bnc" id="L584" title="All 2 branches missed.">				for (int i = 1; i &lt; num; i++) {</span>
+<span class="nc" id="L585">					split_scalars[i - 1] = (1.0 * i) / num;</span>
+				}
+
+<span class="nc" id="L588">				int actual_splits = m_shape.splitSegment(vertex, split_scalars,</span>
+						num - 1);
+<span class="nc bnc" id="L590" title="All 2 branches missed.">				assert (actual_splits == num - 1);</span>
+<span class="nc" id="L591">				vertex = next_vertex;</span>
+<span class="nc bnc" id="L592" title="All 2 branches missed.">			} while (vertex != first_vertex);</span>
+		}
+<span class="nc" id="L594">	}</span>
+	
+	void splitSegments_(boolean b_axis_x, double clip_value) {
+		// After the clipping, we could have produced unwanted segment overlaps
+		// along the clipping envelope boundary.
+		// Detect and resolve that case if possible.
+<span class="fc" id="L600">		int usage_index = m_shape.createUserIndex();</span>
+<span class="fc" id="L601">		Point2D pt = new Point2D();</span>
+<span class="fc" id="L602">		AttributeStreamOfInt32 sorted_vertices = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L603">		sorted_vertices.reserve(100);</span>
+<span class="fc bfc" id="L604" title="All 2 branches covered.">		for (int path = m_shape.getFirstPath(m_geometry); path != -1; path = m_shape</span>
+<span class="fc" id="L605">				.getNextPath(path)) {</span>
+<span class="fc" id="L606">			int vertex = m_shape.getFirstVertex(path);</span>
+<span class="fc bfc" id="L607" title="All 2 branches covered.">			for (int ivert = 0, nvert = m_shape.getPathSize(path); ivert &lt; nvert; ivert++) {</span>
+<span class="fc" id="L608">				int next_vertex = m_shape.getNextVertex(vertex);</span>
+<span class="fc" id="L609">				m_shape.getXY(vertex, pt);</span>
+<span class="fc bfc" id="L610" title="All 6 branches covered.">				if (b_axis_x ? pt.y == clip_value : pt.x == clip_value) {</span>
+<span class="fc" id="L611">					m_shape.getXY(next_vertex, pt);</span>
+<span class="fc bfc" id="L612" title="All 6 branches covered.">					if (b_axis_x ? pt.y == clip_value : pt.x == clip_value) {</span>
+<span class="pc bpc" id="L613" title="1 of 2 branches missed.">						if (m_shape.getUserIndex(vertex, usage_index) != 1) {</span>
+<span class="fc" id="L614">							sorted_vertices.add(vertex);</span>
+<span class="fc" id="L615">							m_shape.setUserIndex(vertex, usage_index, 1);</span>
+						}
+
+<span class="pc bpc" id="L618" title="1 of 2 branches missed.">						if (m_shape.getUserIndex(next_vertex, usage_index) != 1) {</span>
+<span class="fc" id="L619">							sorted_vertices.add(next_vertex);</span>
+<span class="fc" id="L620">							m_shape.setUserIndex(next_vertex, usage_index, 1);</span>
+						}
+					}
+				}
+<span class="fc" id="L624">				vertex = next_vertex;</span>
+			}
+		}
+
+<span class="fc" id="L628">		m_shape.removeUserIndex(usage_index);</span>
+<span class="fc bfc" id="L629" title="All 2 branches covered.">		if (sorted_vertices.size() &lt; 3) {</span>
+<span class="fc" id="L630">			return;</span>
+		}
+
+<span class="fc" id="L633">		sorted_vertices.Sort(0, sorted_vertices.size(),</span>
+				new ClipperVertexComparer(this));
+
+<span class="fc" id="L636">		Point2D pt_tmp = new Point2D(); // forward declare for java port</span>
+										// optimization
+<span class="fc" id="L638">		Point2D pt_0 = new Point2D();</span>
+<span class="fc" id="L639">		Point2D pt_1 = new Point2D();</span>
+<span class="fc" id="L640">		pt_0.setNaN();</span>
+<span class="fc" id="L641">		int index_0 = -1;</span>
+<span class="fc" id="L642">		AttributeStreamOfInt32 active_intervals = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L643">		AttributeStreamOfInt32 new_active_intervals = new AttributeStreamOfInt32(</span>
+				0);
+
+<span class="fc" id="L646">		int node1 = m_shape.createUserIndex();</span>
+<span class="fc" id="L647">		int node2 = m_shape.createUserIndex();</span>
+<span class="fc bfc" id="L648" title="All 2 branches covered.">		for (int index = 0, n = sorted_vertices.size(); index &lt; n; index++) {</span>
+<span class="fc" id="L649">			int vert = sorted_vertices.get(index);</span>
+<span class="fc" id="L650">			m_shape.getXY(vert, pt);</span>
+<span class="fc bfc" id="L651" title="All 2 branches covered.">			if (!pt.isEqual(pt_0)) {</span>
+<span class="fc bfc" id="L652" title="All 2 branches covered.">				if (index_0 == -1) {</span>
+<span class="fc" id="L653">					index_0 = index;</span>
+<span class="fc" id="L654">					pt_0.setCoords(pt);</span>
+<span class="fc" id="L655">					continue;</span>
+				}
+		          
+				// add new intervals, that started at pt_0
+<span class="fc bfc" id="L659" title="All 2 branches covered.">				for (int i = index_0; i &lt; index; i++) {</span>
+<span class="fc" id="L660">					int v = sorted_vertices.get(i);</span>
+<span class="fc" id="L661">					int nextv = m_shape.getNextVertex(v);</span>
+<span class="fc" id="L662">					int prevv = m_shape.getPrevVertex(v);</span>
+<span class="fc" id="L663">					boolean bAdded = false;</span>
+<span class="fc bfc" id="L664" title="All 2 branches covered.">					if (compareVertices_(v, nextv) &lt; 0) {</span>
+<span class="fc" id="L665">						m_shape.getXY(nextv, pt_tmp);</span>
+<span class="fc bfc" id="L666" title="All 6 branches covered.">						if (b_axis_x ? pt_tmp.y == clip_value</span>
+								: pt_tmp.x == clip_value) {
+<span class="fc" id="L668">							active_intervals.add(v);</span>
+<span class="fc" id="L669">							bAdded = true;</span>
+<span class="fc" id="L670">							m_shape.setUserIndex(v, node2, 1);</span>
+						}
+					}
+<span class="fc bfc" id="L673" title="All 2 branches covered.">					if (compareVertices_(v, prevv) &lt; 0) {</span>
+<span class="fc" id="L674">						m_shape.getXY(prevv, pt_tmp);</span>
+<span class="fc bfc" id="L675" title="All 6 branches covered.">						if (b_axis_x ? pt_tmp.y == clip_value</span>
+								: pt_tmp.x == clip_value) {
+<span class="pc bpc" id="L677" title="1 of 2 branches missed.">							if (!bAdded)</span>
+<span class="fc" id="L678">								active_intervals.add(v);</span>
+<span class="fc" id="L679">							m_shape.setUserIndex(v, node1, 1);</span>
+						}
+					}
+				}
+
+				// Split all active intervals at new point
+<span class="fc bfc" id="L685" title="All 2 branches covered.">				for (int ia = 0, na = active_intervals.size(); ia &lt; na; ia++) {</span>
+<span class="fc" id="L686">					int v = active_intervals.get(ia);</span>
+<span class="fc" id="L687">					int n_1 = m_shape.getUserIndex(v, node1);</span>
+<span class="fc" id="L688">					int n_2 = m_shape.getUserIndex(v, node2);</span>
+<span class="fc bfc" id="L689" title="All 2 branches covered.">					if (n_1 == 1) {</span>
+<span class="fc" id="L690">						int prevv = m_shape.getPrevVertex(v);</span>
+<span class="fc" id="L691">						m_shape.getXY(prevv, pt_1);</span>
+<span class="fc" id="L692">						double[] t = new double[1];</span>
+<span class="fc" id="L693">						t[0] = 0;</span>
+<span class="fc bfc" id="L694" title="All 2 branches covered.">						if (!pt_1.isEqual(pt)) {// Split the active segment</span>
+<span class="fc" id="L695">							double active_segment_length = Point2D</span>
+<span class="fc" id="L696">									.distance(pt_0, pt_1);</span>
+<span class="fc" id="L697">							t[0] = Point2D.distance(pt_1, pt)</span>
+									/ active_segment_length;
+<span class="pc bpc" id="L699" title="2 of 4 branches missed.">							assert (t[0] &gt;= 0 &amp;&amp; t[0] &lt;= 1.0);</span>
+<span class="pc bpc" id="L700" title="1 of 2 branches missed.">							if (t[0] == 0)</span>
+<span class="nc" id="L701">								t[0] = NumberUtils.doubleEps();// some</span>
+																// roundoff
+																// issue.
+																// split
+																// anyway.
+<span class="pc bpc" id="L706" title="1 of 2 branches missed.">							else if (t[0] == 1.0) {</span>
+<span class="nc" id="L707">								t[0] = 1.0 - NumberUtils.doubleEps();// some</span>
+																		// roundoff
+																		// issue.
+																		// split
+																		// anyway.
+<span class="nc bnc" id="L712" title="All 2 branches missed.">								assert (t[0] != 1.0);</span>
+							}
+
+<span class="fc" id="L715">							int split_count = m_shape.splitSegment(prevv,</span>
+									t, 1);
+<span class="pc bpc" id="L717" title="1 of 2 branches missed.">							assert (split_count &gt; 0);</span>
+<span class="fc" id="L718">							int v_1 = m_shape.getPrevVertex(v);</span>
+<span class="fc" id="L719">							m_shape.setXY(v_1, pt);</span>
+<span class="fc" id="L720">							new_active_intervals.add(v_1);</span>
+<span class="fc" id="L721">							m_shape.setUserIndex(v_1, node1, 1);</span>
+<span class="fc" id="L722">							m_shape.setUserIndex(v_1, node2, -1);</span>
+						} else {
+							// The active segment ends at the current point.
+							// We skip it, and it goes away.
+						}
+					}
+<span class="fc bfc" id="L728" title="All 2 branches covered.">					if (n_2 == 1) {</span>
+<span class="fc" id="L729">						int nextv = m_shape.getNextVertex(v);</span>
+<span class="fc" id="L730">						m_shape.getXY(nextv, pt_1);</span>
+<span class="fc" id="L731">						double[] t = new double[1];</span>
+<span class="fc" id="L732">						t[0] = 0;</span>
+<span class="fc bfc" id="L733" title="All 2 branches covered.">						if (!pt_1.isEqual(pt)) {</span>
+<span class="fc" id="L734">							double active_segment_length = Point2D</span>
+<span class="fc" id="L735">									.distance(pt_0, pt_1);</span>
+<span class="fc" id="L736">							t[0] = Point2D.distance(pt_0, pt)</span>
+									/ active_segment_length;
+<span class="pc bpc" id="L738" title="2 of 4 branches missed.">							assert (t[0] &gt;= 0 &amp;&amp; t[0] &lt;= 1.0);</span>
+<span class="pc bpc" id="L739" title="1 of 2 branches missed.">							if (t[0] == 0)</span>
+<span class="nc" id="L740">								t[0] = NumberUtils.doubleEps();// some</span>
+																// roundoff
+																// issue.
+																// split
+																// anyway.
+<span class="pc bpc" id="L745" title="1 of 2 branches missed.">							else if (t[0] == 1.0) {</span>
+<span class="nc" id="L746">								t[0] = 1.0 - NumberUtils.doubleEps();// some</span>
+																		// roundoff
+																		// issue.
+																		// split
+																		// anyway.
+<span class="nc bnc" id="L751" title="All 2 branches missed.">								assert (t[0] != 1.0);</span>
+							}
+
+<span class="fc" id="L754">							int split_count = m_shape.splitSegment(v, t, 1);</span>
+<span class="pc bpc" id="L755" title="1 of 2 branches missed.">							assert (split_count &gt; 0);</span>
+<span class="fc" id="L756">							int v_1 = m_shape.getNextVertex(v);</span>
+<span class="fc" id="L757">							m_shape.setXY(v_1, pt);</span>
+<span class="fc" id="L758">							new_active_intervals.add(v_1);</span>
+<span class="fc" id="L759">							m_shape.setUserIndex(v_1, node1, -1);</span>
+<span class="fc" id="L760">							m_shape.setUserIndex(v_1, node2, 1);</span>
+						}
+					}
+				}
+
+<span class="fc" id="L765">				AttributeStreamOfInt32 tmp = active_intervals;</span>
+<span class="fc" id="L766">				active_intervals = new_active_intervals;</span>
+<span class="fc" id="L767">				new_active_intervals = tmp;</span>
+<span class="fc" id="L768">				new_active_intervals.clear(false);</span>
+
+<span class="fc" id="L770">				index_0 = index;</span>
+<span class="fc" id="L771">				pt_0.setCoords(pt);</span>
+			}
+		}
+
+<span class="fc" id="L775">		m_shape.removeUserIndex(node1);</span>
+<span class="fc" id="L776">		m_shape.removeUserIndex(node2);</span>
+<span class="fc" id="L777">	}</span>
+
+	void resolveOverlaps_(boolean b_axis_x, double clip_value) {
+		// Along the envelope boundary there could be overlapped segments.
+		// Example, exterior ring with a hole is cut with a line, that
+		// passes through the center of the hole.
+		// Detect pairs of opposite overlapping segments and get rid of them
+<span class="fc" id="L784">		Point2D pt = new Point2D();</span>
+<span class="fc" id="L785">		AttributeStreamOfInt32 sorted_vertices = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L786">		sorted_vertices.reserve(100);</span>
+<span class="fc" id="L787">		int sorted_index = m_shape.createUserIndex();</span>
+		// DEBUGPRINTF(L&quot;ee\n&quot;);
+<span class="fc bfc" id="L789" title="All 2 branches covered.">		for (int ivert = 0, nvert = m_vertices_on_extent.size(); ivert &lt; nvert; ivert++) {</span>
+<span class="fc" id="L790">			int vertex = m_vertices_on_extent.get(ivert);</span>
+<span class="fc bfc" id="L791" title="All 2 branches covered.">			if (vertex == -1)</span>
+<span class="fc" id="L792">				continue;</span>
+
+<span class="fc" id="L794">			int next_vertex = m_shape.getNextVertex(vertex);</span>
+<span class="fc" id="L795">			m_shape.getXY(vertex, pt);</span>
+			// DEBUGPRINTF(L&quot;%f\t%f\n&quot;, pt.x, pt.y);
+<span class="fc bfc" id="L797" title="All 6 branches covered.">			if (b_axis_x ? pt.y == clip_value : pt.x == clip_value) {</span>
+<span class="fc" id="L798">				m_shape.getXY(next_vertex, pt);</span>
+<span class="fc bfc" id="L799" title="All 6 branches covered.">				if (b_axis_x ? pt.y == clip_value : pt.x == clip_value) {</span>
+<span class="pc bpc" id="L800" title="1 of 2 branches missed.">					assert (m_shape.getUserIndex(next_vertex,</span>
+							m_vertices_on_extent_index) != -1);
+<span class="fc bfc" id="L802" title="All 2 branches covered.">					if (m_shape.getUserIndex(vertex, sorted_index) != -2) {</span>
+<span class="fc" id="L803">						sorted_vertices.add(vertex);// remember the vertex. The</span>
+													// attached segment belongs
+													// to the given clip plane.
+<span class="fc" id="L806">						m_shape.setUserIndex(vertex, sorted_index, -2);</span>
+					}
+
+<span class="fc bfc" id="L809" title="All 2 branches covered.">					if (m_shape.getUserIndex(next_vertex, sorted_index) != -2) {</span>
+<span class="fc" id="L810">						sorted_vertices.add(next_vertex);</span>
+<span class="fc" id="L811">						m_shape.setUserIndex(next_vertex, sorted_index, -2);</span>
+					}
+				}
+			}
+		}
+
+<span class="fc bfc" id="L817" title="All 2 branches covered.">		if (sorted_vertices.size() == 0) {</span>
+<span class="fc" id="L818">			m_shape.removeUserIndex(sorted_index);</span>
+<span class="fc" id="L819">			return;</span>
+		}
+
+<span class="fc" id="L822">		sorted_vertices.Sort(0, sorted_vertices.size(),</span>
+				new ClipperVertexComparer(this));
+		// std::sort(sorted_vertices.get_ptr(), sorted_vertices.get_ptr() +
+		// sorted_vertices.size(), Clipper_vertex_comparer(this));
+
+		// DEBUGPRINTF(L&quot;**\n&quot;);
+<span class="fc bfc" id="L828" title="All 2 branches covered.">		for (int index = 0, n = sorted_vertices.size(); index &lt; n; index++) {</span>
+<span class="fc" id="L829">			int vert = sorted_vertices.get(index);</span>
+<span class="fc" id="L830">			m_shape.setUserIndex(vert, sorted_index, index);</span>
+			// Point_2D pt;
+			// m_shape.get_xy(vert, pt);
+			// DEBUGPRINTF(L&quot;%f\t%f\t%d\n&quot;, pt.x, pt.y, vert);
+		}
+
+<span class="fc" id="L836">		Point2D pt_tmp = new Point2D();</span>
+<span class="fc" id="L837">		Point2D pt_0 = new Point2D();</span>
+<span class="fc" id="L838">		pt_0.setNaN();</span>
+<span class="fc" id="L839">		int index_0 = -1;</span>
+<span class="fc bfc" id="L840" title="All 2 branches covered.">		for (int index = 0, n = sorted_vertices.size(); index &lt; n; index++) {</span>
+<span class="fc" id="L841">			int vert = sorted_vertices.get(index);</span>
+<span class="fc bfc" id="L842" title="All 2 branches covered.">			if (vert == -1)</span>
+<span class="fc" id="L843">				continue;</span>
+
+<span class="fc" id="L845">			m_shape.getXY(vert, pt);</span>
+<span class="fc bfc" id="L846" title="All 2 branches covered.">			if (!pt.isEqual(pt_0)) {</span>
+<span class="fc bfc" id="L847" title="All 2 branches covered.">				if (index_0 != -1) {</span>
+					while (true) {
+<span class="fc" id="L849">						boolean b_overlap_resolved = false;</span>
+<span class="fc bfc" id="L850" title="All 2 branches covered.">						int index_to = index - index_0 &gt; 1 ? index - 1 : index;</span>
+<span class="fc bfc" id="L851" title="All 2 branches covered.">						for (int i = index_0; i &lt; index_to; i++) {</span>
+<span class="fc" id="L852">							int v = sorted_vertices.get(i);</span>
+<span class="fc bfc" id="L853" title="All 2 branches covered.">							if (v == -1)</span>
+<span class="fc" id="L854">								continue;</span>
+<span class="fc" id="L855">							int nextv = -1;</span>
+<span class="fc" id="L856">							int nv = m_shape.getNextVertex(v);</span>
+<span class="fc bfc" id="L857" title="All 2 branches covered.">							if (compareVertices_(v, nv) &lt; 0) {</span>
+<span class="fc" id="L858">								m_shape.getXY(nv, pt_tmp);</span>
+<span class="fc bfc" id="L859" title="All 6 branches covered.">								if (b_axis_x ? pt_tmp.y == clip_value</span>
+										: pt_tmp.x == clip_value)
+<span class="fc" id="L861">									nextv = nv;</span>
+							}
+<span class="fc" id="L863">							int prevv = -1;</span>
+<span class="fc" id="L864">							int pv = m_shape.getPrevVertex(v);</span>
+<span class="fc bfc" id="L865" title="All 2 branches covered.">							if (compareVertices_(v, pv) &lt; 0) {</span>
+<span class="fc" id="L866">								m_shape.getXY(pv, pt_tmp);</span>
+<span class="fc bfc" id="L867" title="All 6 branches covered.">								if (b_axis_x ? pt_tmp.y == clip_value</span>
+										: pt_tmp.x == clip_value)
+<span class="fc" id="L869">									prevv = pv;</span>
+							}
+
+<span class="fc bfc" id="L872" title="All 4 branches covered.">							if (nextv != -1 &amp;&amp; prevv != -1) {</span>
+								// we have a cusp here. remove the vertex.
+<span class="fc" id="L874">								beforeRemoveVertex_(v, sorted_vertices,</span>
+										sorted_index);
+<span class="fc" id="L876">								m_shape.removeVertex(v, false);</span>
+<span class="fc" id="L877">								beforeRemoveVertex_(nextv, sorted_vertices,</span>
+										sorted_index);
+<span class="fc" id="L879">								m_shape.removeVertex(nextv, false);</span>
+<span class="fc" id="L880">								b_overlap_resolved = true;</span>
+<span class="fc" id="L881">								continue;</span>
+							}
+
+<span class="fc bfc" id="L884" title="All 4 branches covered.">							if (nextv == -1 &amp;&amp; prevv == -1)</span>
+<span class="fc" id="L885">								continue;</span>
+
+<span class="fc bfc" id="L887" title="All 2 branches covered.">							for (int j = i + 1; j &lt; index; j++) {</span>
+<span class="fc" id="L888">								int v_1 = sorted_vertices.get(j);</span>
+<span class="fc bfc" id="L889" title="All 2 branches covered.">								if (v_1 == -1)</span>
+<span class="fc" id="L890">									continue;</span>
+<span class="fc" id="L891">								int nv1 = m_shape.getNextVertex(v_1);</span>
+<span class="fc" id="L892">								int nextv1 = -1;</span>
+<span class="fc bfc" id="L893" title="All 2 branches covered.">								if (compareVertices_(v_1, nv1) &lt; 0) {</span>
+<span class="fc" id="L894">									m_shape.getXY(nv1, pt_tmp);</span>
+<span class="pc bpc" id="L895" title="3 of 6 branches missed.">									if (b_axis_x ? pt_tmp.y == clip_value</span>
+											: pt_tmp.x == clip_value)
+<span class="fc" id="L897">										nextv1 = nv1;</span>
+								}
+
+<span class="fc" id="L900">								int pv1 = m_shape.getPrevVertex(v_1);</span>
+<span class="fc" id="L901">								int prevv_1 = -1;</span>
+<span class="fc bfc" id="L902" title="All 2 branches covered.">								if (compareVertices_(v_1, pv1) &lt; 0) {</span>
+<span class="fc" id="L903">									m_shape.getXY(pv1, pt_tmp);</span>
+<span class="pc bpc" id="L904" title="1 of 6 branches missed.">									if (b_axis_x ? pt_tmp.y == clip_value</span>
+											: pt_tmp.x == clip_value)
+<span class="fc" id="L906">										prevv_1 = pv1;</span>
+								}
+<span class="fc bfc" id="L908" title="All 4 branches covered.">								if (nextv1 != -1 &amp;&amp; prevv_1 != -1) {</span>
+									// we have a cusp here. remove the vertex.
+<span class="fc" id="L910">									beforeRemoveVertex_(v_1, sorted_vertices,</span>
+											sorted_index);
+<span class="fc" id="L912">									m_shape.removeVertex(v_1, false);</span>
+<span class="fc" id="L913">									beforeRemoveVertex_(nextv1,</span>
+											sorted_vertices, sorted_index);
+<span class="fc" id="L915">									m_shape.removeVertex(nextv1, false);</span>
+<span class="fc" id="L916">									b_overlap_resolved = true;</span>
+<span class="fc" id="L917">									break;</span>
+								}
+<span class="fc bfc" id="L919" title="All 4 branches covered.">								if (nextv != -1 &amp;&amp; prevv_1 != -1) {</span>
+<span class="fc" id="L920">									removeOverlap_(sorted_vertices, v, nextv,</span>
+											v_1, prevv_1, sorted_index);
+<span class="fc" id="L922">									b_overlap_resolved = true;</span>
+<span class="fc" id="L923">									break;</span>
+<span class="pc bpc" id="L924" title="1 of 4 branches missed.">								} else if (prevv != -1 &amp;&amp; nextv1 != -1) {</span>
+<span class="fc" id="L925">									removeOverlap_(sorted_vertices, v_1,</span>
+											nextv1, v, prevv, sorted_index);
+<span class="fc" id="L927">									b_overlap_resolved = true;</span>
+<span class="fc" id="L928">									break;</span>
+								}
+							}
+
+<span class="fc bfc" id="L932" title="All 2 branches covered.">							if (b_overlap_resolved)</span>
+<span class="fc" id="L933">								break;</span>
+						}
+
+<span class="fc bfc" id="L936" title="All 2 branches covered.">						if (!b_overlap_resolved)</span>
+<span class="fc" id="L937">							break;</span>
+<span class="fc" id="L938">					}</span>
+				}
+
+<span class="fc" id="L941">				index_0 = index;</span>
+<span class="fc" id="L942">				pt_0.setCoords(pt);</span>
+			}
+		}
+
+<span class="fc" id="L946">		m_shape.removeUserIndex(sorted_index);</span>
+<span class="fc" id="L947">	}</span>
+
+	void beforeRemoveVertex_(int v_1, AttributeStreamOfInt32 sorted_vertices,
+			int sorted_index) {
+<span class="fc" id="L951">		int ind = m_shape.getUserIndex(v_1, sorted_index);</span>
+<span class="fc" id="L952">		sorted_vertices.set(ind, -1);</span>
+<span class="fc" id="L953">		ind = m_shape.getUserIndex(v_1, m_vertices_on_extent_index);</span>
+<span class="fc" id="L954">		m_vertices_on_extent.set(ind, -1);</span>
+<span class="fc" id="L955">		int path = m_shape.getPathFromVertex(v_1);</span>
+<span class="pc bpc" id="L956" title="1 of 2 branches missed.">		if (path != -1) {</span>
+<span class="fc" id="L957">			int first = m_shape.getFirstVertex(path);</span>
+<span class="fc bfc" id="L958" title="All 2 branches covered.">			if (first == v_1) {</span>
+<span class="fc" id="L959">				m_shape.setFirstVertex_(path, -1);</span>
+<span class="fc" id="L960">				m_shape.setLastVertex_(path, -1);</span>
+			}
+		}
+<span class="fc" id="L963">	}</span>
+
+	void removeOverlap_(AttributeStreamOfInt32 sorted_vertices, int v,
+			int nextv, int v_1, int prevv_1, int sorted_index) {
+<span class="pc bpc" id="L967" title="1 of 2 branches missed.">		assert (m_shape.isEqualXY(v, v_1));</span>
+<span class="pc bpc" id="L968" title="1 of 2 branches missed.">		assert (m_shape.isEqualXY(nextv, prevv_1));</span>
+<span class="pc bpc" id="L969" title="1 of 2 branches missed.">		assert (m_shape.getNextVertex(v) == nextv);</span>
+<span class="pc bpc" id="L970" title="1 of 2 branches missed.">		assert (m_shape.getNextVertex(prevv_1) == v_1);</span>
+<span class="fc" id="L971">		m_shape.setNextVertex_(v, v_1);</span>
+<span class="fc" id="L972">		m_shape.setPrevVertex_(v_1, v);</span>
+<span class="fc" id="L973">		m_shape.setPrevVertex_(nextv, prevv_1);</span>
+<span class="fc" id="L974">		m_shape.setNextVertex_(prevv_1, nextv);</span>
+
+<span class="fc" id="L976">		beforeRemoveVertex_(v_1, sorted_vertices, sorted_index);</span>
+<span class="fc" id="L977">		m_shape.removeVertexInternal_(v_1, false);</span>
+<span class="fc" id="L978">		beforeRemoveVertex_(prevv_1, sorted_vertices, sorted_index);</span>
+<span class="fc" id="L979">		m_shape.removeVertexInternal_(prevv_1, true);</span>
+<span class="fc" id="L980">	}</span>
+
+	void fixPaths_() {
+<span class="fc bfc" id="L983" title="All 2 branches covered.">		for (int ivert = 0, nvert = m_vertices_on_extent.size(); ivert &lt; nvert; ivert++) {</span>
+<span class="fc" id="L984">			int vertex = m_vertices_on_extent.get(ivert);</span>
+<span class="fc bfc" id="L985" title="All 2 branches covered.">			if (vertex != -1)</span>
+<span class="fc" id="L986">				m_shape.setPathToVertex_(vertex, -1);</span>
+		}
+
+<span class="fc" id="L989">		int path_count = 0;</span>
+<span class="fc" id="L990">		int geometry_size = 0;</span>
+<span class="fc bfc" id="L991" title="All 2 branches covered.">		for (int path = m_shape.getFirstPath(m_geometry); path != -1;) {</span>
+<span class="fc" id="L992">			int first = m_shape.getFirstVertex(path);</span>
+<span class="fc bfc" id="L993" title="All 4 branches covered.">			if (first == -1 || path != m_shape.getPathFromVertex(first)) { // The</span>
+																			// path's
+																			// first
+																			// vertex
+																			// has
+																			// been
+																			// deleted.
+																			// Or
+																			// the
+																			// path
+																			// first
+																			// vertex
+																			// is
+																			// now
+																			// part
+																			// of
+																			// another
+																			// path.
+																			// We
+																			// have
+																			// to
+																			// delete
+																			// such
+																			// path
+																			// object.
+<span class="fc" id="L1018">				int p = path;</span>
+<span class="fc" id="L1019">				path = m_shape.getNextPath(path);</span>
+<span class="fc" id="L1020">				m_shape.setFirstVertex_(p, -1);</span>
+<span class="fc" id="L1021">				m_shape.removePathOnly_(p);</span>
+<span class="fc" id="L1022">				continue;</span>
+			}
+<span class="pc bpc" id="L1024" title="1 of 2 branches missed.">			assert (path == m_shape.getPathFromVertex(first));</span>
+<span class="fc" id="L1025">			int vertex = first;</span>
+<span class="fc" id="L1026">			int path_size = 0;</span>
+			do {
+<span class="fc" id="L1028">				m_shape.setPathToVertex_(vertex, path);</span>
+<span class="fc" id="L1029">				path_size++;</span>
+<span class="fc" id="L1030">				vertex = m_shape.getNextVertex(vertex);</span>
+<span class="fc bfc" id="L1031" title="All 2 branches covered.">			} while (vertex != first);</span>
+
+<span class="pc bpc" id="L1033" title="1 of 2 branches missed.">			if (path_size &lt;= 2) {</span>
+<span class="nc" id="L1034">				int ind = m_shape.getUserIndex(first,</span>
+						m_vertices_on_extent_index);
+<span class="nc" id="L1036">				m_vertices_on_extent.set(ind, -1);</span>
+<span class="nc" id="L1037">				int nv = m_shape.removeVertex(first, false);</span>
+<span class="nc bnc" id="L1038" title="All 2 branches missed.">				if (path_size == 2) {</span>
+<span class="nc" id="L1039">					ind = m_shape.getUserIndex(nv, m_vertices_on_extent_index);</span>
+<span class="nc" id="L1040">					m_vertices_on_extent.set(ind, -1);</span>
+<span class="nc" id="L1041">					m_shape.removeVertex(nv, false);</span>
+				}
+<span class="nc" id="L1043">				int p = path;</span>
+<span class="nc" id="L1044">				path = m_shape.getNextPath(path);</span>
+<span class="nc" id="L1045">				m_shape.setFirstVertex_(p, -1);</span>
+<span class="nc" id="L1046">				m_shape.removePathOnly_(p);</span>
+<span class="nc" id="L1047">				continue;</span>
+			}
+
+<span class="fc" id="L1050">			m_shape.setRingAreaValid_(path, false);</span>
+<span class="fc" id="L1051">			m_shape.setLastVertex_(path, m_shape.getPrevVertex(first));</span>
+<span class="fc" id="L1052">			m_shape.setPathSize_(path, path_size);</span>
+<span class="fc" id="L1053">			geometry_size += path_size;</span>
+<span class="fc" id="L1054">			path_count++;</span>
+<span class="fc" id="L1055">			path = m_shape.getNextPath(path);</span>
+<span class="fc" id="L1056">		}</span>
+
+<span class="fc bfc" id="L1058" title="All 2 branches covered.">		for (int ivert = 0, nvert = m_vertices_on_extent.size(); ivert &lt; nvert; ivert++) {</span>
+<span class="fc" id="L1059">			int vertex = m_vertices_on_extent.get(ivert);</span>
+<span class="fc bfc" id="L1060" title="All 2 branches covered.">			if (vertex == -1)</span>
+<span class="fc" id="L1061">				continue;</span>
+<span class="fc" id="L1062">			int path = m_shape.getPathFromVertex(vertex);</span>
+<span class="fc bfc" id="L1063" title="All 2 branches covered.">			if (path != -1)</span>
+<span class="fc" id="L1064">				continue;</span>
+
+<span class="fc" id="L1066">			path = m_shape.insertPath(m_geometry, -1);</span>
+<span class="fc" id="L1067">			int path_size = 0;</span>
+<span class="fc" id="L1068">			int first = vertex;</span>
+			do {
+<span class="fc" id="L1070">				m_shape.setPathToVertex_(vertex, path);</span>
+<span class="fc" id="L1071">				path_size++;</span>
+<span class="fc" id="L1072">				vertex = m_shape.getNextVertex(vertex);</span>
+<span class="fc bfc" id="L1073" title="All 2 branches covered.">			} while (vertex != first);</span>
+
+<span class="fc bfc" id="L1075" title="All 2 branches covered.">			if (path_size &lt;= 2) {</span>
+<span class="fc" id="L1076">				int ind = m_shape.getUserIndex(first,</span>
+						m_vertices_on_extent_index);
+<span class="fc" id="L1078">				m_vertices_on_extent.set(ind, -1);</span>
+<span class="fc" id="L1079">				int nv = m_shape.removeVertex(first, false);</span>
+<span class="pc bpc" id="L1080" title="1 of 2 branches missed.">				if (path_size == 2) {</span>
+<span class="fc" id="L1081">					ind = m_shape.getUserIndex(nv, m_vertices_on_extent_index);</span>
+<span class="pc bpc" id="L1082" title="1 of 2 branches missed.">					if (ind &gt;= 0)</span>
+<span class="nc" id="L1083">						m_vertices_on_extent.set(ind, -1);</span>
+					else {
+						// this vertex is not on the extent.
+					}
+<span class="fc" id="L1087">					m_shape.removeVertex(nv, false);</span>
+				}
+
+<span class="fc" id="L1090">				int p = path;</span>
+<span class="fc" id="L1091">				path = m_shape.getNextPath(path);</span>
+<span class="fc" id="L1092">				m_shape.setFirstVertex_(p, -1);</span>
+<span class="fc" id="L1093">				m_shape.removePathOnly_(p);</span>
+<span class="fc" id="L1094">				continue;</span>
+			}
+
+<span class="fc" id="L1097">			m_shape.setClosedPath(path, true);</span>
+<span class="fc" id="L1098">			m_shape.setPathSize_(path, path_size);</span>
+<span class="fc" id="L1099">			m_shape.setFirstVertex_(path, first);</span>
+<span class="fc" id="L1100">			m_shape.setLastVertex_(path, m_shape.getPrevVertex(first));</span>
+<span class="fc" id="L1101">			m_shape.setRingAreaValid_(path, false);</span>
+<span class="fc" id="L1102">			geometry_size += path_size;</span>
+<span class="fc" id="L1103">			path_count++;</span>
+		}
+
+<span class="fc" id="L1106">		m_shape.setGeometryPathCount_(m_geometry, path_count);</span>
+<span class="fc" id="L1107">		m_shape.setGeometryVertexCount_(m_geometry, geometry_size);</span>
+
+<span class="fc" id="L1109">		int total_point_count = 0;</span>
+<span class="fc bfc" id="L1110" title="All 2 branches covered.">		for (int geometry = m_shape.getFirstGeometry(); geometry != -1; geometry = m_shape</span>
+<span class="fc" id="L1111">				.getNextGeometry(geometry)) {</span>
+<span class="fc" id="L1112">			total_point_count += m_shape.getPointCount(geometry);</span>
+		}
+
+<span class="fc" id="L1115">		m_shape.setTotalPointCount_(total_point_count);</span>
+<span class="fc" id="L1116">	}</span>
+
+	static Geometry clipMultiPath_(MultiPath multipath, Envelope2D extent,
+			double tolerance, double densify_dist) {
+<span class="fc" id="L1120">		Clipper clipper = new Clipper(extent);</span>
+<span class="fc" id="L1121">		return clipper.clipMultiPath2_(multipath, tolerance, densify_dist);</span>
+	}
+
+<span class="fc" id="L1124">	Clipper(Envelope2D extent) {</span>
+<span class="fc" id="L1125">		m_extent = extent;</span>
+<span class="fc" id="L1126">		m_shape = new EditShape();</span>
+<span class="fc" id="L1127">		m_vertices_on_extent = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L1128">	}</span>
+
+	// static std::shared_ptr&lt;Polygon&gt; create_polygon_from_polyline(const
+	// std::shared_ptr&lt;Multi_path&gt;&amp; polyline, const Envelope_2D&amp; env_2D, bool
+	// add_envelope, double tolerance, double densify_dist, int
+	// corner_is_inside);
+	static Geometry clip(Geometry geometry, Envelope2D extent,
+			double tolerance, double densify_dist) {
+<span class="pc bpc" id="L1136" title="1 of 2 branches missed.">		if (geometry.isEmpty())</span>
+<span class="nc" id="L1137">			return geometry;</span>
+
+<span class="pc bpc" id="L1139" title="1 of 2 branches missed.">		if (extent.isEmpty())</span>
+<span class="nc" id="L1140">			return geometry.createInstance(); // return an empty geometry</span>
+
+<span class="fc" id="L1142">		int geomtype = geometry.getType().value();</span>
+
+		// Test firstly the simplest geometry types point and envelope.
+		// After that we'll check the envelope intersection for the optimization
+<span class="fc bfc" id="L1146" title="All 2 branches covered.">		if (geomtype == Geometry.Type.Point.value()) {</span>
+<span class="fc" id="L1147">			Point2D pt = ((Point) geometry).getXY();</span>
+<span class="fc bfc" id="L1148" title="All 2 branches covered.">			if (extent.contains(pt))</span>
+<span class="fc" id="L1149">				return geometry;</span>
+			else
+<span class="fc" id="L1151">				return geometry.createInstance(); // return an empty geometry</span>
+<span class="fc bfc" id="L1152" title="All 2 branches covered.">		} else if (geomtype == Geometry.Type.Envelope.value()) {</span>
+<span class="fc" id="L1153">			Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L1154">			geometry.queryEnvelope2D(env);</span>
+<span class="pc bpc" id="L1155" title="1 of 2 branches missed.">			if (env.intersect(extent)) {</span>
+<span class="fc" id="L1156">				Envelope result_env = new Envelope();</span>
+<span class="fc" id="L1157">				geometry.copyTo(result_env);</span>
+<span class="fc" id="L1158">				result_env.setEnvelope2D(env);</span>
+<span class="fc" id="L1159">				return result_env;</span>
+			} else
+<span class="nc" id="L1161">				return geometry.createInstance(); // return an empty geometry</span>
+		}
+
+		// Test the geometry envelope
+<span class="fc" id="L1165">		Envelope2D env_2D = new Envelope2D();</span>
+<span class="fc" id="L1166">		geometry.queryLooseEnvelope2D(env_2D);</span>
+<span class="fc bfc" id="L1167" title="All 2 branches covered.">		if (extent.contains(env_2D))</span>
+<span class="fc" id="L1168">			return geometry;// completely inside of bounds</span>
+<span class="pc bpc" id="L1169" title="1 of 2 branches missed.">		if (!extent.isIntersecting(env_2D))</span>
+<span class="nc" id="L1170">			return geometry.createInstance();// outside of bounds. return empty</span>
+												// geometry.
+
+<span class="fc" id="L1173">		MultiVertexGeometryImpl impl = (MultiVertexGeometryImpl) geometry</span>
+<span class="fc" id="L1174">				._getImpl();</span>
+<span class="fc" id="L1175">		GeometryAccelerators accel = impl._getAccelerators();</span>
+<span class="pc bpc" id="L1176" title="1 of 2 branches missed.">		if (accel != null) {</span>
+<span class="nc" id="L1177">			RasterizedGeometry2D rgeom = accel.getRasterizedGeometry();</span>
+<span class="nc bnc" id="L1178" title="All 2 branches missed.">			if (rgeom != null) {</span>
+<span class="nc" id="L1179">				RasterizedGeometry2D.HitType hit = rgeom</span>
+<span class="nc" id="L1180">						.queryEnvelopeInGeometry(extent);</span>
+<span class="nc bnc" id="L1181" title="All 2 branches missed.">				if (hit == RasterizedGeometry2D.HitType.Inside) {</span>
+<span class="nc bnc" id="L1182" title="All 2 branches missed.">					if (geomtype != Geometry.Type.Polygon.value())</span>
+<span class="nc" id="L1183">						throw GeometryException.GeometryInternalError();</span>
+
+<span class="nc" id="L1185">					Polygon poly = new Polygon(geometry.getDescription());</span>
+<span class="nc" id="L1186">					poly.addEnvelope(extent, false);</span>
+<span class="nc" id="L1187">					return poly;</span>
+<span class="nc bnc" id="L1188" title="All 2 branches missed.">				} else if (hit == RasterizedGeometry2D.HitType.Outside) {</span>
+<span class="nc" id="L1189">					return geometry.createInstance();// outside of bounds.</span>
+														// return empty
+														// geometry.
+				}
+			}
+		}
+
+<span class="pc bpc" id="L1196" title="1 of 3 branches missed.">		switch (geomtype) {</span>
+		case Geometry.GeometryType.MultiPoint: {
+<span class="fc" id="L1198">			MultiPoint multi_point = (MultiPoint) geometry;</span>
+<span class="fc" id="L1199">			MultiPoint multi_point_out = null;</span>
+<span class="fc" id="L1200">			int npoints = multi_point.getPointCount();</span>
+<span class="fc" id="L1201">			AttributeStreamOfDbl xy = (AttributeStreamOfDbl) ((MultiPointImpl) multi_point</span>
+<span class="fc" id="L1202">					._getImpl())</span>
+<span class="fc" id="L1203">					.getAttributeStreamRef(VertexDescription.Semantics.POSITION);</span>
+			// create the new geometry only if there are points that has been
+			// clipped out.
+			// If all vertices are inside of the envelope, it returns the input
+			// multipoint.
+<span class="fc" id="L1208">			int ipoints0 = 0;</span>
+<span class="fc bfc" id="L1209" title="All 2 branches covered.">			for (int ipoints = 0; ipoints &lt; npoints; ipoints++) {</span>
+<span class="fc" id="L1210">				Point2D pt = new Point2D();</span>
+<span class="fc" id="L1211">				xy.read(2 * ipoints, pt);</span>
+
+<span class="fc bfc" id="L1213" title="All 2 branches covered.">				if (!extent.contains(pt)) {// vertex is outside of the envelope</span>
+<span class="fc bfc" id="L1214" title="All 2 branches covered.">					if (ipoints0 == 0)</span>
+<span class="fc" id="L1215">						multi_point_out = (MultiPoint) multi_point</span>
+<span class="fc" id="L1216">								.createInstance();</span>
+
+<span class="fc bfc" id="L1218" title="All 2 branches covered.">					if (ipoints0 &lt; ipoints)</span>
+<span class="fc" id="L1219">						multi_point_out.add(multi_point, ipoints0, ipoints);</span>
+
+<span class="fc" id="L1221">					ipoints0 = ipoints + 1;// ipoints0 contains index of vertex</span>
+											// right after the last clipped out
+											// vertex.
+				}
+			}
+
+			// add the rest of the batch to the result multipoint (only if
+			// something has been already clipped out)
+<span class="pc bpc" id="L1229" title="1 of 2 branches missed.">			if (ipoints0 &gt; 0)</span>
+<span class="fc" id="L1230">				multi_point_out.add(multi_point, ipoints0, npoints);</span>
+
+<span class="pc bpc" id="L1232" title="1 of 2 branches missed.">			if (ipoints0 == 0)</span>
+<span class="nc" id="L1233">				return multi_point;// everything is inside, so return the input</span>
+									// geometry
+			else
+<span class="fc" id="L1236">				return multi_point_out;// clipping has happend, return the</span>
+										// clipped geometry
+		}
+		case Geometry.GeometryType.Polygon:
+		case Geometry.GeometryType.Polyline:
+<span class="fc" id="L1241">			return clipMultiPath_((MultiPath) geometry, extent, tolerance,</span>
+					densify_dist);
+		default:
+<span class="nc" id="L1244">			assert (false);</span>
+<span class="nc" id="L1245">			throw GeometryException.GeometryInternalError();</span>
+		}
+	}
+
+	int compareVertices_(int v_1, int v_2) {
+<span class="fc" id="L1250">		Point2D pt_1 = new Point2D();</span>
+<span class="fc" id="L1251">		m_shape.getXY(v_1, pt_1);</span>
+<span class="fc" id="L1252">		Point2D pt_2 = new Point2D();</span>
+<span class="fc" id="L1253">		m_shape.getXY(v_2, pt_2);</span>
+<span class="fc" id="L1254">		int res = pt_1.compare(pt_2);</span>
+<span class="fc" id="L1255">		return res;</span>
+	}
+
+	static final class ClipperVertexComparer extends
+			AttributeStreamOfInt32.IntComparator {
+		Clipper m_clipper;
+
+<span class="fc" id="L1262">		ClipperVertexComparer(Clipper clipper) {</span>
+<span class="fc" id="L1263">			m_clipper = clipper;</span>
+<span class="fc" id="L1264">		}</span>
+
+		@Override
+		public int compare(int v1, int v2) {
+<span class="fc" id="L1268">			return m_clipper.compareVertices_(v1, v2);</span>
+		}
+
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

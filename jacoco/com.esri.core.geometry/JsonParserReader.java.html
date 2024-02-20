@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JsonParserReader.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">JsonParserReader.java</span></div><h1>JsonParserReader.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2017 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+import com.fasterxml.jackson.core.*;
+
+/**
+ * A throw in JsonReader built around the Jackson JsonParser.
+ * 
+ */
+public class JsonParserReader implements JsonReader {
+
+	private JsonParser m_jsonParser;
+
+<span class="fc" id="L37">	public JsonParserReader(JsonParser jsonParser) {</span>
+<span class="fc" id="L38">		m_jsonParser = jsonParser;</span>
+<span class="fc" id="L39">	}</span>
+	
+	/**
+	 * Creates a JsonReader for the string.
+	 * The nextToken is called by this method.
+	 */
+	public static JsonReader createFromString(String str) {
+		try {
+<span class="fc" id="L47">			JsonFactory factory = new JsonFactory();</span>
+<span class="fc" id="L48">			JsonParser jsonParser = factory.createParser(str);</span>
+	
+<span class="fc" id="L50">			jsonParser.nextToken();</span>
+<span class="fc" id="L51">			return new JsonParserReader(jsonParser);</span>
+		}
+<span class="nc" id="L53">		catch (Exception ex) {</span>
+<span class="nc" id="L54">			throw new JsonGeometryException(ex.getMessage());</span>
+		}
+	}
+	
+	/**
+	 * Creates a JsonReader for the string.
+	 * The nextToken is not called by this method.
+	 */
+	public static JsonReader createFromStringNNT(String str) {
+		try {
+<span class="nc" id="L64">			JsonFactory factory = new JsonFactory();</span>
+<span class="nc" id="L65">			JsonParser jsonParser = factory.createParser(str);</span>
+	
+<span class="nc" id="L67">			return new JsonParserReader(jsonParser);</span>
+		}
+<span class="nc" id="L69">		catch (Exception ex) {</span>
+<span class="nc" id="L70">			throw new JsonGeometryException(ex.getMessage());</span>
+		}
+	}
+	
+	private static Token mapToken(JsonToken token) {
+<span class="fc bfc" id="L75" title="All 2 branches covered.">		if (token == JsonToken.END_ARRAY)</span>
+<span class="fc" id="L76">			return Token.END_ARRAY;</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">		if (token == JsonToken.END_OBJECT)</span>
+<span class="fc" id="L78">			return Token.END_OBJECT;</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">		if (token == JsonToken.FIELD_NAME)</span>
+<span class="fc" id="L80">			return Token.FIELD_NAME;</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">		if (token == JsonToken.START_ARRAY)</span>
+<span class="fc" id="L82">			return Token.START_ARRAY;</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">		if (token == JsonToken.START_OBJECT)</span>
+<span class="fc" id="L84">			return Token.START_OBJECT;</span>
+<span class="pc bpc" id="L85" title="1 of 2 branches missed.">		if (token == JsonToken.VALUE_FALSE)</span>
+<span class="nc" id="L86">			return Token.VALUE_FALSE;</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">		if (token == JsonToken.VALUE_NULL)</span>
+<span class="fc" id="L88">			return Token.VALUE_NULL;</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">		if (token == JsonToken.VALUE_NUMBER_FLOAT)</span>
+<span class="fc" id="L90">			return Token.VALUE_NUMBER_FLOAT;</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">		if (token == JsonToken.VALUE_NUMBER_INT)</span>
+<span class="fc" id="L92">			return Token.VALUE_NUMBER_INT;</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">		if (token == JsonToken.VALUE_STRING)</span>
+<span class="fc" id="L94">			return Token.VALUE_STRING;</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">		if (token == JsonToken.VALUE_TRUE)</span>
+<span class="fc" id="L96">			return Token.VALUE_TRUE;</span>
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">		if (token == null)</span>
+<span class="fc" id="L98">			return null;</span>
+
+<span class="nc" id="L100">		throw new JsonGeometryException(&quot;unexpected token&quot;);</span>
+	}
+
+	@Override
+	public Token nextToken() throws JsonGeometryException {
+		try {
+<span class="fc" id="L106">			JsonToken token = m_jsonParser.nextToken();</span>
+<span class="fc" id="L107">			return mapToken(token);</span>
+<span class="nc" id="L108">		} catch (Exception ex) {</span>
+<span class="nc" id="L109">			throw new JsonGeometryException(ex);</span>
+		}
+	}
+
+	@Override
+	public Token currentToken() throws JsonGeometryException {
+		try {
+<span class="fc" id="L116">			return mapToken(m_jsonParser.getCurrentToken());</span>
+<span class="nc" id="L117">		} catch (Exception ex) {</span>
+<span class="nc" id="L118">			throw new JsonGeometryException(ex);</span>
+		}
+	}
+
+	@Override
+	public void skipChildren() throws JsonGeometryException {
+		try {
+<span class="fc" id="L125">			m_jsonParser.skipChildren();</span>
+<span class="nc" id="L126">		} catch (Exception ex) {</span>
+<span class="nc" id="L127">			throw new JsonGeometryException(ex);</span>
+<span class="fc" id="L128">		}</span>
+
+<span class="fc" id="L130">	}</span>
+
+	@Override
+	public String currentString() throws JsonGeometryException {
+		try {
+<span class="fc" id="L135">			return m_jsonParser.getText();</span>
+<span class="nc" id="L136">		} catch (Exception ex) {</span>
+<span class="nc" id="L137">			throw new JsonGeometryException(ex);</span>
+		}
+
+	}
+
+	@Override
+	public double currentDoubleValue() throws JsonGeometryException {
+		try {
+<span class="fc" id="L145">			return m_jsonParser.getValueAsDouble();</span>
+<span class="nc" id="L146">		} catch (Exception ex) {</span>
+<span class="nc" id="L147">			throw new JsonGeometryException(ex);</span>
+		}
+
+	}
+
+	@Override
+	public int currentIntValue() throws JsonGeometryException {
+		try {
+<span class="fc" id="L155">			return m_jsonParser.getValueAsInt();</span>
+<span class="nc" id="L156">		} catch (Exception ex) {</span>
+<span class="nc" id="L157">			throw new JsonGeometryException(ex);</span>
+		}
+	}
+	
+	@Override
+	public boolean currentBooleanValue() {
+<span class="nc" id="L163">		Token t = currentToken();</span>
+<span class="nc bnc" id="L164" title="All 2 branches missed.">		if (t == Token.VALUE_TRUE)</span>
+<span class="nc" id="L165">			return true;</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">		else if (t == Token.VALUE_FALSE)</span>
+<span class="nc" id="L167">			return false;</span>
+<span class="nc" id="L168">		throw new JsonGeometryException(&quot;Not a boolean&quot;);</span>
+	}
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

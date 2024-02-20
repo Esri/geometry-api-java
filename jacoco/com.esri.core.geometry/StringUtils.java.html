@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StringUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">StringUtils.java</span></div><h1>StringUtils.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+import java.util.Locale;
+
+<span class="nc" id="L27">class StringUtils {</span>
+
+    static void appendDouble(double value, int precision,
+            StringBuilder stringBuilder) {
+<span class="pc bpc" id="L31" title="1 of 2 branches missed.">        if (precision &lt; 0) {</span>
+<span class="nc" id="L32">            precision = 0;</span>
+<span class="pc bpc" id="L33" title="1 of 2 branches missed.">        } else if (precision &gt; 17) {</span>
+<span class="nc" id="L34">            precision = 17;</span>
+        }
+
+<span class="fc" id="L37">        String format = &quot;%.&quot; + precision + &quot;g&quot;;</span>
+
+<span class="fc" id="L39">        String str_dbl = String.format(Locale.US, format, value);</span>
+
+<span class="fc" id="L41">        boolean b_found_dot = false;</span>
+<span class="fc" id="L42">        boolean b_found_exponent = false;</span>
+
+<span class="fc bfc" id="L44" title="All 2 branches covered.">        for (int i = 0; i &lt; str_dbl.length(); i++) {</span>
+<span class="fc" id="L45">            char c = str_dbl.charAt(i);</span>
+
+<span class="fc bfc" id="L47" title="All 2 branches covered.">            if (c == '.') {</span>
+<span class="fc" id="L48">                b_found_dot = true;</span>
+<span class="pc bpc" id="L49" title="2 of 4 branches missed.">            } else if (c == 'e' || c == 'E') {</span>
+<span class="nc" id="L50">                b_found_exponent = true;</span>
+<span class="nc" id="L51">                break;</span>
+            }
+        }
+
+<span class="pc bpc" id="L55" title="2 of 4 branches missed.">        if (b_found_dot &amp;&amp; !b_found_exponent) {</span>
+<span class="fc" id="L56">            StringBuilder buffer = removeTrailingZeros_(str_dbl);</span>
+<span class="fc" id="L57">            stringBuilder.append(buffer);</span>
+<span class="fc" id="L58">        } else {</span>
+<span class="nc" id="L59">            stringBuilder.append(str_dbl);</span>
+        }
+<span class="fc" id="L61">    }</span>
+
+    static void appendDoubleF(double value, int decimals,
+            StringBuilder stringBuilder) {
+<span class="nc bnc" id="L65" title="All 2 branches missed.">        if (decimals &lt; 0) {</span>
+<span class="nc" id="L66">            decimals = 0;</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        } else if (decimals &gt; 17) {</span>
+<span class="nc" id="L68">            decimals = 17;</span>
+        }
+
+<span class="nc" id="L71">        String format = &quot;%.&quot; + decimals + &quot;f&quot;;</span>
+
+<span class="nc" id="L73">        String str_dbl = String.format(Locale.US, format, value);</span>
+
+<span class="nc" id="L75">        boolean b_found_dot = false;</span>
+
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        for (int i = 0; i &lt; str_dbl.length(); i++) {</span>
+<span class="nc" id="L78">            char c = str_dbl.charAt(i);</span>
+
+<span class="nc bnc" id="L80" title="All 2 branches missed.">            if (c == '.') {</span>
+<span class="nc" id="L81">                b_found_dot = true;</span>
+<span class="nc" id="L82">                break;</span>
+            }
+        }
+
+<span class="nc bnc" id="L86" title="All 2 branches missed.">        if (b_found_dot) {</span>
+<span class="nc" id="L87">            StringBuilder buffer = removeTrailingZeros_(str_dbl);</span>
+<span class="nc" id="L88">            stringBuilder.append(buffer);</span>
+<span class="nc" id="L89">        } else {</span>
+<span class="nc" id="L90">            stringBuilder.append(str_dbl);</span>
+        }
+<span class="nc" id="L92">    }</span>
+
+    static private StringBuilder removeTrailingZeros_(String str_dbl) {
+<span class="fc" id="L95">        StringBuilder buffer = new StringBuilder(str_dbl);</span>
+<span class="fc" id="L96">        int non_zero = buffer.length() - 1;</span>
+
+<span class="fc bfc" id="L98" title="All 2 branches covered.">        while (buffer.charAt(non_zero) == '0') {</span>
+<span class="fc" id="L99">            non_zero--;</span>
+        }
+
+<span class="fc" id="L102">        buffer.delete(non_zero + 1, buffer.length());</span>
+
+<span class="fc bfc" id="L104" title="All 2 branches covered.">        if (buffer.charAt(non_zero) == '.') {</span>
+<span class="fc" id="L105">            buffer.deleteCharAt(non_zero);</span>
+        }
+
+<span class="fc" id="L108">        return buffer;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

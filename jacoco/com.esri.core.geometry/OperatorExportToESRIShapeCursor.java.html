@@ -1,0 +1,903 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OperatorExportToESRIShapeCursor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">OperatorExportToESRIShapeCursor.java</span></div><h1>OperatorExportToESRIShapeCursor.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+import com.esri.core.geometry.VertexDescription.Semantics;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
+class OperatorExportToESRIShapeCursor extends ByteBufferCursor {
+	GeometryCursor m_inputGeometryCursor;
+	int m_exportFlags;
+	int m_index;
+	ByteBuffer m_shapeBuffer;
+
+	public OperatorExportToESRIShapeCursor(int exportFlags,
+<span class="nc" id="L38">			GeometryCursor geometryCursor) {</span>
+<span class="nc" id="L39">		m_index = -1;</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">		if (geometryCursor == null)</span>
+<span class="nc" id="L41">			throw new GeometryException(&quot;invalid argument&quot;);</span>
+
+<span class="nc" id="L43">		m_exportFlags = exportFlags;</span>
+<span class="nc" id="L44">		m_inputGeometryCursor = geometryCursor;</span>
+<span class="nc" id="L45">		m_shapeBuffer = null;</span>
+<span class="nc" id="L46">	}</span>
+
+	@Override
+	public int getByteBufferID() {
+<span class="nc" id="L50">		return m_index;</span>
+	}
+
+	@Override
+	public ByteBuffer next() {
+<span class="nc" id="L55">		Geometry geometry = m_inputGeometryCursor.next();</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">		if (geometry != null) {</span>
+<span class="nc" id="L57">			m_index = m_inputGeometryCursor.getGeometryID();</span>
+
+<span class="nc" id="L59">			int size = exportToESRIShape(m_exportFlags, geometry, null);</span>
+<span class="nc bnc" id="L60" title="All 4 branches missed.">			if (m_shapeBuffer == null || size &gt; m_shapeBuffer.capacity())</span>
+<span class="nc" id="L61">				m_shapeBuffer = ByteBuffer.allocate(size).order(</span>
+						ByteOrder.LITTLE_ENDIAN);
+<span class="nc" id="L63">			exportToESRIShape(m_exportFlags, geometry, m_shapeBuffer);</span>
+<span class="nc" id="L64">			return m_shapeBuffer;</span>
+		}
+<span class="nc" id="L66">		return null;</span>
+	}
+
+	static int exportToESRIShape(int exportFlags, Geometry geometry,
+			ByteBuffer shapeBuffer) {
+<span class="pc bpc" id="L71" title="1 of 2 branches missed.">		if (geometry == null) {</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">			if (shapeBuffer != null)</span>
+<span class="nc" id="L73">				shapeBuffer.putInt(0, ShapeType.ShapeNull);</span>
+
+<span class="nc" id="L75">			return 4;</span>
+		}
+
+<span class="fc" id="L78">		int type = geometry.getType().value();</span>
+<span class="pc bpc" id="L79" title="1 of 6 branches missed.">		switch (type) {</span>
+		case Geometry.GeometryType.Polygon:
+<span class="fc" id="L81">			return exportMultiPathToESRIShape(true, exportFlags,</span>
+					(MultiPath) geometry, shapeBuffer);
+		case Geometry.GeometryType.Polyline:
+<span class="fc" id="L84">			return exportMultiPathToESRIShape(false, exportFlags,</span>
+					(MultiPath) geometry, shapeBuffer);
+		case Geometry.GeometryType.MultiPoint:
+<span class="fc" id="L87">			return exportMultiPointToESRIShape(exportFlags,</span>
+					(MultiPoint) geometry, shapeBuffer);
+		case Geometry.GeometryType.Point:
+<span class="fc" id="L90">			return exportPointToESRIShape(exportFlags, (Point) geometry,</span>
+					shapeBuffer);
+		case Geometry.GeometryType.Envelope:
+<span class="fc" id="L93">			return exportEnvelopeToESRIShape(exportFlags, (Envelope) geometry,</span>
+					shapeBuffer);
+		default: {
+<span class="nc" id="L96">			throw GeometryException.GeometryInternalError();</span>
+			// return -1;
+		}
+		}
+	}
+
+	private static int exportEnvelopeToESRIShape(int exportFlags,
+			Envelope envelope, ByteBuffer shapeBuffer) {
+<span class="pc bpc" id="L104" title="2 of 4 branches missed.">		boolean bExportZs = envelope.hasAttribute(Semantics.Z)</span>
+				&amp;&amp; (exportFlags &amp; ShapeExportFlags.ShapeExportStripZs) == 0;
+<span class="pc bpc" id="L106" title="2 of 4 branches missed.">		boolean bExportMs = envelope.hasAttribute(Semantics.M)</span>
+				&amp;&amp; (exportFlags &amp; ShapeExportFlags.ShapeExportStripMs) == 0;
+<span class="pc bpc" id="L108" title="2 of 4 branches missed.">		boolean bExportIDs = envelope.hasAttribute(Semantics.ID)</span>
+				&amp;&amp; (exportFlags &amp; ShapeExportFlags.ShapeExportStripIDs) == 0;
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">		boolean bArcViewNaNs = (exportFlags &amp; ShapeExportFlags.ShapeExportTrueNaNs) == 0;</span>
+
+<span class="fc" id="L112">		boolean bEmpty = envelope.isEmpty();</span>
+<span class="pc bpc" id="L113" title="1 of 2 branches missed.">		int partCount = bEmpty ? 0 : 1;</span>
+<span class="pc bpc" id="L114" title="1 of 2 branches missed.">		int pointCount = bEmpty ? 0 : 5;</span>
+
+<span class="fc" id="L116">		int size = (4 /* type */) + (4 * 8 /* envelope */) + (4 /* part count */)</span>
+				+ (4 /* point count */) + (partCount * 4 /* start indices */)
+				+ pointCount * 2 * 8 /* xy coordinates */;
+
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">		if (bExportZs)</span>
+<span class="fc" id="L121">			size += (2 * 8 /* min max */) + (pointCount * 8 /* zs */);</span>
+<span class="pc bpc" id="L122" title="1 of 2 branches missed.">		if (bExportMs)</span>
+<span class="fc" id="L123">			size += (2 * 8 /* min max */) + (pointCount * 8 /* ms */);</span>
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">		if (bExportIDs)</span>
+<span class="fc" id="L125">			size += (pointCount * 4 /* ids */);</span>
+
+<span class="fc bfc" id="L127" title="All 2 branches covered.">		if (shapeBuffer == null)</span>
+<span class="fc" id="L128">			return size;</span>
+<span class="pc bpc" id="L129" title="1 of 2 branches missed.">		else if (shapeBuffer.capacity() &lt; size)</span>
+<span class="nc" id="L130">			throw new GeometryException(&quot;buffer is too small&quot;);</span>
+
+		int type;
+
+		// Determine the shape type
+<span class="pc bpc" id="L135" title="3 of 4 branches missed.">		if (!bExportZs &amp;&amp; !bExportMs) {</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">			if (bExportIDs)</span>
+<span class="nc" id="L137">				type = ShapeType.ShapeGeneralPolygon</span>
+						| ShapeModifiers.ShapeHasIDs;
+			else
+<span class="nc" id="L140">				type = ShapeType.ShapePolygon;</span>
+<span class="pc bpc" id="L141" title="2 of 4 branches missed.">		} else if (bExportZs &amp;&amp; !bExportMs) {</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">			if (bExportIDs)</span>
+<span class="nc" id="L143">				type = ShapeType.ShapeGeneralPolygon</span>
+						| ShapeModifiers.ShapeHasZs
+						| ShapeModifiers.ShapeHasIDs;
+			else
+<span class="nc" id="L147">				type = ShapeType.ShapePolygonZ;</span>
+<span class="pc bpc" id="L148" title="2 of 4 branches missed.">		} else if (bExportMs &amp;&amp; !bExportZs) {</span>
+<span class="nc bnc" id="L149" title="All 2 branches missed.">			if (bExportIDs)</span>
+<span class="nc" id="L150">				type = ShapeType.ShapeGeneralPolygon</span>
+						| ShapeModifiers.ShapeHasMs
+						| ShapeModifiers.ShapeHasIDs;
+			else
+<span class="nc" id="L154">				type = ShapeType.ShapePolygonM;</span>
+		} else {
+<span class="pc bpc" id="L156" title="1 of 2 branches missed.">			if (bExportIDs)</span>
+<span class="fc" id="L157">				type = ShapeType.ShapeGeneralPolygon</span>
+						| ShapeModifiers.ShapeHasZs | ShapeModifiers.ShapeHasMs
+						| ShapeModifiers.ShapeHasIDs;
+			else
+<span class="nc" id="L161">				type = ShapeType.ShapePolygonZM;</span>
+		}
+
+<span class="fc" id="L164">		int offset = 0;</span>
+
+		// write type
+<span class="fc" id="L167">		shapeBuffer.putInt(offset, type);</span>
+<span class="fc" id="L168">		offset += 4;</span>
+
+		// write Envelope
+<span class="fc" id="L171">		Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L172">		envelope.queryEnvelope2D(env); // calls _VerifyAllStreams</span>
+<span class="fc" id="L173">		shapeBuffer.putDouble(offset, env.xmin);</span>
+<span class="fc" id="L174">		offset += 8;</span>
+<span class="fc" id="L175">		shapeBuffer.putDouble(offset, env.ymin);</span>
+<span class="fc" id="L176">		offset += 8;</span>
+<span class="fc" id="L177">		shapeBuffer.putDouble(offset, env.xmax);</span>
+<span class="fc" id="L178">		offset += 8;</span>
+<span class="fc" id="L179">		shapeBuffer.putDouble(offset, env.ymax);</span>
+<span class="fc" id="L180">		offset += 8;</span>
+
+		// write part count
+<span class="fc" id="L183">		shapeBuffer.putInt(offset, partCount);</span>
+<span class="fc" id="L184">		offset += 4;</span>
+
+		// write pointCount
+<span class="fc" id="L187">		shapeBuffer.putInt(offset, pointCount);</span>
+<span class="fc" id="L188">		offset += 4;</span>
+
+<span class="pc bpc" id="L190" title="1 of 2 branches missed.">		if (!bEmpty) {</span>
+			// write start index
+<span class="fc" id="L192">			shapeBuffer.putInt(offset, 0);</span>
+<span class="fc" id="L193">			offset += 4;</span>
+
+			// write xy coordinates
+<span class="fc" id="L196">			shapeBuffer.putDouble(offset, env.xmin);</span>
+<span class="fc" id="L197">			offset += 8;</span>
+<span class="fc" id="L198">			shapeBuffer.putDouble(offset, env.ymin);</span>
+<span class="fc" id="L199">			offset += 8;</span>
+
+<span class="fc" id="L201">			shapeBuffer.putDouble(offset, env.xmin);</span>
+<span class="fc" id="L202">			offset += 8;</span>
+<span class="fc" id="L203">			shapeBuffer.putDouble(offset, env.ymax);</span>
+<span class="fc" id="L204">			offset += 8;</span>
+
+<span class="fc" id="L206">			shapeBuffer.putDouble(offset, env.xmax);</span>
+<span class="fc" id="L207">			offset += 8;</span>
+<span class="fc" id="L208">			shapeBuffer.putDouble(offset, env.ymax);</span>
+<span class="fc" id="L209">			offset += 8;</span>
+
+<span class="fc" id="L211">			shapeBuffer.putDouble(offset, env.xmax);</span>
+<span class="fc" id="L212">			offset += 8;</span>
+<span class="fc" id="L213">			shapeBuffer.putDouble(offset, env.ymin);</span>
+<span class="fc" id="L214">			offset += 8;</span>
+
+<span class="fc" id="L216">			shapeBuffer.putDouble(offset, env.xmin);</span>
+<span class="fc" id="L217">			offset += 8;</span>
+<span class="fc" id="L218">			shapeBuffer.putDouble(offset, env.ymin);</span>
+<span class="fc" id="L219">			offset += 8;</span>
+		}
+		// write Zs
+<span class="pc bpc" id="L222" title="1 of 2 branches missed.">		if (bExportZs) {</span>
+			Envelope1D zInterval;
+<span class="fc" id="L224">			zInterval = envelope.queryInterval(Semantics.Z, 0);</span>
+
+<span class="pc bpc" id="L226" title="1 of 2 branches missed.">			double zmin = bArcViewNaNs ? Interop</span>
+<span class="pc" id="L227">					.translateToAVNaN(zInterval.vmin) : zInterval.vmin;</span>
+<span class="pc bpc" id="L228" title="1 of 2 branches missed.">			double zmax = bArcViewNaNs ? Interop</span>
+<span class="pc" id="L229">					.translateToAVNaN(zInterval.vmax) : zInterval.vmax;</span>
+
+			// write min max values
+<span class="fc" id="L232">			shapeBuffer.putDouble(offset, zmin);</span>
+<span class="fc" id="L233">			offset += 8;</span>
+<span class="fc" id="L234">			shapeBuffer.putDouble(offset, zmax);</span>
+<span class="fc" id="L235">			offset += 8;</span>
+
+<span class="pc bpc" id="L237" title="1 of 2 branches missed.">			if (!bEmpty) {</span>
+				// write arbitrary z values
+<span class="fc" id="L239">				shapeBuffer.putDouble(offset, zmin);</span>
+<span class="fc" id="L240">				offset += 8;</span>
+<span class="fc" id="L241">				shapeBuffer.putDouble(offset, zmax);</span>
+<span class="fc" id="L242">				offset += 8;</span>
+<span class="fc" id="L243">				shapeBuffer.putDouble(offset, zmin);</span>
+<span class="fc" id="L244">				offset += 8;</span>
+<span class="fc" id="L245">				shapeBuffer.putDouble(offset, zmax);</span>
+<span class="fc" id="L246">				offset += 8;</span>
+<span class="fc" id="L247">				shapeBuffer.putDouble(offset, zmin);</span>
+<span class="fc" id="L248">				offset += 8;</span>
+			}
+		}
+		// write Ms
+<span class="pc bpc" id="L252" title="1 of 2 branches missed.">		if (bExportMs) {</span>
+			Envelope1D mInterval;
+<span class="fc" id="L254">			mInterval = envelope.queryInterval(Semantics.M, 0);</span>
+
+<span class="pc bpc" id="L256" title="1 of 2 branches missed.">			double mmin = bArcViewNaNs ? Interop</span>
+<span class="pc" id="L257">					.translateToAVNaN(mInterval.vmin) : mInterval.vmin;</span>
+<span class="pc bpc" id="L258" title="1 of 2 branches missed.">			double mmax = bArcViewNaNs ? Interop</span>
+<span class="pc" id="L259">					.translateToAVNaN(mInterval.vmax) : mInterval.vmax;</span>
+
+			// write min max values
+<span class="fc" id="L262">			shapeBuffer.putDouble(offset, mmin);</span>
+<span class="fc" id="L263">			offset += 8;</span>
+<span class="fc" id="L264">			shapeBuffer.putDouble(offset, mmax);</span>
+<span class="fc" id="L265">			offset += 8;</span>
+
+<span class="pc bpc" id="L267" title="1 of 2 branches missed.">			if (!bEmpty) {</span>
+				// write arbitrary m values
+<span class="fc" id="L269">				shapeBuffer.putDouble(offset, mmin);</span>
+<span class="fc" id="L270">				offset += 8;</span>
+<span class="fc" id="L271">				shapeBuffer.putDouble(offset, mmax);</span>
+<span class="fc" id="L272">				offset += 8;</span>
+<span class="fc" id="L273">				shapeBuffer.putDouble(offset, mmin);</span>
+<span class="fc" id="L274">				offset += 8;</span>
+<span class="fc" id="L275">				shapeBuffer.putDouble(offset, mmax);</span>
+<span class="fc" id="L276">				offset += 8;</span>
+<span class="fc" id="L277">				shapeBuffer.putDouble(offset, mmin);</span>
+<span class="fc" id="L278">				offset += 8;</span>
+			}
+		}
+
+		// write IDs
+<span class="pc bpc" id="L283" title="2 of 4 branches missed.">		if (bExportIDs &amp;&amp; !bEmpty) {</span>
+			Envelope1D idInterval;
+<span class="fc" id="L285">			idInterval = envelope.queryInterval(Semantics.ID, 0);</span>
+
+<span class="fc" id="L287">			int idmin = (int) idInterval.vmin;</span>
+<span class="fc" id="L288">			int idmax = (int) idInterval.vmax;</span>
+
+			// write arbitrary id values
+<span class="fc" id="L291">			shapeBuffer.putInt(offset, idmin);</span>
+<span class="fc" id="L292">			offset += 4;</span>
+<span class="fc" id="L293">			shapeBuffer.putInt(offset, idmax);</span>
+<span class="fc" id="L294">			offset += 4;</span>
+<span class="fc" id="L295">			shapeBuffer.putInt(offset, idmin);</span>
+<span class="fc" id="L296">			offset += 4;</span>
+<span class="fc" id="L297">			shapeBuffer.putInt(offset, idmax);</span>
+<span class="fc" id="L298">			offset += 4;</span>
+<span class="fc" id="L299">			shapeBuffer.putInt(offset, idmin);</span>
+<span class="fc" id="L300">			offset += 4;</span>
+		}
+
+<span class="fc" id="L303">		return offset;</span>
+	}
+
+	private static int exportPointToESRIShape(int exportFlags, Point point,
+			ByteBuffer shapeBuffer) {
+<span class="pc bpc" id="L308" title="2 of 4 branches missed.">		boolean bExportZ = point.hasAttribute(Semantics.Z)</span>
+				&amp;&amp; (exportFlags &amp; ShapeExportFlags.ShapeExportStripZs) == 0;
+<span class="pc bpc" id="L310" title="2 of 4 branches missed.">		boolean bExportM = point.hasAttribute(Semantics.M)</span>
+				&amp;&amp; (exportFlags &amp; ShapeExportFlags.ShapeExportStripMs) == 0;
+<span class="pc bpc" id="L312" title="2 of 4 branches missed.">		boolean bExportID = point.hasAttribute(Semantics.ID)</span>
+				&amp;&amp; (exportFlags &amp; ShapeExportFlags.ShapeExportStripIDs) == 0;
+<span class="pc bpc" id="L314" title="1 of 2 branches missed.">		boolean bArcViewNaNs = (exportFlags &amp; ShapeExportFlags.ShapeExportTrueNaNs) == 0;</span>
+
+<span class="fc" id="L316">		int size = (4 /* type */) + (2 * 8 /* xy coordinate */);</span>
+
+<span class="pc bpc" id="L318" title="1 of 2 branches missed.">		if (bExportZ)</span>
+<span class="fc" id="L319">			size += 8;</span>
+<span class="pc bpc" id="L320" title="1 of 2 branches missed.">		if (bExportM)</span>
+<span class="fc" id="L321">			size += 8;</span>
+<span class="pc bpc" id="L322" title="1 of 2 branches missed.">		if (bExportID)</span>
+<span class="fc" id="L323">			size += 4;</span>
+
+<span class="fc bfc" id="L325" title="All 2 branches covered.">		if (shapeBuffer == null)</span>
+<span class="fc" id="L326">			return size;</span>
+<span class="pc bpc" id="L327" title="1 of 2 branches missed.">		else if (shapeBuffer.capacity() &lt; size)</span>
+<span class="nc" id="L328">			throw new GeometryException(&quot;buffer is too small&quot;);</span>
+
+		int type;
+
+		// Determine the shape type
+<span class="pc bpc" id="L333" title="3 of 4 branches missed.">		if (!bExportZ &amp;&amp; !bExportM) {</span>
+<span class="nc bnc" id="L334" title="All 2 branches missed.">			if (bExportID)</span>
+<span class="nc" id="L335">				type = ShapeType.ShapeGeneralPoint | ShapeModifiers.ShapeHasIDs;</span>
+			else
+<span class="nc" id="L337">				type = ShapeType.ShapePoint;</span>
+<span class="pc bpc" id="L338" title="2 of 4 branches missed.">		} else if (bExportZ &amp;&amp; !bExportM) {</span>
+<span class="nc bnc" id="L339" title="All 2 branches missed.">			if (bExportID)</span>
+<span class="nc" id="L340">				type = ShapeType.ShapeGeneralPoint | ShapeModifiers.ShapeHasZs</span>
+						| ShapeModifiers.ShapeHasIDs;
+			else
+<span class="nc" id="L343">				type = ShapeType.ShapePointZ;</span>
+<span class="pc bpc" id="L344" title="2 of 4 branches missed.">		} else if (bExportM &amp;&amp; !bExportZ) {</span>
+<span class="nc bnc" id="L345" title="All 2 branches missed.">			if (bExportID)</span>
+<span class="nc" id="L346">				type = ShapeType.ShapeGeneralPoint | ShapeModifiers.ShapeHasMs</span>
+						| ShapeModifiers.ShapeHasIDs;
+			else
+<span class="nc" id="L349">				type = ShapeType.ShapePointM;</span>
+		} else {
+<span class="pc bpc" id="L351" title="1 of 2 branches missed.">			if (bExportID)</span>
+<span class="fc" id="L352">				type = ShapeType.ShapeGeneralPoint | ShapeModifiers.ShapeHasZs</span>
+						| ShapeModifiers.ShapeHasMs
+						| ShapeModifiers.ShapeHasIDs;
+			else
+<span class="nc" id="L356">				type = ShapeType.ShapePointZM;</span>
+		}
+
+<span class="fc" id="L359">		int offset = 0;</span>
+
+		// write type
+
+<span class="fc" id="L363">		shapeBuffer.putInt(offset, type);</span>
+<span class="fc" id="L364">		offset += 4;</span>
+
+<span class="fc" id="L366">		boolean bEmpty = point.isEmpty();</span>
+
+		// write xy
+<span class="pc bpc" id="L369" title="1 of 2 branches missed.">		double x = !bEmpty ? point.getX() : NumberUtils.NaN();</span>
+<span class="pc bpc" id="L370" title="1 of 2 branches missed.">		double y = !bEmpty ? point.getY() : NumberUtils.NaN();</span>
+<span class="fc" id="L371">		shapeBuffer.putDouble(offset,</span>
+<span class="pc bpc" id="L372" title="1 of 2 branches missed.">				bArcViewNaNs ? Interop.translateToAVNaN(x) : x);</span>
+<span class="fc" id="L373">		offset += 8;</span>
+<span class="fc" id="L374">		shapeBuffer.putDouble(offset,</span>
+<span class="pc bpc" id="L375" title="1 of 2 branches missed.">				bArcViewNaNs ? Interop.translateToAVNaN(y) : y);</span>
+<span class="fc" id="L376">		offset += 8;</span>
+
+		// write Z
+<span class="pc bpc" id="L379" title="1 of 2 branches missed.">		if (bExportZ) {</span>
+<span class="pc bpc" id="L380" title="1 of 2 branches missed.">			double z = !bEmpty ? point.getZ() : NumberUtils.NaN();</span>
+<span class="fc" id="L381">			shapeBuffer.putDouble(offset,</span>
+<span class="pc bpc" id="L382" title="1 of 2 branches missed.">					bArcViewNaNs ? Interop.translateToAVNaN(z) : z);</span>
+<span class="fc" id="L383">			offset += 8;</span>
+		}
+
+		// WriteM
+<span class="pc bpc" id="L387" title="1 of 2 branches missed.">		if (bExportM) {</span>
+<span class="pc bpc" id="L388" title="1 of 2 branches missed.">			double m = !bEmpty ? point.getM() : NumberUtils.NaN();</span>
+<span class="fc" id="L389">			shapeBuffer.putDouble(offset,</span>
+<span class="pc bpc" id="L390" title="1 of 2 branches missed.">					bArcViewNaNs ? Interop.translateToAVNaN(m) : m);</span>
+<span class="fc" id="L391">			offset += 8;</span>
+		}
+
+		// write ID
+<span class="pc bpc" id="L395" title="1 of 2 branches missed.">		if (bExportID) {</span>
+<span class="pc bpc" id="L396" title="1 of 2 branches missed.">			int id = !bEmpty ? point.getID() : 0;</span>
+<span class="fc" id="L397">			shapeBuffer.putInt(offset, id);</span>
+<span class="fc" id="L398">			offset += 4;</span>
+		}
+
+<span class="fc" id="L401">		return offset;</span>
+	}
+
+	private static int exportMultiPointToESRIShape(int exportFlags,
+			MultiPoint multipoint, ByteBuffer shapeBuffer) {
+<span class="fc" id="L406">		MultiPointImpl multipointImpl = (MultiPointImpl) multipoint._getImpl();</span>
+<span class="pc bpc" id="L407" title="1 of 4 branches missed.">		boolean bExportZs = multipointImpl.hasAttribute(Semantics.Z)</span>
+				&amp;&amp; (exportFlags &amp; ShapeExportFlags.ShapeExportStripZs) == 0;
+<span class="pc bpc" id="L409" title="3 of 4 branches missed.">		boolean bExportMs = multipointImpl.hasAttribute(Semantics.M)</span>
+				&amp;&amp; (exportFlags &amp; ShapeExportFlags.ShapeExportStripMs) == 0;
+<span class="pc bpc" id="L411" title="1 of 4 branches missed.">		boolean bExportIDs = multipointImpl.hasAttribute(Semantics.ID)</span>
+				&amp;&amp; (exportFlags &amp; ShapeExportFlags.ShapeExportStripIDs) == 0;
+<span class="pc bpc" id="L413" title="1 of 2 branches missed.">		boolean bArcViewNaNs = (exportFlags &amp; ShapeExportFlags.ShapeExportTrueNaNs) == 0;</span>
+
+<span class="fc" id="L415">		int pointCount = multipointImpl.getPointCount();</span>
+
+<span class="fc" id="L417">		int size = (4 /* type */) + (4 * 8 /* envelope */) + (4 /* point count */)</span>
+				+ (pointCount * 2 * 8 /* xy coordinates */);
+
+<span class="fc bfc" id="L420" title="All 2 branches covered.">		if (bExportZs)</span>
+<span class="fc" id="L421">			size += (2 * 8 /* min max */) + (pointCount * 8 /* zs */);</span>
+<span class="pc bpc" id="L422" title="1 of 2 branches missed.">		if (bExportMs)</span>
+<span class="nc" id="L423">			size += (2 * 8 /* min max */) + (pointCount * 8 /* ms */);</span>
+<span class="fc bfc" id="L424" title="All 2 branches covered.">		if (bExportIDs)</span>
+<span class="fc" id="L425">			size += pointCount * 4 /* ids */;</span>
+
+<span class="pc bpc" id="L427" title="1 of 2 branches missed.">		if (size &gt;= NumberUtils.intMax())</span>
+<span class="nc" id="L428">			throw new GeometryException(&quot;invalid call&quot;);</span>
+
+<span class="fc bfc" id="L430" title="All 2 branches covered.">		if (shapeBuffer == null)</span>
+<span class="fc" id="L431">			return size;</span>
+<span class="pc bpc" id="L432" title="1 of 2 branches missed.">		else if (shapeBuffer.capacity() &lt; size)</span>
+<span class="nc" id="L433">			throw new GeometryException(&quot;buffer is too small&quot;);</span>
+
+		int type;
+
+		// Determine the shape type
+<span class="pc bpc" id="L438" title="1 of 4 branches missed.">		if (!bExportZs &amp;&amp; !bExportMs) {</span>
+<span class="pc bpc" id="L439" title="1 of 2 branches missed.">			if (bExportIDs)</span>
+<span class="nc" id="L440">				type = ShapeType.ShapeGeneralMultiPoint</span>
+						| ShapeModifiers.ShapeHasIDs;
+			else
+<span class="fc" id="L443">				type = ShapeType.ShapeMultiPoint;</span>
+<span class="pc bpc" id="L444" title="2 of 4 branches missed.">		} else if (bExportZs &amp;&amp; !bExportMs) {</span>
+<span class="pc bpc" id="L445" title="1 of 2 branches missed.">			if (bExportIDs)</span>
+<span class="fc" id="L446">				type = ShapeType.ShapeGeneralMultiPoint</span>
+						| ShapeModifiers.ShapeHasZs
+						| ShapeModifiers.ShapeHasIDs;
+			else
+<span class="nc" id="L450">				type = ShapeType.ShapeMultiPointZ;</span>
+<span class="nc bnc" id="L451" title="All 4 branches missed.">		} else if (bExportMs &amp;&amp; !bExportZs) {</span>
+<span class="nc bnc" id="L452" title="All 2 branches missed.">			if (bExportIDs)</span>
+<span class="nc" id="L453">				type = ShapeType.ShapeGeneralMultiPoint</span>
+						| ShapeModifiers.ShapeHasMs
+						| ShapeModifiers.ShapeHasIDs;
+			else
+<span class="nc" id="L457">				type = ShapeType.ShapeMultiPointM;</span>
+		} else {
+<span class="nc bnc" id="L459" title="All 2 branches missed.">			if (bExportIDs)</span>
+<span class="nc" id="L460">				type = ShapeType.ShapeGeneralMultiPoint</span>
+						| ShapeModifiers.ShapeHasZs | ShapeModifiers.ShapeHasMs
+						| ShapeModifiers.ShapeHasIDs;
+			else
+<span class="nc" id="L464">				type = ShapeType.ShapeMultiPointZM;</span>
+		}
+
+		// write type
+<span class="fc" id="L468">		int offset = 0;</span>
+
+<span class="fc" id="L470">		shapeBuffer.putInt(offset, type);</span>
+<span class="fc" id="L471">		offset += 4;</span>
+
+		// write Envelope
+<span class="fc" id="L474">		Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L475">		multipointImpl.queryEnvelope2D(env); // calls _VerifyAllStreams</span>
+<span class="fc" id="L476">		shapeBuffer.putDouble(offset, env.xmin);</span>
+<span class="fc" id="L477">		offset += 8;</span>
+<span class="fc" id="L478">		shapeBuffer.putDouble(offset, env.ymin);</span>
+<span class="fc" id="L479">		offset += 8;</span>
+<span class="fc" id="L480">		shapeBuffer.putDouble(offset, env.xmax);</span>
+<span class="fc" id="L481">		offset += 8;</span>
+<span class="fc" id="L482">		shapeBuffer.putDouble(offset, env.ymax);</span>
+<span class="fc" id="L483">		offset += 8;</span>
+
+		// write point count
+<span class="fc" id="L486">		shapeBuffer.putInt(offset, pointCount);</span>
+<span class="fc" id="L487">		offset += 4;</span>
+
+<span class="pc bpc" id="L489" title="1 of 2 branches missed.">		if (pointCount &gt; 0) {</span>
+			// write xy coordinates
+<span class="fc" id="L491">			AttributeStreamBase positionStream = multipointImpl</span>
+<span class="fc" id="L492">					.getAttributeStreamRef(Semantics.POSITION);</span>
+<span class="fc" id="L493">			AttributeStreamOfDbl position = (AttributeStreamOfDbl) positionStream;</span>
+<span class="fc bfc" id="L494" title="All 2 branches covered.">			for (int i = 0; i &lt; pointCount; i++) {</span>
+<span class="fc" id="L495">				double x = position.read(2 * i);</span>
+<span class="fc" id="L496">				double y = position.read(2 * i + 1);</span>
+<span class="fc" id="L497">				shapeBuffer.putDouble(offset, x);</span>
+<span class="fc" id="L498">				offset += 8;</span>
+<span class="fc" id="L499">				shapeBuffer.putDouble(offset, y);</span>
+<span class="fc" id="L500">				offset += 8;</span>
+			}
+		}
+
+		// write Zs
+<span class="fc bfc" id="L505" title="All 2 branches covered.">		if (bExportZs) {</span>
+<span class="fc" id="L506">			Envelope1D zInterval = multipointImpl.queryInterval(Semantics.Z, 0);</span>
+<span class="fc" id="L507">			shapeBuffer.putDouble(offset,</span>
+<span class="pc bpc" id="L508" title="1 of 2 branches missed.">					bArcViewNaNs ? Interop.translateToAVNaN(zInterval.vmin)</span>
+<span class="nc" id="L509">							: zInterval.vmin);</span>
+<span class="fc" id="L510">			offset += 8;</span>
+<span class="fc" id="L511">			shapeBuffer.putDouble(offset,</span>
+<span class="pc bpc" id="L512" title="1 of 2 branches missed.">					bArcViewNaNs ? Interop.translateToAVNaN(zInterval.vmax)</span>
+<span class="nc" id="L513">							: zInterval.vmax);</span>
+<span class="fc" id="L514">			offset += 8;</span>
+
+<span class="pc bpc" id="L516" title="1 of 2 branches missed.">			if (pointCount &gt; 0) {</span>
+<span class="pc bpc" id="L517" title="1 of 2 branches missed.">				if (multipointImpl._attributeStreamIsAllocated(Semantics.Z)) {</span>
+<span class="fc" id="L518">					AttributeStreamOfDbl zs = (AttributeStreamOfDbl) multipointImpl</span>
+<span class="fc" id="L519">							.getAttributeStreamRef(Semantics.Z);</span>
+<span class="fc bfc" id="L520" title="All 2 branches covered.">					for (int i = 0; i &lt; pointCount; i++) {</span>
+<span class="fc" id="L521">						double z = zs.read(i);</span>
+<span class="fc" id="L522">						shapeBuffer.putDouble(offset,</span>
+<span class="pc bpc" id="L523" title="1 of 2 branches missed.">								bArcViewNaNs ? Interop.translateToAVNaN(z) : z);</span>
+<span class="fc" id="L524">						offset += 8;</span>
+					}
+<span class="fc" id="L526">				} else {</span>
+<span class="nc" id="L527">					double z = VertexDescription.getDefaultValue(Semantics.Z);</span>
+
+<span class="nc bnc" id="L529" title="All 2 branches missed.">					if (bArcViewNaNs)</span>
+<span class="nc" id="L530">						z = Interop.translateToAVNaN(z);</span>
+
+					// Can we write a function that writes all these values at
+					// once instead of doing a for loop?
+<span class="nc bnc" id="L534" title="All 2 branches missed.">					for (int i = 0; i &lt; pointCount; i++)</span>
+<span class="nc" id="L535">						shapeBuffer.putDouble(offset, z);</span>
+<span class="nc" id="L536">					offset += 8;</span>
+				}
+			}
+		}
+
+		// write Ms
+<span class="pc bpc" id="L542" title="1 of 2 branches missed.">		if (bExportMs) {</span>
+<span class="nc" id="L543">			Envelope1D mInterval = multipointImpl.queryInterval(Semantics.M, 0);</span>
+<span class="nc" id="L544">			shapeBuffer.putDouble(offset,</span>
+<span class="nc bnc" id="L545" title="All 2 branches missed.">					bArcViewNaNs ? Interop.translateToAVNaN(mInterval.vmin)</span>
+<span class="nc" id="L546">							: mInterval.vmin);</span>
+<span class="nc" id="L547">			offset += 8;</span>
+<span class="nc" id="L548">			shapeBuffer.putDouble(offset,</span>
+<span class="nc bnc" id="L549" title="All 2 branches missed.">					bArcViewNaNs ? Interop.translateToAVNaN(mInterval.vmax)</span>
+<span class="nc" id="L550">							: mInterval.vmax);</span>
+<span class="nc" id="L551">			offset += 8;</span>
+
+<span class="nc bnc" id="L553" title="All 2 branches missed.">			if (pointCount &gt; 0) {</span>
+<span class="nc bnc" id="L554" title="All 2 branches missed.">				if (multipointImpl._attributeStreamIsAllocated(Semantics.M)) {</span>
+<span class="nc" id="L555">					AttributeStreamOfDbl ms = (AttributeStreamOfDbl) multipointImpl</span>
+<span class="nc" id="L556">							.getAttributeStreamRef(Semantics.M);</span>
+<span class="nc bnc" id="L557" title="All 2 branches missed.">					for (int i = 0; i &lt; pointCount; i++) {</span>
+<span class="nc" id="L558">						double m = ms.read(i);</span>
+<span class="nc" id="L559">						shapeBuffer.putDouble(offset,</span>
+<span class="nc bnc" id="L560" title="All 2 branches missed.">								bArcViewNaNs ? Interop.translateToAVNaN(m) : m);</span>
+<span class="nc" id="L561">						offset += 8;</span>
+					}
+<span class="nc" id="L563">				} else {</span>
+<span class="nc" id="L564">					double m = VertexDescription.getDefaultValue(Semantics.M);</span>
+
+<span class="nc bnc" id="L566" title="All 2 branches missed.">					if (bArcViewNaNs)</span>
+<span class="nc" id="L567">						m = Interop.translateToAVNaN(m);</span>
+
+<span class="nc bnc" id="L569" title="All 2 branches missed.">					for (int i = 0; i &lt; pointCount; i++)</span>
+<span class="nc" id="L570">						shapeBuffer.putDouble(offset, m);</span>
+<span class="nc" id="L571">					offset += 8;</span>
+				}
+			}
+		}
+
+		// write IDs
+<span class="fc bfc" id="L577" title="All 2 branches covered.">		if (bExportIDs) {</span>
+<span class="pc bpc" id="L578" title="1 of 2 branches missed.">			if (pointCount &gt; 0) {</span>
+<span class="pc bpc" id="L579" title="1 of 2 branches missed.">				if (multipointImpl._attributeStreamIsAllocated(Semantics.ID)) {</span>
+<span class="fc" id="L580">					AttributeStreamOfInt32 ids = (AttributeStreamOfInt32) multipointImpl</span>
+<span class="fc" id="L581">							.getAttributeStreamRef(Semantics.ID);</span>
+<span class="fc bfc" id="L582" title="All 2 branches covered.">					for (int i = 0; i &lt; pointCount; i++) {</span>
+<span class="fc" id="L583">						int id = ids.read(i);</span>
+<span class="fc" id="L584">						shapeBuffer.putInt(offset, id);</span>
+<span class="fc" id="L585">						offset += 4;</span>
+					}
+<span class="fc" id="L587">				} else {</span>
+<span class="nc" id="L588">					int id = (int) VertexDescription</span>
+<span class="nc" id="L589">							.getDefaultValue(Semantics.ID);</span>
+<span class="nc bnc" id="L590" title="All 2 branches missed.">					for (int i = 0; i &lt; pointCount; i++)</span>
+<span class="nc" id="L591">						shapeBuffer.putInt(offset, id);</span>
+<span class="nc" id="L592">					offset += 4;</span>
+				}
+			}
+		}
+
+<span class="fc" id="L597">		return offset;</span>
+	}
+
+	private static int exportMultiPathToESRIShape(boolean bPolygon,
+			int exportFlags, MultiPath multipath, ByteBuffer shapeBuffer) {
+<span class="fc" id="L602">		MultiPathImpl multipathImpl = (MultiPathImpl) multipath._getImpl();</span>
+
+<span class="pc bpc" id="L604" title="1 of 4 branches missed.">		boolean bExportZs = multipathImpl.hasAttribute(Semantics.Z)</span>
+				&amp;&amp; (exportFlags &amp; ShapeExportFlags.ShapeExportStripZs) == 0;
+<span class="pc bpc" id="L606" title="1 of 4 branches missed.">		boolean bExportMs = multipathImpl.hasAttribute(Semantics.M)</span>
+				&amp;&amp; (exportFlags &amp; ShapeExportFlags.ShapeExportStripMs) == 0;
+<span class="pc bpc" id="L608" title="1 of 4 branches missed.">		boolean bExportIDs = multipathImpl.hasAttribute(Semantics.ID)</span>
+				&amp;&amp; (exportFlags &amp; ShapeExportFlags.ShapeExportStripIDs) == 0;
+<span class="fc" id="L610">		boolean bHasCurves = multipathImpl.hasNonLinearSegments();</span>
+<span class="pc bpc" id="L611" title="1 of 2 branches missed.">		boolean bArcViewNaNs = (exportFlags &amp; ShapeExportFlags.ShapeExportTrueNaNs) == 0;</span>
+
+<span class="fc" id="L613">		int partCount = multipathImpl.getPathCount();</span>
+<span class="fc" id="L614">		int pointCount = multipathImpl.getPointCount();</span>
+
+<span class="fc bfc" id="L616" title="All 2 branches covered.">		if (!bPolygon) {</span>
+<span class="fc bfc" id="L617" title="All 2 branches covered.">			for (int ipart = 0; ipart &lt; partCount; ipart++)</span>
+<span class="pc bpc" id="L618" title="1 of 2 branches missed.">				if (multipath.isClosedPath(ipart))</span>
+<span class="nc" id="L619">					pointCount++;</span>
+		} else
+<span class="fc" id="L621">			pointCount += partCount;</span>
+
+<span class="fc" id="L623">		int size = (4 /* type */) + (4 * 8 /* envelope */) + (4 /* part count */)</span>
+				+ (4 /* point count */) + (partCount * 4 /* start indices */)
+				+ pointCount * 2 * 8 /* xy coordinates */;
+
+<span class="fc bfc" id="L627" title="All 2 branches covered.">		if (bExportZs)</span>
+<span class="fc" id="L628">			size += (2 * 8 /* min max */) + (pointCount * 8 /* zs */);</span>
+<span class="fc bfc" id="L629" title="All 2 branches covered.">		if (bExportMs)</span>
+<span class="fc" id="L630">			size += (2 * 8 /* min max */) + (pointCount * 8 /* ms */);</span>
+<span class="fc bfc" id="L631" title="All 2 branches covered.">		if (bExportIDs)</span>
+<span class="fc" id="L632">			size += pointCount * 4 /* ids */;</span>
+<span class="pc bpc" id="L633" title="1 of 2 branches missed.">		if (bHasCurves) {</span>
+			// to-do: curves
+		}
+
+<span class="pc bpc" id="L637" title="1 of 2 branches missed.">		if (size &gt;= NumberUtils.intMax())</span>
+<span class="nc" id="L638">			throw new GeometryException(&quot;invalid call&quot;);</span>
+
+<span class="fc bfc" id="L640" title="All 2 branches covered.">		if (shapeBuffer == null)</span>
+<span class="fc" id="L641">			return size;</span>
+<span class="pc bpc" id="L642" title="1 of 2 branches missed.">		else if (shapeBuffer.capacity() &lt; size)</span>
+<span class="nc" id="L643">			throw new GeometryException(&quot;buffer is too small&quot;);</span>
+
+<span class="fc" id="L645">		int offset = 0;</span>
+
+		// Determine the shape type
+		int type;
+<span class="pc bpc" id="L649" title="1 of 4 branches missed.">		if (!bExportZs &amp;&amp; !bExportMs) {</span>
+<span class="pc bpc" id="L650" title="2 of 4 branches missed.">			if (bExportIDs || bHasCurves) {</span>
+<span class="nc bnc" id="L651" title="All 2 branches missed.">				type = bPolygon ? ShapeType.ShapeGeneralPolygon</span>
+<span class="nc" id="L652">						: ShapeType.ShapeGeneralPolyline;</span>
+<span class="nc bnc" id="L653" title="All 2 branches missed.">				if (bExportIDs)</span>
+<span class="nc" id="L654">					type |= ShapeModifiers.ShapeHasIDs;</span>
+<span class="nc bnc" id="L655" title="All 2 branches missed.">				if (bHasCurves)</span>
+<span class="nc" id="L656">					type |= ShapeModifiers.ShapeHasCurves;</span>
+			} else
+<span class="fc bfc" id="L658" title="All 2 branches covered.">				type = bPolygon ? ShapeType.ShapePolygon</span>
+<span class="fc" id="L659">						: ShapeType.ShapePolyline;</span>
+<span class="pc bpc" id="L660" title="2 of 4 branches missed.">		} else if (bExportZs &amp;&amp; !bExportMs) {</span>
+<span class="nc bnc" id="L661" title="All 4 branches missed.">			if (bExportIDs || bHasCurves) {</span>
+<span class="nc bnc" id="L662" title="All 2 branches missed.">				type = bPolygon ? ShapeType.ShapeGeneralPolygon</span>
+<span class="nc" id="L663">						: ShapeType.ShapeGeneralPolyline;</span>
+<span class="nc" id="L664">				type |= ShapeModifiers.ShapeHasZs;</span>
+<span class="nc bnc" id="L665" title="All 2 branches missed.">				if (bExportIDs)</span>
+<span class="nc" id="L666">					type |= ShapeModifiers.ShapeHasIDs;</span>
+<span class="nc bnc" id="L667" title="All 2 branches missed.">				if (bHasCurves)</span>
+<span class="nc" id="L668">					type |= ShapeModifiers.ShapeHasCurves;</span>
+			} else
+<span class="nc bnc" id="L670" title="All 2 branches missed.">				type = bPolygon ? ShapeType.ShapePolygonZ</span>
+<span class="nc" id="L671">						: ShapeType.ShapePolylineZ;</span>
+<span class="pc bpc" id="L672" title="2 of 4 branches missed.">		} else if (bExportMs &amp;&amp; !bExportZs) {</span>
+<span class="nc bnc" id="L673" title="All 4 branches missed.">			if (bExportIDs || bHasCurves) {</span>
+<span class="nc bnc" id="L674" title="All 2 branches missed.">				type = bPolygon ? ShapeType.ShapeGeneralPolygon</span>
+<span class="nc" id="L675">						: ShapeType.ShapeGeneralPolyline;</span>
+<span class="nc" id="L676">				type |= ShapeModifiers.ShapeHasMs;</span>
+<span class="nc bnc" id="L677" title="All 2 branches missed.">				if (bExportIDs)</span>
+<span class="nc" id="L678">					type |= ShapeModifiers.ShapeHasIDs;</span>
+<span class="nc bnc" id="L679" title="All 2 branches missed.">				if (bHasCurves)</span>
+<span class="nc" id="L680">					type |= ShapeModifiers.ShapeHasCurves;</span>
+			} else
+<span class="nc bnc" id="L682" title="All 2 branches missed.">				type = bPolygon ? ShapeType.ShapePolygonM</span>
+<span class="nc" id="L683">						: ShapeType.ShapePolylineM;</span>
+		} else {
+<span class="pc bpc" id="L685" title="1 of 4 branches missed.">			if (bExportIDs || bHasCurves) {</span>
+<span class="pc bpc" id="L686" title="1 of 2 branches missed.">				type = bPolygon ? ShapeType.ShapeGeneralPolygon</span>
+<span class="fc" id="L687">						: ShapeType.ShapeGeneralPolyline;</span>
+<span class="fc" id="L688">				type |= ShapeModifiers.ShapeHasZs | ShapeModifiers.ShapeHasMs;</span>
+<span class="pc bpc" id="L689" title="1 of 2 branches missed.">				if (bExportIDs)</span>
+<span class="fc" id="L690">					type |= ShapeModifiers.ShapeHasIDs;</span>
+<span class="pc bpc" id="L691" title="1 of 2 branches missed.">				if (bHasCurves)</span>
+<span class="nc" id="L692">					type |= ShapeModifiers.ShapeHasCurves;</span>
+			} else
+<span class="pc bpc" id="L694" title="1 of 2 branches missed.">				type = bPolygon ? ShapeType.ShapePolygonZM</span>
+<span class="pc" id="L695">						: ShapeType.ShapePolylineZM;</span>
+		}
+
+		// write type
+<span class="fc" id="L699">		shapeBuffer.putInt(offset, type);</span>
+<span class="fc" id="L700">		offset += 4;</span>
+
+		// write Envelope
+<span class="fc" id="L703">		Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L704">		multipathImpl.queryEnvelope2D(env); // calls _VerifyAllStreams</span>
+<span class="fc" id="L705">		shapeBuffer.putDouble(offset, env.xmin);</span>
+<span class="fc" id="L706">		offset += 8;</span>
+<span class="fc" id="L707">		shapeBuffer.putDouble(offset, env.ymin);</span>
+<span class="fc" id="L708">		offset += 8;</span>
+<span class="fc" id="L709">		shapeBuffer.putDouble(offset, env.xmax);</span>
+<span class="fc" id="L710">		offset += 8;</span>
+<span class="fc" id="L711">		shapeBuffer.putDouble(offset, env.ymax);</span>
+<span class="fc" id="L712">		offset += 8;</span>
+
+		// write part count
+<span class="fc" id="L715">		shapeBuffer.putInt(offset, partCount);</span>
+<span class="fc" id="L716">		offset += 4; // to-do: return error if larger than 2^32 - 1</span>
+
+		// write pointCount
+<span class="fc" id="L719">		shapeBuffer.putInt(offset, pointCount);</span>
+<span class="fc" id="L720">		offset += 4;</span>
+
+		// write start indices for each part
+<span class="fc" id="L723">		int pointIndexDelta = 0;</span>
+<span class="fc bfc" id="L724" title="All 2 branches covered.">		for (int ipart = 0; ipart &lt; partCount; ipart++) {</span>
+<span class="fc" id="L725">			int istart = multipathImpl.getPathStart(ipart) + pointIndexDelta;</span>
+<span class="fc" id="L726">			shapeBuffer.putInt(offset, istart);</span>
+<span class="fc" id="L727">			offset += 4;</span>
+<span class="pc bpc" id="L728" title="1 of 4 branches missed.">			if (bPolygon || multipathImpl.isClosedPath(ipart))</span>
+<span class="fc" id="L729">				pointIndexDelta++;</span>
+		}
+
+<span class="pc bpc" id="L732" title="1 of 2 branches missed.">		if (pointCount &gt; 0) {</span>
+			// write xy coordinates
+<span class="fc" id="L734">			AttributeStreamBase positionStream = multipathImpl</span>
+<span class="fc" id="L735">					.getAttributeStreamRef(Semantics.POSITION);</span>
+<span class="fc" id="L736">			AttributeStreamOfDbl position = (AttributeStreamOfDbl) positionStream;</span>
+
+<span class="fc bfc" id="L738" title="All 2 branches covered.">			for (int ipart = 0; ipart &lt; partCount; ipart++) {</span>
+<span class="fc" id="L739">				int partStart = multipathImpl.getPathStart(ipart);</span>
+<span class="fc" id="L740">				int partEnd = multipathImpl.getPathEnd(ipart);</span>
+<span class="fc bfc" id="L741" title="All 2 branches covered.">				for (int i = partStart; i &lt; partEnd; i++) {</span>
+<span class="fc" id="L742">					double x = position.read(2 * i);</span>
+<span class="fc" id="L743">					double y = position.read(2 * i + 1);</span>
+
+<span class="fc" id="L745">					shapeBuffer.putDouble(offset, x);</span>
+<span class="fc" id="L746">					offset += 8;</span>
+<span class="fc" id="L747">					shapeBuffer.putDouble(offset, y);</span>
+<span class="fc" id="L748">					offset += 8;</span>
+				}
+
+				// If the part is closed, then we need to duplicate the start
+				// point
+<span class="pc bpc" id="L753" title="1 of 4 branches missed.">				if (bPolygon || multipathImpl.isClosedPath(ipart)) {</span>
+<span class="fc" id="L754">					double x = position.read(2 * partStart);</span>
+<span class="fc" id="L755">					double y = position.read(2 * partStart + 1);</span>
+
+<span class="fc" id="L757">					shapeBuffer.putDouble(offset, x);</span>
+<span class="fc" id="L758">					offset += 8;</span>
+<span class="fc" id="L759">					shapeBuffer.putDouble(offset, y);</span>
+<span class="fc" id="L760">					offset += 8;</span>
+				}
+			}
+		}
+
+		// write Zs
+<span class="fc bfc" id="L766" title="All 2 branches covered.">		if (bExportZs) {</span>
+<span class="fc" id="L767">			Envelope1D zInterval = multipathImpl.queryInterval(Semantics.Z, 0);</span>
+<span class="fc" id="L768">			shapeBuffer.putDouble(offset,</span>
+<span class="pc bpc" id="L769" title="1 of 2 branches missed.">					bArcViewNaNs ? Interop.translateToAVNaN(zInterval.vmin)</span>
+<span class="nc" id="L770">							: zInterval.vmin);</span>
+<span class="fc" id="L771">			offset += 8;</span>
+<span class="fc" id="L772">			shapeBuffer.putDouble(offset,</span>
+<span class="pc bpc" id="L773" title="1 of 2 branches missed.">					bArcViewNaNs ? Interop.translateToAVNaN(zInterval.vmax)</span>
+<span class="nc" id="L774">							: zInterval.vmax);</span>
+<span class="fc" id="L775">			offset += 8;</span>
+
+<span class="pc bpc" id="L777" title="1 of 2 branches missed.">			if (pointCount &gt; 0) {</span>
+<span class="pc bpc" id="L778" title="1 of 2 branches missed.">				if (multipathImpl._attributeStreamIsAllocated(Semantics.Z)) {</span>
+<span class="fc" id="L779">					AttributeStreamOfDbl zs = (AttributeStreamOfDbl) multipathImpl</span>
+<span class="fc" id="L780">							.getAttributeStreamRef(Semantics.Z);</span>
+<span class="fc bfc" id="L781" title="All 2 branches covered.">					for (int ipart = 0; ipart &lt; partCount; ipart++) {</span>
+<span class="fc" id="L782">						int partStart = multipathImpl.getPathStart(ipart);</span>
+<span class="fc" id="L783">						int partEnd = multipathImpl.getPathEnd(ipart);</span>
+<span class="fc bfc" id="L784" title="All 2 branches covered.">						for (int i = partStart; i &lt; partEnd; i++) {</span>
+<span class="fc" id="L785">							double z = zs.read(i);</span>
+<span class="fc" id="L786">							shapeBuffer.putDouble(offset,</span>
+<span class="pc bpc" id="L787" title="1 of 2 branches missed.">									bArcViewNaNs ? Interop.translateToAVNaN(z)</span>
+<span class="nc" id="L788">											: z);</span>
+<span class="fc" id="L789">							offset += 8;</span>
+						}
+
+						// If the part is closed, then we need to duplicate the
+						// start z
+<span class="pc bpc" id="L794" title="1 of 4 branches missed.">						if (bPolygon || multipathImpl.isClosedPath(ipart)) {</span>
+<span class="fc" id="L795">							double z = zs.read(partStart);</span>
+<span class="fc" id="L796">							shapeBuffer.putDouble(offset, z);</span>
+<span class="fc" id="L797">							offset += 8;</span>
+						}
+					}
+<span class="fc" id="L800">				} else {</span>
+<span class="nc" id="L801">					double z = VertexDescription.getDefaultValue(Semantics.Z);</span>
+
+<span class="nc bnc" id="L803" title="All 2 branches missed.">					if (bArcViewNaNs)</span>
+<span class="nc" id="L804">						z = Interop.translateToAVNaN(z);</span>
+
+<span class="nc bnc" id="L806" title="All 2 branches missed.">					for (int i = 0; i &lt; pointCount; i++)</span>
+<span class="nc" id="L807">						shapeBuffer.putDouble(offset, z);</span>
+<span class="nc" id="L808">					offset += 8;</span>
+				}
+			}
+		}
+
+		// write Ms
+<span class="fc bfc" id="L814" title="All 2 branches covered.">		if (bExportMs) {</span>
+<span class="fc" id="L815">			Envelope1D mInterval = multipathImpl.queryInterval(Semantics.M, 0);</span>
+<span class="fc" id="L816">			shapeBuffer.putDouble(offset,</span>
+<span class="pc bpc" id="L817" title="1 of 2 branches missed.">					bArcViewNaNs ? Interop.translateToAVNaN(mInterval.vmin)</span>
+<span class="nc" id="L818">							: mInterval.vmin);</span>
+<span class="fc" id="L819">			offset += 8;</span>
+<span class="fc" id="L820">			shapeBuffer.putDouble(offset,</span>
+<span class="pc bpc" id="L821" title="1 of 2 branches missed.">					bArcViewNaNs ? Interop.translateToAVNaN(mInterval.vmax)</span>
+<span class="nc" id="L822">							: mInterval.vmax);</span>
+<span class="fc" id="L823">			offset += 8;</span>
+
+<span class="pc bpc" id="L825" title="1 of 2 branches missed.">			if (pointCount &gt; 0) {</span>
+<span class="pc bpc" id="L826" title="1 of 2 branches missed.">				if (multipathImpl._attributeStreamIsAllocated(Semantics.M)) {</span>
+<span class="fc" id="L827">					AttributeStreamOfDbl ms = (AttributeStreamOfDbl) multipathImpl</span>
+<span class="fc" id="L828">							.getAttributeStreamRef(Semantics.M);</span>
+<span class="fc bfc" id="L829" title="All 2 branches covered.">					for (int ipart = 0; ipart &lt; partCount; ipart++) {</span>
+<span class="fc" id="L830">						int partStart = multipathImpl.getPathStart(ipart);</span>
+<span class="fc" id="L831">						int partEnd = multipathImpl.getPathEnd(ipart);</span>
+<span class="fc bfc" id="L832" title="All 2 branches covered.">						for (int i = partStart; i &lt; partEnd; i++) {</span>
+<span class="fc" id="L833">							double m = ms.read(i);</span>
+<span class="fc" id="L834">							shapeBuffer.putDouble(offset,</span>
+<span class="pc bpc" id="L835" title="1 of 2 branches missed.">									bArcViewNaNs ? Interop.translateToAVNaN(m)</span>
+<span class="nc" id="L836">											: m);</span>
+<span class="fc" id="L837">							offset += 8;</span>
+						}
+
+						// If the part is closed, then we need to duplicate the
+						// start m
+<span class="pc bpc" id="L842" title="1 of 4 branches missed.">						if (bPolygon || multipathImpl.isClosedPath(ipart)) {</span>
+<span class="fc" id="L843">							double m = ms.read(partStart);</span>
+<span class="fc" id="L844">							shapeBuffer.putDouble(offset, m);</span>
+<span class="fc" id="L845">							offset += 8;</span>
+						}
+					}
+<span class="fc" id="L848">				} else {</span>
+<span class="nc" id="L849">					double m = VertexDescription.getDefaultValue(Semantics.M);</span>
+
+<span class="nc bnc" id="L851" title="All 2 branches missed.">					if (bArcViewNaNs)</span>
+<span class="nc" id="L852">						m = Interop.translateToAVNaN(m);</span>
+
+<span class="nc bnc" id="L854" title="All 2 branches missed.">					for (int i = 0; i &lt; pointCount; i++)</span>
+<span class="nc" id="L855">						shapeBuffer.putDouble(offset, m);</span>
+<span class="nc" id="L856">					offset += 8;</span>
+				}
+			}
+		}
+
+		// write Curves
+<span class="pc bpc" id="L862" title="1 of 2 branches missed.">		if (bHasCurves) {</span>
+			// to-do: We'll finish this later
+		}
+
+		// write IDs
+<span class="fc bfc" id="L867" title="All 2 branches covered.">		if (bExportIDs) {</span>
+<span class="pc bpc" id="L868" title="1 of 2 branches missed.">			if (pointCount &gt; 0) {</span>
+<span class="pc bpc" id="L869" title="1 of 2 branches missed.">				if (multipathImpl._attributeStreamIsAllocated(Semantics.ID)) {</span>
+<span class="fc" id="L870">					AttributeStreamOfInt32 ids = (AttributeStreamOfInt32) multipathImpl</span>
+<span class="fc" id="L871">							.getAttributeStreamRef(Semantics.ID);</span>
+<span class="fc bfc" id="L872" title="All 2 branches covered.">					for (int ipart = 0; ipart &lt; partCount; ipart++) {</span>
+<span class="fc" id="L873">						int partStart = multipathImpl.getPathStart(ipart);</span>
+<span class="fc" id="L874">						int partEnd = multipathImpl.getPathEnd(ipart);</span>
+<span class="fc bfc" id="L875" title="All 2 branches covered.">						for (int i = partStart; i &lt; partEnd; i++) {</span>
+<span class="fc" id="L876">							int id = ids.read(i);</span>
+<span class="fc" id="L877">							shapeBuffer.putInt(offset, id);</span>
+<span class="fc" id="L878">							offset += 4;</span>
+						}
+
+						// If the part is closed, then we need to duplicate the
+						// start id
+<span class="pc bpc" id="L883" title="2 of 4 branches missed.">						if (bPolygon || multipathImpl.isClosedPath(ipart)) {</span>
+<span class="nc" id="L884">							int id = ids.read(partStart);</span>
+<span class="nc" id="L885">							shapeBuffer.putInt(offset, id);</span>
+<span class="nc" id="L886">							offset += 4;</span>
+						}
+					}
+<span class="fc" id="L889">				} else {</span>
+<span class="nc" id="L890">					int id = (int) VertexDescription</span>
+<span class="nc" id="L891">							.getDefaultValue(Semantics.ID);</span>
+<span class="nc bnc" id="L892" title="All 2 branches missed.">					for (int i = 0; i &lt; pointCount; i++)</span>
+<span class="nc" id="L893">						shapeBuffer.putInt(offset, id);</span>
+<span class="nc" id="L894">					offset += 4;</span>
+				}
+			}
+		}
+
+<span class="fc" id="L899">		return offset;</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

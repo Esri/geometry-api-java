@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OperatorUnionCursor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">OperatorUnionCursor.java</span></div><h1>OperatorUnionCursor.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+
+<span class="fc" id="L32">final class OperatorUnionCursor extends GeometryCursor {</span>
+
+	private GeometryCursor m_inputGeoms;
+	private ProgressTracker m_progress_tracker;
+	private SpatialReferenceImpl m_spatial_reference;
+<span class="fc" id="L37">	private int m_index = -1;</span>
+<span class="fc" id="L38">	private boolean m_b_done = false;</span>
+<span class="fc" id="L39">	private boolean [] m_had_geometry = new boolean[4];</span>
+<span class="fc" id="L40">	private int [] m_dim_geom_counts = new int [4];</span>
+<span class="fc" id="L41">	private boolean m_b_union_all_dimensions = false;</span>
+<span class="fc" id="L42">	private int m_max_dimension = -1;</span>
+<span class="fc" id="L43">	private int m_added_geoms = 0;</span>
+<span class="fc" id="L44">	private int m_current_dim = -1;</span>
+	
+    private final static class Geom_pair
+    {
+<span class="fc" id="L48">      void init() { geom = null; vertex_count = -1; unioned = false; }</span>
+      Geometry geom;
+      int vertex_count;
+      boolean unioned;//true if geometry is a result of union operation
+    }
+
+<span class="fc" id="L54">    final static class Bin_type //bin array and the total vertex count in the bin</span>
+    {
+<span class="fc" id="L56">      int bin_vertex_count = 0;</span>
+<span class="fc" id="L57">      ArrayList&lt;Geom_pair&gt; geometries = new ArrayList&lt;Geom_pair&gt;();</span>
+      
+      void add_pair(Geom_pair geom)
+      {
+<span class="fc" id="L61">        bin_vertex_count += geom.vertex_count;</span>
+<span class="fc" id="L62">        geometries.add(geom);</span>
+<span class="fc" id="L63">      }</span>
+      void pop_pair()
+      {
+<span class="fc" id="L66">        bin_vertex_count -= geometries.get(geometries.size() - 1).vertex_count;</span>
+<span class="fc" id="L67">        geometries.remove(geometries.size() - 1);</span>
+<span class="fc" id="L68">      }</span>
+<span class="fc" id="L69">      Geom_pair back_pair() { return geometries.get(geometries.size() - 1); }</span>
+<span class="fc" id="L70">      int geom_count() { return geometries.size(); }</span>
+    }
+    
+<span class="fc" id="L73">    ArrayList&lt; TreeMap&lt;Integer, Bin_type&gt; &gt; m_union_bins = new ArrayList&lt; TreeMap&lt;Integer, Bin_type&gt; &gt;();//for each dimension there is a list of bins sorted by level</span>
+
+	OperatorUnionCursor(GeometryCursor inputGeoms1, SpatialReference sr,
+<span class="fc" id="L76">			ProgressTracker progress_tracker) {</span>
+<span class="fc" id="L77">		m_inputGeoms = inputGeoms1;</span>
+<span class="fc" id="L78">		m_spatial_reference = (SpatialReferenceImpl) (sr);</span>
+<span class="fc" id="L79">		m_progress_tracker = progress_tracker;</span>
+<span class="fc" id="L80">	}</span>
+	
+	private Geometry get_result_geometry(int dim) {
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">		assert (m_dim_geom_counts[dim] &gt; 0);</span>
+<span class="fc" id="L84">		java.util.TreeMap&lt;Integer, Bin_type&gt; map = m_union_bins.get(dim);</span>
+<span class="fc" id="L85">		Map.Entry&lt;Integer, Bin_type&gt; e = map.firstEntry();</span>
+<span class="fc" id="L86">		Bin_type bin = e.getValue();</span>
+
+		Geometry resG;
+<span class="fc" id="L89">		resG = bin.back_pair().geom;</span>
+<span class="fc" id="L90">		boolean unioned = bin.back_pair().unioned;</span>
+<span class="fc" id="L91">		map.remove(e.getKey());</span>
+
+<span class="fc bfc" id="L93" title="All 2 branches covered.">		if (unioned) {</span>
+<span class="fc" id="L94">			resG = OperatorSimplify.local().execute(resG, m_spatial_reference,</span>
+					false, m_progress_tracker);
+<span class="pc bpc" id="L96" title="1 of 4 branches missed.">			if (dim == 0 &amp;&amp; resG.getType() == Geometry.Type.Point) {// must</span>
+																	// return
+																	// multipoint
+																	// for
+																	// points
+<span class="nc" id="L101">				MultiPoint mp = new MultiPoint(resG.getDescription());</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">				if (!resG.isEmpty())</span>
+<span class="nc" id="L103">					mp.add((Point) resG);</span>
+
+<span class="nc" id="L105">				resG = mp;</span>
+			}
+		}
+
+<span class="fc" id="L109">		return resG;</span>
+	}
+
+	@Override
+	public Geometry next() {
+<span class="pc bpc" id="L114" title="1 of 4 branches missed.">		if (m_b_done &amp;&amp; m_current_dim == m_max_dimension)</span>
+<span class="fc" id="L115">			return null;</span>
+
+<span class="fc bfc" id="L117" title="All 2 branches covered.">		while (!step_()) {</span>
+		}
+
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">		if (m_max_dimension == -1)</span>
+<span class="nc" id="L121">			return null;// empty input cursor</span>
+
+<span class="pc bpc" id="L123" title="1 of 2 branches missed.">		if (m_b_union_all_dimensions) {</span>
+<span class="nc" id="L124">			m_current_dim++;</span>
+			while (true) {
+<span class="nc bnc" id="L126" title="All 4 branches missed.">				if (m_current_dim &gt; m_max_dimension || m_current_dim &lt; 0)</span>
+<span class="nc" id="L127">					throw GeometryException.GeometryInternalError();</span>
+
+<span class="nc bnc" id="L129" title="All 2 branches missed.">				if (m_had_geometry[m_current_dim])</span>
+<span class="nc" id="L130">					break;</span>
+			}
+
+<span class="nc" id="L133">			m_index++;</span>
+<span class="nc" id="L134">			return get_result_geometry(m_current_dim);</span>
+		} else {
+<span class="fc" id="L136">			m_index = 0;</span>
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">			assert (m_max_dimension &gt;= 0);</span>
+<span class="fc" id="L138">			m_current_dim = m_max_dimension;</span>
+<span class="fc" id="L139">			return get_result_geometry(m_max_dimension);</span>
+		}
+	}
+
+	@Override
+	public int getGeometryID() {
+<span class="nc" id="L145">		return m_index;</span>
+	}
+	
+	private boolean step_(){
+<span class="pc bpc" id="L149" title="1 of 2 branches missed.">		if (m_b_done)</span>
+<span class="nc" id="L150">			return true;</span>
+
+<span class="fc" id="L152">		Geometry geom = null;</span>
+<span class="pc bpc" id="L153" title="1 of 2 branches missed.">		if (m_inputGeoms != null)</span>
+		{
+<span class="fc" id="L155">			geom = m_inputGeoms.next();</span>
+<span class="fc bfc" id="L156" title="All 2 branches covered.">			if (geom == null) {</span>
+<span class="fc" id="L157">				m_b_done = true;</span>
+<span class="fc" id="L158">				m_inputGeoms = null;</span>
+			}
+		}
+			
+<span class="fc" id="L162">		ProgressTracker.checkAndThrow(m_progress_tracker);</span>
+
+<span class="fc bfc" id="L164" title="All 2 branches covered.">		if (geom != null) {</span>
+<span class="fc" id="L165">			int dim = geom.getDimension();</span>
+<span class="fc" id="L166">			m_had_geometry[dim] = true;</span>
+<span class="pc bpc" id="L167" title="1 of 4 branches missed.">			if (dim &gt;= m_max_dimension &amp;&amp; !m_b_union_all_dimensions)</span>
+			{
+<span class="fc" id="L169">	          add_geom(dim, false, geom);</span>
+<span class="pc bpc" id="L170" title="3 of 4 branches missed.">	          if (dim &gt; m_max_dimension &amp;&amp; !m_b_union_all_dimensions)</span>
+	          {
+	            //this geometry has higher dimension than the previously processed one
+	            //Therefore we delete all lower dimensions (unless m_b_union_all_dimensions is true).
+<span class="nc" id="L174">	            remove_all_bins_with_lower_dimension(dim);</span>
+	          }
+			}
+			else
+			{
+				//this geometry is skipped
+			}
+		} else {
+			//geom is null. do nothing
+		}
+		
+<span class="pc bpc" id="L185" title="1 of 2 branches missed.">		if (m_added_geoms &gt; 0) {</span>
+<span class="fc bfc" id="L186" title="All 2 branches covered.">			for (int dim = 0; dim &lt;= m_max_dimension; dim++) {</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">				while (m_dim_geom_counts[dim] &gt; 1) {</span>
+<span class="fc" id="L188">					ArrayList&lt;Geometry&gt; batch_to_union = collect_geometries_to_union(dim);</span>
+<span class="fc" id="L189">					boolean serial_execution = true;</span>
+<span class="pc bpc" id="L190" title="1 of 2 branches missed.">					if (serial_execution) {</span>
+<span class="fc bfc" id="L191" title="All 2 branches covered.">						if (batch_to_union.size() != 0) {</span>
+<span class="fc" id="L192">							Geometry geomRes = TopologicalOperations</span>
+<span class="fc" id="L193">									.dissolveDirty(batch_to_union,</span>
+											m_spatial_reference,
+											m_progress_tracker);
+<span class="fc" id="L196">							add_geom(dim, true, geomRes);</span>
+						} else {
+							break;
+						}
+					}
+<span class="fc" id="L201">				}</span>
+			}
+		}
+		
+<span class="fc" id="L205">		return m_b_done;</span>
+	}
+	
+	ArrayList&lt;Geometry&gt; collect_geometries_to_union(int dim) {
+<span class="fc" id="L209">		ArrayList&lt;Geometry&gt; batch_to_union = new ArrayList&lt;Geometry&gt;();</span>
+<span class="fc" id="L210">		ArrayList&lt;Map.Entry&lt;Integer, Bin_type&gt;&gt; entriesToRemove = new ArrayList&lt;Map.Entry&lt;Integer, Bin_type&gt;&gt;();</span>
+<span class="fc" id="L211">		Set&lt;Map.Entry&lt;Integer, Bin_type&gt;&gt; set = m_union_bins.get(dim)</span>
+<span class="fc" id="L212">				.entrySet();</span>
+<span class="fc bfc" id="L213" title="All 2 branches covered.">		for (Map.Entry&lt;Integer, Bin_type&gt; e : set) {</span>
+			//int level = e.getKey();
+<span class="fc" id="L215">			Bin_type bin = e.getValue();</span>
+
+<span class="fc" id="L217">			final int binVertexThreshold = 10000;</span>
+
+<span class="pc bpc" id="L219" title="1 of 4 branches missed.">			if (m_b_done</span>
+					|| (bin.bin_vertex_count &gt; binVertexThreshold &amp;&amp; bin
+<span class="nc bnc" id="L221" title="All 2 branches missed.">							.geom_count() &gt; 1)) {</span>
+<span class="fc" id="L222">				m_dim_geom_counts[dim] -= bin.geom_count();</span>
+<span class="fc" id="L223">				m_added_geoms -= bin.geom_count();</span>
+<span class="fc bfc" id="L224" title="All 2 branches covered.">				while (bin.geometries.size() &gt; 0) {</span>
+					// empty geometries will be unioned too.
+<span class="fc" id="L226">					batch_to_union.add(bin.back_pair().geom);</span>
+<span class="fc" id="L227">					bin.pop_pair();</span>
+				}
+
+<span class="fc" id="L230">				entriesToRemove.add(e);</span>
+			}
+<span class="fc" id="L232">		}</span>
+
+<span class="fc" id="L234">		set.removeAll(entriesToRemove);</span>
+<span class="fc" id="L235">		return batch_to_union;</span>
+	}
+	
+	private void remove_all_bins_with_lower_dimension(int dim) {
+		// this geometry has higher dimension than the previously processed one
+<span class="nc bnc" id="L240" title="All 2 branches missed.">		for (int i = 0; i &lt; dim; i++) {</span>
+<span class="nc" id="L241">			m_union_bins.get(i).clear();</span>
+<span class="nc" id="L242">			m_added_geoms -= m_dim_geom_counts[i];</span>
+<span class="nc" id="L243">			m_dim_geom_counts[i] = 0;</span>
+		}
+<span class="nc" id="L245">	}</span>
+
+	private void add_geom(int dimension, boolean unioned, Geometry geom) {
+<span class="fc" id="L248">		Geom_pair pair = new Geom_pair();</span>
+<span class="fc" id="L249">		pair.init();</span>
+<span class="fc" id="L250">		pair.geom = geom;</span>
+<span class="fc" id="L251">		int sz = get_vertex_count_(geom);</span>
+<span class="fc" id="L252">		pair.vertex_count = sz;</span>
+<span class="fc" id="L253">		int level = get_level_(sz);</span>
+<span class="fc bfc" id="L254" title="All 2 branches covered.">		if (dimension + 1 &gt; (int) m_union_bins.size()) {</span>
+<span class="fc bfc" id="L255" title="All 2 branches covered.">			for (int i = 0, n = Math.max(2, dimension + 1); i &lt; n; i++) {</span>
+<span class="fc" id="L256">				m_union_bins.add(new TreeMap&lt;Integer, Bin_type&gt;());</span>
+			}
+		}
+
+<span class="fc" id="L260">		Bin_type bin = m_union_bins.get(dimension).get(level);//return null if level is abscent</span>
+<span class="fc bfc" id="L261" title="All 2 branches covered.">		if (bin == null) {</span>
+<span class="fc" id="L262">			bin = new Bin_type();</span>
+<span class="fc" id="L263">			m_union_bins.get(dimension).put(level, bin);</span>
+		}
+
+<span class="fc" id="L266">		pair.unioned = unioned;</span>
+<span class="fc" id="L267">		bin.add_pair(pair);</span>
+
+		// Update global cursor state
+<span class="fc" id="L270">		m_dim_geom_counts[dimension]++;</span>
+<span class="fc" id="L271">		m_added_geoms++;</span>
+<span class="fc" id="L272">		m_max_dimension = Math.max(m_max_dimension, dimension);</span>
+<span class="fc" id="L273">	}</span>
+
+	private static int get_level_(int sz) {// calculates logarithm of sz to base
+											// 4.
+<span class="fc bfc" id="L277" title="All 2 branches covered.">		return sz &gt; 0 ? (int) (Math.log((double) sz) / Math.log(4.0) + 0.5)</span>
+<span class="fc" id="L278">				: (int) 0;</span>
+	}
+
+	private static int get_vertex_count_(Geometry geom) {
+<span class="fc" id="L282">		int gt = geom.getType().value();</span>
+<span class="fc bfc" id="L283" title="All 2 branches covered.">		if (Geometry.isMultiVertex(gt)) {</span>
+<span class="fc" id="L284">			return ((MultiVertexGeometry) geom).getPointCount();</span>
+<span class="fc bfc" id="L285" title="All 2 branches covered.">		} else if (gt == Geometry.GeometryType.Point) {</span>
+<span class="fc" id="L286">			return 1;</span>
+<span class="pc bpc" id="L287" title="1 of 2 branches missed.">		} else if (gt == Geometry.GeometryType.Envelope) {</span>
+<span class="fc" id="L288">			return 4;</span>
+<span class="nc bnc" id="L289" title="All 2 branches missed.">		} else if (Geometry.isSegment(gt)) {</span>
+<span class="nc" id="L290">			return 2;</span>
+		} else {
+<span class="nc" id="L292">			throw GeometryException.GeometryInternalError();</span>
+		}
+	}
+	
+	@Override
+	public boolean tock() {
+<span class="fc" id="L298">		return step_();</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

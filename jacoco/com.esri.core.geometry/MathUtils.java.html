@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MathUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">MathUtils.java</span></div><h1>MathUtils.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+<span class="pc" id="L27">final class MathUtils {</span>
+	/**
+	 * The implementation of the Kahan summation algorithm. Use to get better
+	 * precision when adding a lot of values.
+	 */
+	static final class KahanSummator {
+		private double sum; // the accumulated sum
+		private double compensation;
+		private double startValue; // the Base (the class returns sum +
+									// startValue)
+
+		/**
+		 * initialize to the given start value. \param startValue_ The value to
+		 * be added to the accumulated sum.
+		 */
+<span class="fc" id="L42">		KahanSummator(double startValue_) {</span>
+<span class="fc" id="L43">			startValue = startValue_;</span>
+<span class="fc" id="L44">			reset();</span>
+<span class="fc" id="L45">		}</span>
+
+		/**
+		 * Resets the accumulated sum to zero. The getResult() returns
+		 * startValue_ after this call.
+		 */
+		void reset() {
+<span class="fc" id="L52">			sum = 0;</span>
+<span class="fc" id="L53">			compensation = 0;</span>
+<span class="fc" id="L54">		}</span>
+
+		/**
+		 * add a value.
+		 */
+		void add(double v) {
+<span class="fc" id="L60">			double y = v - compensation;</span>
+<span class="fc" id="L61">			double t = sum + y;</span>
+<span class="fc" id="L62">			double h = t - sum;</span>
+<span class="fc" id="L63">			compensation = h - y;</span>
+<span class="fc" id="L64">			sum = t;</span>
+<span class="fc" id="L65">		}</span>
+
+		/**
+		 * Subtracts a value.
+		 */
+		void sub(double v) {
+<span class="nc" id="L71">			add(-v);</span>
+<span class="nc" id="L72">		}</span>
+
+		/**
+		 * add another summator.
+		 */
+		void add(/* const */KahanSummator v) {
+<span class="nc" id="L78">			double y = (v.getResult() + v.compensation) - compensation;</span>
+<span class="nc" id="L79">			double t = sum + y;</span>
+<span class="nc" id="L80">			double h = t - sum;</span>
+<span class="nc" id="L81">			compensation = h - y;</span>
+<span class="nc" id="L82">			sum = t;</span>
+<span class="nc" id="L83">		}</span>
+
+		/**
+		 * Subtracts another summator.
+		 */
+		void sub(/* const */KahanSummator v) {
+<span class="nc" id="L89">			double y = -(v.getResult() - v.compensation) - compensation;</span>
+<span class="nc" id="L90">			double t = sum + y;</span>
+<span class="nc" id="L91">			double h = t - sum;</span>
+<span class="nc" id="L92">			compensation = h - y;</span>
+<span class="nc" id="L93">			sum = t;</span>
+<span class="nc" id="L94">		}</span>
+
+		/**
+		 * Returns current value of the sum.
+		 */
+		double getResult() /* const */{
+<span class="fc" id="L100">			return startValue + sum;</span>
+		}
+
+		KahanSummator plusEquals(double v) {
+<span class="nc" id="L104">			add(v);</span>
+<span class="nc" id="L105">			return this;</span>
+		}
+
+		KahanSummator minusEquals(double v) {
+<span class="nc" id="L109">			add(-v);</span>
+<span class="nc" id="L110">			return this;</span>
+		}
+
+		KahanSummator plusEquals(/* const */KahanSummator v) {
+<span class="nc" id="L114">			add(v);</span>
+<span class="nc" id="L115">			return this;</span>
+		}
+
+		KahanSummator minusEquals(/* const */KahanSummator v) {
+<span class="nc" id="L119">			sub(v);</span>
+<span class="nc" id="L120">			return this;</span>
+		}
+	}
+
+	/**
+	 * Returns one value with the sign of another (like copysign).
+	 */
+	static double copySign(double x, double y) {
+<span class="nc bnc" id="L128" title="All 2 branches missed.">		return y &gt;= 0.0 ? Math.abs(x) : -Math.abs(x);</span>
+	}
+
+	/**
+	 * Calculates sign of the given value. Returns 0 if the value is equal to 0.
+	 */
+	static int sign(double value) {
+<span class="fc bfc" id="L135" title="All 4 branches covered.">		return value &lt; 0 ? -1 : (value &gt; 0) ? 1 : 0;</span>
+	}
+
+	/**
+	 * Rounds towards zero.
+	 */
+	static double truncate(double v) {
+<span class="nc bnc" id="L142" title="All 2 branches missed.">		if (v &gt;= 0)</span>
+<span class="nc" id="L143">			return Math.floor(v);</span>
+		else
+<span class="nc" id="L145">			return -Math.floor(-v);</span>
+	}
+	
+	/**
+	 * C fmod function.
+	 */
+	static double FMod(double x, double y) {
+<span class="nc" id="L152">		return x - truncate(x / y) * y;</span>
+	}
+
+
+
+
+	/**
+	 * Rounds double to the closest integer value.
+	 */
+	static double round(double v) {
+<span class="nc" id="L162">		return Math.floor(v + 0.5);</span>
+	}
+	static double sqr(double v) {
+<span class="fc" id="L165">		return v * v;</span>
+	}
+
+    /**
+    *Computes interpolation between two values, using the interpolation factor t.
+    *The interpolation formula is (end - start) * t + start.
+    *However, the computation ensures that t = 0 produces exactly start, and t = 1, produces exactly end.
+    *It also guarantees that for 0 &lt;= t &lt;= 1, the interpolated value v is between start and end.
+    */
+	static double lerp(double start_, double end_, double t) {
+		// When end == start, we want result to be equal to start, for all t
+		// values. At the same time, when end != start, we want the result to be
+		// equal to start for t==0 and end for t == 1.0
+		// The regular formula end_ * t + (1.0 - t) * start_, when end_ ==
+		// start_, and t at 1/3, produces value different from start
+		double v;
+<span class="fc bfc" id="L181" title="All 2 branches covered.">		if (t &lt;= 0.5)</span>
+<span class="fc" id="L182">			v = start_ + (end_ - start_) * t;</span>
+		else
+<span class="fc" id="L184">			v = end_ - (end_ - start_) * (1.0 - t);</span>
+
+<span class="pc bpc" id="L186" title="8 of 16 branches missed.">		assert (t &lt; 0 || t &gt; 1.0 || (v &gt;= start_ &amp;&amp; v &lt;= end_) || (v &lt;= start_ &amp;&amp; v &gt;= end_) || NumberUtils.isNaN(start_) || NumberUtils.isNaN(end_));</span>
+<span class="fc" id="L187">		return v;</span>
+	}
+
+    /**
+    *Computes interpolation between two values, using the interpolation factor t.
+    *The interpolation formula is (end - start) * t + start.
+    *However, the computation ensures that t = 0 produces exactly start, and t = 1, produces exactly end.
+    *It also guarantees that for 0 &lt;= t &lt;= 1, the interpolated value v is between start and end.
+    */
+	static void lerp(Point2D start_, Point2D end_, double t, Point2D result) {
+<span class="pc bpc" id="L197" title="1 of 2 branches missed.">		assert(start_ != result);</span>
+		// When end == start, we want result to be equal to start, for all t
+		// values. At the same time, when end != start, we want the result to be
+		// equal to start for t==0 and end for t == 1.0
+		// The regular formula end_ * t + (1.0 - t) * start_, when end_ ==
+		// start_, and t at 1/3, produces value different from start
+		double rx, ry;
+<span class="pc bpc" id="L204" title="1 of 2 branches missed.">		if (t &lt;= 0.5) {</span>
+<span class="fc" id="L205">			rx = start_.x + (end_.x - start_.x) * t;</span>
+<span class="fc" id="L206">			ry = start_.y + (end_.y - start_.y) * t;</span>
+		}
+		else {
+<span class="nc" id="L209">			rx = end_.x - (end_.x - start_.x) * (1.0 - t);</span>
+<span class="nc" id="L210">			ry = end_.y - (end_.y - start_.y) * (1.0 - t);</span>
+		}
+
+<span class="pc bpc" id="L213" title="4 of 12 branches missed.">		assert (t &lt; 0 || t &gt; 1.0 || (rx &gt;= start_.x &amp;&amp; rx &lt;= end_.x) || (rx &lt;= start_.x &amp;&amp; rx &gt;= end_.x));</span>
+<span class="pc bpc" id="L214" title="4 of 12 branches missed.">		assert (t &lt; 0 || t &gt; 1.0 || (ry &gt;= start_.y &amp;&amp; ry &lt;= end_.y) || (ry &lt;= start_.y &amp;&amp; ry &gt;= end_.y));</span>
+<span class="fc" id="L215">		result.x = rx;</span>
+<span class="fc" id="L216">		result.y = ry;</span>
+<span class="fc" id="L217">	}</span>
+
+	static void lerp(double start_x, double start_y, double end_x, double end_y, double t, Point2D result) {
+		// When end == start, we want result to be equal to start, for all t
+		// values. At the same time, when end != start, we want the result to be
+		// equal to start for t==0 and end for t == 1.0
+		// The regular formula end_ * t + (1.0 - t) * start_, when end_ ==
+		// start_, and t at 1/3, produces value different from start
+<span class="fc bfc" id="L225" title="All 2 branches covered.">		if (t &lt;= 0.5) {</span>
+<span class="fc" id="L226">			result.x = start_x + (end_x - start_x) * t;</span>
+<span class="fc" id="L227">			result.y = start_y + (end_y - start_y) * t;</span>
+		}
+		else {
+<span class="fc" id="L230">			result.x = end_x - (end_x - start_x) * (1.0 - t);</span>
+<span class="fc" id="L231">			result.y = end_y - (end_y - start_y) * (1.0 - t);</span>
+		}
+
+<span class="pc bpc" id="L234" title="4 of 12 branches missed.">		assert (t &lt; 0 || t &gt; 1.0 || (result.x &gt;= start_x &amp;&amp; result.x &lt;= end_x) || (result.x &lt;= start_x &amp;&amp; result.x &gt;= end_x));</span>
+<span class="pc bpc" id="L235" title="4 of 12 branches missed.">		assert (t &lt; 0 || t &gt; 1.0 || (result.y &gt;= start_y &amp;&amp; result.y &lt;= end_y) || (result.y &lt;= start_y &amp;&amp; result.y &gt;= end_y));</span>
+<span class="fc" id="L236">	}</span>
+	
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

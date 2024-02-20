@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Polygon.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Polygon.java</span></div><h1>Polygon.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2018 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+
+package com.esri.core.geometry;
+
+import java.io.Serializable;
+
+import static com.esri.core.geometry.SizeOf.SIZE_OF_POLYGON;
+
+/**
+ * A polygon is a collection of one or many interior or exterior rings.
+ */
+public class Polygon extends MultiPath implements Serializable {
+	private static final long serialVersionUID = 2L;// TODO:remove as we use
+													// writeReplace and
+													// GeometrySerializer
+
+	/**
+	 * Creates a polygon.
+	 */
+<span class="fc" id="L43">	public Polygon() {</span>
+<span class="fc" id="L44">		m_impl = new MultiPathImpl(true);</span>
+<span class="fc" id="L45">	}</span>
+
+<span class="fc" id="L47">	public Polygon(VertexDescription vd) {</span>
+<span class="fc" id="L48">		m_impl = new MultiPathImpl(true, vd);</span>
+<span class="fc" id="L49">	}</span>
+
+	@Override
+	public Geometry createInstance() {
+<span class="fc" id="L53">		return new Polygon(getDescription());</span>
+	}
+
+	@Override
+	public int getDimension() {
+<span class="fc" id="L58">		return 2;</span>
+	}
+
+	@Override
+	public Geometry.Type getType() {
+<span class="fc" id="L63">		return Type.Polygon;</span>
+	}
+
+	@Override
+	public long estimateMemorySize() {
+<span class="fc" id="L68">		return SIZE_OF_POLYGON + m_impl.estimateMemorySize();</span>
+	}
+
+	/**
+	 * Calculates the ring area for this ring.
+	 * 
+	 * @param ringIndex
+	 *            The index of this ring.
+	 * @return The ring area for this ring.
+	 */
+	public double calculateRingArea2D(int ringIndex) {
+<span class="fc" id="L79">		return m_impl.calculateRingArea2D(ringIndex);</span>
+	}
+
+	/**
+	 * Returns TRUE if the ring is an exterior ring. Valid only for simple
+	 * polygons.
+	 */
+	public boolean isExteriorRing(int partIndex) {
+<span class="fc" id="L87">		return m_impl.isExteriorRing(partIndex);</span>
+	}
+
+	/**
+	 * Returns TRUE when this geometry has exactly same type, properties, and
+	 * coordinates as the other geometry.
+	 */
+	@Override
+	public boolean equals(Object other) {
+<span class="pc bpc" id="L96" title="1 of 2 branches missed.">		if (other == null)</span>
+<span class="nc" id="L97">			return false;</span>
+
+<span class="pc bpc" id="L99" title="1 of 2 branches missed.">		if (other == this)</span>
+<span class="nc" id="L100">			return true;</span>
+
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">		if (other.getClass() != getClass())</span>
+<span class="nc" id="L103">			return false;</span>
+
+<span class="fc" id="L105">		return m_impl.equals(((Polygon) other)._getImpl());</span>
+	}
+
+	/**
+	 * Returns a hash code value for this polygon.
+	 */
+
+	@Override
+	public int hashCode() {
+<span class="fc" id="L114">		return m_impl.hashCode();</span>
+	}
+
+	/**
+	 * Sets a new vertex for the polygon.
+	 * 
+	 * @param i
+	 *            The index of the new vertex.
+	 * @param x
+	 *            The X coordinate for the new vertex.
+	 * @param y
+	 *            The Y coordinate for the new vertex.
+	 */
+	public void setXY(int i, double x, double y) {
+<span class="nc" id="L128">		m_impl.setXY(i, x, y);</span>
+
+<span class="nc" id="L130">	}</span>
+
+	public void interpolateAttributes(int path_index, int from_point_index,
+			int to_point_index) {
+<span class="fc" id="L134">		m_impl.interpolateAttributes(path_index, from_point_index,</span>
+				to_point_index);
+<span class="fc" id="L136">	}</span>
+
+	public void interpolateAttributes(int semantics, int path_index,
+			int from_point_index, int to_point_index) {
+<span class="fc" id="L140">		m_impl.interpolateAttributesForSemantics(semantics, path_index,</span>
+				from_point_index, to_point_index);
+<span class="fc" id="L142">	}</span>
+
+	public int getExteriorRingCount() {
+<span class="fc" id="L145">		return m_impl.getOGCPolygonCount();</span>
+	}
+	
+	public interface FillRule {
+		/**
+		 * odd-even fill rule. This is the default value. A point is in the polygon
+		 * interior if a ray from this point to infinity crosses odd number of segments
+		 * of the polygon.
+		 */
+		public final static int enumFillRuleOddEven = 0;
+		/**
+		 * winding fill rule (aka non-zero winding rule). A point is in the polygon
+		 * interior if a winding number is not zero. To compute a winding number for a
+		 * point, draw a ray from this point to infinity. If N is the number of times
+		 * the ray crosses segments directed up and the M is the number of times it
+		 * crosses segments directed down, then the winding number is equal to N-M.
+		 */
+		public final static int enumFillRuleWinding = 1;
+	};
+
+	/**
+	 * Fill rule for the polygon that defines the interior of the self intersecting
+	 * polygon. It affects the Simplify operation. Can be use by drawing code to
+	 * pass around the fill rule of graphic path. This property is not persisted in
+	 * any format yet. See also Polygon.FillRule.
+	 */
+	public void setFillRule(int rule) {
+<span class="fc" id="L172">		m_impl.setFillRule(rule);</span>
+<span class="fc" id="L173">	}</span>
+
+	/**
+	 * Fill rule for the polygon that defines the interior of the self intersecting
+	 * polygon. It affects the Simplify operation. Changing the fill rule on the
+	 * polygon that has no self intersections has no physical effect. Can be use by
+	 * drawing code to pass around the fill rule of graphic path. This property is
+	 * not persisted in any format yet. See also Polygon.FillRule.
+	 */
+	public int getFillRule() {
+<span class="fc" id="L183">		return m_impl.getFillRule();</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

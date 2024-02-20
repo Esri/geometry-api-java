@@ -1,0 +1,1060 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OperatorImportFromWkbLocal.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">OperatorImportFromWkbLocal.java</span></div><h1>OperatorImportFromWkbLocal.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.ArrayList;
+
+/**
+ * OperatorImportFromWkbLocal implementation.
+ */
+<span class="fc" id="L34">class OperatorImportFromWkbLocal extends OperatorImportFromWkb {</span>
+
+	static final class WkbHelper {
+<span class="fc" id="L37">		WkbHelper(ByteBuffer buffer) {</span>
+<span class="fc" id="L38">			wkbBuffer = buffer;</span>
+<span class="fc" id="L39">			adjustment = 0;</span>
+<span class="fc" id="L40">		}</span>
+
+		int getInt(int offset) {
+<span class="fc" id="L43">			return wkbBuffer.getInt(adjustment + offset);</span>
+		}
+
+		double getDouble(int offset) {
+<span class="fc" id="L47">			return wkbBuffer.getDouble(adjustment + offset);</span>
+		}
+
+		ByteBuffer wkbBuffer;
+		int adjustment;
+	}
+
+	@Override
+	public Geometry execute(int importFlags, Geometry.Type type,
+			ByteBuffer wkbBuffer, ProgressTracker progress_tracker) {
+
+<span class="fc" id="L58">		ByteOrder initialOrder = wkbBuffer.order();</span>
+
+		// read byte ordering
+<span class="fc" id="L61">		int byteOrder = wkbBuffer.get(0);</span>
+
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">		if (byteOrder == WkbByteOrder.wkbNDR)</span>
+<span class="fc" id="L64">			wkbBuffer.order(ByteOrder.LITTLE_ENDIAN);</span>
+		else
+<span class="nc" id="L66">			wkbBuffer.order(ByteOrder.BIG_ENDIAN);</span>
+
+<span class="fc" id="L68">		WkbHelper wkbHelper = new WkbHelper(wkbBuffer);</span>
+
+		try {
+<span class="fc" id="L71">			return importFromWkb(importFlags, type, wkbHelper);</span>
+		} finally {
+<span class="fc" id="L73">			wkbBuffer.order(initialOrder);</span>
+		}
+	}
+
+	@Override
+	public OGCStructure executeOGC(int importFlags, ByteBuffer wkbBuffer,
+			ProgressTracker progress_tracker) {
+
+<span class="fc" id="L81">		ByteOrder initialOrder = wkbBuffer.order();</span>
+
+		// read byte ordering
+<span class="fc" id="L84">		int byteOrder = wkbBuffer.get(0);</span>
+
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">		if (byteOrder == WkbByteOrder.wkbNDR)</span>
+<span class="fc" id="L87">			wkbBuffer.order(ByteOrder.LITTLE_ENDIAN);</span>
+		else
+<span class="nc" id="L89">			wkbBuffer.order(ByteOrder.BIG_ENDIAN);</span>
+
+<span class="fc" id="L91">		ArrayList&lt;OGCStructure&gt; stack = new ArrayList&lt;OGCStructure&gt;(0);</span>
+<span class="fc" id="L92">		AttributeStreamOfInt32 numGeometries = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L93">		AttributeStreamOfInt32 indices = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L94">		WkbHelper wkbHelper = new WkbHelper(wkbBuffer);</span>
+
+<span class="fc" id="L96">		OGCStructure root = new OGCStructure();</span>
+<span class="fc" id="L97">		root.m_structures = new ArrayList&lt;OGCStructure&gt;(0);</span>
+<span class="fc" id="L98">		stack.add(root); // add dummy root</span>
+<span class="fc" id="L99">		numGeometries.add(1);</span>
+<span class="fc" id="L100">		indices.add(0);</span>
+
+<span class="fc" id="L102">		boolean bCheckConsistentAttributes = false;</span>
+<span class="fc" id="L103">		boolean bHasZs = false;</span>
+<span class="fc" id="L104">		boolean bHasMs = false;</span>
+
+		try {
+
+<span class="fc bfc" id="L108" title="All 2 branches covered.">			while (!stack.isEmpty()) {</span>
+
+<span class="fc bfc" id="L110" title="All 2 branches covered.">				if (indices.getLast() == numGeometries.getLast()) {</span>
+<span class="fc" id="L111">					stack.remove(stack.size() - 1);</span>
+<span class="fc" id="L112">					indices.removeLast();</span>
+<span class="fc" id="L113">					numGeometries.removeLast();</span>
+<span class="fc" id="L114">					continue;</span>
+				}
+
+<span class="fc" id="L117">				OGCStructure last = stack.get(stack.size() - 1);</span>
+<span class="fc" id="L118">				indices.write(indices.size() - 1, indices.getLast() + 1);</span>
+				Geometry geometry;
+
+<span class="fc" id="L121">				int wkbType = wkbHelper.getInt(1);</span>
+				int ogcType;
+
+				// strip away attributes from type identifier
+
+<span class="fc bfc" id="L126" title="All 2 branches covered.">				if (wkbType &gt; 3000) {</span>
+<span class="fc" id="L127">					ogcType = wkbType - 3000;</span>
+
+<span class="pc bpc" id="L129" title="1 of 2 branches missed.">					if (bCheckConsistentAttributes) {</span>
+<span class="nc bnc" id="L130" title="All 4 branches missed.">						if (!bHasZs || !bHasMs)</span>
+<span class="nc" id="L131">							throw new IllegalArgumentException();</span>
+					} else {
+<span class="fc" id="L133">						bHasZs = true;</span>
+<span class="fc" id="L134">						bHasMs = true;</span>
+<span class="fc" id="L135">						bCheckConsistentAttributes = true;</span>
+					}
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">				} else if (wkbType &gt; 2000) {</span>
+<span class="nc" id="L138">					ogcType = wkbType - 2000;</span>
+
+<span class="nc bnc" id="L140" title="All 2 branches missed.">					if (bCheckConsistentAttributes) {</span>
+<span class="nc bnc" id="L141" title="All 4 branches missed.">						if (bHasZs || !bHasMs)</span>
+<span class="nc" id="L142">							throw new IllegalArgumentException();</span>
+					} else {
+<span class="nc" id="L144">						bHasZs = false;</span>
+<span class="nc" id="L145">						bHasMs = true;</span>
+<span class="nc" id="L146">						bCheckConsistentAttributes = true;</span>
+					}
+<span class="pc bpc" id="L148" title="1 of 2 branches missed.">				} else if (wkbType &gt; 1000) {</span>
+<span class="nc" id="L149">					ogcType = wkbType - 1000;</span>
+
+<span class="nc bnc" id="L151" title="All 2 branches missed.">					if (bCheckConsistentAttributes) {</span>
+<span class="nc bnc" id="L152" title="All 4 branches missed.">						if (!bHasZs || bHasMs)</span>
+<span class="nc" id="L153">							throw new IllegalArgumentException();</span>
+					} else {
+<span class="nc" id="L155">						bHasZs = true;</span>
+<span class="nc" id="L156">						bHasMs = false;</span>
+<span class="nc" id="L157">						bCheckConsistentAttributes = true;</span>
+					}
+				} else {
+<span class="fc" id="L160">					ogcType = wkbType;</span>
+
+<span class="fc bfc" id="L162" title="All 2 branches covered.">					if (bCheckConsistentAttributes) {</span>
+<span class="pc bpc" id="L163" title="2 of 4 branches missed.">						if (bHasZs || bHasMs)</span>
+<span class="nc" id="L164">							throw new IllegalArgumentException();</span>
+					} else {
+<span class="fc" id="L166">						bHasZs = false;</span>
+<span class="fc" id="L167">						bHasMs = false;</span>
+<span class="fc" id="L168">						bCheckConsistentAttributes = true;</span>
+					}
+				}
+<span class="fc bfc" id="L171" title="All 2 branches covered.">				if (ogcType == 7) {</span>
+<span class="fc" id="L172">					int count = wkbHelper.getInt(5);</span>
+<span class="fc" id="L173">					wkbHelper.adjustment += 9;</span>
+
+<span class="fc" id="L175">					OGCStructure next = new OGCStructure();</span>
+<span class="fc" id="L176">					next.m_type = ogcType;</span>
+<span class="fc" id="L177">					next.m_structures = new ArrayList&lt;OGCStructure&gt;(0);</span>
+<span class="fc" id="L178">					last.m_structures.add(next);</span>
+<span class="fc" id="L179">					stack.add(next);</span>
+<span class="fc" id="L180">					indices.add(0);</span>
+<span class="fc" id="L181">					numGeometries.add(count);</span>
+<span class="fc" id="L182">				} else {</span>
+<span class="fc" id="L183">					geometry = importFromWkb(importFlags,</span>
+							Geometry.Type.Unknown, wkbHelper);
+<span class="fc" id="L185">					OGCStructure leaf = new OGCStructure();</span>
+<span class="fc" id="L186">					leaf.m_type = ogcType;</span>
+<span class="fc" id="L187">					leaf.m_geometry = geometry;</span>
+<span class="fc" id="L188">					last.m_structures.add(leaf);</span>
+				}
+<span class="fc" id="L190">			}</span>
+		} finally {
+<span class="fc" id="L192">			wkbBuffer.order(initialOrder);</span>
+		}
+
+<span class="fc" id="L195">		return root;</span>
+	}
+
+	private static Geometry importFromWkb(int importFlags, Geometry.Type type,
+			WkbHelper wkbHelper) {
+
+		// read type
+<span class="fc" id="L202">		int wkbType = wkbHelper.getInt(1);</span>
+
+<span class="pc bpc" id="L204" title="11 of 25 branches missed.">		switch (wkbType) {</span>
+		case WkbGeometryType.wkbPolygon:
+<span class="fc bfc" id="L206" title="All 2 branches covered.">			if (type.value() != Geometry.GeometryType.Polygon</span>
+<span class="pc bpc" id="L207" title="1 of 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L208">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="fc" id="L209">			return importFromWkbPolygon(false, importFlags, false, false,</span>
+					wkbHelper);
+
+		case WkbGeometryType.wkbPolygonM:
+<span class="nc bnc" id="L213" title="All 2 branches missed.">			if (type.value() != Geometry.GeometryType.Polygon</span>
+<span class="nc bnc" id="L214" title="All 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L215">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="nc" id="L216">			return importFromWkbPolygon(false, importFlags, false, true,</span>
+					wkbHelper);
+
+		case WkbGeometryType.wkbPolygonZ:
+<span class="nc bnc" id="L220" title="All 2 branches missed.">			if (type.value() != Geometry.GeometryType.Polygon</span>
+<span class="nc bnc" id="L221" title="All 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L222">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="nc" id="L223">			return importFromWkbPolygon(false, importFlags, true, false,</span>
+					wkbHelper);
+
+		case WkbGeometryType.wkbPolygonZM:
+<span class="pc bpc" id="L227" title="1 of 2 branches missed.">			if (type.value() != Geometry.GeometryType.Polygon</span>
+<span class="nc bnc" id="L228" title="All 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L229">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="fc" id="L230">			return importFromWkbPolygon(false, importFlags, true, true,</span>
+					wkbHelper);
+
+		case WkbGeometryType.wkbMultiPolygon:
+<span class="fc bfc" id="L234" title="All 2 branches covered.">			if (type.value() != Geometry.GeometryType.Polygon</span>
+<span class="pc bpc" id="L235" title="1 of 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L236">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="fc" id="L237">			return importFromWkbPolygon(true, importFlags, false, false,</span>
+					wkbHelper);
+
+		case WkbGeometryType.wkbMultiPolygonM:
+<span class="nc bnc" id="L241" title="All 2 branches missed.">			if (type.value() != Geometry.GeometryType.Polygon</span>
+<span class="nc bnc" id="L242" title="All 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L243">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="nc" id="L244">			return importFromWkbPolygon(true, importFlags, false, true,</span>
+					wkbHelper);
+
+		case WkbGeometryType.wkbMultiPolygonZ:
+<span class="nc bnc" id="L248" title="All 2 branches missed.">			if (type.value() != Geometry.GeometryType.Polygon</span>
+<span class="nc bnc" id="L249" title="All 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L250">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="nc" id="L251">			return importFromWkbPolygon(true, importFlags, true, false,</span>
+					wkbHelper);
+
+		case WkbGeometryType.wkbMultiPolygonZM:
+<span class="pc bpc" id="L255" title="1 of 2 branches missed.">			if (type.value() != Geometry.GeometryType.Polygon</span>
+<span class="nc bnc" id="L256" title="All 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L257">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="fc" id="L258">			return importFromWkbPolygon(true, importFlags, true, true,</span>
+					wkbHelper);
+
+		case WkbGeometryType.wkbLineString:
+<span class="fc bfc" id="L262" title="All 2 branches covered.">			if (type.value() != Geometry.GeometryType.Polyline</span>
+<span class="pc bpc" id="L263" title="1 of 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L264">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="fc" id="L265">			return importFromWkbPolyline(false, importFlags, false, false,</span>
+					wkbHelper);
+
+		case WkbGeometryType.wkbLineStringM:
+<span class="nc bnc" id="L269" title="All 2 branches missed.">			if (type.value() != Geometry.GeometryType.Polyline</span>
+<span class="nc bnc" id="L270" title="All 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L271">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="nc" id="L272">			return importFromWkbPolyline(false, importFlags, false, true,</span>
+					wkbHelper);
+
+		case WkbGeometryType.wkbLineStringZ:
+<span class="nc bnc" id="L276" title="All 2 branches missed.">			if (type.value() != Geometry.GeometryType.Polyline</span>
+<span class="nc bnc" id="L277" title="All 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L278">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="nc" id="L279">			return importFromWkbPolyline(false, importFlags, true, false,</span>
+					wkbHelper);
+
+		case WkbGeometryType.wkbLineStringZM:
+<span class="pc bpc" id="L283" title="1 of 2 branches missed.">			if (type.value() != Geometry.GeometryType.Polyline</span>
+<span class="nc bnc" id="L284" title="All 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L285">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="fc" id="L286">			return importFromWkbPolyline(false, importFlags, true, true,</span>
+					wkbHelper);
+
+		case WkbGeometryType.wkbMultiLineString:
+<span class="fc bfc" id="L290" title="All 2 branches covered.">			if (type.value() != Geometry.GeometryType.Polyline</span>
+<span class="pc bpc" id="L291" title="1 of 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L292">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="fc" id="L293">			return importFromWkbPolyline(true, importFlags, false, false,</span>
+					wkbHelper);
+
+		case WkbGeometryType.wkbMultiLineStringM:
+<span class="nc bnc" id="L297" title="All 2 branches missed.">			if (type.value() != Geometry.GeometryType.Polyline</span>
+<span class="nc bnc" id="L298" title="All 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L299">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="nc" id="L300">			return importFromWkbPolyline(true, importFlags, false, true,</span>
+					wkbHelper);
+
+		case WkbGeometryType.wkbMultiLineStringZ:
+<span class="nc bnc" id="L304" title="All 2 branches missed.">			if (type.value() != Geometry.GeometryType.Polyline</span>
+<span class="nc bnc" id="L305" title="All 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L306">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="nc" id="L307">			return importFromWkbPolyline(true, importFlags, true, false,</span>
+					wkbHelper);
+
+		case WkbGeometryType.wkbMultiLineStringZM:
+<span class="pc bpc" id="L311" title="1 of 2 branches missed.">			if (type.value() != Geometry.GeometryType.Polyline</span>
+<span class="nc bnc" id="L312" title="All 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L313">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="fc" id="L314">			return importFromWkbPolyline(true, importFlags, true, true,</span>
+					wkbHelper);
+
+		case WkbGeometryType.wkbMultiPoint:
+<span class="fc bfc" id="L318" title="All 2 branches covered.">			if (type.value() != Geometry.GeometryType.MultiPoint</span>
+<span class="pc bpc" id="L319" title="1 of 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L320">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="fc" id="L321">			return importFromWkbMultiPoint(importFlags, false, false, wkbHelper);</span>
+
+		case WkbGeometryType.wkbMultiPointM:
+<span class="nc bnc" id="L324" title="All 2 branches missed.">			if (type.value() != Geometry.GeometryType.MultiPoint</span>
+<span class="nc bnc" id="L325" title="All 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L326">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="nc" id="L327">			return importFromWkbMultiPoint(importFlags, false, true, wkbHelper);</span>
+
+		case WkbGeometryType.wkbMultiPointZ:
+<span class="pc bpc" id="L330" title="1 of 2 branches missed.">			if (type.value() != Geometry.GeometryType.MultiPoint</span>
+<span class="nc bnc" id="L331" title="All 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L332">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="fc" id="L333">			return importFromWkbMultiPoint(importFlags, true, false, wkbHelper);</span>
+
+		case WkbGeometryType.wkbMultiPointZM:
+<span class="pc bpc" id="L336" title="1 of 2 branches missed.">			if (type.value() != Geometry.GeometryType.MultiPoint</span>
+<span class="pc bpc" id="L337" title="1 of 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L338">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="fc" id="L339">			return importFromWkbMultiPoint(importFlags, true, true, wkbHelper);</span>
+
+		case WkbGeometryType.wkbPoint:
+<span class="fc bfc" id="L342" title="All 2 branches covered.">			if (type.value() != Geometry.GeometryType.Point</span>
+<span class="pc bpc" id="L343" title="1 of 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L344">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="fc" id="L345">			return importFromWkbPoint(importFlags, false, false, wkbHelper);</span>
+
+		case WkbGeometryType.wkbPointM:
+<span class="nc bnc" id="L348" title="All 2 branches missed.">			if (type.value() != Geometry.GeometryType.Point</span>
+<span class="nc bnc" id="L349" title="All 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L350">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="nc" id="L351">			return importFromWkbPoint(importFlags, false, true, wkbHelper);</span>
+
+		case WkbGeometryType.wkbPointZ:
+<span class="pc bpc" id="L354" title="1 of 2 branches missed.">			if (type.value() != Geometry.GeometryType.Point</span>
+<span class="nc bnc" id="L355" title="All 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L356">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="fc" id="L357">			return importFromWkbPoint(importFlags, true, false, wkbHelper);</span>
+
+		case WkbGeometryType.wkbPointZM:
+<span class="pc bpc" id="L360" title="1 of 2 branches missed.">			if (type.value() != Geometry.GeometryType.Point</span>
+<span class="nc bnc" id="L361" title="All 2 branches missed.">					&amp;&amp; type.value() != Geometry.GeometryType.Unknown)</span>
+<span class="nc" id="L362">				throw new GeometryException(&quot;invalid shape type&quot;);</span>
+<span class="fc" id="L363">			return importFromWkbPoint(importFlags, true, true, wkbHelper);</span>
+
+		default:
+<span class="nc" id="L366">			throw new GeometryException(&quot;invalid shape type&quot;);</span>
+		}
+	}
+
+	private static Geometry importFromWkbPolygon(boolean bMultiPolygon,
+			int importFlags, boolean bZs, boolean bMs, WkbHelper wkbHelper) {
+		int offset;
+		int polygonCount;
+
+<span class="fc bfc" id="L375" title="All 2 branches covered.">		if (bMultiPolygon) {</span>
+<span class="fc" id="L376">			polygonCount = wkbHelper.getInt(5);</span>
+<span class="fc" id="L377">			offset = 9;</span>
+		} else {
+<span class="fc" id="L379">			polygonCount = 1;</span>
+<span class="fc" id="L380">			offset = 0;</span>
+		}
+
+		// Find total point count and part count
+<span class="fc" id="L384">		int point_count = 0;</span>
+<span class="fc" id="L385">		int partCount = 0;</span>
+<span class="fc" id="L386">		int tempOffset = offset;</span>
+<span class="fc bfc" id="L387" title="All 2 branches covered.">		for (int ipolygon = 0; ipolygon &lt; polygonCount; ipolygon++) {</span>
+<span class="fc" id="L388">			tempOffset += 5; // skip redundant byte order and type fields</span>
+<span class="fc" id="L389">			int ipartcount = wkbHelper.getInt(tempOffset);</span>
+<span class="fc" id="L390">			tempOffset += 4;</span>
+
+<span class="fc bfc" id="L392" title="All 2 branches covered.">			for (int ipart = 0; ipart &lt; ipartcount; ipart++) {</span>
+<span class="fc" id="L393">				int ipointcount = wkbHelper.getInt(tempOffset);</span>
+<span class="fc" id="L394">				tempOffset += 4;</span>
+
+				// If ipointcount == 0, then we have an empty part
+<span class="fc bfc" id="L397" title="All 2 branches covered.">				if (ipointcount == 0)</span>
+<span class="fc" id="L398">					continue;</span>
+
+<span class="fc bfc" id="L400" title="All 2 branches covered.">				if (ipointcount &lt;= 2) {</span>
+<span class="fc" id="L401">					tempOffset += ipointcount * 2 * 8;</span>
+
+<span class="pc bpc" id="L403" title="1 of 2 branches missed.">					if (bZs)</span>
+<span class="nc" id="L404">						tempOffset += ipointcount * 8;</span>
+
+<span class="pc bpc" id="L406" title="1 of 2 branches missed.">					if (bMs)</span>
+<span class="nc" id="L407">						tempOffset += ipointcount * 8;</span>
+
+<span class="fc bfc" id="L409" title="All 2 branches covered.">					if (ipointcount == 1)</span>
+<span class="fc" id="L410">						point_count += ipointcount + 1;</span>
+					else
+<span class="fc" id="L412">						point_count += ipointcount;</span>
+
+<span class="fc" id="L414">					partCount++;</span>
+
+<span class="fc" id="L416">					continue;</span>
+				}
+
+<span class="fc" id="L419">				double startx = wkbHelper.getDouble(tempOffset);</span>
+<span class="fc" id="L420">				tempOffset += 8;</span>
+<span class="fc" id="L421">				double starty = wkbHelper.getDouble(tempOffset);</span>
+<span class="fc" id="L422">				tempOffset += 8;</span>
+<span class="fc" id="L423">				double startz = NumberUtils.TheNaN;</span>
+<span class="fc" id="L424">				double startm = NumberUtils.TheNaN;</span>
+
+<span class="fc bfc" id="L426" title="All 2 branches covered.">				if (bZs) {</span>
+<span class="fc" id="L427">					startz = wkbHelper.getDouble(tempOffset);</span>
+<span class="fc" id="L428">					tempOffset += 8;</span>
+				}
+
+<span class="fc bfc" id="L431" title="All 2 branches covered.">				if (bMs) {</span>
+<span class="fc" id="L432">					startm = wkbHelper.getDouble(tempOffset);</span>
+<span class="fc" id="L433">					tempOffset += 8;</span>
+				}
+
+<span class="fc" id="L436">				tempOffset += (ipointcount - 2) * 2 * 8;</span>
+
+<span class="fc bfc" id="L438" title="All 2 branches covered.">				if (bZs)</span>
+<span class="fc" id="L439">					tempOffset += (ipointcount - 2) * 8;</span>
+
+<span class="fc bfc" id="L441" title="All 2 branches covered.">				if (bMs)</span>
+<span class="fc" id="L442">					tempOffset += (ipointcount - 2) * 8;</span>
+
+<span class="fc" id="L444">				double endx = wkbHelper.getDouble(tempOffset);</span>
+<span class="fc" id="L445">				tempOffset += 8;</span>
+<span class="fc" id="L446">				double endy = wkbHelper.getDouble(tempOffset);</span>
+<span class="fc" id="L447">				tempOffset += 8;</span>
+<span class="fc" id="L448">				double endz = NumberUtils.TheNaN;</span>
+<span class="fc" id="L449">				double endm = NumberUtils.TheNaN;</span>
+
+<span class="fc bfc" id="L451" title="All 2 branches covered.">				if (bZs) {</span>
+<span class="fc" id="L452">					endz = wkbHelper.getDouble(tempOffset);</span>
+<span class="fc" id="L453">					tempOffset += 8;</span>
+				}
+
+<span class="fc bfc" id="L456" title="All 2 branches covered.">				if (bMs) {</span>
+<span class="fc" id="L457">					endm = wkbHelper.getDouble(tempOffset);</span>
+<span class="fc" id="L458">					tempOffset += 8;</span>
+				}
+
+<span class="pc bpc" id="L461" title="1 of 4 branches missed.">				if ((startx == endx || (NumberUtils.isNaN(startx) &amp;&amp; NumberUtils</span>
+<span class="pc bpc" id="L462" title="3 of 4 branches missed.">						.isNaN(endx)))</span>
+<span class="nc bnc" id="L463" title="All 2 branches missed.">						&amp;&amp; (starty == endy || (NumberUtils.isNaN(starty) &amp;&amp; NumberUtils</span>
+<span class="pc bpc" id="L464" title="3 of 6 branches missed.">								.isNaN(endy)))</span>
+						&amp;&amp; (!bZs || startz == endz || (NumberUtils
+<span class="pc bpc" id="L466" title="5 of 8 branches missed.">								.isNaN(startz) &amp;&amp; NumberUtils.isNaN(endz)))</span>
+						&amp;&amp; (!bMs || startm == endm || (NumberUtils
+<span class="nc bnc" id="L468" title="All 4 branches missed.">								.isNaN(startm) &amp;&amp; NumberUtils.isNaN(endm)))) {</span>
+<span class="fc" id="L469">					point_count += ipointcount - 1;</span>
+				} else {
+<span class="fc" id="L471">					point_count += ipointcount;</span>
+				}
+
+<span class="fc" id="L474">				partCount++;</span>
+			}
+		}
+
+<span class="fc" id="L478">		AttributeStreamOfDbl position = null;</span>
+<span class="fc" id="L479">		AttributeStreamOfDbl zs = null;</span>
+<span class="fc" id="L480">		AttributeStreamOfDbl ms = null;</span>
+<span class="fc" id="L481">		AttributeStreamOfInt32 parts = null;</span>
+<span class="fc" id="L482">		AttributeStreamOfInt8 pathFlags = null;</span>
+
+		Geometry newPolygon;
+		MultiPathImpl polygon;
+
+<span class="fc" id="L487">		newPolygon = new Polygon();</span>
+<span class="fc" id="L488">		polygon = (MultiPathImpl) newPolygon._getImpl();</span>
+
+<span class="fc bfc" id="L490" title="All 2 branches covered.">		if (bZs)</span>
+<span class="fc" id="L491">			polygon.addAttribute(VertexDescription.Semantics.Z);</span>
+
+<span class="fc bfc" id="L493" title="All 2 branches covered.">		if (bMs)</span>
+<span class="fc" id="L494">			polygon.addAttribute(VertexDescription.Semantics.M);</span>
+
+<span class="fc bfc" id="L496" title="All 2 branches covered.">		if (point_count &gt; 0) {</span>
+<span class="fc" id="L497">			parts = (AttributeStreamOfInt32) (AttributeStreamBase</span>
+<span class="fc" id="L498">					.createIndexStream(partCount + 1, 0));</span>
+<span class="fc" id="L499">			pathFlags = (AttributeStreamOfInt8) (AttributeStreamBase</span>
+<span class="fc" id="L500">					.createByteStream(parts.size(), (byte) PathFlags.enumClosed));</span>
+<span class="fc" id="L501">			position = (AttributeStreamOfDbl) (AttributeStreamBase</span>
+<span class="fc" id="L502">					.createAttributeStreamWithSemantics(</span>
+							VertexDescription.Semantics.POSITION, point_count));
+
+<span class="fc bfc" id="L505" title="All 2 branches covered.">			if (bZs)</span>
+<span class="fc" id="L506">				zs = (AttributeStreamOfDbl) (AttributeStreamBase</span>
+<span class="fc" id="L507">						.createAttributeStreamWithSemantics(</span>
+								VertexDescription.Semantics.Z, point_count));
+
+<span class="fc bfc" id="L510" title="All 2 branches covered.">			if (bMs)</span>
+<span class="fc" id="L511">				ms = (AttributeStreamOfDbl) (AttributeStreamBase</span>
+<span class="fc" id="L512">						.createAttributeStreamWithSemantics(</span>
+								VertexDescription.Semantics.M, point_count));
+		}
+
+<span class="fc" id="L516">		boolean bCreateMs = false, bCreateZs = false;</span>
+<span class="fc" id="L517">		int ipartend = 0;</span>
+<span class="fc" id="L518">		int ipolygonend = 0;</span>
+<span class="fc" id="L519">		int part_index = 0;</span>
+
+		// read Coordinates
+<span class="fc bfc" id="L522" title="All 2 branches covered.">		for (int ipolygon = 0; ipolygon &lt; polygonCount; ipolygon++) {</span>
+<span class="fc" id="L523">			offset += 5; // skip redundant byte order and type fields</span>
+<span class="fc" id="L524">			int ipartcount = wkbHelper.getInt(offset);</span>
+<span class="fc" id="L525">			offset += 4;</span>
+<span class="fc" id="L526">			int ipolygonstart = ipolygonend;</span>
+<span class="fc" id="L527">			ipolygonend = ipolygonstart + ipartcount;</span>
+
+<span class="fc bfc" id="L529" title="All 2 branches covered.">			for (int ipart = ipolygonstart; ipart &lt; ipolygonend; ipart++) {</span>
+<span class="fc" id="L530">				int ipointcount = wkbHelper.getInt(offset);</span>
+<span class="fc" id="L531">				offset += 4;</span>
+
+<span class="fc bfc" id="L533" title="All 2 branches covered.">				if (ipointcount == 0)</span>
+<span class="fc" id="L534">					continue;</span>
+
+<span class="fc" id="L536">				int ipartstart = ipartend;</span>
+<span class="fc" id="L537">				ipartend += ipointcount;</span>
+<span class="fc" id="L538">				boolean bSkipLastPoint = true;</span>
+
+<span class="fc bfc" id="L540" title="All 2 branches covered.">				if (ipointcount == 1) {</span>
+<span class="fc" id="L541">					ipartstart++;</span>
+<span class="fc" id="L542">					ipartend++;</span>
+<span class="fc" id="L543">					bSkipLastPoint = false;</span>
+<span class="fc bfc" id="L544" title="All 2 branches covered.">				} else if (ipointcount == 2) {</span>
+<span class="fc" id="L545">					bSkipLastPoint = false;</span>
+				} else {
+					// Check if start point is equal to end point
+
+<span class="fc" id="L549">					tempOffset = offset;</span>
+
+<span class="fc" id="L551">					double startx = wkbHelper.getDouble(tempOffset);</span>
+<span class="fc" id="L552">					tempOffset += 8;</span>
+<span class="fc" id="L553">					double starty = wkbHelper.getDouble(tempOffset);</span>
+<span class="fc" id="L554">					tempOffset += 8;</span>
+<span class="fc" id="L555">					double startz = NumberUtils.TheNaN;</span>
+<span class="fc" id="L556">					double startm = NumberUtils.TheNaN;</span>
+
+<span class="fc bfc" id="L558" title="All 2 branches covered.">					if (bZs) {</span>
+<span class="fc" id="L559">						startz = wkbHelper.getDouble(tempOffset);</span>
+<span class="fc" id="L560">						tempOffset += 8;</span>
+					}
+
+<span class="fc bfc" id="L563" title="All 2 branches covered.">					if (bMs) {</span>
+<span class="fc" id="L564">						startm = wkbHelper.getDouble(tempOffset);</span>
+<span class="fc" id="L565">						tempOffset += 8;</span>
+					}
+
+<span class="fc" id="L568">					tempOffset += (ipointcount - 2) * 2 * 8;</span>
+
+<span class="fc bfc" id="L570" title="All 2 branches covered.">					if (bZs)</span>
+<span class="fc" id="L571">						tempOffset += (ipointcount - 2) * 8;</span>
+
+<span class="fc bfc" id="L573" title="All 2 branches covered.">					if (bMs)</span>
+<span class="fc" id="L574">						tempOffset += (ipointcount - 2) * 8;</span>
+
+<span class="fc" id="L576">					double endx = wkbHelper.getDouble(tempOffset);</span>
+<span class="fc" id="L577">					tempOffset += 8;</span>
+<span class="fc" id="L578">					double endy = wkbHelper.getDouble(tempOffset);</span>
+<span class="fc" id="L579">					tempOffset += 8;</span>
+<span class="fc" id="L580">					double endz = NumberUtils.TheNaN;</span>
+<span class="fc" id="L581">					double endm = NumberUtils.TheNaN;</span>
+
+<span class="fc bfc" id="L583" title="All 2 branches covered.">					if (bZs) {</span>
+<span class="fc" id="L584">						endz = wkbHelper.getDouble(tempOffset);</span>
+<span class="fc" id="L585">						tempOffset += 8;</span>
+					}
+
+<span class="fc bfc" id="L588" title="All 2 branches covered.">					if (bMs) {</span>
+<span class="fc" id="L589">						endm = wkbHelper.getDouble(tempOffset);</span>
+<span class="fc" id="L590">						tempOffset += 8;</span>
+					}
+
+<span class="pc bpc" id="L593" title="1 of 4 branches missed.">					if ((startx == endx || (NumberUtils.isNaN(startx) &amp;&amp; NumberUtils</span>
+<span class="pc bpc" id="L594" title="3 of 4 branches missed.">							.isNaN(endx)))</span>
+<span class="nc bnc" id="L595" title="All 2 branches missed.">							&amp;&amp; (starty == endy || (NumberUtils.isNaN(starty) &amp;&amp; NumberUtils</span>
+<span class="pc bpc" id="L596" title="3 of 6 branches missed.">									.isNaN(endy)))</span>
+							&amp;&amp; (!bZs || startz == endz || (NumberUtils
+<span class="pc bpc" id="L598" title="5 of 8 branches missed.">									.isNaN(startz) &amp;&amp; NumberUtils.isNaN(endz)))</span>
+							&amp;&amp; (!bMs || startm == endm || (NumberUtils
+<span class="nc bnc" id="L600" title="All 4 branches missed.">									.isNaN(startm) &amp;&amp; NumberUtils.isNaN(endm))))</span>
+<span class="fc" id="L601">						ipartend--;</span>
+					else
+<span class="fc" id="L603">						bSkipLastPoint = false;</span>
+				}
+
+<span class="fc bfc" id="L606" title="All 2 branches covered.">				if (ipart == ipolygonstart)</span>
+<span class="fc" id="L607">					pathFlags.setBits(ipart,</span>
+							(byte) PathFlags.enumOGCStartPolygon);
+
+<span class="fc" id="L610">				parts.write(++part_index, ipartend);</span>
+
+				// We must write from the buffer backwards - ogc polygon
+				// format is opposite of shapefile format
+<span class="fc bfc" id="L614" title="All 2 branches covered.">				for (int i = ipartstart; i &lt; ipartend; i++) {</span>
+<span class="fc" id="L615">					double x = wkbHelper.getDouble(offset);</span>
+<span class="fc" id="L616">					offset += 8;</span>
+<span class="fc" id="L617">					double y = wkbHelper.getDouble(offset);</span>
+<span class="fc" id="L618">					offset += 8;</span>
+
+<span class="fc" id="L620">					position.write(2 * i, x);</span>
+<span class="fc" id="L621">					position.write(2 * i + 1, y);</span>
+
+<span class="fc bfc" id="L623" title="All 2 branches covered.">					if (bZs) {</span>
+<span class="fc" id="L624">						double z = wkbHelper.getDouble(offset);</span>
+<span class="fc" id="L625">						offset += 8;</span>
+
+<span class="fc" id="L627">						zs.write(i, z);</span>
+<span class="pc bpc" id="L628" title="1 of 2 branches missed.">						if (!VertexDescription.isDefaultValue(</span>
+								VertexDescription.Semantics.Z, z))
+<span class="fc" id="L630">							bCreateZs = true;</span>
+					}
+
+<span class="fc bfc" id="L633" title="All 2 branches covered.">					if (bMs) {</span>
+<span class="fc" id="L634">						double m = wkbHelper.getDouble(offset);</span>
+<span class="fc" id="L635">						offset += 8;</span>
+
+<span class="fc" id="L637">						ms.write(i, m);</span>
+<span class="pc bpc" id="L638" title="1 of 2 branches missed.">						if (!VertexDescription.isDefaultValue(</span>
+								VertexDescription.Semantics.M, m))
+<span class="fc" id="L640">							bCreateMs = true;</span>
+					}
+				}
+
+<span class="fc bfc" id="L644" title="All 2 branches covered.">				if (bSkipLastPoint) {</span>
+<span class="fc" id="L645">					offset += 2 * 8;</span>
+
+<span class="fc bfc" id="L647" title="All 2 branches covered.">					if (bZs)</span>
+<span class="fc" id="L648">						offset += 8;</span>
+
+<span class="fc bfc" id="L650" title="All 2 branches covered.">					if (bMs)</span>
+<span class="fc" id="L651">						offset += 8;</span>
+<span class="fc bfc" id="L652" title="All 2 branches covered.">				} else if (ipointcount == 1) {</span>
+<span class="fc" id="L653">					double x = position.read(2 * ipartstart);</span>
+<span class="fc" id="L654">					double y = position.read(2 * ipartstart + 1);</span>
+<span class="fc" id="L655">					position.write(2 * (ipartstart - 1), x);</span>
+<span class="fc" id="L656">					position.write(2 * (ipartstart - 1) + 1, y);</span>
+
+<span class="pc bpc" id="L658" title="1 of 2 branches missed.">					if (bZs) {</span>
+<span class="nc" id="L659">						double z = zs.read(ipartstart);</span>
+<span class="nc" id="L660">						zs.write(ipartstart - 1, z);</span>
+					}
+
+<span class="pc bpc" id="L663" title="1 of 2 branches missed.">					if (bMs) {</span>
+<span class="nc" id="L664">						double m = ms.read(ipartstart);</span>
+<span class="nc" id="L665">						ms.write(ipartstart - 1, m);</span>
+					}
+				}
+			}
+		}
+
+		// set envelopes and assign AttributeStreams
+
+<span class="fc bfc" id="L673" title="All 2 branches covered.">		if (point_count &gt; 0) {</span>
+<span class="fc" id="L674">			polygon.setPathStreamRef(parts); // sets m_parts</span>
+<span class="fc" id="L675">			polygon.setPathFlagsStreamRef(pathFlags);</span>
+<span class="fc" id="L676">			polygon.setAttributeStreamRef(VertexDescription.Semantics.POSITION,</span>
+					position);
+
+<span class="fc bfc" id="L679" title="All 2 branches covered.">			if (bZs) {</span>
+<span class="pc bpc" id="L680" title="1 of 2 branches missed.">				if (!bCreateZs)</span>
+<span class="nc" id="L681">					zs = null;</span>
+
+<span class="fc" id="L683">				polygon.setAttributeStreamRef(VertexDescription.Semantics.Z, zs);</span>
+			}
+
+<span class="fc bfc" id="L686" title="All 2 branches covered.">			if (bMs) {</span>
+<span class="pc bpc" id="L687" title="1 of 2 branches missed.">				if (!bCreateMs)</span>
+<span class="nc" id="L688">					ms = null;</span>
+
+<span class="fc" id="L690">				polygon.setAttributeStreamRef(VertexDescription.Semantics.M, ms);</span>
+			}
+
+<span class="fc" id="L693">			polygon.notifyModified(MultiPathImpl.DirtyFlags.DirtyAll);</span>
+
+<span class="fc" id="L695">			AttributeStreamOfInt8 path_flags_clone = new AttributeStreamOfInt8(</span>
+					pathFlags);
+
+<span class="fc bfc" id="L698" title="All 2 branches covered.">			for (int i = 0; i &lt; path_flags_clone.size() - 1; i++) {</span>
+<span class="fc bfc" id="L699" title="All 2 branches covered.">				if (((int) path_flags_clone.read(i) &amp; (int) PathFlags.enumOGCStartPolygon) != 0) {// Should</span>
+																									// be
+																									// clockwise
+<span class="fc bfc" id="L702" title="All 2 branches covered.">					if (!InternalUtils.isClockwiseRing(polygon, i))</span>
+<span class="fc" id="L703">						polygon.reversePath(i); // make clockwise</span>
+				} else {// Should be counter-clockwise
+<span class="fc bfc" id="L705" title="All 2 branches covered.">					if (InternalUtils.isClockwiseRing(polygon, i))</span>
+<span class="fc" id="L706">						polygon.reversePath(i); // make counter-clockwise</span>
+				}
+			}
+
+<span class="fc" id="L710">			polygon.setPathFlagsStreamRef(path_flags_clone);</span>
+		}
+
+<span class="pc bpc" id="L713" title="1 of 2 branches missed.">		if ((importFlags &amp; (int) WkbImportFlags.wkbImportNonTrusted) == 0)</span>
+<span class="fc" id="L714">			polygon.setIsSimple(MultiVertexGeometryImpl.GeometryXSimple.Weak,</span>
+					0.0, false);
+
+<span class="fc" id="L717">		polygon.setDirtyOGCFlags(false);</span>
+<span class="fc" id="L718">		wkbHelper.adjustment += offset;</span>
+
+<span class="fc" id="L720">		return newPolygon;</span>
+	}
+
+	private static Geometry importFromWkbPolyline(boolean bMultiPolyline,
+			int importFlags, boolean bZs, boolean bMs, WkbHelper wkbHelper) {
+		int offset;
+		int originalPartCount;
+
+<span class="fc bfc" id="L728" title="All 2 branches covered.">		if (bMultiPolyline) {</span>
+<span class="fc" id="L729">			originalPartCount = wkbHelper.getInt(5);</span>
+<span class="fc" id="L730">			offset = 9;</span>
+		} else {
+<span class="fc" id="L732">			originalPartCount = 1;</span>
+<span class="fc" id="L733">			offset = 0;</span>
+		}
+
+		// Find total point count and part count
+<span class="fc" id="L737">		int point_count = 0;</span>
+<span class="fc" id="L738">		int partCount = 0;</span>
+<span class="fc" id="L739">		int tempOffset = offset;</span>
+<span class="fc bfc" id="L740" title="All 2 branches covered.">		for (int ipart = 0; ipart &lt; originalPartCount; ipart++) {</span>
+<span class="fc" id="L741">			tempOffset += 5; // skip redundant byte order and type fields</span>
+<span class="fc" id="L742">			int ipointcount = wkbHelper.getInt(tempOffset);</span>
+<span class="fc" id="L743">			tempOffset += 4;</span>
+
+			// If ipointcount == 0, then we have an empty part
+<span class="fc bfc" id="L746" title="All 2 branches covered.">			if (ipointcount == 0)</span>
+<span class="fc" id="L747">				continue;</span>
+
+<span class="fc" id="L749">			point_count += ipointcount;</span>
+<span class="fc" id="L750">			partCount++;</span>
+
+<span class="fc bfc" id="L752" title="All 2 branches covered.">			if (ipointcount == 1)</span>
+<span class="fc" id="L753">				point_count++;</span>
+
+<span class="fc" id="L755">			tempOffset += ipointcount * 2 * 8;</span>
+
+<span class="fc bfc" id="L757" title="All 2 branches covered.">			if (bZs)</span>
+<span class="fc" id="L758">				tempOffset += ipointcount * 8;</span>
+
+<span class="fc bfc" id="L760" title="All 2 branches covered.">			if (bMs)</span>
+<span class="fc" id="L761">				tempOffset += ipointcount * 8;</span>
+		}
+
+<span class="fc" id="L764">		AttributeStreamOfDbl position = null;</span>
+<span class="fc" id="L765">		AttributeStreamOfDbl zs = null;</span>
+<span class="fc" id="L766">		AttributeStreamOfDbl ms = null;</span>
+<span class="fc" id="L767">		AttributeStreamOfInt32 parts = null;</span>
+<span class="fc" id="L768">		AttributeStreamOfInt8 pathFlags = null;</span>
+
+		Polyline newpolyline;
+		MultiPathImpl polyline;
+
+<span class="fc" id="L773">		newpolyline = new Polyline();</span>
+<span class="fc" id="L774">		polyline = (MultiPathImpl) newpolyline._getImpl();</span>
+
+<span class="fc bfc" id="L776" title="All 2 branches covered.">		if (bZs)</span>
+<span class="fc" id="L777">			polyline.addAttribute(VertexDescription.Semantics.Z);</span>
+
+<span class="fc bfc" id="L779" title="All 2 branches covered.">		if (bMs)</span>
+<span class="fc" id="L780">			polyline.addAttribute(VertexDescription.Semantics.M);</span>
+
+<span class="fc bfc" id="L782" title="All 2 branches covered.">		if (point_count &gt; 0) {</span>
+<span class="fc" id="L783">			parts = (AttributeStreamOfInt32) (AttributeStreamBase</span>
+<span class="fc" id="L784">					.createIndexStream(partCount + 1, 0));</span>
+<span class="fc" id="L785">			pathFlags = (AttributeStreamOfInt8) (AttributeStreamBase</span>
+<span class="fc" id="L786">					.createByteStream(parts.size(), (byte) 0));</span>
+<span class="fc" id="L787">			position = (AttributeStreamOfDbl) (AttributeStreamBase</span>
+<span class="fc" id="L788">					.createAttributeStreamWithSemantics(</span>
+							VertexDescription.Semantics.POSITION, point_count));
+
+<span class="fc bfc" id="L791" title="All 2 branches covered.">			if (bZs)</span>
+<span class="fc" id="L792">				zs = (AttributeStreamOfDbl) (AttributeStreamBase</span>
+<span class="fc" id="L793">						.createAttributeStreamWithSemantics(</span>
+								VertexDescription.Semantics.Z, point_count));
+
+<span class="fc bfc" id="L796" title="All 2 branches covered.">			if (bMs)</span>
+<span class="fc" id="L797">				ms = (AttributeStreamOfDbl) (AttributeStreamBase</span>
+<span class="fc" id="L798">						.createAttributeStreamWithSemantics(</span>
+								VertexDescription.Semantics.M, point_count));
+		}
+
+<span class="fc" id="L802">		boolean bCreateMs = false, bCreateZs = false;</span>
+<span class="fc" id="L803">		int ipartend = 0;</span>
+<span class="fc" id="L804">		int part_index = 0;</span>
+
+		// read Coordinates
+<span class="fc bfc" id="L807" title="All 2 branches covered.">		for (int ipart = 0; ipart &lt; originalPartCount; ipart++) {</span>
+<span class="fc" id="L808">			offset += 5; // skip redundant byte order and type fields</span>
+
+<span class="fc" id="L810">			int ipointcount = wkbHelper.getInt(offset);</span>
+<span class="fc" id="L811">			offset += 4;</span>
+
+<span class="fc bfc" id="L813" title="All 2 branches covered.">			if (ipointcount == 0)</span>
+<span class="fc" id="L814">				continue;</span>
+
+<span class="fc" id="L816">			int ipartstart = ipartend;</span>
+<span class="fc" id="L817">			ipartend = ipartstart + ipointcount;</span>
+
+<span class="fc bfc" id="L819" title="All 2 branches covered.">			if (ipointcount == 1) {</span>
+<span class="fc" id="L820">				ipartstart++;</span>
+<span class="fc" id="L821">				ipartend++;</span>
+			}
+
+<span class="fc" id="L824">			parts.write(++part_index, ipartend);</span>
+
+<span class="fc bfc" id="L826" title="All 2 branches covered.">			for (int i = ipartstart; i &lt; ipartend; i++) {</span>
+<span class="fc" id="L827">				double x = wkbHelper.getDouble(offset);</span>
+<span class="fc" id="L828">				offset += 8;</span>
+<span class="fc" id="L829">				double y = wkbHelper.getDouble(offset);</span>
+<span class="fc" id="L830">				offset += 8;</span>
+
+<span class="fc" id="L832">				position.write(2 * i, x);</span>
+<span class="fc" id="L833">				position.write(2 * i + 1, y);</span>
+
+<span class="fc bfc" id="L835" title="All 2 branches covered.">				if (bZs) {</span>
+<span class="fc" id="L836">					double z = wkbHelper.getDouble(offset);</span>
+<span class="fc" id="L837">					offset += 8;</span>
+
+<span class="fc" id="L839">					zs.write(i, z);</span>
+<span class="pc bpc" id="L840" title="1 of 2 branches missed.">					if (!VertexDescription.isDefaultValue(</span>
+							VertexDescription.Semantics.Z, z))
+<span class="fc" id="L842">						bCreateZs = true;</span>
+				}
+
+<span class="fc bfc" id="L845" title="All 2 branches covered.">				if (bMs) {</span>
+<span class="fc" id="L846">					double m = wkbHelper.getDouble(offset);</span>
+<span class="fc" id="L847">					offset += 8;</span>
+
+<span class="fc" id="L849">					ms.write(i, m);</span>
+<span class="pc bpc" id="L850" title="1 of 2 branches missed.">					if (!VertexDescription.isDefaultValue(</span>
+							VertexDescription.Semantics.M, m))
+<span class="fc" id="L852">						bCreateMs = true;</span>
+				}
+			}
+
+<span class="fc bfc" id="L856" title="All 2 branches covered.">			if (ipointcount == 1) {</span>
+<span class="fc" id="L857">				double x = position.read(2 * ipartstart);</span>
+<span class="fc" id="L858">				double y = position.read(2 * ipartstart + 1);</span>
+<span class="fc" id="L859">				position.write(2 * (ipartstart - 1), x);</span>
+<span class="fc" id="L860">				position.write(2 * (ipartstart - 1) + 1, y);</span>
+
+<span class="pc bpc" id="L862" title="1 of 2 branches missed.">				if (bZs) {</span>
+<span class="nc" id="L863">					double z = zs.read(ipartstart);</span>
+<span class="nc" id="L864">					zs.write(ipartstart - 1, z);</span>
+				}
+
+<span class="pc bpc" id="L867" title="1 of 2 branches missed.">				if (bMs) {</span>
+<span class="nc" id="L868">					double m = ms.read(ipartstart);</span>
+<span class="nc" id="L869">					ms.write(ipartstart - 1, m);</span>
+				}
+			}
+		}
+
+		// set envelopes and assign AttributeStreams
+
+<span class="fc bfc" id="L876" title="All 2 branches covered.">		if (point_count &gt; 0) {</span>
+<span class="fc" id="L877">			polyline.setPathStreamRef(parts); // sets m_parts</span>
+<span class="fc" id="L878">			polyline.setPathFlagsStreamRef(pathFlags);</span>
+<span class="fc" id="L879">			polyline.setAttributeStreamRef(</span>
+					VertexDescription.Semantics.POSITION, position);
+
+<span class="fc bfc" id="L882" title="All 2 branches covered.">			if (bZs) {</span>
+<span class="pc bpc" id="L883" title="1 of 2 branches missed.">				if (!bCreateZs)</span>
+<span class="nc" id="L884">					zs = null;</span>
+
+<span class="fc" id="L886">				polyline.setAttributeStreamRef(VertexDescription.Semantics.Z,</span>
+						zs);
+			}
+
+<span class="fc bfc" id="L890" title="All 2 branches covered.">			if (bMs) {</span>
+<span class="pc bpc" id="L891" title="1 of 2 branches missed.">				if (!bCreateMs)</span>
+<span class="nc" id="L892">					ms = null;</span>
+
+<span class="fc" id="L894">				polyline.setAttributeStreamRef(VertexDescription.Semantics.M,</span>
+						ms);
+			}
+
+<span class="fc" id="L898">			polyline.notifyModified(MultiPathImpl.DirtyFlags.DirtyAll);</span>
+		}
+
+<span class="fc" id="L901">		wkbHelper.adjustment += offset;</span>
+
+<span class="fc" id="L903">		return newpolyline;</span>
+	}
+
+	private static Geometry importFromWkbMultiPoint(int importFlags,
+			boolean bZs, boolean bMs, WkbHelper wkbHelper) {
+<span class="fc" id="L908">		int offset = 5; // skip byte order and type</span>
+
+		// set point count
+<span class="fc" id="L911">		int point_count = wkbHelper.getInt(offset);</span>
+<span class="fc" id="L912">		offset += 4;</span>
+
+<span class="fc" id="L914">		AttributeStreamOfDbl position = null;</span>
+<span class="fc" id="L915">		AttributeStreamOfDbl zs = null;</span>
+<span class="fc" id="L916">		AttributeStreamOfDbl ms = null;</span>
+
+		MultiPoint newmultipoint;
+		MultiPointImpl multipoint;
+
+<span class="fc" id="L921">		newmultipoint = new MultiPoint();</span>
+<span class="fc" id="L922">		multipoint = (MultiPointImpl) newmultipoint._getImpl();</span>
+
+<span class="fc bfc" id="L924" title="All 2 branches covered.">		if (bZs)</span>
+<span class="fc" id="L925">			multipoint.addAttribute(VertexDescription.Semantics.Z);</span>
+
+<span class="fc bfc" id="L927" title="All 2 branches covered.">		if (bMs)</span>
+<span class="fc" id="L928">			multipoint.addAttribute(VertexDescription.Semantics.M);</span>
+
+<span class="fc bfc" id="L930" title="All 2 branches covered.">		if (point_count &gt; 0) {</span>
+<span class="fc" id="L931">			position = (AttributeStreamOfDbl) (AttributeStreamBase</span>
+<span class="fc" id="L932">					.createAttributeStreamWithSemantics(</span>
+							VertexDescription.Semantics.POSITION, point_count));
+
+<span class="pc bpc" id="L935" title="1 of 2 branches missed.">			if (bZs)</span>
+<span class="fc" id="L936">				zs = (AttributeStreamOfDbl) (AttributeStreamBase</span>
+<span class="fc" id="L937">						.createAttributeStreamWithSemantics(</span>
+								VertexDescription.Semantics.Z, point_count));
+
+<span class="fc bfc" id="L940" title="All 2 branches covered.">			if (bMs)</span>
+<span class="fc" id="L941">				ms = (AttributeStreamOfDbl) (AttributeStreamBase</span>
+<span class="fc" id="L942">						.createAttributeStreamWithSemantics(</span>
+								VertexDescription.Semantics.M, point_count));
+		}
+
+<span class="fc" id="L946">		boolean bCreateMs = false, bCreateZs = false;</span>
+<span class="fc bfc" id="L947" title="All 2 branches covered.">		for (int i = 0; i &lt; point_count; i++) {</span>
+<span class="fc" id="L948">			offset += 5; // skip redundant byte order and type fields</span>
+
+			// read xy coordinates
+<span class="fc" id="L951">			double x = wkbHelper.getDouble(offset);</span>
+<span class="fc" id="L952">			offset += 8;</span>
+<span class="fc" id="L953">			double y = wkbHelper.getDouble(offset);</span>
+<span class="fc" id="L954">			offset += 8;</span>
+
+<span class="fc" id="L956">			position.write(2 * i, x);</span>
+<span class="fc" id="L957">			position.write(2 * i + 1, y);</span>
+
+<span class="pc bpc" id="L959" title="1 of 2 branches missed.">			if (bZs) {</span>
+<span class="fc" id="L960">				double z = wkbHelper.getDouble(offset);</span>
+<span class="fc" id="L961">				offset += 8;</span>
+
+<span class="fc" id="L963">				zs.write(i, z);</span>
+<span class="pc bpc" id="L964" title="1 of 2 branches missed.">				if (!VertexDescription.isDefaultValue(</span>
+						VertexDescription.Semantics.Z, z))
+<span class="fc" id="L966">					bCreateZs = true;</span>
+			}
+
+<span class="fc bfc" id="L969" title="All 2 branches covered.">			if (bMs) {</span>
+<span class="fc" id="L970">				double m = wkbHelper.getDouble(offset);</span>
+<span class="fc" id="L971">				offset += 8;</span>
+
+<span class="fc" id="L973">				ms.write(i, m);</span>
+<span class="pc bpc" id="L974" title="1 of 2 branches missed.">				if (!VertexDescription.isDefaultValue(</span>
+						VertexDescription.Semantics.M, m))
+<span class="fc" id="L976">					bCreateMs = true;</span>
+			}
+		}
+
+		// set envelopes and assign AttributeStreams
+
+<span class="fc bfc" id="L982" title="All 2 branches covered.">		if (point_count &gt; 0) {</span>
+<span class="fc" id="L983">			multipoint.resize(point_count);</span>
+<span class="fc" id="L984">			multipoint.setAttributeStreamRef(</span>
+					VertexDescription.Semantics.POSITION, position);
+
+<span class="pc bpc" id="L987" title="1 of 2 branches missed.">			if (bZs) {</span>
+<span class="pc bpc" id="L988" title="1 of 2 branches missed.">				if (!bCreateZs)</span>
+<span class="nc" id="L989">					zs = null;</span>
+
+<span class="fc" id="L991">				multipoint.setAttributeStreamRef(VertexDescription.Semantics.Z,</span>
+						zs);
+			}
+
+<span class="fc bfc" id="L995" title="All 2 branches covered.">			if (bMs) {</span>
+<span class="pc bpc" id="L996" title="1 of 2 branches missed.">				if (!bCreateMs)</span>
+<span class="nc" id="L997">					ms = null;</span>
+
+<span class="fc" id="L999">				multipoint.setAttributeStreamRef(VertexDescription.Semantics.M,</span>
+						ms);
+			}
+
+<span class="fc" id="L1003">			multipoint.notifyModified(MultiPointImpl.DirtyFlags.DirtyAll);</span>
+		}
+
+<span class="fc" id="L1006">		wkbHelper.adjustment += offset;</span>
+
+<span class="fc" id="L1008">		return newmultipoint;</span>
+	}
+
+	private static Geometry importFromWkbPoint(int importFlags, boolean bZs,
+			boolean bMs, WkbHelper wkbHelper) {
+<span class="fc" id="L1013">		int offset = 5; // skip byte order and type</span>
+
+		// set xy coordinate
+<span class="fc" id="L1016">		double x = wkbHelper.getDouble(offset);</span>
+<span class="fc" id="L1017">		offset += 8;</span>
+<span class="fc" id="L1018">		double y = wkbHelper.getDouble(offset);</span>
+<span class="fc" id="L1019">		offset += 8;</span>
+
+<span class="fc" id="L1021">		double z = NumberUtils.TheNaN;</span>
+<span class="fc bfc" id="L1022" title="All 2 branches covered.">		if (bZs) {</span>
+<span class="fc" id="L1023">			z = wkbHelper.getDouble(offset);</span>
+<span class="fc" id="L1024">			offset += 8;</span>
+		}
+
+<span class="fc" id="L1027">		double m = NumberUtils.TheNaN;</span>
+<span class="fc bfc" id="L1028" title="All 2 branches covered.">		if (bMs) {</span>
+<span class="fc" id="L1029">			m = wkbHelper.getDouble(offset);</span>
+<span class="fc" id="L1030">			offset += 8;</span>
+		}
+
+<span class="fc" id="L1033">		boolean bEmpty = NumberUtils.isNaN(x);</span>
+<span class="fc" id="L1034">		Point point = new Point();</span>
+
+<span class="fc bfc" id="L1036" title="All 2 branches covered.">		if (!bEmpty) {</span>
+<span class="fc" id="L1037">			point.setX(x);</span>
+<span class="fc" id="L1038">			point.setY(y);</span>
+		}
+
+		// set Z
+<span class="fc bfc" id="L1042" title="All 2 branches covered.">		if (bZs) {</span>
+<span class="fc" id="L1043">			point.addAttribute(VertexDescription.Semantics.Z);</span>
+<span class="pc bpc" id="L1044" title="1 of 2 branches missed.">			if (!bEmpty)</span>
+<span class="fc" id="L1045">				point.setZ(z);</span>
+		}
+
+		// set M
+<span class="fc bfc" id="L1049" title="All 2 branches covered.">		if (bMs) {</span>
+<span class="fc" id="L1050">			point.addAttribute(VertexDescription.Semantics.M);</span>
+<span class="pc bpc" id="L1051" title="1 of 2 branches missed.">			if (!bEmpty)</span>
+<span class="fc" id="L1052">				point.setM(m);</span>
+		}
+
+<span class="fc" id="L1055">		wkbHelper.adjustment += offset;</span>
+
+<span class="fc" id="L1057">		return point;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

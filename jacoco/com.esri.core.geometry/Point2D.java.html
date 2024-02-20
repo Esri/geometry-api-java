@@ -1,0 +1,765 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Point2D.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Point2D.java</span></div><h1>Point2D.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2018 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+
+package com.esri.core.geometry;
+
+import java.io.Serializable;
+import java.math.BigDecimal;
+import java.util.Comparator;
+
+/**
+ * 
+ * Basic 2D point class. Contains only two double fields.
+ * 
+ */
+<span class="fc" id="L37">public final class Point2D implements Serializable{</span>
+	private static final long serialVersionUID = 1L;
+	
+	public double x;
+	public double y;
+
+<span class="fc" id="L43">	public Point2D() {</span>
+<span class="fc" id="L44">	}</span>
+
+<span class="fc" id="L46">	public Point2D(double x, double y) {</span>
+<span class="fc" id="L47">		this.x = x;</span>
+<span class="fc" id="L48">		this.y = y;</span>
+<span class="fc" id="L49">	}</span>
+
+<span class="fc" id="L51">	public Point2D(Point2D other) {</span>
+<span class="fc" id="L52">		setCoords(other);</span>
+<span class="fc" id="L53">	}</span>
+	
+	public static Point2D construct(double x, double y) {
+<span class="fc" id="L56">		return new Point2D(x, y);</span>
+	}
+
+	public void setCoords(double x, double y) {
+<span class="fc" id="L60">		this.x = x;</span>
+<span class="fc" id="L61">		this.y = y;</span>
+<span class="fc" id="L62">	}</span>
+
+	public void setCoords(Point2D other) {
+<span class="fc" id="L65">		x = other.x;</span>
+<span class="fc" id="L66">		y = other.y;</span>
+<span class="fc" id="L67">	}</span>
+
+	public boolean isEqual(Point2D other) {
+<span class="fc bfc" id="L70" title="All 4 branches covered.">		return x == other.x &amp;&amp; y == other.y;</span>
+	}
+	
+	public boolean isEqual(double x_, double y_) { 
+<span class="nc bnc" id="L74" title="All 4 branches missed.">		return x == x_ &amp;&amp; y == y_;</span>
+	}
+
+	public boolean isEqual(Point2D other, double tol) {
+<span class="fc bfc" id="L78" title="All 4 branches covered.">		return (Math.abs(x - other.x) &lt;= tol) &amp;&amp; (Math.abs(y - other.y) &lt;= tol);</span>
+	}
+
+	public boolean equals(Point2D other) {
+<span class="fc bfc" id="L82" title="All 4 branches covered.">		return x == other.x &amp;&amp; y == other.y;</span>
+	}
+	
+	@Override
+	public boolean equals(Object other) {
+<span class="pc bpc" id="L87" title="1 of 2 branches missed.">		if (other == this)</span>
+<span class="nc" id="L88">			return true;</span>
+
+<span class="pc bpc" id="L90" title="1 of 2 branches missed.">		if (!(other instanceof Point2D))</span>
+<span class="nc" id="L91">			return false;</span>
+		
+<span class="fc" id="L93">		Point2D v = (Point2D)other;</span>
+		
+<span class="pc bpc" id="L95" title="2 of 4 branches missed.">		return x == v.x &amp;&amp; y == v.y;</span>
+	}
+
+	@Override
+	public int hashCode() {
+<span class="nc" id="L100">		return NumberUtils.hash(NumberUtils.hash(x), y);</span>
+	}
+
+	
+	public void sub(Point2D other) {
+<span class="fc" id="L105">		x -= other.x;</span>
+<span class="fc" id="L106">		y -= other.y;</span>
+<span class="fc" id="L107">	}</span>
+
+	public void sub(Point2D p1, Point2D p2) {
+<span class="fc" id="L110">		x = p1.x - p2.x;</span>
+<span class="fc" id="L111">		y = p1.y - p2.y;</span>
+<span class="fc" id="L112">	}</span>
+
+	public void add(Point2D other) {
+<span class="fc" id="L115">		x += other.x;</span>
+<span class="fc" id="L116">		y += other.y;</span>
+<span class="fc" id="L117">	}</span>
+
+	public void add(Point2D p1, Point2D p2) {
+<span class="fc" id="L120">		x = p1.x + p2.x;</span>
+<span class="fc" id="L121">		y = p1.y + p2.y;</span>
+<span class="fc" id="L122">	}</span>
+
+	public void negate() {
+<span class="fc" id="L125">		x = -x;</span>
+<span class="fc" id="L126">		y = -y;</span>
+<span class="fc" id="L127">	}</span>
+
+	public void negate(Point2D other) {
+<span class="fc" id="L130">		x = -other.x;</span>
+<span class="fc" id="L131">		y = -other.y;</span>
+<span class="fc" id="L132">	}</span>
+
+	public void interpolate(Point2D other, double alpha) {
+<span class="nc" id="L135">		MathUtils.lerp(this, other, alpha, this);</span>
+<span class="nc" id="L136">	}</span>
+
+	public void interpolate(Point2D p1, Point2D p2, double alpha) {
+<span class="nc" id="L139">		MathUtils.lerp(p1,  p2, alpha, this);</span>
+<span class="nc" id="L140">	}</span>
+	
+	/**
+	 * Calculates this = this * f + shift
+	 * @param f
+	 * @param shift
+	 */
+	public void scaleAdd(double f, Point2D shift) {
+<span class="fc" id="L148">		x = x * f + shift.x;</span>
+<span class="fc" id="L149">		y = y * f + shift.y;</span>
+<span class="fc" id="L150">	}</span>
+
+	/**
+	 * Calculates this = other * f + shift
+	 * @param f
+	 * @param other
+	 * @param shift
+	 */
+	public void scaleAdd(double f, Point2D other, Point2D shift) {
+<span class="fc" id="L159">		x = other.x * f + shift.x;</span>
+<span class="fc" id="L160">		y = other.y * f + shift.y;</span>
+<span class="fc" id="L161">	}</span>
+
+	public void scale(double f, Point2D other) {
+<span class="nc" id="L164">		x = f * other.x;</span>
+<span class="nc" id="L165">		y = f * other.y;</span>
+<span class="nc" id="L166">	}</span>
+
+	public void scale(double f) {
+<span class="fc" id="L169">		x *= f;</span>
+<span class="fc" id="L170">		y *= f;</span>
+<span class="fc" id="L171">	}</span>
+
+	/**
+	 * Compares two vertices lexicographically by y.
+	 */
+	public int compare(Point2D other) {
+<span class="fc bfc" id="L177" title="All 6 branches covered.">		return y &lt; other.y ? -1 : (y &gt; other.y ? 1 : (x &lt; other.x ? -1</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">				: (x &gt; other.x ? 1 : 0)));</span>
+	}
+	/**
+	 * Compares two vertices lexicographically by x.
+	 */
+	int compareX(Point2D other) {
+<span class="nc bnc" id="L184" title="All 6 branches missed.">		return x &lt; other.x ? -1 : (x &gt; other.x ? 1 : (y &lt; other.y ? -1</span>
+<span class="nc bnc" id="L185" title="All 2 branches missed.">				: (y &gt; other.y ? 1 : 0)));</span>
+	}
+
+	public void normalize(Point2D other) {
+<span class="nc" id="L189">		double len = other.length();</span>
+<span class="nc bnc" id="L190" title="All 2 branches missed.">		if (len == 0) {</span>
+<span class="nc" id="L191">			x = 1.0;</span>
+<span class="nc" id="L192">			y = 0.0;</span>
+		} else {
+<span class="nc" id="L194">			x = other.x / len;</span>
+<span class="nc" id="L195">			y = other.y / len;</span>
+		}
+<span class="nc" id="L197">	}</span>
+
+	public void normalize() {
+<span class="fc" id="L200">		double len = length();</span>
+<span class="pc bpc" id="L201" title="1 of 2 branches missed.">		if (len == 0)// (!len)</span>
+		{
+<span class="nc" id="L203">			x = 1.0;</span>
+<span class="nc" id="L204">			y = 0.0;</span>
+		}
+<span class="fc" id="L206">		x /= len;</span>
+<span class="fc" id="L207">		y /= len;</span>
+<span class="fc" id="L208">	}</span>
+
+	public double length() {
+<span class="fc" id="L211">		return Math.sqrt(x * x + y * y);</span>
+	}
+
+	public double sqrLength() {
+<span class="fc" id="L215">		return x * x + y * y;</span>
+	}
+
+	public static double distance(Point2D pt1, Point2D pt2) {
+<span class="fc" id="L219">		return Math.sqrt(sqrDistance(pt1, pt2));</span>
+	}
+
+	public double dotProduct(Point2D other) {
+<span class="fc" id="L223">		return x * other.x + y * other.y;</span>
+	}
+
+	double _dotProductAbs(Point2D other) {
+<span class="fc" id="L227">		return Math.abs(x * other.x) + Math.abs(y * other.y);</span>
+	}
+
+	public double crossProduct(Point2D other) {
+<span class="fc" id="L231">		return x * other.y - y * other.x;</span>
+	}
+
+	public void rotateDirect(double Cos, double Sin) // corresponds to the
+												// Transformation2D.SetRotate(cos,
+												// sin).Transform(pt)
+	{
+<span class="nc" id="L238">		double xx = x * Cos - y * Sin;</span>
+<span class="nc" id="L239">		double yy = x * Sin + y * Cos;</span>
+<span class="nc" id="L240">		x = xx;</span>
+<span class="nc" id="L241">		y = yy;</span>
+<span class="nc" id="L242">	}</span>
+
+	public void rotateReverse(double Cos, double Sin) {
+<span class="fc" id="L245">		double xx = x * Cos + y * Sin;</span>
+<span class="fc" id="L246">		double yy = -x * Sin + y * Cos;</span>
+<span class="fc" id="L247">		x = xx;</span>
+<span class="fc" id="L248">		y = yy;</span>
+<span class="fc" id="L249">	}</span>
+
+	/**
+	 * 90 degree rotation, anticlockwise. Equivalent to RotateDirect(cos(pi/2),
+	 * sin(pi/2)).
+	 */
+	public void leftPerpendicular() {
+<span class="fc" id="L256">		double xx = x;</span>
+<span class="fc" id="L257">		x = -y;</span>
+<span class="fc" id="L258">		y = xx;</span>
+<span class="fc" id="L259">	}</span>
+
+	/**
+	 * 90 degree rotation, anticlockwise. Equivalent to RotateDirect(cos(pi/2),
+	 * sin(pi/2)).
+	 */
+	public void leftPerpendicular(Point2D pt) {
+<span class="fc" id="L266">		x = -pt.y;</span>
+<span class="fc" id="L267">		y = pt.x;</span>
+<span class="fc" id="L268">	}</span>
+
+	/**
+	 * 270 degree rotation, anticlockwise. Equivalent to
+	 * RotateDirect(-cos(pi/2), sin(-pi/2)).
+	 */
+	public void rightPerpendicular() {
+<span class="fc" id="L275">		double xx = x;</span>
+<span class="fc" id="L276">		x = y;</span>
+<span class="fc" id="L277">		y = -xx;</span>
+<span class="fc" id="L278">	}</span>
+
+	/**
+	 * 270 degree rotation, anticlockwise. Equivalent to
+	 * RotateDirect(-cos(pi/2), sin(-pi/2)).
+	 */
+	public void rightPerpendicular(Point2D pt) {
+<span class="nc" id="L285">		x = pt.y;</span>
+<span class="nc" id="L286">		y = -pt.x;</span>
+<span class="nc" id="L287">	}</span>
+
+	void _setNan() {
+<span class="nc" id="L290">		x = NumberUtils.NaN();</span>
+<span class="nc" id="L291">		y = NumberUtils.NaN();</span>
+<span class="nc" id="L292">	}</span>
+
+	boolean _isNan() {
+<span class="pc bpc" id="L295" title="2 of 4 branches missed.">		return NumberUtils.isNaN(x) || NumberUtils.isNaN(y);</span>
+	}
+
+	// calculates which quarter of xy plane the vector lies in. First quater is
+	// between vectors (1,0) and (0, 1), second between (0, 1) and (-1, 0), etc.
+	// Angle intervals corresponding to quarters: 1 : [0 : 90); 2 : [90 : 180);
+	// 3 : [180 : 270); 4 : [270 : 360)
+	final int _getQuarter() {
+<span class="fc bfc" id="L303" title="All 2 branches covered.">		if (x &gt; 0) {</span>
+<span class="fc bfc" id="L304" title="All 2 branches covered.">			if (y &gt;= 0)</span>
+<span class="fc" id="L305">				return 1; // x &gt; 0 &amp;&amp; y &lt;= 0</span>
+			else
+<span class="fc" id="L307">				return 4; // y &lt; 0 &amp;&amp; x &gt; 0. Should be x &gt;= 0 &amp;&amp; y &lt; 0. The x ==</span>
+							// 0 case is processed later.
+		} else {
+<span class="fc bfc" id="L310" title="All 2 branches covered.">			if (y &gt; 0)</span>
+<span class="fc" id="L311">				return 2; // x &lt;= 0 &amp;&amp; y &gt; 0</span>
+			else
+<span class="fc bfc" id="L313" title="All 2 branches covered.">				return x == 0 ? 4 : 3; // 3: x &lt; 0 &amp;&amp; y &lt;= 0. The case x == 0 &amp;&amp;</span>
+										// y &lt;= 0 is attribute to the case 4.
+										// The point x==0 and y==0 is a bug, but
+										// will be assigned to 4.
+		}
+	}
+
+	/**
+	* Calculates which quarter of XY plane the vector lies in. First quarter is
+	* between vectors (1,0) and (0, 1), second between (0, 1) and (-1, 0), etc.
+	* The quarters are numbered counterclockwise.
+	* Angle intervals corresponding to quarters: 1 : [0 : 90); 2 : [90 : 180);
+	* 3 : [180 : 270); 4 : [270 : 360)
+	*/
+<span class="nc" id="L327">	public int getQuarter() { return _getQuarter(); }</span>
+	
+	// Assume vector v1 and v2 have same origin. The function compares the
+	// vectors by angle from the x axis to the vector in the counter clockwise
+	// direction.
+	//   &gt;    &gt;
+	//   \   /
+	// V3 \ / V1
+	//     \
+	//      \
+	//       &gt;V2
+	// _compareVectors(V1, V2) == -1.
+	// _compareVectors(V1, V3) == -1
+	// _compareVectors(V2, V3) == 1
+	//
+	final static int _compareVectors(Point2D v1, Point2D v2) {
+<span class="fc" id="L343">		int q1 = v1._getQuarter();</span>
+<span class="fc" id="L344">		int q2 = v2._getQuarter();</span>
+
+<span class="fc bfc" id="L346" title="All 2 branches covered.">		if (q2 == q1) {</span>
+<span class="fc" id="L347">			double cross = v1.crossProduct(v2);</span>
+<span class="pc bpc" id="L348" title="1 of 4 branches missed.">			return cross &lt; 0 ? 1 : (cross &gt; 0 ? -1 : 0);</span>
+		} else
+<span class="fc bfc" id="L350" title="All 2 branches covered.">			return q1 &lt; q2 ? -1 : 1;</span>
+	}
+
+	/**
+	 * Assume vector v1 and v2 have same origin. The function compares the
+	 * vectors by angle in the counter clockwise direction from the axis X.
+	 * 
+	 * For example, V1 makes 30 degree angle counterclockwise from horizontal x axis
+	 * V2, makes 270, V3 makes 90, then 
+	 * compareVectors(V1, V2) == -1.
+	 * compareVectors(V1, V3) == -1.
+	 * compareVectors(V2, V3) == 1.
+	 * @return Returns 1 if v1 is less than v2, 0 if equal, and 1 if greater.
+	 */
+	public static int compareVectors(Point2D v1, Point2D v2) {
+<span class="nc" id="L365">		return _compareVectors(v1, v2);</span>
+	}
+	
+<span class="fc" id="L368">	static class CompareVectors implements Comparator&lt;Point2D&gt; {</span>
+		@Override
+		public int compare(Point2D v1, Point2D v2) {
+<span class="fc" id="L371">			return _compareVectors((Point2D) v1, (Point2D) v2);</span>
+		}
+	}
+
+	public static double sqrDistance(Point2D pt1, Point2D pt2) {
+<span class="fc" id="L376">		double dx = pt1.x - pt2.x;</span>
+<span class="fc" id="L377">		double dy = pt1.y - pt2.y;</span>
+<span class="fc" id="L378">		return dx * dx + dy * dy;</span>
+	}
+
+	@Override
+	public String toString() {
+<span class="nc" id="L383">		return &quot;(&quot; + x + &quot; , &quot; + y + &quot;)&quot;;</span>
+	}
+
+	public void setNaN() {
+<span class="fc" id="L387">		x = NumberUtils.NaN();</span>
+<span class="fc" id="L388">		y = NumberUtils.NaN();</span>
+<span class="fc" id="L389">	}</span>
+
+	public boolean isNaN() {
+<span class="nc bnc" id="L392" title="All 4 branches missed.">		return NumberUtils.isNaN(x) || NumberUtils.isNaN(y);</span>
+	}
+
+	// metric = 1: Manhattan metric
+	// 2: Euclidian metric (default)
+	// 0: used for L-infinite (max(fabs(x), fabs(y))
+	// for predefined metrics, use the DistanceMetricEnum defined in WKSPoint.h
+	double _norm(int metric) {
+<span class="nc bnc" id="L400" title="All 4 branches missed.">		if (metric &lt; 0 || _isNan())</span>
+<span class="nc" id="L401">			return NumberUtils.NaN();</span>
+
+<span class="nc bnc" id="L403" title="All 4 branches missed.">		switch (metric) {</span>
+		case 0: // L-infinite
+<span class="nc bnc" id="L405" title="All 2 branches missed.">			return Math.abs(x) &gt;= Math.abs(y) ? Math.abs(x) : Math.abs(y);</span>
+
+		case 1: // L1 or Manhattan metric
+<span class="nc" id="L408">			return Math.abs(x) + Math.abs(y);</span>
+
+		case 2: // L2 or Euclidean metric
+<span class="nc" id="L411">			return Math.sqrt(x * x + y * y);</span>
+
+		default:
+<span class="nc" id="L414">			return Math</span>
+<span class="nc" id="L415">					.pow(Math.pow(x, (double) metric)</span>
+<span class="nc" id="L416">							+ Math.pow(y, (double) metric),</span>
+							1.0 / (double) metric);
+		}
+	}
+
+	/**
+	 * returns signed distance of point from infinite line represented by
+	 * pt_1...pt_2. The returned distance is positive if this point lies on the
+	 * right-hand side of the line, negative otherwise. If the two input points
+	 * are equal, the (positive) distance of this point to p_1 is returned.
+	 */
+	double offset(/* const */Point2D pt1, /* const */Point2D pt2) {
+<span class="nc" id="L428">		double newDistance = distance(pt1, pt2);</span>
+<span class="nc" id="L429">		Point2D p = construct(x, y);</span>
+<span class="nc bnc" id="L430" title="All 2 branches missed.">		if (newDistance == 0.0)</span>
+<span class="nc" id="L431">			return distance(p, pt1);</span>
+
+		// get vectors relative to pt_1
+<span class="nc" id="L434">		Point2D p2 = new Point2D();</span>
+<span class="nc" id="L435">		p2.setCoords(pt2);</span>
+<span class="nc" id="L436">		p2.sub(pt1);</span>
+<span class="nc" id="L437">		p.sub(pt1);</span>
+
+<span class="nc" id="L439">		double cross = p.crossProduct(p2);</span>
+<span class="nc" id="L440">		return cross / newDistance;</span>
+	}
+
+	/**
+	 * Calculates the orientation of the triangle formed by p, q, r. Returns 1
+	 * for counter-clockwise, -1 for clockwise, and 0 for collinear. May use
+	 * high precision arithmetics for some special degenerate cases.
+	 */
+	public static int orientationRobust(Point2D p, Point2D q, Point2D r) {
+<span class="fc" id="L449">		ECoordinate det_ec = new ECoordinate();</span>
+<span class="fc" id="L450">		det_ec.set(q.x);</span>
+<span class="fc" id="L451">		det_ec.sub(p.x);</span>
+
+<span class="fc" id="L453">		ECoordinate rp_y_ec = new ECoordinate();</span>
+<span class="fc" id="L454">		rp_y_ec.set(r.y);</span>
+<span class="fc" id="L455">		rp_y_ec.sub(p.y);</span>
+
+<span class="fc" id="L457">		ECoordinate qp_y_ec = new ECoordinate();</span>
+<span class="fc" id="L458">		qp_y_ec.set(q.y);</span>
+<span class="fc" id="L459">		qp_y_ec.sub(p.y);</span>
+
+<span class="fc" id="L461">		ECoordinate rp_x_ec = new ECoordinate();</span>
+<span class="fc" id="L462">		rp_x_ec.set(r.x);</span>
+<span class="fc" id="L463">		rp_x_ec.sub(p.x);</span>
+
+<span class="fc" id="L465">		det_ec.mul(rp_y_ec);</span>
+<span class="fc" id="L466">		qp_y_ec.mul(rp_x_ec);</span>
+<span class="fc" id="L467">		det_ec.sub(qp_y_ec);</span>
+
+<span class="fc bfc" id="L469" title="All 2 branches covered.">		if (!det_ec.isFuzzyZero()) {</span>
+<span class="fc" id="L470">			double det_ec_value = det_ec.value();</span>
+
+<span class="fc bfc" id="L472" title="All 2 branches covered.">			if (det_ec_value &lt; 0.0)</span>
+<span class="fc" id="L473">				return -1;</span>
+
+<span class="fc bfc" id="L475" title="All 2 branches covered.">			if (det_ec_value &gt; 0.0)</span>
+<span class="fc" id="L476">				return 1;</span>
+
+<span class="fc" id="L478">			return 0;</span>
+		}
+
+		// Need extended precision
+
+<span class="fc" id="L483">		BigDecimal det_mp = new BigDecimal(q.x);</span>
+<span class="fc" id="L484">		BigDecimal px_mp = new BigDecimal(p.x);</span>
+<span class="fc" id="L485">		BigDecimal py_mp = new BigDecimal(p.y);</span>
+<span class="fc" id="L486">		det_mp = det_mp.subtract(px_mp);</span>
+
+<span class="fc" id="L488">		BigDecimal rp_y_mp = new BigDecimal(r.y);</span>
+<span class="fc" id="L489">		rp_y_mp = rp_y_mp.subtract(py_mp);</span>
+
+<span class="fc" id="L491">		BigDecimal qp_y_mp = new BigDecimal(q.y);</span>
+<span class="fc" id="L492">		qp_y_mp = qp_y_mp.subtract(py_mp);</span>
+
+<span class="fc" id="L494">		BigDecimal rp_x_mp = new BigDecimal(r.x);</span>
+<span class="fc" id="L495">		rp_x_mp = rp_x_mp.subtract(px_mp);</span>
+
+<span class="fc" id="L497">		det_mp = det_mp.multiply(rp_y_mp);</span>
+<span class="fc" id="L498">		qp_y_mp = qp_y_mp.multiply(rp_x_mp);</span>
+<span class="fc" id="L499">		det_mp = det_mp.subtract(qp_y_mp);</span>
+
+<span class="fc" id="L501">		return det_mp.signum();</span>
+	}
+	
+	private static int inCircleRobustMP_(Point2D p, Point2D q, Point2D r, Point2D s) {
+<span class="nc" id="L505">		BigDecimal sx_mp = new BigDecimal(s.x), sy_mp = new BigDecimal(s.y);</span>
+
+<span class="nc" id="L507">		BigDecimal psx_mp = new BigDecimal(p.x), psy_mp = new BigDecimal(p.y);</span>
+<span class="nc" id="L508">		psx_mp = psx_mp.subtract(sx_mp);</span>
+<span class="nc" id="L509">		psy_mp = psy_mp.subtract(sy_mp);</span>
+
+<span class="nc" id="L511">		BigDecimal qsx_mp = new BigDecimal(q.x), qsy_mp = new BigDecimal(q.y);</span>
+<span class="nc" id="L512">		qsx_mp = qsx_mp.subtract(sx_mp);</span>
+<span class="nc" id="L513">		qsy_mp = qsy_mp.subtract(sy_mp);</span>
+
+<span class="nc" id="L515">		BigDecimal rsx_mp = new BigDecimal(r.x), rsy_mp = new BigDecimal(r.y);</span>
+<span class="nc" id="L516">		rsx_mp = rsx_mp.subtract(sx_mp);</span>
+<span class="nc" id="L517">		rsy_mp = rsy_mp.subtract(sy_mp);</span>
+
+<span class="nc" id="L519">		BigDecimal pq_det_mp = psx_mp.multiply(qsy_mp).subtract(psy_mp.multiply(qsx_mp));</span>
+<span class="nc" id="L520">		BigDecimal qr_det_mp = qsx_mp.multiply(rsy_mp).subtract(qsy_mp.multiply(rsx_mp));</span>
+<span class="nc" id="L521">		BigDecimal pr_det_mp = psx_mp.multiply(rsy_mp).subtract(psy_mp.multiply(rsx_mp));</span>
+
+<span class="nc" id="L523">		BigDecimal p_parab_mp = psx_mp.multiply(psx_mp).add(psy_mp.multiply(psy_mp));</span>
+<span class="nc" id="L524">		BigDecimal q_parab_mp = qsx_mp.multiply(qsx_mp).add(qsy_mp.multiply(qsy_mp));</span>
+<span class="nc" id="L525">		BigDecimal r_parab_mp = rsx_mp.multiply(rsx_mp).add(rsy_mp.multiply(rsy_mp));</span>
+
+<span class="nc" id="L527">		BigDecimal det_mp = (p_parab_mp.multiply(qr_det_mp).subtract(q_parab_mp.multiply(pr_det_mp)))</span>
+<span class="nc" id="L528">				.add(r_parab_mp.multiply(pq_det_mp));</span>
+
+<span class="nc" id="L530">		return det_mp.signum();</span>
+	}
+
+	/**
+	 * Calculates if the point s is inside of the circumcircle inscribed by the clockwise oriented triangle p-q-r.
+	 * Returns 1 for outside, -1 for inside, and 0 for cocircular.
+	 * Note that the convention used here differs from what is commonly found in literature, which can define the relation
+	 * in terms of a counter-clockwise oriented circle, and this flips the sign (think of the signed volume of the tetrahedron).
+	 * May use high precision arithmetics for some special cases.
+	 */
+	static int inCircleRobust(Point2D p, Point2D q, Point2D r, Point2D s) {
+<span class="nc" id="L541">		ECoordinate psx_ec = new ECoordinate(), psy_ec = new ECoordinate();</span>
+<span class="nc" id="L542">		psx_ec.set(p.x);</span>
+<span class="nc" id="L543">		psx_ec.sub(s.x);</span>
+<span class="nc" id="L544">		psy_ec.set(p.y);</span>
+<span class="nc" id="L545">		psy_ec.sub(s.y);</span>
+
+<span class="nc" id="L547">		ECoordinate qsx_ec = new ECoordinate(), qsy_ec = new ECoordinate();</span>
+<span class="nc" id="L548">		qsx_ec.set(q.x);</span>
+<span class="nc" id="L549">		qsx_ec.sub(s.x);</span>
+<span class="nc" id="L550">		qsy_ec.set(q.y);</span>
+<span class="nc" id="L551">		qsy_ec.sub(s.y);</span>
+
+<span class="nc" id="L553">		ECoordinate rsx_ec = new ECoordinate(), rsy_ec = new ECoordinate();</span>
+<span class="nc" id="L554">		rsx_ec.set(r.x);</span>
+<span class="nc" id="L555">		rsx_ec.sub(s.x);</span>
+<span class="nc" id="L556">		rsy_ec.set(r.y);</span>
+<span class="nc" id="L557">		rsy_ec.sub(s.y);</span>
+
+<span class="nc" id="L559">		ECoordinate psx_ec_qsy_ec = new ECoordinate();</span>
+<span class="nc" id="L560">		psx_ec_qsy_ec.set(psx_ec);</span>
+<span class="nc" id="L561">		psx_ec_qsy_ec.mul(qsy_ec);</span>
+<span class="nc" id="L562">		ECoordinate psy_ec_qsx_ec = new ECoordinate();</span>
+<span class="nc" id="L563">		psy_ec_qsx_ec.set(psy_ec);</span>
+<span class="nc" id="L564">		psy_ec_qsx_ec.mul(qsx_ec);</span>
+<span class="nc" id="L565">		ECoordinate qsx_ec_rsy_ec = new ECoordinate();</span>
+<span class="nc" id="L566">		qsx_ec_rsy_ec.set(qsx_ec);</span>
+<span class="nc" id="L567">		qsx_ec_rsy_ec.mul(rsy_ec);</span>
+<span class="nc" id="L568">		ECoordinate qsy_ec_rsx_ec = new ECoordinate();</span>
+<span class="nc" id="L569">		qsy_ec_rsx_ec.set(qsy_ec);</span>
+<span class="nc" id="L570">		qsy_ec_rsx_ec.mul(rsx_ec);</span>
+<span class="nc" id="L571">		ECoordinate psx_ec_rsy_ec = new ECoordinate();</span>
+<span class="nc" id="L572">		psx_ec_rsy_ec.set(psx_ec);</span>
+<span class="nc" id="L573">		psx_ec_rsy_ec.mul(rsy_ec);</span>
+<span class="nc" id="L574">		ECoordinate psy_ec_rsx_ec = new ECoordinate();</span>
+<span class="nc" id="L575">		psy_ec_rsx_ec.set(psy_ec);</span>
+<span class="nc" id="L576">		psy_ec_rsx_ec.mul(rsx_ec);</span>
+
+<span class="nc" id="L578">		ECoordinate pq_det_ec = new ECoordinate();</span>
+<span class="nc" id="L579">		pq_det_ec.set(psx_ec_qsy_ec);</span>
+<span class="nc" id="L580">		pq_det_ec.sub(psy_ec_qsx_ec);</span>
+<span class="nc" id="L581">		ECoordinate qr_det_ec = new ECoordinate();</span>
+<span class="nc" id="L582">		qr_det_ec.set(qsx_ec_rsy_ec);</span>
+<span class="nc" id="L583">		qr_det_ec.sub(qsy_ec_rsx_ec);</span>
+<span class="nc" id="L584">		ECoordinate pr_det_ec = new ECoordinate();</span>
+<span class="nc" id="L585">		pr_det_ec.set(psx_ec_rsy_ec);</span>
+<span class="nc" id="L586">		pr_det_ec.sub(psy_ec_rsx_ec);</span>
+
+<span class="nc" id="L588">		ECoordinate psx_ec_psx_ec = new ECoordinate();</span>
+<span class="nc" id="L589">		psx_ec_psx_ec.set(psx_ec);</span>
+<span class="nc" id="L590">		psx_ec_psx_ec.mul(psx_ec);</span>
+<span class="nc" id="L591">		ECoordinate psy_ec_psy_ec = new ECoordinate();</span>
+<span class="nc" id="L592">		psy_ec_psy_ec.set(psy_ec);</span>
+<span class="nc" id="L593">		psy_ec_psy_ec.mul(psy_ec);</span>
+<span class="nc" id="L594">		ECoordinate qsx_ec_qsx_ec = new ECoordinate();</span>
+<span class="nc" id="L595">		qsx_ec_qsx_ec.set(qsx_ec);</span>
+<span class="nc" id="L596">		qsx_ec_qsx_ec.mul(qsx_ec);</span>
+<span class="nc" id="L597">		ECoordinate qsy_ec_qsy_ec = new ECoordinate();</span>
+<span class="nc" id="L598">		qsy_ec_qsy_ec.set(qsy_ec);</span>
+<span class="nc" id="L599">		qsy_ec_qsy_ec.mul(qsy_ec);</span>
+<span class="nc" id="L600">		ECoordinate rsx_ec_rsx_ec = new ECoordinate();</span>
+<span class="nc" id="L601">		rsx_ec_rsx_ec.set(rsx_ec);</span>
+<span class="nc" id="L602">		rsx_ec_rsx_ec.mul(rsx_ec);</span>
+<span class="nc" id="L603">		ECoordinate rsy_ec_rsy_ec = new ECoordinate();</span>
+<span class="nc" id="L604">		rsy_ec_rsy_ec.set(rsy_ec);</span>
+<span class="nc" id="L605">		rsy_ec_rsy_ec.mul(rsy_ec);</span>
+
+<span class="nc" id="L607">		ECoordinate p_parab_ec = new ECoordinate();</span>
+<span class="nc" id="L608">		p_parab_ec.set(psx_ec_psx_ec);</span>
+<span class="nc" id="L609">		p_parab_ec.add(psy_ec_psy_ec);</span>
+<span class="nc" id="L610">		ECoordinate q_parab_ec = new ECoordinate();</span>
+<span class="nc" id="L611">		q_parab_ec.set(qsx_ec_qsx_ec);</span>
+<span class="nc" id="L612">		q_parab_ec.add(qsy_ec_qsy_ec);</span>
+<span class="nc" id="L613">		ECoordinate r_parab_ec = new ECoordinate();</span>
+<span class="nc" id="L614">		r_parab_ec.set(rsx_ec_rsx_ec);</span>
+<span class="nc" id="L615">		r_parab_ec.add(rsy_ec_rsy_ec);</span>
+
+<span class="nc" id="L617">		p_parab_ec.mul(qr_det_ec);</span>
+<span class="nc" id="L618">		q_parab_ec.mul(pr_det_ec);</span>
+<span class="nc" id="L619">		r_parab_ec.mul(pq_det_ec);</span>
+
+<span class="nc" id="L621">		ECoordinate det_ec = new ECoordinate();</span>
+<span class="nc" id="L622">		det_ec.set(p_parab_ec);</span>
+<span class="nc" id="L623">		det_ec.sub(q_parab_ec);</span>
+<span class="nc" id="L624">		det_ec.add(r_parab_ec);</span>
+
+<span class="nc bnc" id="L626" title="All 2 branches missed.">		if (!det_ec.isFuzzyZero()) {</span>
+<span class="nc" id="L627">			double det_ec_value = det_ec.value();</span>
+
+<span class="nc bnc" id="L629" title="All 2 branches missed.">			if (det_ec_value &lt; 0.0)</span>
+<span class="nc" id="L630">				return -1;</span>
+
+<span class="nc bnc" id="L632" title="All 2 branches missed.">			if (det_ec_value &gt; 0.0)</span>
+<span class="nc" id="L633">				return 1;</span>
+
+<span class="nc" id="L635">			return 0;</span>
+		}
+
+<span class="nc" id="L638">		return inCircleRobustMP_(p, q, r, s);</span>
+	}
+
+	private static Point2D calculateCenterFromThreePointsHelperMP_(Point2D from, Point2D mid_point, Point2D to) {
+<span class="nc bnc" id="L642" title="All 6 branches missed.">		assert(!mid_point.isEqual(to) &amp;&amp; !mid_point.isEqual(from) &amp;&amp; !from.isEqual(to));</span>
+<span class="nc" id="L643">		BigDecimal mx = new BigDecimal(mid_point.x);</span>
+<span class="nc" id="L644">		mx = mx.subtract(new BigDecimal(from.x));</span>
+<span class="nc" id="L645">		BigDecimal my = new BigDecimal(mid_point.y);</span>
+<span class="nc" id="L646">		my = my.subtract(new BigDecimal(from.y));</span>
+<span class="nc" id="L647">		BigDecimal tx = new BigDecimal(to.x);</span>
+<span class="nc" id="L648">		tx = tx.subtract(new BigDecimal(from.x));</span>
+<span class="nc" id="L649">		BigDecimal ty = new BigDecimal(to.y);</span>
+<span class="nc" id="L650">		ty = ty.subtract(new BigDecimal(from.y));</span>
+
+<span class="nc" id="L652">		BigDecimal d = mx.multiply(ty);</span>
+<span class="nc" id="L653">		BigDecimal tmp = my.multiply(tx);</span>
+<span class="nc" id="L654">		d = d.subtract(tmp);</span>
+
+<span class="nc bnc" id="L656" title="All 2 branches missed.">		if (d.signum() == 0) {</span>
+<span class="nc" id="L657">			return Point2D.construct(NumberUtils.NaN(), NumberUtils.NaN());</span>
+		}
+
+<span class="nc" id="L660">		d = d.multiply(new BigDecimal(2.0));</span>
+
+<span class="nc" id="L662">		BigDecimal mx2 = mx.multiply(mx);</span>
+<span class="nc" id="L663">		BigDecimal my2 = my.multiply(my);</span>
+<span class="nc" id="L664">		BigDecimal m_norm2 = mx2.add(my2);</span>
+<span class="nc" id="L665">		BigDecimal tx2 = tx.multiply(tx);</span>
+<span class="nc" id="L666">		BigDecimal ty2 = ty.multiply(ty);</span>
+<span class="nc" id="L667">		BigDecimal t_norm2 = tx2.add(ty2);</span>
+
+<span class="nc" id="L669">		BigDecimal xo = my.multiply(t_norm2);</span>
+<span class="nc" id="L670">		tmp = ty.multiply(m_norm2);</span>
+<span class="nc" id="L671">		xo = xo.subtract(tmp);</span>
+<span class="nc" id="L672">		xo = xo.divide(d, BigDecimal.ROUND_HALF_EVEN);</span>
+
+<span class="nc" id="L674">		BigDecimal yo = mx.multiply(t_norm2);</span>
+<span class="nc" id="L675">		tmp = tx.multiply(m_norm2);</span>
+<span class="nc" id="L676">		yo = yo.subtract(tmp);</span>
+<span class="nc" id="L677">		yo = yo.divide(d, BigDecimal.ROUND_HALF_EVEN);</span>
+
+<span class="nc" id="L679">		Point2D center = Point2D.construct(from.x - xo.doubleValue(), from.y + yo.doubleValue());</span>
+<span class="nc" id="L680">		return center;</span>
+	}
+
+	private static Point2D calculateCenterFromThreePointsHelper_(Point2D from, Point2D mid_point, Point2D to) {
+<span class="nc bnc" id="L684" title="All 6 branches missed.">		assert(!mid_point.isEqual(to) &amp;&amp; !mid_point.isEqual(from) &amp;&amp; !from.isEqual(to));</span>
+<span class="nc" id="L685">		ECoordinate mx = new ECoordinate(mid_point.x);</span>
+<span class="nc" id="L686">		mx.sub(from.x);</span>
+<span class="nc" id="L687">		ECoordinate my = new ECoordinate(mid_point.y);</span>
+<span class="nc" id="L688">		my.sub(from.y);</span>
+<span class="nc" id="L689">		ECoordinate tx = new ECoordinate(to.x);</span>
+<span class="nc" id="L690">		tx.sub(from.x);</span>
+<span class="nc" id="L691">		ECoordinate ty = new ECoordinate(to.y);</span>
+<span class="nc" id="L692">		ty.sub(from.y);</span>
+
+<span class="nc" id="L694">		ECoordinate d = new ECoordinate(mx);</span>
+<span class="nc" id="L695">		d.mul(ty);</span>
+<span class="nc" id="L696">		ECoordinate tmp = new ECoordinate(my);</span>
+<span class="nc" id="L697">		tmp.mul(tx);</span>
+<span class="nc" id="L698">		d.sub(tmp);</span>
+
+<span class="nc bnc" id="L700" title="All 2 branches missed.">		if (d.value() == 0.0) {</span>
+<span class="nc" id="L701">			return Point2D.construct(NumberUtils.NaN(), NumberUtils.NaN());</span>
+		}
+
+<span class="nc" id="L704">		d.mul(2.0);</span>
+
+<span class="nc" id="L706">		ECoordinate mx2 = new ECoordinate(mx);</span>
+<span class="nc" id="L707">		mx2.mul(mx);</span>
+<span class="nc" id="L708">		ECoordinate my2 = new ECoordinate(my);</span>
+<span class="nc" id="L709">		my2.mul(my);</span>
+<span class="nc" id="L710">		ECoordinate m_norm2 = new ECoordinate(mx2);</span>
+<span class="nc" id="L711">		m_norm2.add(my2);</span>
+<span class="nc" id="L712">		ECoordinate tx2 = new ECoordinate(tx);</span>
+<span class="nc" id="L713">		tx2.mul(tx);</span>
+<span class="nc" id="L714">		ECoordinate ty2 = new ECoordinate(ty);</span>
+<span class="nc" id="L715">		ty2.mul(ty);</span>
+<span class="nc" id="L716">		ECoordinate t_norm2 = new ECoordinate(tx2);</span>
+<span class="nc" id="L717">		t_norm2.add(ty2);</span>
+
+<span class="nc" id="L719">		ECoordinate xo = new ECoordinate(my);</span>
+<span class="nc" id="L720">		xo.mul(t_norm2);</span>
+<span class="nc" id="L721">		tmp = new ECoordinate(ty);</span>
+<span class="nc" id="L722">		tmp.mul(m_norm2);</span>
+<span class="nc" id="L723">		xo.sub(tmp);</span>
+<span class="nc" id="L724">		xo.div(d);</span>
+
+<span class="nc" id="L726">		ECoordinate yo = new ECoordinate(mx);</span>
+<span class="nc" id="L727">		yo.mul(t_norm2);</span>
+<span class="nc" id="L728">		tmp = new ECoordinate(tx);</span>
+<span class="nc" id="L729">		tmp.mul(m_norm2);</span>
+<span class="nc" id="L730">		yo.sub(tmp);</span>
+<span class="nc" id="L731">		yo.div(d);</span>
+
+<span class="nc" id="L733">		Point2D center = Point2D.construct(from.x - xo.value(), from.y + yo.value());</span>
+<span class="nc" id="L734">		double r1 = Point2D.construct(from.x - center.x, from.y - center.y).length();</span>
+<span class="nc" id="L735">		double r2 = Point2D.construct(mid_point.x - center.x, mid_point.y - center.y).length();</span>
+<span class="nc" id="L736">		double r3 = Point2D.construct(to.x - center.x, to.y - center.y).length();</span>
+<span class="nc" id="L737">		double base = r1 + Math.abs(from.x) + Math.abs(mid_point.x) + Math.abs(to.x) + Math.abs(from.y)</span>
+<span class="nc" id="L738">				+ Math.abs(mid_point.y) + Math.abs(to.y);</span>
+
+<span class="nc" id="L740">		double tol = 1e-15;</span>
+<span class="nc bnc" id="L741" title="All 4 branches missed.">		if ((Math.abs(r1 - r2) &lt;= base * tol &amp;&amp; Math.abs(r1 - r3) &lt;= base * tol))</span>
+<span class="nc" id="L742">			return center;//returns center value for MP_value type or when calculated radius value for from - center, mid - center, and to - center are very close.</span>
+
+<span class="nc" id="L744">		return Point2D.construct(NumberUtils.NaN(), NumberUtils.NaN());</span>
+	}
+
+	static Point2D calculateCircleCenterFromThreePoints(Point2D from, Point2D mid_point, Point2D to) {
+<span class="nc bnc" id="L748" title="All 6 branches missed.">		if (from.isEqual(to) || from.isEqual(mid_point) || to.isEqual(mid_point)) {</span>
+<span class="nc" id="L749">			return new Point2D(NumberUtils.NaN(), NumberUtils.NaN());</span>
+		}
+
+<span class="nc" id="L752">		Point2D pt = calculateCenterFromThreePointsHelper_(from, mid_point, to); //use error tracking calculations</span>
+<span class="nc bnc" id="L753" title="All 2 branches missed.">		if (pt.isNaN())</span>
+<span class="nc" id="L754">			return calculateCenterFromThreePointsHelperMP_(from, mid_point, to); //use precise calculations</span>
+		else {
+<span class="nc" id="L756">			return pt;</span>
+		}
+	}
+	
+	double getAxis(int ordinate) {
+<span class="nc bnc" id="L761" title="All 4 branches missed.">		assert(ordinate == 0 || ordinate == 1);</span>
+<span class="nc bnc" id="L762" title="All 2 branches missed.">		return (ordinate == 0 ? x : y);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

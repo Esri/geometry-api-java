@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Envelope3D.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Envelope3D.java</span></div><h1>Envelope3D.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+
+package com.esri.core.geometry;
+
+import java.io.Serializable;
+
+/**
+ * A class that represents axis parallel 3D rectangle.
+ */
+public final class Envelope3D implements Serializable{
+	private static final long serialVersionUID = 1L;
+	
+	public double xmin;
+
+	public double ymin;
+
+	public double zmin;
+
+	public double xmax;
+
+	public double ymax;
+
+	public double zmax;
+
+	public static Envelope3D construct(double _xmin, double _ymin,
+			double _zmin, double _xmax, double _ymax, double _zmax) {
+<span class="nc" id="L50">		Envelope3D env = new Envelope3D(_xmin, _ymin, _zmin, _xmax, _ymax, _zmax);</span>
+<span class="nc" id="L51">		return env;</span>
+	}
+
+<span class="nc" id="L54">	public Envelope3D(double _xmin, double _ymin, double _zmin, double _xmax, double _ymax, double _zmax) {</span>
+<span class="nc" id="L55">		setCoords(_xmin, _ymin, _zmin, _xmax, _ymax, _zmax);</span>
+<span class="nc" id="L56">	}</span>
+
+<span class="nc" id="L58">	public Envelope3D() {</span>
+
+<span class="nc" id="L60">	}</span>
+
+<span class="nc" id="L62">	public Envelope3D(Envelope3D other) {</span>
+<span class="nc" id="L63">		setCoords(other);</span>
+<span class="nc" id="L64">	}</span>
+
+	
+	public void setInfinite() {
+<span class="nc" id="L68">		xmin = NumberUtils.negativeInf();</span>
+<span class="nc" id="L69">		xmax = NumberUtils.positiveInf();</span>
+<span class="nc" id="L70">		ymin = NumberUtils.negativeInf();</span>
+<span class="nc" id="L71">		ymax = NumberUtils.positiveInf();</span>
+<span class="nc" id="L72">		zmin = NumberUtils.negativeInf();</span>
+<span class="nc" id="L73">		zmax = NumberUtils.positiveInf();</span>
+<span class="nc" id="L74">	}</span>
+
+	public void setEmpty() {
+<span class="nc" id="L77">		xmin = NumberUtils.NaN();</span>
+<span class="nc" id="L78">		ymin = NumberUtils.NaN();</span>
+<span class="nc" id="L79">		zmin = NumberUtils.NaN();</span>
+<span class="nc" id="L80">		xmax = 0;</span>
+<span class="nc" id="L81">		ymax = 0;</span>
+<span class="nc" id="L82">		zmax = 0;</span>
+<span class="nc" id="L83">	}</span>
+
+	public boolean isEmpty() {
+<span class="nc" id="L86">		return NumberUtils.isNaN(xmin);</span>
+	}
+
+	public void setEmptyZ() {
+<span class="nc" id="L90">		zmin = NumberUtils.NaN();</span>
+<span class="nc" id="L91">	}</span>
+
+	public boolean isEmptyZ() {
+<span class="nc" id="L94">		return NumberUtils.isNaN(zmin);</span>
+	}
+
+	public boolean hasEmptyDimension() {
+<span class="nc bnc" id="L98" title="All 4 branches missed.">		return isEmpty() || isEmptyZ();</span>
+	}
+
+	public void setCoords(double _xmin, double _ymin, double _zmin,
+			double _xmax, double _ymax, double _zmax) {
+<span class="nc" id="L103">		xmin = _xmin;</span>
+<span class="nc" id="L104">		ymin = _ymin;</span>
+<span class="nc" id="L105">		zmin = _zmin;</span>
+<span class="nc" id="L106">		xmax = _xmax;</span>
+<span class="nc" id="L107">		ymax = _ymax;</span>
+<span class="nc" id="L108">		zmax = _zmax;</span>
+<span class="nc" id="L109">		normalize();</span>
+<span class="nc" id="L110">	}</span>
+
+	public void setCoords(double _x, double _y, double _z) {
+<span class="nc" id="L113">		xmin = _x;</span>
+<span class="nc" id="L114">		ymin = _y;</span>
+<span class="nc" id="L115">		zmin = _z;</span>
+<span class="nc" id="L116">		xmax = _x;</span>
+<span class="nc" id="L117">		ymax = _y;</span>
+<span class="nc" id="L118">		zmax = _z;</span>
+<span class="nc" id="L119">	}</span>
+
+	public void setCoords(Point3D center, double width, double height,
+			double depth) {
+<span class="nc" id="L123">		xmin = center.x - width * 0.5;</span>
+<span class="nc" id="L124">		xmax = xmin + width;</span>
+<span class="nc" id="L125">		ymin = center.y - height * 0.5;</span>
+<span class="nc" id="L126">		ymax = ymin + height;</span>
+<span class="nc" id="L127">		zmin = center.z - depth * 0.5;</span>
+<span class="nc" id="L128">		zmax = zmin + depth;</span>
+<span class="nc" id="L129">		normalize();</span>
+<span class="nc" id="L130">	}</span>
+
+	public void setCoords(Envelope3D envSrc) {
+
+<span class="nc" id="L134">		setCoords(envSrc.xmin, envSrc.ymin, envSrc.zmin, envSrc.xmax, envSrc.ymax, envSrc.zmax);</span>
+<span class="nc" id="L135">	}</span>
+
+	public double getWidth() {
+<span class="nc" id="L138">		return xmax - xmin;</span>
+	}
+
+	public double getHeight() {
+<span class="nc" id="L142">		return ymax - ymin;</span>
+	}
+
+	public double getDepth() {
+<span class="nc" id="L146">		return zmax - zmin;</span>
+	}
+
+	public void move(Point3D vector) {
+<span class="nc" id="L150">		xmin += vector.x;</span>
+<span class="nc" id="L151">		ymin += vector.y;</span>
+<span class="nc" id="L152">		zmin += vector.z;</span>
+<span class="nc" id="L153">		xmax += vector.x;</span>
+<span class="nc" id="L154">		ymax += vector.y;</span>
+<span class="nc" id="L155">		zmax += vector.z;</span>
+<span class="nc" id="L156">	}</span>
+
+	public void normalize() {
+<span class="nc bnc" id="L159" title="All 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L160">			return;</span>
+
+<span class="nc" id="L162">		double min = Math.min(xmin, xmax);</span>
+<span class="nc" id="L163">		double max = Math.max(xmin, xmax);</span>
+<span class="nc" id="L164">		xmin = min;</span>
+<span class="nc" id="L165">		xmax = max;</span>
+<span class="nc" id="L166">		min = Math.min(ymin, ymax);</span>
+<span class="nc" id="L167">		max = Math.max(ymin, ymax);</span>
+<span class="nc" id="L168">		ymin = min;</span>
+<span class="nc" id="L169">		ymax = max;</span>
+<span class="nc" id="L170">		min = Math.min(zmin, zmax);</span>
+<span class="nc" id="L171">		max = Math.max(zmin, zmax);</span>
+<span class="nc" id="L172">		zmin = min;</span>
+<span class="nc" id="L173">		zmax = max;</span>
+<span class="nc" id="L174">	}</span>
+
+	public void copyTo(Envelope2D env) {
+<span class="nc" id="L177">		env.xmin = xmin;</span>
+<span class="nc" id="L178">		env.ymin = ymin;</span>
+<span class="nc" id="L179">		env.xmax = xmax;</span>
+<span class="nc" id="L180">		env.ymax = ymax;</span>
+<span class="nc" id="L181">	}</span>
+
+	public void mergeNE(double x, double y, double z) {
+<span class="nc bnc" id="L184" title="All 2 branches missed.">		if (xmin &gt; x)</span>
+<span class="nc" id="L185">			xmin = x;</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">		else if (xmax &lt; x)</span>
+<span class="nc" id="L187">			xmax = x;</span>
+
+<span class="nc bnc" id="L189" title="All 2 branches missed.">		if (ymin &gt; y)</span>
+<span class="nc" id="L190">			ymin = y;</span>
+<span class="nc bnc" id="L191" title="All 2 branches missed.">		else if (ymax &lt; y)</span>
+<span class="nc" id="L192">			ymax = y;</span>
+
+<span class="nc bnc" id="L194" title="All 2 branches missed.">		if (zmin != NumberUtils.NaN()) {</span>
+<span class="nc bnc" id="L195" title="All 2 branches missed.">			if (zmin &gt; z)</span>
+<span class="nc" id="L196">				zmin = z;</span>
+<span class="nc bnc" id="L197" title="All 2 branches missed.">			else if (zmax &lt; z)</span>
+<span class="nc" id="L198">				zmax = z;</span>
+		} else {
+<span class="nc" id="L200">			zmin = z;</span>
+<span class="nc" id="L201">			zmax = z;</span>
+		}
+<span class="nc" id="L203">	}</span>
+
+	public void merge(double x, double y, double z) {
+<span class="nc bnc" id="L206" title="All 2 branches missed.">		if (isEmpty()) {</span>
+<span class="nc" id="L207">			xmin = x;</span>
+<span class="nc" id="L208">			ymin = y;</span>
+<span class="nc" id="L209">			zmin = z;</span>
+<span class="nc" id="L210">			xmax = x;</span>
+<span class="nc" id="L211">			ymax = y;</span>
+<span class="nc" id="L212">			zmax = z;</span>
+		} else {
+<span class="nc" id="L214">			mergeNE(x, y, z);</span>
+		}
+<span class="nc" id="L216">	}</span>
+
+	public void merge(Point3D pt) {
+<span class="nc" id="L219">		merge(pt.x, pt.y, pt.z);</span>
+<span class="nc" id="L220">	}</span>
+	
+	public void merge(Envelope3D other) {
+<span class="nc bnc" id="L223" title="All 2 branches missed.">		if (other.isEmpty())</span>
+<span class="nc" id="L224">			return;</span>
+
+<span class="nc" id="L226">		merge(other.xmin, other.ymin, other.zmin);</span>
+<span class="nc" id="L227">		merge(other.xmax, other.ymax, other.zmax);</span>
+<span class="nc" id="L228">	}</span>
+
+	public void merge(double x1, double y1, double z1, double x2, double y2,
+			double z2) {
+<span class="nc" id="L232">		merge(x1, y1, z1);</span>
+<span class="nc" id="L233">		merge(x2, y2, z2);</span>
+<span class="nc" id="L234">	}</span>
+
+	public void inflate(double dx, double dy, double dz) {
+<span class="nc bnc" id="L237" title="All 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L238">			return;</span>
+<span class="nc" id="L239">		xmin -= dx;</span>
+<span class="nc" id="L240">		xmax += dx;</span>
+<span class="nc" id="L241">		ymin -= dy;</span>
+<span class="nc" id="L242">		ymax += dy;</span>
+<span class="nc" id="L243">		zmin -= dz;</span>
+<span class="nc" id="L244">		zmax += dz;</span>
+<span class="nc bnc" id="L245" title="All 6 branches missed.">		if (xmin &gt; xmax || ymin &gt; ymax || zmin &gt; zmax)</span>
+<span class="nc" id="L246">			setEmpty();</span>
+<span class="nc" id="L247">	}</span>
+
+	/**
+	 * Checks if this envelope intersects the other.
+	 *
+	 * @return True if this envelope intersects the other.
+	 */
+	public boolean isIntersecting(Envelope3D other) {
+<span class="nc bnc" id="L255" title="All 22 branches missed.">		return !isEmpty() &amp;&amp; !other.isEmpty() &amp;&amp; ((xmin &lt;= other.xmin) ? xmax &gt;= other.xmin : other.xmax &gt;= xmin) &amp;&amp; // check that x projections overlap</span>
+			((ymin &lt;= other.ymin) ? ymax &gt;= other.ymin : other.ymax &gt;= ymin) &amp;&amp; // check that y projections overlap
+			((zmin &lt;= other.zmin) ? zmax &gt;= other.zmin : other.zmax &gt;= zmin); // check that z projections overlap
+	}
+
+	/**
+	 * Intersects this envelope with the other and stores result in this
+	 * envelope.
+	 *
+	 * @return True if this envelope intersects the other, otherwise sets this
+	 * envelope to empty state and returns False.
+	 */
+	public boolean intersect(Envelope3D other) {
+<span class="nc bnc" id="L268" title="All 4 branches missed.">		if (isEmpty() || other.isEmpty())</span>
+<span class="nc" id="L269">			return false;</span>
+
+<span class="nc bnc" id="L271" title="All 2 branches missed.">		if (other.xmin &gt; xmin)</span>
+<span class="nc" id="L272">			xmin = other.xmin;</span>
+
+<span class="nc bnc" id="L274" title="All 2 branches missed.">		if (other.xmax &lt; xmax)</span>
+<span class="nc" id="L275">			xmax = other.xmax;</span>
+
+<span class="nc bnc" id="L277" title="All 2 branches missed.">		if (other.ymin &gt; ymin)</span>
+<span class="nc" id="L278">			ymin = other.ymin;</span>
+
+<span class="nc bnc" id="L280" title="All 2 branches missed.">		if (other.ymax &lt; ymax)</span>
+<span class="nc" id="L281">			ymax = other.ymax;</span>
+
+<span class="nc bnc" id="L283" title="All 2 branches missed.">		if (other.zmin &gt; zmin)</span>
+<span class="nc" id="L284">			zmin = other.zmin;</span>
+
+<span class="nc bnc" id="L286" title="All 2 branches missed.">		if (other.zmax &lt; zmax)</span>
+<span class="nc" id="L287">			zmax = other.zmax;</span>
+
+<span class="nc bnc" id="L289" title="All 6 branches missed.">		boolean bIntersecting = xmin &lt;= xmax &amp;&amp; ymin &lt;= ymax &amp;&amp; zmin &lt;= zmax;</span>
+
+<span class="nc bnc" id="L291" title="All 2 branches missed.">		if (!bIntersecting)</span>
+<span class="nc" id="L292">			setEmpty();</span>
+
+<span class="nc" id="L294">		return bIntersecting;</span>
+	}
+
+	/**
+	 * Returns True if the envelope contains the other envelope (boundary
+	 * inclusive).
+	 */
+	public boolean contains(Envelope3D other) {// Note: Will return False, if either envelope is empty.
+<span class="nc bnc" id="L302" title="All 12 branches missed.">		return other.xmin &gt;= xmin &amp;&amp; other.xmax &lt;= xmax &amp;&amp; other.ymin &gt;= ymin &amp;&amp; other.ymax &lt;= ymax &amp;&amp; other.zmin &gt;= zmin &amp;&amp; other.zmax &lt;= zmax;</span>
+	}
+
+	@Override
+	public boolean equals(Object _other) {
+<span class="nc bnc" id="L307" title="All 2 branches missed.">		if (_other == this)</span>
+<span class="nc" id="L308">			return true;</span>
+
+<span class="nc bnc" id="L310" title="All 2 branches missed.">		if (!(_other instanceof Envelope3D))</span>
+<span class="nc" id="L311">			return false;</span>
+
+<span class="nc" id="L313">		Envelope3D other = (Envelope3D) _other;</span>
+<span class="nc bnc" id="L314" title="All 4 branches missed.">		if (isEmpty() &amp;&amp; other.isEmpty())</span>
+<span class="nc" id="L315">			return true;</span>
+
+<span class="nc bnc" id="L317" title="All 12 branches missed.">		if (xmin != other.xmin || ymin != other.ymin || zmin != other.zmin || xmax != other.xmax || ymax != other.ymax || zmax != other.zmax)</span>
+<span class="nc" id="L318">			return false;</span>
+
+<span class="nc" id="L320">		return true;</span>
+	}
+
+	
+	@Override
+	public int hashCode() {
+<span class="nc bnc" id="L326" title="All 2 branches missed.">		if (isEmpty()) {</span>
+<span class="nc" id="L327">			return NumberUtils.hash(NumberUtils.TheNaN);</span>
+		}
+		
+<span class="nc" id="L330">		int hash = NumberUtils.hash(xmin);</span>
+<span class="nc" id="L331">		hash = NumberUtils.hash(hash, xmax);</span>
+<span class="nc" id="L332">		hash = NumberUtils.hash(hash, ymin);</span>
+<span class="nc" id="L333">		hash = NumberUtils.hash(hash, ymax);</span>
+<span class="nc" id="L334">		hash = NumberUtils.hash(hash, zmin);</span>
+<span class="nc" id="L335">		hash = NumberUtils.hash(hash, zmax);</span>
+<span class="nc" id="L336">		return hash;</span>
+	}
+
+	public void construct(Envelope1D xinterval, Envelope1D yinterval,
+			Envelope1D zinterval) {
+<span class="nc bnc" id="L341" title="All 4 branches missed.">		if (xinterval.isEmpty() || yinterval.isEmpty()) {</span>
+<span class="nc" id="L342">			setEmpty();</span>
+<span class="nc" id="L343">			return;</span>
+		}
+
+<span class="nc" id="L346">		xmin = xinterval.vmin;</span>
+<span class="nc" id="L347">		xmax = xinterval.vmax;</span>
+<span class="nc" id="L348">		ymin = yinterval.vmin;</span>
+<span class="nc" id="L349">		ymax = yinterval.vmax;</span>
+<span class="nc" id="L350">		zmin = zinterval.vmin;</span>
+<span class="nc" id="L351">		zmax = zinterval.vmax;</span>
+<span class="nc" id="L352">	}</span>
+
+	public void queryCorners(Point3D[] corners) {
+<span class="nc bnc" id="L355" title="All 4 branches missed.">		if ((corners == null) || (corners.length &lt; 8))</span>
+<span class="nc" id="L356">			throw new IllegalArgumentException();</span>
+
+<span class="nc" id="L358">		corners[0] = new Point3D(xmin, ymin, zmin);</span>
+<span class="nc" id="L359">		corners[1] = new Point3D(xmin, ymax, zmin);</span>
+<span class="nc" id="L360">		corners[2] = new Point3D(xmax, ymax, zmin);</span>
+<span class="nc" id="L361">		corners[3] = new Point3D(xmax, ymin, zmin);</span>
+<span class="nc" id="L362">		corners[4] = new Point3D(xmin, ymin, zmax);</span>
+<span class="nc" id="L363">		corners[5] = new Point3D(xmin, ymax, zmax);</span>
+<span class="nc" id="L364">		corners[6] = new Point3D(xmax, ymax, zmax);</span>
+<span class="nc" id="L365">		corners[7] = new Point3D(xmax, ymin, zmax);</span>
+
+<span class="nc" id="L367">	}</span>
+
+	public void setFromPoints(Point3D[] points) {
+<span class="nc bnc" id="L370" title="All 4 branches missed.">		if (points == null || points.length == 0) {</span>
+<span class="nc" id="L371">			setEmpty();</span>
+<span class="nc" id="L372">			return;</span>
+		}
+
+<span class="nc" id="L375">		Point3D p = points[0];</span>
+<span class="nc" id="L376">		setCoords(p.x, p.y, p.z);</span>
+<span class="nc bnc" id="L377" title="All 2 branches missed.">		for (int i = 1; i &lt; points.length; i++) {</span>
+<span class="nc" id="L378">			Point3D pt = points[i];</span>
+<span class="nc" id="L379">			mergeNE(pt.x, pt.y, pt.z);</span>
+		}
+<span class="nc" id="L381">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

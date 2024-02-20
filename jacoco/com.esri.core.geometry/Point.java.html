@@ -1,0 +1,622 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Point.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Point.java</span></div><h1>Point.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+import com.esri.core.geometry.VertexDescription.Semantics;
+
+import java.io.Serializable;
+
+import static com.esri.core.geometry.SizeOf.SIZE_OF_POINT;
+
+/**
+ * A Point is a zero-dimensional object that represents a specific (X,Y)
+ * location in a two-dimensional XY-Plane. In case of Geographic Coordinate
+ * Systems, the X coordinate is the longitude and the Y is the latitude.
+ */
+public class Point extends Geometry implements Serializable {
+	//We are using writeReplace instead.
+	//private static final long serialVersionUID = 2L;
+
+	private double m_x;
+	private double m_y;
+	private double[] m_attributes; // use doubles to store everything (long are bitcast)
+
+	/**
+	 * Creates an empty 2D point.
+	 */
+<span class="fc" id="L49">	public Point() {</span>
+<span class="fc" id="L50">		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();</span>
+<span class="fc" id="L51">		m_x = NumberUtils.TheNaN;</span>
+<span class="fc" id="L52">		m_y = NumberUtils.TheNaN;</span>
+<span class="fc" id="L53">	}</span>
+
+<span class="fc" id="L55">	public Point(VertexDescription vd) {</span>
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">		if (vd == null)</span>
+<span class="nc" id="L57">			throw new IllegalArgumentException();</span>
+<span class="fc" id="L58">		m_description = vd;</span>
+<span class="fc" id="L59">		_setToDefault();</span>
+<span class="fc" id="L60">	}</span>
+
+	/**
+	 * Creates a 2D Point with specified X and Y coordinates. In case of
+	 * Geographic Coordinate Systems, the X coordinate is the longitude and the
+	 * Y is the latitude.
+	 * 
+	 * @param x
+	 *            The X coordinate of the new 2D point.
+	 * @param y
+	 *            The Y coordinate of the new 2D point.
+	 */
+<span class="fc" id="L72">	public Point(double x, double y) {</span>
+<span class="fc" id="L73">		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();</span>
+<span class="fc" id="L74">		setXY(x, y);</span>
+<span class="fc" id="L75">	}</span>
+	
+<span class="fc" id="L77">	public Point(Point2D pt) {</span>
+<span class="fc" id="L78">		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();</span>
+<span class="fc" id="L79">		setXY(pt);</span>
+<span class="fc" id="L80">	}</span>
+
+	/**
+	 * Creates a 3D point with specified X, Y and Z coordinates. In case of
+	 * Geographic Coordinate Systems, the X coordinate is the longitude and the
+	 * Y is the latitude.
+	 * 
+	 * @param x
+	 *            The X coordinate of the new 3D point.
+	 * @param y
+	 *            The Y coordinate of the new 3D point.
+	 * @param z
+	 *            The Z coordinate of the new 3D point.
+	 * 
+	 */
+<span class="fc" id="L95">	public Point(double x, double y, double z) {</span>
+<span class="fc" id="L96">		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();</span>
+<span class="fc" id="L97">		Point3D pt = new Point3D();</span>
+<span class="fc" id="L98">		pt.setCoords(x, y, z);</span>
+<span class="fc" id="L99">		setXYZ(pt);</span>
+<span class="fc" id="L100">	}</span>
+
+	/**
+	 * Returns XY coordinates of this point.
+	 */
+	public final Point2D getXY() {
+<span class="fc" id="L106">		Point2D pt = new Point2D();</span>
+<span class="fc" id="L107">		pt.setCoords(m_x, m_y);</span>
+<span class="fc" id="L108">		return pt;</span>
+	}
+
+	/**
+	 * Returns XY coordinates of this point.
+	 */
+	public final void getXY(Point2D pt) {
+<span class="fc" id="L115">		pt.setCoords(m_x, m_y);</span>
+<span class="fc" id="L116">	}</span>
+	
+	/**
+	 * Sets the XY coordinates of this point. param pt The point to create the X
+	 * and Y coordinate from.
+	 */
+	public final void setXY(Point2D pt) {
+<span class="fc" id="L123">		_touch();</span>
+<span class="fc" id="L124">		setXY(pt.x, pt.y);</span>
+<span class="fc" id="L125">	}</span>
+
+	/**
+	 * Returns XYZ coordinates of the point. Z will be set to 0 if Z is missing.
+	 */
+	public Point3D getXYZ() {
+<span class="fc" id="L131">		Point3D pt = new Point3D();</span>
+<span class="fc" id="L132">		pt.x = m_x;</span>
+<span class="fc" id="L133">		pt.y = m_y;</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">		pt.z = hasZ() ? m_attributes[0] : VertexDescription.getDefaultValue(VertexDescription.Semantics.Z);</span>
+
+<span class="fc" id="L136">		return pt;</span>
+	}
+
+	/**
+	 * Sets the XYZ coordinates of this point.
+	 * 
+	 * @param pt
+	 *            The point to create the XYZ coordinate from.
+	 */
+	public void setXYZ(Point3D pt) {
+<span class="fc" id="L146">		_touch();</span>
+<span class="fc" id="L147">		addAttribute(Semantics.Z);</span>
+<span class="fc" id="L148">		m_x = pt.x;</span>
+<span class="fc" id="L149">		m_y = pt.y;</span>
+<span class="fc" id="L150">		m_attributes[0] = pt.z;</span>
+<span class="fc" id="L151">	}</span>
+
+	/**
+	 * Returns the X coordinate of the point.
+	 */
+	public final double getX() {
+<span class="fc" id="L157">		return m_x;</span>
+	}
+
+	/**
+	 * Sets the X coordinate of the point.
+	 * 
+	 * @param x
+	 *            The X coordinate to be set for this point.
+	 */
+	public void setX(double x) {
+<span class="fc" id="L167">		m_x = x;</span>
+<span class="fc" id="L168">	}</span>
+
+	/**
+	 * Returns the Y coordinate of this point.
+	 */
+	public final double getY() {
+<span class="fc" id="L174">		return m_y;</span>
+	}
+
+	/**
+	 * Sets the Y coordinate of this point.
+	 * 
+	 * @param y
+	 *            The Y coordinate to be set for this point.
+	 */
+	public void setY(double y) {
+<span class="fc" id="L184">		m_y = y;</span>
+<span class="fc" id="L185">	}</span>
+
+	/**
+	 * Returns the Z coordinate of this point.
+	 */
+	public double getZ() {
+<span class="fc bfc" id="L191" title="All 2 branches covered.">		return hasZ() ? m_attributes[0] : VertexDescription.getDefaultValue(VertexDescription.Semantics.Z);</span>
+	}
+
+	/**
+	 * Sets the Z coordinate of this point.
+	 * 
+	 * @param z
+	 *            The Z coordinate to be set for this point.
+	 */
+	public void setZ(double z) {
+<span class="fc" id="L201">		setAttribute(Semantics.Z, 0, z);</span>
+<span class="fc" id="L202">	}</span>
+
+	/**
+	 * Returns the attribute M of this point.
+	 */
+	public double getM() {
+<span class="fc" id="L208">		return getAttributeAsDbl(Semantics.M, 0);</span>
+	}
+
+	/**
+	 * Sets the M coordinate of this point.
+	 * 
+	 * @param m
+	 *            The M coordinate to be set for this point.
+	 */
+	public void setM(double m) {
+<span class="fc" id="L218">		setAttribute(Semantics.M, 0, m);</span>
+<span class="fc" id="L219">	}</span>
+
+	/**
+	 * Returns the ID of this point.
+	 */
+	public int getID() {
+<span class="fc" id="L225">		return getAttributeAsInt(Semantics.ID, 0);</span>
+	}
+
+	/**
+	 * Sets the ID of this point.
+	 * 
+	 * @param id
+	 *            The ID of this point.
+	 */
+	public void setID(int id) {
+<span class="fc" id="L235">		setAttribute(Semantics.ID, 0, id);</span>
+<span class="fc" id="L236">	}</span>
+
+	/**
+	 * Returns value of the given vertex attribute's ordinate.
+	 * 
+	 * @param semantics
+	 *            The attribute semantics.
+	 * @param ordinate
+	 *            The attribute's ordinate. For example, the Y coordinate of the
+	 *            NORMAL has ordinate of 1.
+	 * @return The ordinate as double value.
+	 */
+	public double getAttributeAsDbl(int semantics, int ordinate) {
+<span class="fc bfc" id="L249" title="All 2 branches covered.">		if (semantics == VertexDescription.Semantics.POSITION) {</span>
+<span class="fc bfc" id="L250" title="All 2 branches covered.">			if (ordinate == 0) {</span>
+<span class="fc" id="L251">				return m_x;</span>
+			}
+<span class="pc bpc" id="L253" title="1 of 2 branches missed.">			else if (ordinate == 1) {</span>
+<span class="fc" id="L254">				return m_y;</span>
+			}
+			else {
+<span class="nc" id="L257">				throw new IndexOutOfBoundsException();</span>
+			}
+		}
+		
+<span class="fc" id="L261">		int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="pc bpc" id="L262" title="1 of 2 branches missed.">		if (ordinate &gt;= ncomps)</span>
+<span class="nc" id="L263">			throw new IndexOutOfBoundsException();</span>
+
+<span class="fc" id="L265">		int attributeIndex = m_description.getAttributeIndex(semantics);</span>
+<span class="fc bfc" id="L266" title="All 2 branches covered.">		if (attributeIndex &gt;= 0)</span>
+<span class="fc" id="L267">			return m_attributes[m_description</span>
+<span class="fc" id="L268">					._getPointAttributeOffset(attributeIndex) - 2 + ordinate];</span>
+		else
+<span class="fc" id="L270">			return VertexDescription.getDefaultValue(semantics);</span>
+	}
+
+	/**
+	 * Returns value of the given vertex attribute's ordinate. The ordinate is
+	 * always 0 because integer attributes always have one component.
+	 * 
+	 * @param semantics
+	 *            The attribute semantics.
+	 * @param ordinate
+	 *            The attribute's ordinate. For example, the y coordinate of the
+	 *            NORMAL has ordinate of 1.
+	 * @return The ordinate value truncated to a 32 bit integer value.
+	 */
+	public int getAttributeAsInt(int semantics, int ordinate) {
+<span class="fc" id="L285">		return (int)getAttributeAsDbl(semantics, ordinate);</span>
+	}
+
+	/**
+	 * Sets the value of the attribute.
+	 * 
+	 * @param semantics
+	 *            The attribute semantics.
+	 * @param ordinate
+	 *            The ordinate of the attribute.
+	 * @param value
+	 *            Is the array to write values to. The attribute type and the
+	 *            number of elements must match the persistence type, as well as
+	 *            the number of components of the attribute.
+	 */
+	public void setAttribute(int semantics, int ordinate, double value) {
+<span class="fc" id="L301">		_touch();</span>
+<span class="fc bfc" id="L302" title="All 2 branches covered.">		if (semantics == VertexDescription.Semantics.POSITION) {</span>
+<span class="fc bfc" id="L303" title="All 2 branches covered.">			if (ordinate == 0) {</span>
+<span class="fc" id="L304">				m_x = value;</span>
+			}
+<span class="pc bpc" id="L306" title="1 of 2 branches missed.">			else if (ordinate == 1) {</span>
+<span class="fc" id="L307">				m_y = value;</span>
+			}
+			else {
+<span class="nc" id="L310">				throw new IndexOutOfBoundsException();</span>
+			}
+<span class="fc" id="L312">			return;</span>
+		}
+		
+<span class="fc" id="L315">		int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="pc bpc" id="L316" title="1 of 2 branches missed.">		if (ncomps &lt; ordinate)</span>
+<span class="nc" id="L317">			throw new IndexOutOfBoundsException();</span>
+
+<span class="fc" id="L319">		int attributeIndex = m_description.getAttributeIndex(semantics);</span>
+<span class="fc bfc" id="L320" title="All 2 branches covered.">		if (attributeIndex &lt; 0) {</span>
+<span class="fc" id="L321">			addAttribute(semantics);</span>
+<span class="fc" id="L322">			attributeIndex = m_description.getAttributeIndex(semantics);</span>
+		}
+
+<span class="fc" id="L325">		m_attributes[m_description._getPointAttributeOffset(attributeIndex) - 2</span>
+				+ ordinate] = value;
+<span class="fc" id="L327">	}</span>
+
+	public void setAttribute(int semantics, int ordinate, int value) {
+<span class="fc" id="L330">		setAttribute(semantics, ordinate, (double) value);</span>
+<span class="fc" id="L331">	}</span>
+
+	@Override
+	public Geometry.Type getType() {
+<span class="fc" id="L335">		return Type.Point;</span>
+	}
+
+	@Override
+	public int getDimension() {
+<span class="fc" id="L340">		return 0;</span>
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+<span class="fc" id="L346">		return SIZE_OF_POINT + estimateMemorySize(m_attributes);</span>
+	}
+
+	@Override
+	public void setEmpty() {
+<span class="fc" id="L351">		_touch();</span>
+<span class="fc" id="L352">		_setToDefault();</span>
+<span class="fc" id="L353">	}</span>
+
+	@Override
+	protected void _assignVertexDescriptionImpl(VertexDescription newDescription) {
+<span class="fc" id="L357">		int[] mapping = VertexDescriptionDesignerImpl.mapAttributes(newDescription, m_description);</span>
+		
+<span class="fc" id="L359">		int newLen = newDescription.getTotalComponentCount() - 2;</span>
+<span class="pc bpc" id="L360" title="1 of 2 branches missed.">		if (newLen &gt; 0) {</span>
+<span class="fc" id="L361">			double[] newAttributes = new double[newLen];</span>
+			
+<span class="fc" id="L363">			int j = 0;</span>
+<span class="fc bfc" id="L364" title="All 2 branches covered.">			for (int i = 1, n = newDescription.getAttributeCount(); i &lt; n; i++) {</span>
+<span class="fc" id="L365">				int semantics = newDescription.getSemantics(i);</span>
+<span class="fc" id="L366">				int nords = VertexDescription.getComponentCount(semantics);</span>
+<span class="fc bfc" id="L367" title="All 2 branches covered.">				if (mapping[i] == -1)</span>
+				{
+<span class="fc" id="L369">					double d = VertexDescription.getDefaultValue(semantics);</span>
+<span class="fc bfc" id="L370" title="All 2 branches covered.">					for (int ord = 0; ord &lt; nords; ord++)</span>
+					{
+<span class="fc" id="L372">						newAttributes[j] = d;</span>
+<span class="fc" id="L373">						j++;</span>
+					}
+<span class="fc" id="L375">				}</span>
+				else {
+<span class="fc" id="L377">					int m = mapping[i];</span>
+<span class="fc" id="L378">					int offset = m_description._getPointAttributeOffset(m) - 2;</span>
+<span class="fc bfc" id="L379" title="All 2 branches covered.">					for (int ord = 0; ord &lt; nords; ord++)</span>
+					{
+<span class="fc" id="L381">						newAttributes[j] = m_attributes[offset];</span>
+<span class="fc" id="L382">						j++;</span>
+<span class="fc" id="L383">						offset++;</span>
+					}
+				}
+					 
+			}
+			
+<span class="fc" id="L389">			m_attributes = newAttributes;</span>
+<span class="fc" id="L390">		}</span>
+		else {
+<span class="nc" id="L392">			m_attributes = null;</span>
+		}
+			
+<span class="fc" id="L395">		m_description = newDescription;</span>
+<span class="fc" id="L396">	}</span>
+
+	/**
+	 * Sets to a default empty state.
+	 */
+	private void _setToDefault() {
+<span class="fc" id="L402">		int len = m_description.getTotalComponentCount() - 2;</span>
+<span class="fc bfc" id="L403" title="All 2 branches covered.">		if (len != 0) {</span>
+<span class="pc bpc" id="L404" title="3 of 4 branches missed.">			if (m_attributes == null || m_attributes.length != len) {</span>
+<span class="fc" id="L405">				m_attributes = new double[len];</span>
+			}
+	
+<span class="fc" id="L408">			System.arraycopy(m_description._getDefaultPointAttributes(), 2, m_attributes,  0, len);</span>
+		}
+		else {
+<span class="fc" id="L411">			m_attributes = null;</span>
+		}
+		
+<span class="fc" id="L414">		m_x = NumberUtils.TheNaN;</span>
+<span class="fc" id="L415">		m_y = NumberUtils.TheNaN;</span>
+<span class="fc" id="L416">	}</span>
+
+	@Override
+	public void applyTransformation(Transformation2D transform) {
+<span class="nc bnc" id="L420" title="All 2 branches missed.">		if (isEmptyImpl())</span>
+<span class="nc" id="L421">			return;</span>
+
+<span class="nc" id="L423">		Point2D pt = getXY();</span>
+<span class="nc" id="L424">		transform.transform(pt, pt);</span>
+<span class="nc" id="L425">		setXY(pt);</span>
+<span class="nc" id="L426">	}</span>
+
+	@Override
+	public void applyTransformation(Transformation3D transform) {
+<span class="nc bnc" id="L430" title="All 2 branches missed.">		if (isEmptyImpl())</span>
+<span class="nc" id="L431">			return;</span>
+
+<span class="nc" id="L433">		addAttribute(Semantics.Z);</span>
+<span class="nc" id="L434">		Point3D pt = getXYZ();</span>
+<span class="nc" id="L435">		setXYZ(transform.transform(pt));</span>
+<span class="nc" id="L436">	}</span>
+
+	@Override
+	public void copyTo(Geometry dst) {
+<span class="pc bpc" id="L440" title="1 of 2 branches missed.">		if (dst.getType() != Type.Point)</span>
+<span class="nc" id="L441">			throw new IllegalArgumentException();</span>
+		
+<span class="pc bpc" id="L443" title="1 of 2 branches missed.">		if (this == dst)</span>
+<span class="nc" id="L444">			return;</span>
+		
+<span class="fc" id="L446">		dst._touch();</span>
+
+<span class="fc" id="L448">		Point pointDst = (Point) dst;</span>
+<span class="fc" id="L449">		dst.m_description = m_description;</span>
+<span class="fc" id="L450">		pointDst.m_x = m_x;</span>
+<span class="fc" id="L451">		pointDst.m_y = m_y;</span>
+<span class="fc" id="L452">		int attrLen = m_description.getTotalComponentCount() - 2;</span>
+<span class="fc bfc" id="L453" title="All 2 branches covered.">		if (attrLen == 0) {</span>
+<span class="fc" id="L454">			pointDst.m_attributes = null;</span>
+<span class="fc" id="L455">			return;</span>
+		}
+		
+<span class="pc bpc" id="L458" title="1 of 4 branches missed.">		if (pointDst.m_attributes == null || pointDst.m_attributes.length != attrLen) {</span>
+<span class="fc" id="L459">			pointDst.m_attributes = new double[attrLen];</span>
+		}
+		
+<span class="fc" id="L462">		System.arraycopy(m_attributes, 0,  pointDst.m_attributes, 0, attrLen);</span>
+<span class="fc" id="L463">	}</span>
+
+	@Override
+	public Geometry createInstance() {
+<span class="fc" id="L467">		Point point = new Point(m_description);</span>
+<span class="fc" id="L468">		return point;</span>
+	}
+
+	@Override
+	public boolean isEmpty() {
+<span class="fc" id="L473">		return isEmptyImpl();</span>
+	}
+
+	final boolean isEmptyImpl() {
+<span class="pc bpc" id="L477" title="1 of 4 branches missed.">		return NumberUtils.isNaN(m_x) || NumberUtils.isNaN(m_y);</span>
+	}
+
+	@Override
+	public void queryEnvelope(Envelope env) {
+<span class="fc bfc" id="L482" title="All 2 branches covered.">		if (m_description != env.m_description)</span>
+<span class="fc" id="L483">			env.assignVertexDescription(m_description);</span>
+		
+<span class="fc" id="L485">		env.setEmpty();		</span>
+<span class="fc" id="L486">		env.merge(this);</span>
+<span class="fc" id="L487">	}</span>
+
+	@Override
+	public void queryEnvelope2D(Envelope2D env) {
+<span class="fc bfc" id="L491" title="All 2 branches covered.">		if (isEmptyImpl()) {</span>
+<span class="fc" id="L492">			env.setEmpty();</span>
+<span class="fc" id="L493">			return;</span>
+		}
+
+<span class="fc" id="L496">		env.xmin = m_x;</span>
+<span class="fc" id="L497">		env.ymin = m_y;</span>
+<span class="fc" id="L498">		env.xmax = m_x;</span>
+<span class="fc" id="L499">		env.ymax = m_y;</span>
+<span class="fc" id="L500">	}</span>
+
+	@Override
+	void queryEnvelope3D(Envelope3D env) {
+<span class="nc bnc" id="L504" title="All 2 branches missed.">		if (isEmptyImpl()) {</span>
+<span class="nc" id="L505">			env.setEmpty();</span>
+<span class="nc" id="L506">			return;</span>
+		}
+
+<span class="nc" id="L509">		env.xmin = m_x;</span>
+<span class="nc" id="L510">		env.ymin = m_y;</span>
+<span class="nc" id="L511">		env.xmax = m_x;</span>
+<span class="nc" id="L512">		env.ymax = m_y;</span>
+<span class="nc" id="L513">		double z = getZ(); </span>
+<span class="nc" id="L514">		env.zmin = z;</span>
+<span class="nc" id="L515">		env.zmax = z;</span>
+<span class="nc" id="L516">	}</span>
+
+	@Override
+	public Envelope1D queryInterval(int semantics, int ordinate) {
+<span class="fc" id="L520">		Envelope1D env = new Envelope1D();</span>
+<span class="pc bpc" id="L521" title="1 of 2 branches missed.">		if (isEmptyImpl()) {</span>
+<span class="nc" id="L522">			env.setEmpty();</span>
+<span class="nc" id="L523">			return env;</span>
+		}
+
+<span class="fc" id="L526">		double s = getAttributeAsDbl(semantics, ordinate);</span>
+<span class="fc" id="L527">		env.vmin = s;</span>
+<span class="fc" id="L528">		env.vmax = s;</span>
+<span class="fc" id="L529">		return env;</span>
+	}
+
+	/**
+	 * Set the X and Y coordinate of the point.
+	 * 
+	 * @param x
+	 *            X coordinate of the point.
+	 * @param y
+	 *            Y coordinate of the point.
+	 */
+	public void setXY(double x, double y) {
+<span class="fc" id="L541">		_touch();</span>
+
+<span class="fc" id="L543">		m_x = x;</span>
+<span class="fc" id="L544">		m_y = y;</span>
+<span class="fc" id="L545">	}</span>
+
+	/**
+	 * Returns TRUE when this geometry has exactly same type, properties, and
+	 * coordinates as the other geometry.
+	 */
+	@Override
+	public boolean equals(Object _other) {
+<span class="pc bpc" id="L553" title="1 of 2 branches missed.">		if (_other == this)</span>
+<span class="nc" id="L554">			return true;</span>
+
+<span class="pc bpc" id="L556" title="1 of 2 branches missed.">		if (!(_other instanceof Point))</span>
+<span class="nc" id="L557">			return false;</span>
+
+<span class="fc" id="L559">		Point otherPt = (Point) _other;</span>
+
+<span class="fc bfc" id="L561" title="All 2 branches covered.">		if (m_description != otherPt.m_description)</span>
+<span class="fc" id="L562">			return false;</span>
+
+<span class="fc bfc" id="L564" title="All 2 branches covered.">		if (isEmptyImpl()) {</span>
+<span class="pc bpc" id="L565" title="1 of 2 branches missed.">			if (otherPt.isEmptyImpl())</span>
+<span class="fc" id="L566">				return true;</span>
+			else
+<span class="nc" id="L568">				return false;</span>
+		}
+		
+<span class="fc bfc" id="L571" title="All 4 branches covered.">		if (m_x != otherPt.m_x || m_y != otherPt.m_y) {</span>
+<span class="fc" id="L572">			return false;</span>
+		}
+
+<span class="fc bfc" id="L575" title="All 2 branches covered.">		for (int i = 0, n = m_description.getTotalComponentCount() - 2; i &lt; n; i++) {</span>
+<span class="pc bpc" id="L576" title="1 of 2 branches missed.">			if (!NumberUtils.isEqualNonIEEE(m_attributes[i], otherPt.m_attributes[i]))</span>
+<span class="nc" id="L577">				return false;</span>
+		}
+
+<span class="fc" id="L580">		return true;</span>
+	}
+
+	/**
+	 * Returns the hash code for the point.
+	 */
+
+	@Override
+	public int hashCode() {
+<span class="fc" id="L589">		int hashCode = m_description.hashCode();</span>
+<span class="fc bfc" id="L590" title="All 2 branches covered.">		if (!isEmptyImpl()) {</span>
+<span class="fc" id="L591">			hashCode = NumberUtils.hash(hashCode, m_x);</span>
+<span class="fc" id="L592">			hashCode = NumberUtils.hash(hashCode, m_y);</span>
+<span class="fc bfc" id="L593" title="All 2 branches covered.">			for (int i = 0, n = m_description.getTotalComponentCount() - 2; i &lt; n; i++) {</span>
+<span class="fc" id="L594">				long bits = Double.doubleToLongBits(m_attributes[i]);</span>
+<span class="fc" id="L595">				int hc = (int) (bits ^ (bits &gt;&gt;&gt; 32));</span>
+<span class="fc" id="L596">				hashCode = NumberUtils.hash(hashCode, hc);</span>
+			}
+		}
+
+<span class="fc" id="L600">		return hashCode;</span>
+	}
+
+	@Override
+	public Geometry getBoundary() {
+<span class="nc" id="L605">		return null;</span>
+	}
+
+	@Override
+	public void replaceNaNs(int semantics, double value) {
+<span class="fc" id="L610">		addAttribute(semantics);</span>
+<span class="pc bpc" id="L611" title="1 of 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L612">			return;</span>
+
+<span class="fc" id="L614">		int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="fc bfc" id="L615" title="All 2 branches covered.">		for (int i = 0; i &lt; ncomps; i++) {</span>
+<span class="fc" id="L616">			double v = getAttributeAsDbl(semantics, i);</span>
+<span class="pc bpc" id="L617" title="1 of 2 branches missed.">			if (Double.isNaN(v))</span>
+<span class="fc" id="L618">				setAttribute(semantics, i, value);</span>
+		}
+<span class="fc" id="L620">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

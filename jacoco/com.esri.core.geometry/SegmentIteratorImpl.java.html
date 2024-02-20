@@ -1,0 +1,479 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SegmentIteratorImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">SegmentIteratorImpl.java</span></div><h1>SegmentIteratorImpl.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+
+package com.esri.core.geometry;
+
+/**
+ * Provides functionality to iterate over MultiPath segments.
+ */
+final class SegmentIteratorImpl {
+
+	protected Line m_line;
+
+	// Bezier m_bezier:
+	// Arc m_arc;
+	protected Segment m_currentSegment;
+	protected Point2D m_dummyPoint;
+
+	protected int m_currentPathIndex;
+
+	protected int m_nextPathIndex;
+
+	protected int m_prevPathIndex;
+
+	protected int m_currentSegmentIndex;
+
+	protected int m_nextSegmentIndex;
+
+	protected int m_prevSegmentIndex;
+
+	protected int m_segmentCount;
+
+	protected int m_pathBegin;
+
+	protected MultiPathImpl m_parent; // parent of the iterator.
+
+	protected boolean m_bCirculator; // If true, the iterator circulates around
+										// the current Path.
+
+	protected boolean m_bNeedsUpdate;
+
+<span class="fc" id="L63">	public SegmentIteratorImpl(MultiPathImpl parent) {</span>
+<span class="fc" id="L64">		m_currentSegmentIndex = -1;</span>
+<span class="fc" id="L65">		m_nextSegmentIndex = 0;</span>
+<span class="fc" id="L66">		m_nextPathIndex = 0;</span>
+<span class="fc" id="L67">		m_currentPathIndex = -1;</span>
+<span class="fc" id="L68">		m_parent = parent;</span>
+<span class="fc" id="L69">		m_segmentCount = _getSegmentCount(m_nextPathIndex);</span>
+<span class="fc" id="L70">		m_bCirculator = false;</span>
+<span class="fc" id="L71">		m_currentSegment = null;</span>
+<span class="fc" id="L72">		m_pathBegin = -1;</span>
+<span class="fc" id="L73">		m_dummyPoint = new Point2D();</span>
+<span class="fc" id="L74">	}</span>
+
+<span class="nc" id="L76">	public SegmentIteratorImpl(MultiPathImpl parent, int pointIndex) {</span>
+<span class="nc bnc" id="L77" title="All 4 branches missed.">		if (pointIndex &lt; 0 || pointIndex &gt;= parent.getPointCount())</span>
+<span class="nc" id="L78">			throw new IndexOutOfBoundsException();</span>
+
+<span class="nc" id="L80">		m_currentSegmentIndex = -1;</span>
+<span class="nc" id="L81">		int path = parent.getPathIndexFromPointIndex(pointIndex);</span>
+<span class="nc" id="L82">		m_nextSegmentIndex = pointIndex - parent.getPathStart(path);</span>
+
+<span class="nc" id="L84">		m_nextPathIndex = path + 1;</span>
+<span class="nc" id="L85">		m_currentPathIndex = path;</span>
+<span class="nc" id="L86">		m_parent = parent;</span>
+<span class="nc" id="L87">		m_segmentCount = _getSegmentCount(m_currentPathIndex);</span>
+<span class="nc" id="L88">		m_bCirculator = false;</span>
+<span class="nc" id="L89">		m_currentSegment = null;</span>
+<span class="nc" id="L90">		m_pathBegin = m_parent.getPathStart(m_currentPathIndex);</span>
+<span class="nc" id="L91">		m_dummyPoint = new Point2D();</span>
+<span class="nc" id="L92">	}</span>
+
+	public SegmentIteratorImpl(MultiPathImpl parent, int pathIndex,
+<span class="nc" id="L95">			int segmentIndex) {</span>
+<span class="nc bnc" id="L96" title="All 6 branches missed.">		if (pathIndex &lt; 0 || pathIndex &gt;= parent.getPathCount()</span>
+				|| segmentIndex &lt; 0)
+<span class="nc" id="L98">			throw new IndexOutOfBoundsException();</span>
+
+<span class="nc bnc" id="L100" title="All 2 branches missed.">		int d = parent.isClosedPath(pathIndex) ? 0 : 1;</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">		if (segmentIndex &gt;= parent.getPathSize(pathIndex) - d)</span>
+<span class="nc" id="L102">			throw new IndexOutOfBoundsException();</span>
+
+<span class="nc" id="L104">		m_currentSegmentIndex = -1;</span>
+<span class="nc" id="L105">		m_nextSegmentIndex = segmentIndex;</span>
+<span class="nc" id="L106">		m_currentPathIndex = pathIndex;</span>
+<span class="nc" id="L107">		m_nextPathIndex = m_nextSegmentIndex + 1;</span>
+<span class="nc" id="L108">		m_parent = parent;</span>
+<span class="nc" id="L109">		m_segmentCount = _getSegmentCount(m_nextPathIndex);</span>
+<span class="nc" id="L110">		m_bCirculator = false;</span>
+<span class="nc" id="L111">		m_currentSegment = null;</span>
+<span class="nc" id="L112">		m_pathBegin = m_parent.getPathStart(m_currentPathIndex);</span>
+<span class="nc" id="L113">		m_dummyPoint = new Point2D();</span>
+<span class="nc" id="L114">	}</span>
+
+	void resetTo(SegmentIteratorImpl src) {
+<span class="pc bpc" id="L117" title="1 of 2 branches missed.">		if (m_parent != src.m_parent)</span>
+<span class="nc" id="L118">			throw new GeometryException(&quot;invalid_call&quot;);</span>
+
+<span class="fc" id="L120">		m_currentSegmentIndex = src.m_currentSegmentIndex;</span>
+<span class="fc" id="L121">		m_nextSegmentIndex = src.m_nextSegmentIndex;</span>
+<span class="fc" id="L122">		m_currentPathIndex = src.m_currentPathIndex;</span>
+<span class="fc" id="L123">		m_nextPathIndex = src.m_nextPathIndex;</span>
+<span class="fc" id="L124">		m_segmentCount = src.m_segmentCount;</span>
+<span class="fc" id="L125">		m_bCirculator = src.m_bCirculator;</span>
+<span class="fc" id="L126">		m_pathBegin = src.m_pathBegin;</span>
+<span class="fc" id="L127">		m_currentSegment = null;</span>
+<span class="fc" id="L128">	}</span>
+
+	/**
+	 * Moves the iterator to the next curve segment and returns the segment.
+	 * 
+	 * The Segment is returned by value and is owned by the iterator. Note: The
+	 * method can return null if there are no curves in the part.
+	 */
+	public Segment nextCurve() {
+<span class="nc" id="L137">		return null;</span>
+		// TODO: Fix me. This method is supposed to go only through the curves
+		// and skip the Line classes!!
+		// It must be very efficient.
+	}
+
+	/**
+	 * Moves the iterator to next segment and returns the segment.
+	 * 
+	 * The Segment is returned by value and is owned by the iterator.
+	 */
+	public Segment nextSegment() {
+<span class="fc bfc" id="L149" title="All 2 branches covered.">		if (m_currentSegmentIndex != m_nextSegmentIndex)</span>
+<span class="fc" id="L150">			_updateSegment();</span>
+
+<span class="fc bfc" id="L152" title="All 2 branches covered.">		if (m_bCirculator) {</span>
+<span class="fc" id="L153">			m_nextSegmentIndex = (m_nextSegmentIndex + 1) % m_segmentCount;</span>
+		} else {
+<span class="pc bpc" id="L155" title="1 of 2 branches missed.">			if (m_nextSegmentIndex == m_segmentCount)</span>
+<span class="nc" id="L156">				throw new IndexOutOfBoundsException();</span>
+
+<span class="fc" id="L158">			m_nextSegmentIndex++;</span>
+		}
+
+<span class="fc" id="L161">		return m_currentSegment;</span>
+	}
+
+	/**
+	 * Moves the iterator to previous segment and returns the segment.
+	 * 
+	 * The Segment is returned by value and is owned by the iterator.
+	 */
+	public Segment previousSegment() {
+<span class="fc bfc" id="L170" title="All 2 branches covered.">		if (m_bCirculator) {</span>
+<span class="fc" id="L171">			m_nextSegmentIndex = (m_segmentCount + m_nextSegmentIndex - 1)</span>
+					% m_segmentCount;
+		} else {
+<span class="pc bpc" id="L174" title="1 of 2 branches missed.">			if (m_nextSegmentIndex == 0)</span>
+<span class="nc" id="L175">				throw new IndexOutOfBoundsException();</span>
+<span class="fc" id="L176">			m_nextSegmentIndex--;</span>
+		}
+
+<span class="fc bfc" id="L179" title="All 2 branches covered.">		if (m_nextSegmentIndex != m_currentSegmentIndex)</span>
+<span class="fc" id="L180">			_updateSegment();</span>
+
+<span class="fc" id="L182">		return m_currentSegment;</span>
+	}
+
+	/**
+	 * Resets the iterator so that the call to NextSegment will return the first
+	 * segment of the current path.
+	 */
+	public void resetToFirstSegment() {
+<span class="nc" id="L190">		m_currentSegmentIndex = -1;</span>
+<span class="nc" id="L191">		m_nextSegmentIndex = 0;</span>
+<span class="nc" id="L192">	}</span>
+
+	/**
+	 * Resets the iterator so that the call to PreviousSegment will return the
+	 * last segment of the current path.
+	 */
+	public void resetToLastSegment() {
+<span class="fc" id="L199">		m_nextSegmentIndex = m_segmentCount;</span>
+<span class="fc" id="L200">		m_currentSegmentIndex = -1;</span>
+<span class="fc" id="L201">	}</span>
+
+	public void resetToVertex(int vertexIndex) {
+<span class="fc" id="L204">		resetToVertex(vertexIndex, -1);</span>
+<span class="fc" id="L205">	}</span>
+
+	public void resetToVertex(int vertexIndex, int _pathIndex) {
+<span class="fc bfc" id="L208" title="All 2 branches covered.">		if (m_currentPathIndex &gt;= 0</span>
+<span class="fc bfc" id="L209" title="All 2 branches covered.">				&amp;&amp; m_currentPathIndex &lt; m_parent.getPathCount()) {// check if we</span>
+																	// are in
+																	// the
+																	// current
+																	// path
+<span class="fc" id="L214">			int start = _getPathBegin();</span>
+<span class="fc bfc" id="L215" title="All 2 branches covered.">			if (vertexIndex &gt;= start</span>
+<span class="fc bfc" id="L216" title="All 2 branches covered.">					&amp;&amp; vertexIndex &lt; m_parent.getPathEnd(m_currentPathIndex)) {</span>
+<span class="fc" id="L217">				m_currentSegmentIndex = -1;</span>
+<span class="fc" id="L218">				m_nextSegmentIndex = vertexIndex - start;</span>
+<span class="fc" id="L219">				return;</span>
+			}
+		}
+
+		int path_index;
+<span class="pc bpc" id="L224" title="1 of 4 branches missed.">		if (_pathIndex &gt;= 0 &amp;&amp; _pathIndex &lt; m_parent.getPathCount()</span>
+<span class="pc bpc" id="L225" title="1 of 2 branches missed.">				&amp;&amp; vertexIndex &gt;= m_parent.getPathStart(_pathIndex)</span>
+<span class="pc bpc" id="L226" title="1 of 2 branches missed.">				&amp;&amp; vertexIndex &lt; m_parent.getPathEnd(_pathIndex)) {</span>
+<span class="fc" id="L227">			path_index = _pathIndex;</span>
+		} else {
+<span class="fc" id="L229">			path_index = m_parent.getPathIndexFromPointIndex(vertexIndex);</span>
+		}
+
+<span class="fc" id="L232">		m_nextPathIndex = path_index + 1;</span>
+<span class="fc" id="L233">		m_currentPathIndex = path_index;</span>
+<span class="fc" id="L234">		m_currentSegmentIndex = -1;</span>
+<span class="fc" id="L235">		m_nextSegmentIndex = vertexIndex - m_parent.getPathStart(path_index);</span>
+<span class="fc" id="L236">		m_segmentCount = _getSegmentCount(path_index);</span>
+<span class="fc" id="L237">		m_pathBegin = m_parent.getPathStart(m_currentPathIndex);</span>
+<span class="fc" id="L238">	}</span>
+
+	/**
+	 * Moves the iterator to next path and returns true if successful.
+	 * 
+	 */
+	public boolean nextPath() {
+		// post-increment
+<span class="fc" id="L246">		m_currentPathIndex = m_nextPathIndex;</span>
+<span class="fc bfc" id="L247" title="All 2 branches covered.">		if (m_currentPathIndex &gt;= m_parent.getPathCount())</span>
+<span class="fc" id="L248">			return false;</span>
+
+<span class="fc" id="L250">		m_currentSegmentIndex = -1;</span>
+<span class="fc" id="L251">		m_nextSegmentIndex = 0;</span>
+<span class="fc" id="L252">		m_segmentCount = _getSegmentCount(m_currentPathIndex);</span>
+<span class="fc" id="L253">		m_pathBegin = m_parent.getPathStart(m_currentPathIndex);</span>
+<span class="fc" id="L254">		m_nextPathIndex++;</span>
+<span class="fc" id="L255">		return true;</span>
+	}
+
+	/**
+	 * Moves the iterator to next path and returns true if successful.
+	 * 
+	 */
+	public boolean previousPath() {
+		// pre-decrement
+<span class="nc bnc" id="L264" title="All 2 branches missed.">		if (m_nextPathIndex == 0)</span>
+<span class="nc" id="L265">			return false;</span>
+
+<span class="nc" id="L267">		m_nextPathIndex--;</span>
+<span class="nc" id="L268">		m_currentSegmentIndex = -1;</span>
+<span class="nc" id="L269">		m_nextSegmentIndex = 0;</span>
+<span class="nc" id="L270">		m_segmentCount = _getSegmentCount(m_nextPathIndex);</span>
+<span class="nc" id="L271">		m_currentPathIndex = m_nextPathIndex;</span>
+<span class="nc" id="L272">		m_pathBegin = m_parent.getPathStart(m_currentPathIndex);</span>
+<span class="nc" id="L273">		resetToLastSegment();</span>
+<span class="nc" id="L274">		return true;</span>
+	}
+
+	/**
+	 * Resets the iterator such that the subsequent call to the NextPath will
+	 * set the iterator to the first segment of the first path.
+	 */
+	public void resetToFirstPath() {
+
+<span class="fc" id="L283">		m_currentSegmentIndex = -1;</span>
+<span class="fc" id="L284">		m_nextSegmentIndex = -1;</span>
+<span class="fc" id="L285">		m_segmentCount = -1;</span>
+<span class="fc" id="L286">		m_nextPathIndex = 0;</span>
+<span class="fc" id="L287">		m_currentPathIndex = -1;</span>
+<span class="fc" id="L288">		m_pathBegin = -1;</span>
+<span class="fc" id="L289">	}</span>
+
+	/**
+	 * Resets the iterator such that the subsequent call to the PreviousPath
+	 * will set the iterator to the last segment of the last path.
+	 */
+	public void resetToLastPath() {
+<span class="nc" id="L296">		m_nextPathIndex = m_parent.getPathCount();</span>
+<span class="nc" id="L297">		m_currentPathIndex = -1;</span>
+<span class="nc" id="L298">		m_currentSegmentIndex = -1;</span>
+<span class="nc" id="L299">		m_nextSegmentIndex = -1;</span>
+<span class="nc" id="L300">		m_segmentCount = -1;</span>
+<span class="nc" id="L301">		m_pathBegin = -1;</span>
+<span class="nc" id="L302">	}</span>
+
+	/**
+	 * Resets the iterator such that the subsequent call to the NextPath will
+	 * set the iterator to the first segment of the given path. The call to
+	 * PreviousPath will reset the iterator to the last segment of path
+	 * pathIndex - 1.
+	 */
+	public void resetToPath(int pathIndex) {
+<span class="nc bnc" id="L311" title="All 2 branches missed.">		if (pathIndex &lt; 0)</span>
+<span class="nc" id="L312">			throw new IndexOutOfBoundsException();</span>
+
+<span class="nc" id="L314">		m_nextPathIndex = pathIndex;</span>
+<span class="nc" id="L315">		m_currentPathIndex = -1;</span>
+<span class="nc" id="L316">		m_currentSegmentIndex = -1;</span>
+<span class="nc" id="L317">		m_nextSegmentIndex = -1;</span>
+<span class="nc" id="L318">		m_segmentCount = -1;</span>
+<span class="nc" id="L319">		m_pathBegin = -1;</span>
+<span class="nc" id="L320">	}</span>
+
+	public int _getSegmentCount(int pathIndex) {
+<span class="fc bfc" id="L323" title="All 2 branches covered.">		if (m_parent.isEmptyImpl())</span>
+<span class="fc" id="L324">			return 0;</span>
+
+<span class="fc" id="L326">		int d = 1;</span>
+<span class="fc bfc" id="L327" title="All 2 branches covered.">		if (m_parent.isClosedPath(pathIndex))</span>
+<span class="fc" id="L328">			d = 0;</span>
+
+<span class="fc" id="L330">		return m_parent.getPathSize(pathIndex) - d;</span>
+	}
+
+	/**
+	 * Returns True, if the segment is the closing segment of the closed path
+	 */
+	public boolean isClosingSegment() {
+<span class="fc bfc" id="L337" title="All 2 branches covered.">		return m_currentSegmentIndex == m_segmentCount - 1</span>
+<span class="fc bfc" id="L338" title="All 2 branches covered.">				&amp;&amp; m_parent.isClosedPath(m_currentPathIndex);</span>
+	}
+
+	/**
+	 * Switches the iterator navigation mode.
+	 * 
+	 * @param bYesNo
+	 *            If True, the iterator loops over the current path infinitely
+	 *            (unless the MultiPath is empty).
+	 */
+	public void setCirculator(boolean bYesNo) {
+<span class="fc" id="L349">		m_bCirculator = bYesNo;</span>
+<span class="fc" id="L350">	}</span>
+
+	/**
+	 * Returns the index of the current path.
+	 */
+	public int getPathIndex() {
+<span class="fc" id="L356">		return m_currentPathIndex;</span>
+	}
+
+	/**
+	 * Returns the index of the start Point of the current Segment.
+	 */
+	public int getStartPointIndex() {
+<span class="fc" id="L363">		return _getPathBegin() + m_currentSegmentIndex;</span>
+	}
+
+	public int _getPathBegin() {
+<span class="fc" id="L367">		return m_parent.getPathStart(m_currentPathIndex);</span>
+	}
+
+	/**
+	 * Returns the index of the end Point of the current Segment.
+	 */
+	public int getEndPointIndex() {
+<span class="fc bfc" id="L374" title="All 2 branches covered.">		if (isClosingSegment()) {</span>
+<span class="fc" id="L375">			return m_parent.getPathStart(m_currentPathIndex);</span>
+		} else {
+<span class="fc" id="L377">			return getStartPointIndex() + 1;</span>
+		}
+	}
+
+	/**
+	 * Returns True if the segment is first one in the current Path.
+	 */
+	public boolean isFirstSegmentInPath() {
+<span class="nc bnc" id="L385" title="All 2 branches missed.">		return m_currentSegmentIndex == 0;</span>
+	}
+
+	/**
+	 * Returns True if the segment is last one in the current Path.
+	 */
+	public boolean isLastSegmentInPath() {
+<span class="fc bfc" id="L392" title="All 2 branches covered.">		return m_currentSegmentIndex == m_segmentCount - 1;</span>
+	}
+
+	/**
+	 * Returns True if the call to the NextSegment will succeed.
+	 */
+	public boolean hasNextSegment() {
+<span class="fc bfc" id="L399" title="All 2 branches covered.">		return m_nextSegmentIndex &lt; m_segmentCount;</span>
+	}
+
+	/**
+	 * Returns True if the call to the NextSegment will succeed.
+	 */
+	public boolean hasPreviousSegment() {
+<span class="pc bpc" id="L406" title="1 of 2 branches missed.">		return m_nextSegmentIndex &gt; 0;</span>
+	}
+
+	public SegmentIteratorImpl copy() {
+<span class="nc" id="L410">		SegmentIteratorImpl clone = new SegmentIteratorImpl(m_parent);</span>
+<span class="nc" id="L411">		clone.m_currentSegmentIndex = m_currentSegmentIndex;</span>
+<span class="nc" id="L412">		clone.m_nextSegmentIndex = m_nextSegmentIndex;</span>
+<span class="nc" id="L413">		clone.m_segmentCount = m_segmentCount;</span>
+<span class="nc" id="L414">		clone.m_currentPathIndex = m_currentPathIndex;</span>
+<span class="nc" id="L415">		clone.m_nextPathIndex = m_nextPathIndex;</span>
+<span class="nc" id="L416">		clone.m_parent = m_parent;</span>
+<span class="nc" id="L417">		clone.m_bCirculator = m_bCirculator;</span>
+<span class="nc" id="L418">		return clone;</span>
+	}
+
+	public void _updateSegment() {
+<span class="pc bpc" id="L422" title="2 of 4 branches missed.">		if (m_nextSegmentIndex &lt; 0 || m_nextSegmentIndex &gt;= m_segmentCount)</span>
+<span class="nc" id="L423">			throw new IndexOutOfBoundsException();</span>
+<span class="fc" id="L424">		m_currentSegmentIndex = m_nextSegmentIndex;</span>
+
+<span class="fc" id="L426">		int startVertexIndex = getStartPointIndex();</span>
+<span class="fc" id="L427">		m_parent._verifyAllStreams();</span>
+<span class="fc" id="L428">		AttributeStreamOfInt8 segFlagStream = m_parent</span>
+<span class="fc" id="L429">				.getSegmentFlagsStreamRef();</span>
+
+<span class="fc" id="L431">		int segFlag = SegmentFlags.enumLineSeg;</span>
+<span class="pc bpc" id="L432" title="1 of 2 branches missed.">		if (segFlagStream != null)</span>
+<span class="nc" id="L433">			segFlag = (segFlagStream.read(startVertexIndex) &amp; SegmentFlags.enumSegmentMask);</span>
+
+<span class="fc" id="L435">		VertexDescription vertexDescr = m_parent.getDescription();</span>
+<span class="pc bpc" id="L436" title="3 of 4 branches missed.">		switch (segFlag) {</span>
+		case SegmentFlags.enumLineSeg:
+<span class="fc bfc" id="L438" title="All 2 branches covered.">			if (m_line == null)</span>
+<span class="fc" id="L439">				m_line = new Line();</span>
+<span class="fc" id="L440">			m_currentSegment = (Line) m_line;</span>
+<span class="fc" id="L441">			break;</span>
+		case SegmentFlags.enumBezierSeg:
+<span class="nc" id="L443">			throw GeometryException.GeometryInternalError();</span>
+			// break;
+		case SegmentFlags.enumArcSeg:
+<span class="nc" id="L446">			throw GeometryException.GeometryInternalError();</span>
+			// break;
+		default:
+<span class="nc" id="L449">			throw GeometryException.GeometryInternalError();</span>
+		}
+
+<span class="fc" id="L452">		m_currentSegment.assignVertexDescription(vertexDescr);</span>
+
+<span class="fc" id="L454">		int endVertexIndex = getEndPointIndex();</span>
+<span class="fc" id="L455">		m_parent.getXY(startVertexIndex, m_dummyPoint);</span>
+<span class="fc" id="L456">		m_currentSegment.setStartXY(m_dummyPoint);</span>
+<span class="fc" id="L457">		m_parent.getXY(endVertexIndex, m_dummyPoint);</span>
+<span class="fc" id="L458">		m_currentSegment.setEndXY(m_dummyPoint);</span>
+
+<span class="fc bfc" id="L460" title="All 2 branches covered.">		for (int i = 1, nattr = vertexDescr.getAttributeCount(); i &lt; nattr; i++) {</span>
+<span class="fc" id="L461">			int semantics = vertexDescr.getSemantics(i);</span>
+<span class="fc" id="L462">			int ncomp = VertexDescription.getComponentCount(semantics);</span>
+<span class="fc bfc" id="L463" title="All 2 branches covered.">			for (int ord = 0; ord &lt; ncomp; ord++) {</span>
+<span class="fc" id="L464">				double vs = m_parent.getAttributeAsDbl(semantics,</span>
+						startVertexIndex, ord);
+<span class="fc" id="L466">				m_currentSegment.setStartAttribute(semantics, ord, vs);</span>
+<span class="fc" id="L467">				double ve = m_parent.getAttributeAsDbl(semantics,</span>
+						endVertexIndex, ord);
+<span class="fc" id="L469">				m_currentSegment.setEndAttribute(semantics, ord, ve);</span>
+			}
+		}
+<span class="fc" id="L472">	}</span>
+
+	boolean isLastPath() {
+<span class="fc bfc" id="L475" title="All 2 branches covered.">		return m_currentPathIndex == m_parent.getPathCount() - 1;</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

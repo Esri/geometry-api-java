@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MultiPointImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">MultiPointImpl.java</span></div><h1>MultiPointImpl.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+import com.esri.core.geometry.VertexDescription.Semantics;
+
+import static com.esri.core.geometry.SizeOf.SIZE_OF_MULTI_POINT_IMPL;
+
+/**
+ * The MultiPoint is a collection of points.
+ */
+final class MultiPointImpl extends MultiVertexGeometryImpl {
+	public MultiPointImpl() {
+<span class="fc" id="L36">		super();</span>
+<span class="fc" id="L37">		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();</span>
+<span class="fc" id="L38">		m_pointCount = 0;</span>
+<span class="fc" id="L39">	}</span>
+
+	public MultiPointImpl(VertexDescription description) {
+<span class="fc" id="L42">		super();</span>
+<span class="pc bpc" id="L43" title="1 of 2 branches missed.">		if (description == null)</span>
+<span class="nc" id="L44">			throw new IllegalArgumentException();</span>
+
+<span class="fc" id="L46">		m_description = description;</span>
+<span class="fc" id="L47">		m_pointCount = 0;</span>
+<span class="fc" id="L48">	}</span>
+
+	@Override
+	public Geometry createInstance() {
+<span class="nc" id="L52">		return new MultiPoint(m_description);</span>
+	}
+
+	/**
+	 * Adds a Point to this MultiPoint.
+	 */
+	public void add(Point point) {
+<span class="fc" id="L59">		resize(m_pointCount + 1);</span>
+<span class="fc" id="L60">		setPoint(m_pointCount - 1, point);</span>
+<span class="fc" id="L61">	}</span>
+
+	/**
+	 * Adds a Point to this MultiPoint with given x, y coordinates.
+	 */
+	public void add(double x, double y) {
+<span class="fc" id="L67">		resize(m_pointCount + 1);</span>
+<span class="fc" id="L68">		Point2D pt = new Point2D();</span>
+<span class="fc" id="L69">		pt.setCoords(x, y);</span>
+<span class="fc" id="L70">		setXY(m_pointCount - 1, pt);</span>
+<span class="fc" id="L71">	}</span>
+
+	/**
+	 * Adds a Point to this MultiPoint with given x, y, z coordinates.
+	 */
+	public void add(double x, double y, double z) {
+<span class="fc" id="L77">		resize(m_pointCount + 1);</span>
+<span class="fc" id="L78">		Point3D pt = new Point3D();</span>
+<span class="fc" id="L79">		pt.setCoords(x, y, z);</span>
+<span class="fc" id="L80">		setXYZ(m_pointCount - 1, pt);</span>
+<span class="fc" id="L81">	}</span>
+
+	/**
+	 * Appends points from another MultiVertexGeometryImpl at the end of this
+	 * one.
+	 * 
+	 * @param src
+	 *            The source MultiVertexGeometryImpl
+	 */
+	public void add(MultiVertexGeometryImpl src, int beginIndex, int endIndex) {
+<span class="fc bfc" id="L91" title="All 2 branches covered.">		int endIndexC = endIndex &lt; 0 ? src.getPointCount() : endIndex;</span>
+<span class="pc bpc" id="L92" title="3 of 6 branches missed.">		if (beginIndex &lt; 0 || beginIndex &gt; src.getPointCount()</span>
+				|| endIndexC &lt; beginIndex)
+<span class="nc" id="L94">			throw new IllegalArgumentException();</span>
+
+<span class="fc bfc" id="L96" title="All 2 branches covered.">		if (beginIndex == endIndexC)</span>
+<span class="fc" id="L97">			return;</span>
+
+<span class="fc" id="L99">		mergeVertexDescription(src.getDescription());</span>
+<span class="fc" id="L100">		int count = endIndexC - beginIndex;</span>
+<span class="fc" id="L101">		int oldPointCount = m_pointCount;</span>
+<span class="fc" id="L102">		resize(m_pointCount + count);</span>
+<span class="fc" id="L103">		_verifyAllStreams();</span>
+<span class="fc" id="L104">		for (int iattrib = 0, nattrib = src.getDescription()</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">				.getAttributeCount(); iattrib &lt; nattrib; iattrib++) {</span>
+<span class="fc" id="L106">			int semantics = src.getDescription()._getSemanticsImpl(iattrib);</span>
+<span class="fc" id="L107">			int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="fc" id="L108">			AttributeStreamBase stream = getAttributeStreamRef(semantics);</span>
+<span class="fc" id="L109">			AttributeStreamBase srcStream = src</span>
+<span class="fc" id="L110">					.getAttributeStreamRef(semantics);</span>
+<span class="fc" id="L111">			stream.insertRange(oldPointCount * ncomps, srcStream, beginIndex</span>
+					* ncomps, count * ncomps, true, 1, oldPointCount * ncomps);
+		}
+<span class="fc" id="L114">	}</span>
+
+	public void addPoints(Point2D[] points) {
+<span class="nc" id="L117">		int count = points.length;</span>
+<span class="nc" id="L118">		int oldPointCount = m_pointCount;</span>
+<span class="nc" id="L119">		resize(m_pointCount + count);</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">		for (int i = 0; i &lt; count; i++)</span>
+<span class="nc" id="L121">			setXY(oldPointCount + i, points[i]);</span>
+<span class="nc" id="L122">	}</span>
+
+	public void insertPoint(int beforePointIndex, Point pt) {
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">		if (beforePointIndex &gt; getPointCount())</span>
+<span class="nc" id="L126">			throw new GeometryException(&quot;index out of bounds&quot;);</span>
+
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">		if (beforePointIndex &lt; 0)</span>
+<span class="nc" id="L129">			beforePointIndex = getPointCount();</span>
+
+<span class="fc" id="L131">		mergeVertexDescription(pt.getDescription());</span>
+<span class="fc" id="L132">		int oldPointCount = m_pointCount;</span>
+<span class="fc" id="L133">		_resizeImpl(m_pointCount + 1);</span>
+<span class="fc" id="L134">		_verifyAllStreams();</span>
+
+<span class="fc bfc" id="L136" title="All 2 branches covered.">		for (int iattr = 0, nattr = m_description.getAttributeCount(); iattr &lt; nattr; iattr++) {</span>
+<span class="fc" id="L137">			int semantics = m_description._getSemanticsImpl(iattr);</span>
+<span class="fc" id="L138">			int comp = VertexDescription.getComponentCount(semantics);</span>
+
+<span class="fc" id="L140">			AttributeStreamBase stream = AttributeStreamBase</span>
+<span class="fc" id="L141">					.createAttributeStreamWithSemantics(semantics, 1);</span>
+<span class="pc bpc" id="L142" title="1 of 2 branches missed.">			if (pt.hasAttribute(semantics)) {</span>
+<span class="fc" id="L143">				m_vertexAttributes[iattr]</span>
+<span class="fc" id="L144">						.insertAttributes(comp * beforePointIndex, pt,</span>
+								semantics, comp * oldPointCount);
+			} else {
+				// Need to make room for the attribute, so we copy a default
+				// value in
+
+<span class="nc" id="L150">				double v = VertexDescription.getDefaultValue(semantics);</span>
+<span class="nc" id="L151">				m_vertexAttributes[iattr].insertRange(comp * beforePointIndex,</span>
+						v, comp, comp * oldPointCount);
+			}
+		}
+
+<span class="fc" id="L156">		notifyModified(DirtyFlags.DirtyCoordinates);</span>
+<span class="fc" id="L157">	}</span>
+
+	void removePoint(int pointIndex) {
+<span class="pc bpc" id="L160" title="2 of 4 branches missed.">		if (pointIndex &lt; 0 || pointIndex &gt;= getPointCount())</span>
+<span class="nc" id="L161">			throw new GeometryException(&quot;index out of bounds&quot;);</span>
+
+<span class="fc" id="L163">		_verifyAllStreams();</span>
+
+		// Remove the attribute value for the path
+<span class="fc bfc" id="L166" title="All 2 branches covered.">		for (int iattr = 0, nattr = m_description.getAttributeCount(); iattr &lt; nattr; iattr++) {</span>
+<span class="pc bpc" id="L167" title="1 of 2 branches missed.">			if (m_vertexAttributes[iattr] != null) {</span>
+<span class="fc" id="L168">				int semantics = m_description._getSemanticsImpl(iattr);</span>
+<span class="fc" id="L169">				int comp = VertexDescription.getComponentCount(semantics);</span>
+<span class="fc" id="L170">				m_vertexAttributes[iattr].eraseRange(comp * pointIndex, comp,</span>
+						comp * m_pointCount);
+			}
+		}
+
+<span class="fc" id="L175">		m_pointCount--;</span>
+<span class="fc" id="L176">		m_reservedPointCount--;</span>
+<span class="fc" id="L177">		notifyModified(DirtyFlags.DirtyCoordinates);</span>
+<span class="fc" id="L178">	}</span>
+
+	/**
+	 * Resizes the MultiPoint to have the given size.
+	 */
+	public void resize(int pointCount) {
+<span class="fc" id="L184">		_resizeImpl(pointCount);</span>
+<span class="fc" id="L185">	}</span>
+
+	@Override
+	void _copyToImpl(MultiVertexGeometryImpl mvg) {
+<span class="fc" id="L189">	}</span>
+
+	@Override
+	public void setEmpty() {
+<span class="fc" id="L193">		super._setEmptyImpl();</span>
+<span class="fc" id="L194">	}</span>
+
+	@Override
+	public void applyTransformation(Transformation2D transform) {
+<span class="pc bpc" id="L198" title="1 of 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L199">			return;</span>
+
+<span class="fc" id="L201">		_verifyAllStreams();</span>
+<span class="fc" id="L202">		AttributeStreamOfDbl points = (AttributeStreamOfDbl) m_vertexAttributes[0];</span>
+<span class="fc" id="L203">		Point2D pt2 = new Point2D();</span>
+
+<span class="fc bfc" id="L205" title="All 2 branches covered.">		for (int ipoint = 0; ipoint &lt; m_pointCount; ipoint++) {</span>
+<span class="fc" id="L206">			pt2.x = points.read(ipoint * 2);</span>
+<span class="fc" id="L207">			pt2.y = points.read(ipoint * 2 + 1);</span>
+
+<span class="fc" id="L209">			transform.transform(pt2, pt2);</span>
+<span class="fc" id="L210">			points.write(ipoint * 2, pt2.x);</span>
+<span class="fc" id="L211">			points.write(ipoint * 2 + 1, pt2.y);</span>
+		}
+
+		// REFACTOR: reset the exact envelope only and transform the loose
+		// envelope
+<span class="fc" id="L216">		notifyModified(DirtyFlags.DirtyCoordinates);</span>
+<span class="fc" id="L217">	}</span>
+
+	@Override
+	void applyTransformation(Transformation3D transform) {
+<span class="nc bnc" id="L221" title="All 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L222">			return;</span>
+
+<span class="nc" id="L224">		_verifyAllStreams();</span>
+<span class="nc" id="L225">		addAttribute(Semantics.Z);</span>
+<span class="nc" id="L226">		_verifyAllStreams();</span>
+<span class="nc" id="L227">		AttributeStreamOfDbl points = (AttributeStreamOfDbl) m_vertexAttributes[0];</span>
+<span class="nc" id="L228">		AttributeStreamOfDbl zs = (AttributeStreamOfDbl) m_vertexAttributes[1];</span>
+<span class="nc" id="L229">		Point3D pt3 = new Point3D();</span>
+<span class="nc bnc" id="L230" title="All 2 branches missed.">		for (int ipoint = 0; ipoint &lt; m_pointCount; ipoint++) {</span>
+<span class="nc" id="L231">			pt3.x = points.read(ipoint * 2);</span>
+<span class="nc" id="L232">			pt3.y = points.read(ipoint * 2 + 1);</span>
+<span class="nc" id="L233">			pt3.z = zs.read(ipoint);</span>
+
+<span class="nc" id="L235">			Point3D res = transform.transform(pt3);</span>
+<span class="nc" id="L236">			points.write(ipoint * 2, res.x);</span>
+<span class="nc" id="L237">			points.write(ipoint * 2 + 1, res.y);</span>
+<span class="nc" id="L238">			zs.write(ipoint, res.z);</span>
+		}
+
+		// REFACTOR: reset the exact envelope only and transform the loose
+		// envelope
+<span class="nc" id="L243">		notifyModified(DirtyFlags.DirtyCoordinates);</span>
+<span class="nc" id="L244">	}</span>
+
+	@Override
+	public int getDimension() {
+<span class="nc" id="L248">		return 0;</span>
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+<span class="pc bpc" id="L254" title="1 of 2 branches missed.">		long size = SIZE_OF_MULTI_POINT_IMPL + (m_envelope != null ? m_envelope.estimateMemorySize() : 0);</span>
+
+<span class="fc bfc" id="L256" title="All 2 branches covered.">		if (m_vertexAttributes != null) {</span>
+<span class="fc bfc" id="L257" title="All 2 branches covered.">			for (int i = 0; i &lt; m_vertexAttributes.length; i++) {</span>
+<span class="fc" id="L258">				size += m_vertexAttributes[i].estimateMemorySize();</span>
+			}
+		}
+<span class="fc" id="L261">		return size;</span>
+	}
+
+	@Override
+	public Geometry.Type getType() {
+<span class="fc" id="L266">		return Type.MultiPoint;</span>
+	}
+
+	@Override
+	public double calculateArea2D() {
+<span class="nc" id="L271">		return 0;</span>
+	}
+
+	@Override
+	public double calculateLength2D() {
+<span class="nc" id="L276">		return 0;</span>
+	}
+
+	@Override
+	public Object _getImpl() {
+<span class="nc" id="L281">		return this;</span>
+	}
+
+	@Override
+	public boolean equals(Object other) {
+<span class="pc bpc" id="L286" title="1 of 2 branches missed.">		if (other == this)</span>
+<span class="nc" id="L287">			return true;</span>
+
+<span class="pc bpc" id="L289" title="1 of 2 branches missed.">		if (!(other instanceof MultiPointImpl))</span>
+<span class="nc" id="L290">			return false;</span>
+
+<span class="fc" id="L292">		return super.equals(other);</span>
+	}
+
+	public void addPoints(Point[] points) {
+<span class="nc" id="L296">		int count = points.length;</span>
+		// int oldPointCount = m_pointCount;
+<span class="nc" id="L298">		resize(m_pointCount + count);</span>
+<span class="nc bnc" id="L299" title="All 2 branches missed.">		for (int i = 0; i &lt; count; i++)</span>
+<span class="nc" id="L300">			setPoint(i, points[i]);</span>
+<span class="nc" id="L301">	}</span>
+
+	public int queryCoordinates(Point2D[] dst, int dstSize, int beginIndex,
+			int endIndex) {
+<span class="pc bpc" id="L305" title="1 of 2 branches missed.">		int endIndexC = endIndex &lt; 0 ? m_pointCount : endIndex;</span>
+<span class="fc" id="L306">		endIndexC = Math.min(endIndexC, beginIndex + dstSize);</span>
+
+<span class="pc bpc" id="L308" title="4 of 8 branches missed.">		if (beginIndex &lt; 0 || beginIndex &gt;= m_pointCount</span>
+				|| endIndexC &lt; beginIndex || dst.length != dstSize)
+<span class="nc" id="L310">			throw new IllegalArgumentException();// GEOMTHROW(invalid_argument);</span>
+
+<span class="fc" id="L312">		AttributeStreamOfDbl xy = (AttributeStreamOfDbl) getAttributeStreamRef(VertexDescription.Semantics.POSITION);</span>
+<span class="fc" id="L313">		int pointCountToRead = endIndexC - beginIndex;</span>
+<span class="fc" id="L314">		double[] dstArray = new double[pointCountToRead * 2];</span>
+<span class="fc" id="L315">		xy.readRange(2 * beginIndex, pointCountToRead * 2, dstArray, 0, true);</span>
+
+<span class="fc bfc" id="L317" title="All 2 branches covered.">		for (int i = 0; i &lt; pointCountToRead; i++) {</span>
+<span class="fc" id="L318">			dst[i] = new Point2D(dstArray[i * 2], dstArray[i * 2 + 1]);</span>
+		}
+
+<span class="fc" id="L321">		return endIndexC;</span>
+	}
+
+	@Override
+	protected void _notifyModifiedAllImpl() {
+		// TODO Auto-generated method stub
+
+<span class="fc" id="L328">	}</span>
+
+	@Override
+	protected void _verifyStreamsImpl() {
+		// TODO Auto-generated method stub
+
+<span class="fc" id="L334">	}</span>
+
+	@Override
+	public boolean _buildRasterizedGeometryAccelerator(double toleranceXY,
+			GeometryAccelerationDegree accelDegree) {
+		// TODO Auto-generated method stub
+<span class="nc" id="L340">		return false;</span>
+	}
+
+	@Override
+	public boolean _buildQuadTreeAccelerator(GeometryAccelerationDegree accelDegree) {
+		// TODO Auto-generated method stub
+<span class="nc" id="L346">		return false;</span>
+	}
+	
+	// @Override
+	// void _notifyModifiedAllImpl() {
+	// // TODO Auto-generated method stub
+	//
+	// }
+
+	// @Override
+	// protected void _verifyStreamsImpl() {
+	// // TODO Auto-generated method stub
+	//
+	// }
+
+    @Override
+    public Geometry getBoundary() {
+<span class="nc" id="L363">        return null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

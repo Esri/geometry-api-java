@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OGCLinearRing.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry.ogc</a> &gt; <span class="el_source">OGCLinearRing.java</span></div><h1>OGCLinearRing.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2017 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry.ogc;
+
+import com.esri.core.geometry.MultiPath;
+import com.esri.core.geometry.SpatialReference;
+
+public class OGCLinearRing extends OGCLineString {
+
+	public OGCLinearRing(MultiPath mp, int pathIndex, SpatialReference sr,
+			boolean reversed) {
+<span class="fc" id="L34">		super(mp, pathIndex, sr, reversed);</span>
+<span class="pc bpc" id="L35" title="1 of 2 branches missed.">		if (!mp.isClosedPath(0))</span>
+<span class="nc" id="L36">			throw new IllegalArgumentException(&quot;LinearRing path must be closed&quot;);</span>
+<span class="fc" id="L37">	}</span>
+
+	public int numPoints() {
+<span class="nc bnc" id="L40" title="All 2 branches missed.">		if (multiPath.isEmpty())</span>
+<span class="nc" id="L41">			return 0;</span>
+<span class="nc" id="L42">		return multiPath.getPointCount() + 1;</span>
+	}
+
+	public boolean isClosed() {
+<span class="nc" id="L46">		return true;</span>
+	}
+
+	public boolean isRing() {
+<span class="nc" id="L50">		return true;</span>
+	}
+
+	@Override
+	public OGCPoint pointN(int n) {
+		int nn;
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">		if (n == multiPath.getPathSize(0)) {</span>
+<span class="nc" id="L57">			nn = multiPath.getPathStart(0);</span>
+		} else
+<span class="fc" id="L59">			nn = multiPath.getPathStart(0) + n;</span>
+
+<span class="fc" id="L61">		return (OGCPoint) OGCGeometry.createFromEsriGeometry(</span>
+<span class="fc" id="L62">				multiPath.getPoint(nn), esriSR);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

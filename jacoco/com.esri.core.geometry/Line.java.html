@@ -1,0 +1,1025 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Line.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Line.java</span></div><h1>Line.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+
+package com.esri.core.geometry;
+
+import com.esri.core.geometry.VertexDescription.Semantics;
+
+import java.io.Serializable;
+
+import static com.esri.core.geometry.SizeOf.SIZE_OF_LINE;
+
+/**
+ * A straight line between a pair of points.
+ * 
+ */
+<span class="fc" id="L38">public final class Line extends Segment implements Serializable {</span>
+
+	@Override
+	public Geometry.Type getType() {
+<span class="fc" id="L42">		return Type.Line;</span>
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+<span class="nc" id="L48">		return SIZE_OF_LINE + estimateMemorySize(m_attributes);</span>
+	}
+
+	@Override
+	public double calculateLength2D() {
+<span class="fc" id="L53">		double dx = m_xStart - m_xEnd;</span>
+<span class="fc" id="L54">		double dy = m_yStart - m_yEnd;</span>
+<span class="fc" id="L55">		return Math.sqrt(dx * dx + dy * dy);</span>
+	}
+
+	@Override
+	boolean isDegenerate(double tolerance) {
+<span class="fc" id="L60">		double dx = m_xStart - m_xEnd;</span>
+<span class="fc" id="L61">		double dy = m_yStart - m_yEnd;</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">		return Math.sqrt(dx * dx + dy * dy) &lt;= tolerance;</span>
+	}
+
+	/**
+	 * Indicates if the line segment is a curve.
+	 */
+	@Override
+	public boolean isCurve() {
+<span class="nc" id="L70">		return false;</span>
+	}
+
+	@Override
+	Point2D _getTangent(double t) {
+<span class="fc" id="L75">		Point2D pt = new Point2D();</span>
+<span class="fc" id="L76">		pt.sub(getEndXY(), getStartXY());</span>
+<span class="fc" id="L77">		return pt;</span>
+	}
+
+	@Override
+	boolean _isDegenerate(double tolerance) {
+<span class="nc bnc" id="L82" title="All 2 branches missed.">		return calculateLength2D() &lt;= tolerance;</span>
+	}
+
+	// HEADER DEF
+
+	// Cpp
+	/**
+	 * Creates a line segment.
+	 */
+<span class="fc" id="L91">	public Line() {</span>
+<span class="fc" id="L92">		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();</span>
+<span class="fc" id="L93">	}</span>
+
+<span class="fc" id="L95">	Line(VertexDescription vd) {</span>
+<span class="fc" id="L96">		m_description = vd;</span>
+<span class="fc" id="L97">	}</span>
+
+<span class="fc" id="L99">	public Line(double x1, double y1, double x2, double y2) {</span>
+<span class="fc" id="L100">		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();</span>
+<span class="fc" id="L101">		setStartXY(x1, y1);</span>
+<span class="fc" id="L102">		setEndXY(x2, y2);</span>
+<span class="fc" id="L103">	}</span>
+
+	@Override
+	public void queryEnvelope(Envelope env) {
+<span class="nc" id="L107">		env.setEmpty();</span>
+<span class="nc" id="L108">		env.assignVertexDescription(m_description);</span>
+<span class="nc" id="L109">		Envelope2D env2D = new Envelope2D();</span>
+<span class="nc" id="L110">		queryEnvelope2D(env2D);</span>
+<span class="nc" id="L111">		env.setEnvelope2D(env2D);</span>
+
+<span class="nc bnc" id="L113" title="All 2 branches missed.">		for (int i = 1, n = m_description.getAttributeCount(); i &lt; n; i++) {</span>
+<span class="nc" id="L114">			int semantics = m_description.getSemantics(i);</span>
+<span class="nc" id="L115">			for (int iord = 0, nord = VertexDescription</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">					.getComponentCount(semantics); i &lt; nord; i++) {</span>
+<span class="nc" id="L117">				Envelope1D interval = queryInterval(semantics, iord);</span>
+<span class="nc" id="L118">				env.setInterval(semantics, iord, interval);</span>
+			}
+		}
+<span class="nc" id="L121">	}</span>
+
+	@Override
+	public void queryEnvelope2D(Envelope2D env) {
+<span class="fc" id="L125">		env.setCoords(m_xStart, m_yStart, m_xEnd, m_yEnd);</span>
+<span class="fc" id="L126">		env.normalize();</span>
+<span class="fc" id="L127">	}</span>
+
+	@Override
+	void queryEnvelope3D(Envelope3D env) {
+<span class="nc" id="L131">		env.setEmpty();</span>
+<span class="nc" id="L132">		env.merge(m_xStart, m_yStart, _getAttributeAsDbl(0, Semantics.Z, 0));</span>
+<span class="nc" id="L133">		env.merge(m_xEnd, m_yEnd, _getAttributeAsDbl(1, Semantics.Z, 0));</span>
+<span class="nc" id="L134">	}</span>
+
+	@Override
+	public void applyTransformation(Transformation2D transform) {
+<span class="nc" id="L138">		_touch();</span>
+<span class="nc" id="L139">		Point2D pt = new Point2D();</span>
+<span class="nc" id="L140">		pt.x = m_xStart;</span>
+<span class="nc" id="L141">		pt.y = m_yStart;</span>
+<span class="nc" id="L142">		transform.transform(pt, pt);</span>
+<span class="nc" id="L143">		m_xStart = pt.x;</span>
+<span class="nc" id="L144">		m_yStart = pt.y;</span>
+<span class="nc" id="L145">		pt.x = m_xEnd;</span>
+<span class="nc" id="L146">		pt.y = m_yEnd;</span>
+<span class="nc" id="L147">		transform.transform(pt, pt);</span>
+<span class="nc" id="L148">		m_xEnd = pt.x;</span>
+<span class="nc" id="L149">		m_yEnd = pt.y;</span>
+<span class="nc" id="L150">	}</span>
+
+	@Override
+	void applyTransformation(Transformation3D transform) {
+<span class="nc" id="L154">		_touch();</span>
+<span class="nc" id="L155">		Point3D pt = new Point3D();</span>
+<span class="nc" id="L156">		pt.x = m_xStart;</span>
+<span class="nc" id="L157">		pt.y = m_yStart;</span>
+<span class="nc" id="L158">		pt.z = _getAttributeAsDbl(0, Semantics.Z, 0);</span>
+<span class="nc" id="L159">		pt = transform.transform(pt);</span>
+<span class="nc" id="L160">		m_xStart = pt.x;</span>
+<span class="nc" id="L161">		m_yStart = pt.y;</span>
+<span class="nc" id="L162">		_setAttribute(0, Semantics.Z, 0, pt.z);</span>
+<span class="nc" id="L163">		pt.x = m_xEnd;</span>
+<span class="nc" id="L164">		pt.y = m_yEnd;</span>
+<span class="nc" id="L165">		pt.z = _getAttributeAsDbl(1, Semantics.Z, 0);</span>
+<span class="nc" id="L166">		pt = transform.transform(pt);</span>
+<span class="nc" id="L167">		m_xEnd = pt.x;</span>
+<span class="nc" id="L168">		m_yEnd = pt.y;</span>
+<span class="nc" id="L169">		_setAttribute(1, Semantics.Z, 0, pt.z);</span>
+<span class="nc" id="L170">	}</span>
+
+	@Override
+	public Geometry createInstance() {
+<span class="fc" id="L174">		return new Line(m_description);</span>
+	}
+
+	@Override
+	double _calculateArea2DHelper(double xorg, double yorg) {
+<span class="fc" id="L179">		return ((m_xEnd - xorg) - (m_xStart - xorg))</span>
+				* ((m_yEnd - yorg) + (m_yStart - yorg)) * 0.5;
+	}
+
+	@Override
+	double tToLength(double t) {
+<span class="nc" id="L185">		return t * calculateLength2D();</span>
+	}
+
+	@Override
+	double lengthToT(double len) {
+<span class="nc" id="L190">		return len / calculateLength2D();</span>
+	}
+
+	double getCoordX_(double t) {
+		// Must match query_coord_2D and vice verse
+		// Also match get_attribute_as_dbl
+<span class="fc" id="L196">		return MathUtils.lerp(m_xStart,  m_xEnd, t);</span>
+	}
+
+	double getCoordY_(double t) {
+		// Must match query_coord_2D and vice verse
+		// Also match get_attribute_as_dbl
+<span class="fc" id="L202">		return MathUtils.lerp(m_yStart,  m_yEnd, t);</span>
+	}
+
+	@Override
+	public void getCoord2D(double t, Point2D pt) {
+		// We want:
+		// 1. When t == 0, get exactly Start
+		// 2. When t == 1, get exactly End
+		// 3. When m_x_end == m_x_start, we want m_x_start exactly
+		// 4. When m_y_end == m_y_start, we want m_y_start exactly
+<span class="fc" id="L212">		MathUtils.lerp(m_xStart, m_yStart, m_xEnd, m_yEnd, t, pt);</span>
+<span class="fc" id="L213">	}</span>
+
+	@Override
+	public Segment cut(double t1, double t2) {
+<span class="nc" id="L217">		SegmentBuffer segmentBuffer = new SegmentBuffer();</span>
+<span class="nc" id="L218">		cut(t1, t2, segmentBuffer);</span>
+<span class="nc" id="L219">		return segmentBuffer.get();</span>
+	}
+
+	@Override
+	void cut(double t1, double t2, SegmentBuffer subSegmentBuffer) {
+<span class="pc bpc" id="L224" title="1 of 2 branches missed.">		if (subSegmentBuffer == null)</span>
+<span class="nc" id="L225">			throw new IllegalArgumentException();</span>
+
+<span class="fc" id="L227">		subSegmentBuffer.createLine();// Make sure buffer contains Line class.</span>
+<span class="fc" id="L228">		Segment subSegment = subSegmentBuffer.get();</span>
+<span class="fc" id="L229">		subSegment.assignVertexDescription(m_description);</span>
+
+<span class="fc" id="L231">		Point2D point = new Point2D();</span>
+<span class="fc" id="L232">		getCoord2D(t1, point);</span>
+<span class="fc" id="L233">		subSegment.setStartXY(point.x, point.y);</span>
+<span class="fc" id="L234">		getCoord2D(t2, point);</span>
+<span class="fc" id="L235">		subSegment.setEndXY(point.x, point.y);</span>
+
+<span class="fc bfc" id="L237" title="All 2 branches covered.">		for (int iattr = 1, nattr = m_description.getAttributeCount(); iattr &lt; nattr; iattr++) {</span>
+<span class="fc" id="L238">			int semantics = m_description._getSemanticsImpl(iattr);</span>
+<span class="fc" id="L239">			int ncomps = VertexDescription.getComponentCount(semantics);</span>
+
+<span class="fc bfc" id="L241" title="All 2 branches covered.">			for (int ordinate = 0; ordinate &lt; ncomps; ordinate++) {</span>
+<span class="fc" id="L242">				double value1 = getAttributeAsDbl(t1, semantics, ordinate);</span>
+<span class="fc" id="L243">				subSegment.setStartAttribute(semantics, ordinate, value1);</span>
+
+<span class="fc" id="L245">				double value2 = getAttributeAsDbl(t2, semantics, ordinate);</span>
+<span class="fc" id="L246">				subSegment.setEndAttribute(semantics, ordinate, value2);</span>
+			}
+		}
+<span class="fc" id="L249">	}</span>
+
+	@Override
+	public double getAttributeAsDbl(double t, int semantics, int ordinate) {
+<span class="pc bpc" id="L253" title="1 of 2 branches missed.">		if (semantics == VertexDescription.Semantics.POSITION)</span>
+<span class="nc bnc" id="L254" title="All 2 branches missed.">			return ordinate == 0 ? getCoord2D(t).x : getCoord2D(t).y;</span>
+
+<span class="fc" id="L256">		int interpolation = VertexDescription.getInterpolation(semantics);</span>
+<span class="pc bpc" id="L257" title="2 of 4 branches missed.">		switch (interpolation) {</span>
+		case VertexDescription.Interpolation.NONE:
+<span class="fc bfc" id="L259" title="All 2 branches covered.">			if (t &lt; 0.5)</span>
+<span class="fc" id="L260">				return getStartAttributeAsDbl(semantics, ordinate);</span>
+			else
+<span class="fc" id="L262">				return getEndAttributeAsDbl(semantics, ordinate);</span>
+		case VertexDescription.Interpolation.LINEAR: {
+<span class="fc" id="L264">			double s = getStartAttributeAsDbl(semantics, ordinate);</span>
+<span class="fc" id="L265">			double e = getEndAttributeAsDbl(semantics, ordinate);</span>
+<span class="fc" id="L266">			return MathUtils.lerp(s,  e,  t);</span>
+		}
+		case VertexDescription.Interpolation.ANGULAR: {
+<span class="nc" id="L269">			throw new GeometryException(&quot;not implemented&quot;);</span>
+		}
+		}
+
+<span class="nc" id="L273">		throw GeometryException.GeometryInternalError();</span>
+	}
+
+	@Override
+	public double getClosestCoordinate(Point2D inputPt, boolean bExtrapolate) {
+<span class="fc" id="L278">		double vx = m_xEnd - m_xStart;</span>
+<span class="fc" id="L279">		double vy = m_yEnd - m_yStart;</span>
+<span class="fc" id="L280">		double v2 = vx * vx + vy * vy;</span>
+<span class="fc bfc" id="L281" title="All 2 branches covered.">		if (v2 == 0)</span>
+<span class="fc" id="L282">			return 0.5;</span>
+<span class="fc" id="L283">		double rx = inputPt.x - m_xStart;</span>
+<span class="fc" id="L284">		double ry = inputPt.y - m_yStart;</span>
+<span class="fc" id="L285">		double t = (rx * vx + ry * vy) / v2;</span>
+<span class="pc bpc" id="L286" title="1 of 2 branches missed.">		if (!bExtrapolate) {</span>
+<span class="fc bfc" id="L287" title="All 2 branches covered.">			if (t &lt; 0.0)</span>
+<span class="fc" id="L288">				t = 0.0;</span>
+<span class="fc bfc" id="L289" title="All 2 branches covered.">			else if (t &gt; 1.0)</span>
+<span class="fc" id="L290">				t = 1.0;</span>
+		}
+
+<span class="fc" id="L293">		return t;</span>
+	}
+
+	@Override
+	public int intersectionWithAxis2D(boolean b_axis_x, double ordinate,
+			double[] result_ordinates, double[] parameters) {
+<span class="fc bfc" id="L299" title="All 2 branches covered.">		if (b_axis_x) {</span>
+<span class="fc" id="L300">			double a = (m_yEnd - m_yStart);</span>
+
+<span class="pc bpc" id="L302" title="1 of 2 branches missed.">			if (a == 0)</span>
+<span class="nc bnc" id="L303" title="All 2 branches missed.">				return (ordinate == m_yEnd) ? -1 : 0;</span>
+
+<span class="fc" id="L305">			double t = (ordinate - m_yStart) / a;</span>
+
+<span class="pc bpc" id="L307" title="2 of 4 branches missed.">			if (t &lt; 0.0 || t &gt; 1.0)</span>
+<span class="nc" id="L308">				return 0;</span>
+
+<span class="pc bpc" id="L310" title="1 of 2 branches missed.">			if (result_ordinates != null)</span>
+<span class="fc" id="L311">				(result_ordinates)[0] = getCoordX_(t);</span>
+
+<span class="fc bfc" id="L313" title="All 2 branches covered.">			if (parameters != null)</span>
+<span class="fc" id="L314">				(parameters)[0] = t;</span>
+
+<span class="fc" id="L316">			return 1;</span>
+		} else {
+<span class="fc" id="L318">			double a = (m_xEnd - m_xStart);</span>
+
+<span class="pc bpc" id="L320" title="1 of 2 branches missed.">			if (a == 0)</span>
+<span class="nc bnc" id="L321" title="All 2 branches missed.">				return (ordinate == m_xEnd) ? -1 : 0;</span>
+
+<span class="fc" id="L323">			double t = (ordinate - m_xStart) / a;</span>
+
+<span class="pc bpc" id="L325" title="2 of 4 branches missed.">			if (t &lt; 0.0 || t &gt; 1.0)</span>
+<span class="nc" id="L326">				return 0;</span>
+
+<span class="pc bpc" id="L328" title="1 of 2 branches missed.">			if (result_ordinates != null)</span>
+<span class="fc" id="L329">				(result_ordinates)[0] = getCoordY_(t);</span>
+
+<span class="pc bpc" id="L331" title="1 of 2 branches missed.">			if (parameters != null)</span>
+<span class="fc" id="L332">				(parameters)[0] = t;</span>
+
+<span class="fc" id="L334">			return 1;</span>
+		}
+	}
+
+	// line segment can have 0 or 1 intersection interval with clipEnv2D.
+	// The function return 0 or 2 segParams (e.g. 0.0, 0.4; or 0.1, 0.9; or 0.6,
+	// 1.0; or 0.0, 1.0)
+	// segParams will be sorted in ascending order; the order of the
+	// envelopeDistances will correspond (i.e. the envelopeDistances may not be
+	// in ascending order);
+	// an envelopeDistance can be -1.0 if the corresponding endpoint is properly
+	// inside clipEnv2D.
+	int intersectionWithEnvelope2D(Envelope2D clipEnv2D,
+			boolean includeEnvBoundary, double[] segParams,
+			double[] envelopeDistances) {
+<span class="nc" id="L349">		Point2D p1 = getStartXY();</span>
+<span class="nc" id="L350">		Point2D p2 = getEndXY();</span>
+
+		// includeEnvBoundary xxx ???
+
+<span class="nc" id="L354">		int modified = clipEnv2D.clipLine(p1, p2, 0, segParams,</span>
+				envelopeDistances);
+<span class="nc bnc" id="L356" title="All 2 branches missed.">		return modified != 0 ? 2 : 0;</span>
+
+	}
+
+	@Override
+	double intersectionOfYMonotonicWithAxisX(double y, double x_parallel) {
+<span class="fc" id="L362">		double a = (m_yEnd - m_yStart);</span>
+
+<span class="fc bfc" id="L364" title="All 2 branches covered.">		if (a == 0)</span>
+<span class="pc bpc" id="L365" title="1 of 2 branches missed.">			return (y == m_yEnd) ? x_parallel : NumberUtils.NaN();</span>
+
+<span class="fc" id="L367">		double t = (y - m_yStart) / a;</span>
+<span class="pc bpc" id="L368" title="2 of 4 branches missed.">		assert (t &gt;= 0 &amp;&amp; t &lt;= 1.0);</span>
+		// double t_1 = 1.0 - t;
+		// assert(t + t_1 == 1.0);
+<span class="fc" id="L371">		double resx = getCoordX_(t);</span>
+<span class="fc bfc" id="L372" title="All 2 branches covered.">		if (t == 1.0)</span>
+<span class="fc" id="L373">			resx = m_xEnd;</span>
+<span class="pc bpc" id="L374" title="2 of 8 branches missed.">		assert ((resx &gt;= m_xStart &amp;&amp; resx &lt;= m_xEnd) || (resx &lt;= m_xStart &amp;&amp; resx &gt;= m_xEnd));</span>
+<span class="fc" id="L375">		return resx;</span>
+	}
+
+	@Override
+	boolean _isIntersectingPoint(Point2D pt, double tolerance,
+			boolean bExcludeExactEndpoints) {
+<span class="fc bfc" id="L381" title="All 2 branches covered.">		return _intersection(pt, tolerance, bExcludeExactEndpoints) &gt;= 0;// must</span>
+																			// use
+																			// same
+																			// method
+																			// that
+																			// the
+																			// intersection
+																			// routine
+																			// uses.
+	}
+
+	/**
+	 * Returns True if point and the segment intersect (not disjoint) for the
+	 * given tolerance.
+	 */
+	@Override
+	public boolean isIntersecting(Point2D pt, double tolerance) {
+<span class="fc" id="L398">		return _isIntersectingPoint(pt, tolerance, false);</span>
+	}
+
+	void orientBottomUp_() {
+<span class="fc bfc" id="L402" title="All 6 branches covered.">		if (m_yEnd &lt; m_yStart || (m_yEnd == m_yStart &amp;&amp; m_xEnd &lt; m_xStart)) {</span>
+<span class="fc" id="L403">			double x = m_xStart;</span>
+<span class="fc" id="L404">			m_xStart = m_xEnd;</span>
+<span class="fc" id="L405">			m_xEnd = x;</span>
+
+<span class="fc" id="L407">			double y = m_yStart;</span>
+<span class="fc" id="L408">			m_yStart = m_yEnd;</span>
+<span class="fc" id="L409">			m_yEnd = y;</span>
+<span class="fc bfc" id="L410" title="All 2 branches covered.">			for (int i = 0, n = m_description.getTotalComponentCount() - 2; i &lt; n; i++) {</span>
+<span class="fc" id="L411">				double a = m_attributes[i];</span>
+<span class="fc" id="L412">				m_attributes[i] = m_attributes[i + n];</span>
+<span class="fc" id="L413">				m_attributes[i + n] = a;</span>
+			}
+		}
+<span class="fc" id="L416">	}</span>
+
+	// return -1 for the left side from the infinite line passing through thais
+	// Line, 1 for the right side of the line, 0 if on the line (in the bounds
+	// of the roundoff error)
+	int _side(Point2D pt) {
+<span class="nc" id="L422">		return _side(pt.x, pt.y);</span>
+	}
+
+	// return -1 for the left side from the infinite line passing through thais
+	// Line, 1 for the right side of the line, 0 if on the line (in the bounds
+	// of the roundoff error)
+	int _side(double ptX, double ptY) {
+<span class="fc" id="L429">		Point2D v1 = new Point2D(ptX, ptY);</span>
+<span class="fc" id="L430">		v1.sub(getStartXY());</span>
+<span class="fc" id="L431">		Point2D v2 = new Point2D();</span>
+<span class="fc" id="L432">		v2.sub(getEndXY(), getStartXY());</span>
+<span class="fc" id="L433">		double cross = v2.crossProduct(v1);</span>
+<span class="fc" id="L434">		double crossError = 4 * NumberUtils.doubleEps()</span>
+<span class="fc" id="L435">				* (Math.abs(v2.x * v1.y) + Math.abs(v2.y * v1.x));</span>
+<span class="fc bfc" id="L436" title="All 4 branches covered.">		return cross &gt; crossError ? -1 : cross &lt; -crossError ? 1 : 0;</span>
+	}
+
+	double _intersection(Point2D pt, double tolerance,
+			boolean bExcludeExactEndPoints) {
+<span class="fc" id="L441">		Point2D v = new Point2D();</span>
+<span class="fc" id="L442">		Point2D start = new Point2D();</span>
+
+		// Test start point distance to pt.
+<span class="fc" id="L445">		start.setCoords(m_xStart, m_yStart);</span>
+<span class="fc" id="L446">		v.sub(pt, start);</span>
+<span class="fc" id="L447">		double vlength = v.length();</span>
+<span class="fc" id="L448">		double vLengthError = vlength * 3 * NumberUtils.doubleEps();</span>
+<span class="fc bfc" id="L449" title="All 2 branches covered.">		if (vlength &lt;= Math.max(tolerance, vLengthError)) {</span>
+<span class="pc bpc" id="L450" title="1 of 4 branches missed.">			assert (vlength != 0 || pt.isEqual(start));// probably never asserts</span>
+<span class="fc bfc" id="L451" title="All 4 branches covered.">			if (bExcludeExactEndPoints &amp;&amp; vlength == 0)</span>
+<span class="fc" id="L452">				return NumberUtils.TheNaN;</span>
+			else
+<span class="fc" id="L454">				return 0;</span>
+		}
+
+<span class="fc" id="L457">		Point2D end2D = getEndXY();</span>
+		// Test end point distance to pt.
+<span class="fc" id="L459">		v.sub(pt, end2D);</span>
+<span class="fc" id="L460">		vlength = v.length();</span>
+<span class="fc" id="L461">		vLengthError = vlength * 3 * NumberUtils.doubleEps();</span>
+<span class="fc bfc" id="L462" title="All 2 branches covered.">		if (vlength &lt;= Math.max(tolerance, vLengthError)) {</span>
+<span class="pc bpc" id="L463" title="1 of 4 branches missed.">			assert (vlength != 0 || pt.isEqual(end2D));// probably never asserts</span>
+<span class="fc bfc" id="L464" title="All 4 branches covered.">			if (bExcludeExactEndPoints &amp;&amp; vlength == 0)</span>
+<span class="fc" id="L465">				return NumberUtils.TheNaN;</span>
+			else
+<span class="fc" id="L467">				return 1.0;</span>
+		}
+
+		// Find a distance from the line to pt.
+<span class="fc" id="L471">		v.setCoords(m_xEnd - m_xStart, m_yEnd - m_yStart);</span>
+<span class="fc" id="L472">		double len = v.length();</span>
+<span class="fc bfc" id="L473" title="All 2 branches covered.">		if (len &gt; 0) {</span>
+<span class="fc" id="L474">			double invertedLength = 1.0 / len;</span>
+<span class="fc" id="L475">			v.scale(invertedLength);</span>
+<span class="fc" id="L476">			Point2D relativePoint = new Point2D();</span>
+<span class="fc" id="L477">			relativePoint.sub(pt, start);</span>
+<span class="fc" id="L478">			double projection = relativePoint.dotProduct(v);</span>
+<span class="fc" id="L479">			double projectionError = 8 * relativePoint._dotProductAbs(v)</span>
+<span class="fc" id="L480">					* NumberUtils.doubleEps();// See Error Estimation Rules In</span>
+												// Borg.docx
+<span class="fc" id="L482">			v.leftPerpendicular();// get left normal to v</span>
+<span class="fc" id="L483">			double distance = relativePoint.dotProduct(v);</span>
+<span class="fc" id="L484">			double distanceError = 8 * relativePoint._dotProductAbs(v)</span>
+<span class="fc" id="L485">					* NumberUtils.doubleEps();// See Error Estimation Rules In</span>
+												// Borg.docx
+
+<span class="fc" id="L488">			double perror = Math.max(tolerance, projectionError);</span>
+<span class="fc bfc" id="L489" title="All 4 branches covered.">			if (projection &lt; -perror || projection &gt; len + perror)</span>
+<span class="fc" id="L490">				return NumberUtils.TheNaN;</span>
+
+<span class="fc" id="L492">			double merror = Math.max(tolerance, distanceError);</span>
+<span class="fc bfc" id="L493" title="All 2 branches covered.">			if (Math.abs(distance) &lt;= merror) {</span>
+<span class="fc" id="L494">				double t = projection * invertedLength;</span>
+<span class="fc" id="L495">				t = NumberUtils.snap(t, 0.0, 1.0);</span>
+<span class="fc" id="L496">				Point2D ptOnLine = new Point2D();</span>
+<span class="fc" id="L497">				getCoord2D(t, ptOnLine);</span>
+<span class="pc bpc" id="L498" title="1 of 2 branches missed.">				if (Point2D.distance(ptOnLine, pt) &lt;= tolerance) {</span>
+<span class="fc bfc" id="L499" title="All 2 branches covered.">					if (t &lt; 0.5) {</span>
+<span class="pc bpc" id="L500" title="1 of 2 branches missed.">						if (Point2D.distance(ptOnLine, start) &lt;= tolerance)// the</span>
+																			// projected
+																			// point
+																			// is
+																			// close
+																			// to
+																			// the
+																			// start
+																			// point.
+																			// Need
+																			// to
+																			// return
+																			// 0.
+<span class="nc" id="L513">							return 0;</span>
+<span class="pc bpc" id="L514" title="1 of 2 branches missed.">					} else if (Point2D.distance(ptOnLine, end2D) &lt;= tolerance)// the</span>
+																				// projected
+																				// point
+																				// is
+																				// close
+																				// to
+																				// the
+																				// end
+																				// point.
+																				// Need
+																				// to
+																				// return
+																				// 1.0.
+<span class="nc" id="L527">						return 1.0;</span>
+
+<span class="fc" id="L529">					return t;</span>
+				}
+			}
+		}
+
+<span class="fc" id="L534">		return NumberUtils.TheNaN;</span>
+	}
+
+	@Override
+	public boolean equals(Object other) {
+<span class="nc bnc" id="L539" title="All 2 branches missed.">		if (other == null)</span>
+<span class="nc" id="L540">			return false;</span>
+
+<span class="nc bnc" id="L542" title="All 2 branches missed.">		if (other == this)</span>
+<span class="nc" id="L543">			return true;</span>
+
+<span class="nc bnc" id="L545" title="All 2 branches missed.">		if (other.getClass() != getClass())</span>
+<span class="nc" id="L546">			return false;</span>
+
+<span class="nc" id="L548">		return _equalsImpl((Segment)other);</span>
+	}
+	
+	@Override
+	public int hashCode() {
+<span class="nc" id="L553">		return super.hashCode();</span>
+	}
+
+	boolean equals(Line other) {
+<span class="pc bpc" id="L557" title="1 of 2 branches missed.">		if (other == this)</span>
+<span class="nc" id="L558">			return true;</span>
+
+<span class="pc bpc" id="L560" title="1 of 2 branches missed.">		if (!(other instanceof Line))</span>
+<span class="nc" id="L561">			return false;</span>
+
+<span class="fc" id="L563">		return _equalsImpl((Segment) other);</span>
+	}
+
+	boolean _projectionIntersectHelper(Line other, Point2D v, boolean bStart) {
+		// v is the vector in the direction of this line == end - start.
+<span class="fc bfc" id="L568" title="All 2 branches covered.">		double orgX = bStart ? m_xStart : m_xEnd;</span>
+<span class="fc bfc" id="L569" title="All 2 branches covered.">		double orgY = bStart ? m_yStart : m_yEnd;</span>
+<span class="fc" id="L570">		Point2D m = new Point2D();</span>
+<span class="fc" id="L571">		m.x = other.getEndX() - orgX;</span>
+<span class="fc" id="L572">		m.y = other.getEndY() - orgY;</span>
+<span class="fc" id="L573">		double dot = v.dotProduct(m);</span>
+<span class="fc" id="L574">		double dotError = 3 * NumberUtils.doubleEps() * v._dotProductAbs(m);</span>
+<span class="fc bfc" id="L575" title="All 2 branches covered.">		if (dot &gt; dotError) {</span>
+<span class="fc" id="L576">			m.x = other.getStartX() - orgX;</span>
+<span class="fc" id="L577">			m.y = other.getStartY() - orgY;</span>
+<span class="fc" id="L578">			double dot2 = v.dotProduct(m);</span>
+<span class="fc" id="L579">			double dotError2 = 3 * NumberUtils.doubleEps()</span>
+<span class="fc" id="L580">					* v._dotProductAbs(m);</span>
+<span class="fc bfc" id="L581" title="All 2 branches covered.">			return dot2 &lt;= dotError2;</span>
+		}
+
+<span class="fc" id="L584">		return true;</span>
+	}
+
+	boolean _projectionIntersect(Line other) {
+		// This function returns true, if the &quot;other&quot;'s projection on &quot;this&quot;
+<span class="fc" id="L589">		Point2D v = new Point2D();</span>
+<span class="fc" id="L590">		v.x = m_xEnd - m_xStart;</span>
+<span class="fc" id="L591">		v.y = m_yEnd - m_yStart;</span>
+<span class="fc bfc" id="L592" title="All 2 branches covered.">		if (!_projectionIntersectHelper(other, v, false))</span>
+<span class="fc" id="L593">			return false; // Both other.Start and other.End projections on</span>
+							// &quot;this&quot; lie to the right of the this.End
+
+<span class="fc" id="L596">		v.negate();</span>
+<span class="fc bfc" id="L597" title="All 2 branches covered.">		if (!_projectionIntersectHelper(other, v, true))</span>
+<span class="fc" id="L598">			return false; // Both other.Start and other.End projections on</span>
+							// &quot;this&quot; lie to the left of the this.End
+
+<span class="fc" id="L601">		return true;</span>
+	}
+
+	// Tests if two lines intersect using projection of one line to another.
+	static boolean _isIntersectingHelper(Line line1, Line line2) {
+<span class="fc" id="L606">		int s11 = line1._side(line2.m_xStart, line2.m_yStart);</span>
+<span class="fc" id="L607">		int s12 = line1._side(line2.m_xEnd, line2.m_yEnd);</span>
+<span class="fc bfc" id="L608" title="All 8 branches covered.">		if (s11 &lt; 0 &amp;&amp; s12 &lt; 0 || s11 &gt; 0 &amp;&amp; s12 &gt; 0)</span>
+<span class="fc" id="L609">			return false;// no intersection. The line2 lies to one side of an</span>
+							// infinite line passing through line1
+
+<span class="fc" id="L612">		int s21 = line2._side(line1.m_xStart, line1.m_yStart);</span>
+<span class="fc" id="L613">		int s22 = line2._side(line1.m_xEnd, line1.m_yEnd);</span>
+<span class="fc bfc" id="L614" title="All 8 branches covered.">		if (s21 &lt; 0 &amp;&amp; s22 &lt; 0 || s21 &gt; 0 &amp;&amp; s22 &gt; 0)</span>
+<span class="fc" id="L615">			return false;// no intersection.The line1 lies to one side of an</span>
+							// infinite line passing through line2
+
+<span class="fc" id="L618">		double len1 = line1.calculateLength2D();</span>
+<span class="fc" id="L619">		double len2 = line2.calculateLength2D();</span>
+<span class="fc bfc" id="L620" title="All 2 branches covered.">		if (len1 &gt; len2) {</span>
+<span class="fc" id="L621">			return line1._projectionIntersect(line2);</span>
+		} else {
+<span class="fc" id="L623">			return line2._projectionIntersect(line1);</span>
+		}
+	}
+
+	static Point2D _intersectHelper1(Line line1, Line line2, double tolerance) {
+<span class="fc" id="L628">		Point2D result = new Point2D(NumberUtils.NaN(), NumberUtils.NaN());</span>
+<span class="fc" id="L629">		double k1x = line1.m_xEnd - line1.m_xStart;</span>
+<span class="fc" id="L630">		double k1y = line1.m_yEnd - line1.m_yStart;</span>
+<span class="fc" id="L631">		double k2x = line2.m_xEnd - line2.m_xStart;</span>
+<span class="fc" id="L632">		double k2y = line2.m_yEnd - line2.m_yStart;</span>
+
+<span class="fc" id="L634">		double det = k2x * k1y - k1x * k2y;</span>
+<span class="fc bfc" id="L635" title="All 2 branches covered.">		if (det == 0)</span>
+<span class="fc" id="L636">			return result;</span>
+
+		// estimate roundoff error for det:
+<span class="fc" id="L639">		double errdet = 4 * NumberUtils.doubleEps()</span>
+<span class="fc" id="L640">				* (Math.abs(k2x * k1y) + Math.abs(k1x * k2y));</span>
+
+<span class="fc" id="L642">		double bx = line2.m_xStart - line1.m_xStart;</span>
+<span class="fc" id="L643">		double by = line2.m_yStart - line1.m_yStart;</span>
+
+<span class="fc" id="L645">		double a0 = (k2x * by - bx * k2y);</span>
+<span class="fc" id="L646">		double a0error = 4 * NumberUtils.doubleEps()</span>
+<span class="fc" id="L647">				* (Math.abs(k2x * by) + Math.abs(bx * k2y));</span>
+<span class="fc" id="L648">		double t0 = a0 / det;</span>
+<span class="fc" id="L649">		double absdet = Math.abs(det);</span>
+<span class="fc" id="L650">		double t0error = (a0error * absdet + errdet * Math.abs(a0))</span>
+<span class="fc" id="L651">				/ (det * det) + NumberUtils.doubleEps() * Math.abs(t0);</span>
+<span class="fc bfc" id="L652" title="All 4 branches covered.">		if (t0 &lt; -t0error || t0 &gt; 1.0 + t0error)</span>
+<span class="fc" id="L653">			return result;</span>
+
+<span class="fc" id="L655">		double a1 = (k1x * by - bx * k1y);</span>
+<span class="fc" id="L656">		double a1error = 4 * NumberUtils.doubleEps()</span>
+<span class="fc" id="L657">				* (Math.abs(k1x * by) + Math.abs(bx * k1y));</span>
+<span class="fc" id="L658">		double t1 = a1 / det;</span>
+<span class="fc" id="L659">		double t1error = (a1error * absdet + errdet * Math.abs(a1))</span>
+<span class="fc" id="L660">				/ (det * det) + NumberUtils.doubleEps() * Math.abs(t1);</span>
+
+<span class="fc bfc" id="L662" title="All 4 branches covered.">		if (t1 &lt; -t1error || t1 &gt; 1.0 + t1error)</span>
+<span class="fc" id="L663">			return result;</span>
+
+<span class="fc" id="L665">		double t0r = NumberUtils.snap(t0, 0.0, 1.0);</span>
+<span class="fc" id="L666">		double t1r = NumberUtils.snap(t1, 0.0, 1.0);</span>
+<span class="fc" id="L667">		Point2D pt0 = line1.getCoord2D(t0r);</span>
+<span class="fc" id="L668">		Point2D pt1 = line2.getCoord2D(t1r);</span>
+<span class="fc" id="L669">		Point2D pt = new Point2D();</span>
+<span class="fc" id="L670">		pt.sub(pt0, pt1);</span>
+<span class="pc bpc" id="L671" title="1 of 2 branches missed.">		if (pt.length() &gt; tolerance) {</span>
+			// Roundoff errors cause imprecise result. Try recalculate.
+			// 1. Use averaged point and recalculate the t values
+			// Point2D pt;
+<span class="nc" id="L675">			pt.add(pt0, pt1);</span>
+<span class="nc" id="L676">			pt.scale(0.5);</span>
+<span class="nc" id="L677">			t0r = line1.getClosestCoordinate(pt, false);</span>
+<span class="nc" id="L678">			t1r = line2.getClosestCoordinate(pt, false);</span>
+<span class="nc" id="L679">			Point2D pt01 = line1.getCoord2D(t0r);</span>
+<span class="nc" id="L680">			Point2D pt11 = line2.getCoord2D(t1r);</span>
+<span class="nc" id="L681">			pt01.sub(pt11);</span>
+<span class="nc bnc" id="L682" title="All 2 branches missed.">			if (pt01.length() &gt; tolerance) {</span>
+				// Seems to be no intersection here actually. Return NaNs
+<span class="nc" id="L684">				return result;</span>
+			}
+		}
+
+<span class="fc" id="L688">		result.setCoords(t0r, t1r);</span>
+<span class="fc" id="L689">		return result;</span>
+	}
+
+	static int _isIntersectingLineLine(Line line1, Line line2,
+			double tolerance, boolean bExcludeExactEndpoints) {
+		// _ASSERT(line1 != line2);
+		// Check for the endpoints.
+		// The bExcludeExactEndpoints is True, means we care only about overlaps
+		// and real intersections, but do not care if the endpoints are exactly
+		// equal.
+		// bExcludeExactEndpoints is used in Cracking check test, because during
+		// cracking test all points are either coincident or further than the
+		// tolerance.
+<span class="fc" id="L702">		int counter = 0;</span>
+<span class="fc bfc" id="L703" title="All 8 branches covered.">		if (line1.m_xStart == line2.m_xStart</span>
+				&amp;&amp; line1.m_yStart == line2.m_yStart
+				|| line1.m_xStart == line2.m_xEnd
+				&amp;&amp; line1.m_yStart == line2.m_yEnd) {
+<span class="fc" id="L707">			counter++;</span>
+<span class="pc bpc" id="L708" title="1 of 2 branches missed.">			if (!bExcludeExactEndpoints)</span>
+<span class="nc" id="L709">				return 1;</span>
+		}
+
+<span class="fc bfc" id="L712" title="All 8 branches covered.">		if (line1.m_xEnd == line2.m_xStart &amp;&amp; line1.m_yEnd == line2.m_yStart</span>
+				|| line1.m_xEnd == line2.m_xEnd &amp;&amp; line1.m_yEnd == line2.m_yEnd) {
+<span class="fc" id="L714">			counter++;</span>
+<span class="fc bfc" id="L715" title="All 2 branches covered.">			if (counter == 2)</span>
+<span class="fc" id="L716">				return 2; // counter == 2 means both endpoints coincide (Lines</span>
+							// overlap).
+<span class="fc bfc" id="L718" title="All 2 branches covered.">			if (!bExcludeExactEndpoints)</span>
+<span class="fc" id="L719">				return 1;</span>
+		}
+
+<span class="fc bfc" id="L722" title="All 2 branches covered.">		if (line2._isIntersectingPoint(line1.getStartXY(), tolerance, true))</span>
+<span class="fc" id="L723">			return 1;// return true;</span>
+<span class="fc bfc" id="L724" title="All 2 branches covered.">		if (line2._isIntersectingPoint(line1.getEndXY(), tolerance, true))</span>
+<span class="fc" id="L725">			return 1;// return true;</span>
+<span class="fc bfc" id="L726" title="All 2 branches covered.">		if (line1._isIntersectingPoint(line2.getStartXY(), tolerance, true))</span>
+<span class="fc" id="L727">			return 1;// return true;</span>
+<span class="fc bfc" id="L728" title="All 2 branches covered.">		if (line1._isIntersectingPoint(line2.getEndXY(), tolerance, true))</span>
+<span class="fc" id="L729">			return 1;// return true;</span>
+
+<span class="fc bfc" id="L731" title="All 4 branches covered.">		if (bExcludeExactEndpoints &amp;&amp; (counter != 0))</span>
+<span class="fc" id="L732">			return 0;// return false;</span>
+
+<span class="fc bfc" id="L734" title="All 2 branches covered.">		return _isIntersectingHelper(line1, line2) == false ? 0 : 1;</span>
+	}
+
+	int _intersectLineLineExact(Line line1, Line line2,
+			Point2D[] intersectionPoints, double[] param1, double[] param2) {
+<span class="nc" id="L739">		int counter = 0;</span>
+<span class="nc bnc" id="L740" title="All 4 branches missed.">		if (line1.m_xStart == line2.m_xStart</span>
+				&amp;&amp; line1.m_yStart == line2.m_yStart) {
+<span class="nc bnc" id="L742" title="All 2 branches missed.">			if (param1 != null)// if (param1)</span>
+<span class="nc" id="L743">				param1[counter] = 0.0;</span>
+<span class="nc bnc" id="L744" title="All 2 branches missed.">			if (param2 != null)// if (param2)</span>
+<span class="nc" id="L745">				param2[counter] = 0.0;</span>
+
+<span class="nc bnc" id="L747" title="All 2 branches missed.">			if (intersectionPoints != null)// if (intersectionPoints)</span>
+<span class="nc" id="L748">				intersectionPoints[counter] = Point2D.construct(line1.m_xStart,</span>
+						line1.m_yStart);
+
+<span class="nc" id="L751">			counter++;</span>
+		}
+
+<span class="nc bnc" id="L754" title="All 4 branches missed.">		if (line1.m_xStart == line2.m_xEnd &amp;&amp; line1.m_yStart == line2.m_yEnd) {</span>
+<span class="nc bnc" id="L755" title="All 2 branches missed.">			if (param1 != null)// if (param1)</span>
+<span class="nc" id="L756">				param1[counter] = 0.0;</span>
+<span class="nc bnc" id="L757" title="All 2 branches missed.">			if (param2 != null)// if (param2)</span>
+<span class="nc" id="L758">				param2[counter] = 1.0;</span>
+
+<span class="nc bnc" id="L760" title="All 2 branches missed.">			if (intersectionPoints != null)// if (intersectionPoints)</span>
+<span class="nc" id="L761">				intersectionPoints[counter] = Point2D.construct(line1.m_xStart,</span>
+						line1.m_yStart);
+
+<span class="nc" id="L764">			counter++;</span>
+		}
+
+<span class="nc bnc" id="L767" title="All 4 branches missed.">		if (line1.m_xEnd == line2.m_xStart &amp;&amp; line1.m_yEnd == line2.m_yStart) {</span>
+<span class="nc bnc" id="L768" title="All 2 branches missed.">			if (counter == 2) {// both segments a degenerate</span>
+<span class="nc bnc" id="L769" title="All 2 branches missed.">				if (param1 != null)// if (param1)</span>
+				{
+<span class="nc" id="L771">					param1[0] = 0.0;</span>
+<span class="nc" id="L772">					param1[1] = 1.0;</span>
+				}
+<span class="nc bnc" id="L774" title="All 2 branches missed.">				if (param2 != null)// if (param2)</span>
+				{
+<span class="nc" id="L776">					param2[0] = 1.0;</span>
+				}
+
+<span class="nc bnc" id="L779" title="All 2 branches missed.">				if (intersectionPoints != null)// if (intersectionPoints)</span>
+				{
+<span class="nc" id="L781">					intersectionPoints[0] = Point2D.construct(line1.m_xEnd,</span>
+							line1.m_yEnd);
+<span class="nc" id="L783">					intersectionPoints[1] = Point2D.construct(line1.m_xEnd,</span>
+							line1.m_yEnd);
+				}
+
+<span class="nc" id="L787">				return counter;</span>
+			}
+
+<span class="nc bnc" id="L790" title="All 2 branches missed.">			if (param1 != null)// if (param1)</span>
+<span class="nc" id="L791">				param1[counter] = 1.0;</span>
+<span class="nc bnc" id="L792" title="All 2 branches missed.">			if (param2 != null)// if (param2)</span>
+<span class="nc" id="L793">				param2[counter] = 0.0;</span>
+
+<span class="nc bnc" id="L795" title="All 2 branches missed.">			if (intersectionPoints != null)// if (intersectionPoints)</span>
+<span class="nc" id="L796">				intersectionPoints[counter] = Point2D.construct(line1.m_xEnd,</span>
+						line1.m_yEnd);
+
+<span class="nc" id="L799">			counter++;</span>
+		}
+
+<span class="nc bnc" id="L802" title="All 4 branches missed.">		if (line1.m_xEnd == line2.m_xEnd &amp;&amp; line1.m_yEnd == line2.m_yEnd) {</span>
+<span class="nc bnc" id="L803" title="All 2 branches missed.">			if (counter == 2) {// both segments are degenerate</span>
+<span class="nc bnc" id="L804" title="All 2 branches missed.">				if (param1 != null)// if (param1)</span>
+				{
+<span class="nc" id="L806">					param1[0] = 0.0;</span>
+<span class="nc" id="L807">					param1[1] = 1.0;</span>
+				}
+<span class="nc bnc" id="L809" title="All 2 branches missed.">				if (param2 != null)// if (param2)</span>
+				{
+<span class="nc" id="L811">					param2[0] = 1.0;</span>
+				}
+
+<span class="nc bnc" id="L814" title="All 2 branches missed.">				if (intersectionPoints != null)// if (intersectionPoints)</span>
+				{
+<span class="nc" id="L816">					intersectionPoints[0] = Point2D.construct(line1.m_xEnd,</span>
+							line1.m_yEnd);
+<span class="nc" id="L818">					intersectionPoints[1] = Point2D.construct(line1.m_xEnd,</span>
+							line1.m_yEnd);
+				}
+
+<span class="nc" id="L822">				return counter;</span>
+			}
+
+<span class="nc bnc" id="L825" title="All 2 branches missed.">			if (param1 != null)// if (param1)</span>
+<span class="nc" id="L826">				param1[counter] = 1.0;</span>
+<span class="nc bnc" id="L827" title="All 2 branches missed.">			if (param2 != null)// if (param2)</span>
+<span class="nc" id="L828">				param2[counter] = 1.0;</span>
+
+<span class="nc bnc" id="L830" title="All 2 branches missed.">			if (intersectionPoints != null)// if (intersectionPoints)</span>
+<span class="nc" id="L831">				intersectionPoints[counter] = Point2D.construct(line1.m_xEnd,</span>
+						line1.m_yEnd);
+<span class="nc" id="L833">			counter++;</span>
+		}
+
+<span class="nc" id="L836">		return counter;</span>
+	}
+
+	static int _intersectLineLine(Line line1, Line line2,
+			Point2D[] intersectionPoints, double[] param1, double[] param2,
+			double tolerance) {
+		// _ASSERT(!param1 &amp;&amp; !param2 || param1);
+<span class="fc" id="L843">		int counter = 0;</span>
+		// Test the end points for exact coincidence.
+<span class="fc" id="L845">		double t11 = line1._intersection(line2.getStartXY(), tolerance, false);</span>
+<span class="fc" id="L846">		double t12 = line1._intersection(line2.getEndXY(), tolerance, false);</span>
+<span class="fc" id="L847">		double t21 = line2._intersection(line1.getStartXY(), tolerance, false);</span>
+<span class="fc" id="L848">		double t22 = line2._intersection(line1.getEndXY(), tolerance, false);</span>
+
+<span class="fc bfc" id="L850" title="All 2 branches covered.">		if (!NumberUtils.isNaN(t11)) {</span>
+<span class="fc bfc" id="L851" title="All 2 branches covered.">			if (param1 != null)// if (param1)</span>
+<span class="fc" id="L852">				param1[counter] = t11;</span>
+<span class="fc bfc" id="L853" title="All 2 branches covered.">			if (param2 != null)// if (param2)</span>
+<span class="fc" id="L854">				param2[counter] = 0;</span>
+
+<span class="pc bpc" id="L856" title="1 of 2 branches missed.">			if (intersectionPoints != null)// if (intersectionPoints)</span>
+<span class="nc" id="L857">				intersectionPoints[counter] = Point2D.construct(line2.m_xStart,</span>
+						line2.m_yStart);
+<span class="fc" id="L859">			counter++;</span>
+		}
+
+<span class="fc bfc" id="L862" title="All 2 branches covered.">		if (!NumberUtils.isNaN(t12)) {</span>
+<span class="fc bfc" id="L863" title="All 2 branches covered.">			if (param1 != null)// if (param1)</span>
+<span class="fc" id="L864">				param1[counter] = t12;</span>
+<span class="fc bfc" id="L865" title="All 2 branches covered.">			if (param2 != null)// if (param2)</span>
+<span class="fc" id="L866">				param2[counter] = 1.0;</span>
+
+<span class="pc bpc" id="L868" title="1 of 2 branches missed.">			if (intersectionPoints != null)// if (intersectionPoints)</span>
+<span class="nc" id="L869">				intersectionPoints[counter] = Point2D.construct(line2.m_xEnd,</span>
+						line2.m_yEnd);
+<span class="fc" id="L871">			counter++;</span>
+		}
+
+<span class="fc bfc" id="L874" title="All 4 branches covered.">		if (counter != 2 &amp;&amp; !NumberUtils.isNaN(t21)) {</span>
+<span class="pc bpc" id="L875" title="2 of 8 branches missed.">			if (!(t11 == 0 &amp;&amp; t21 == 0) &amp;&amp; !(t12 == 0 &amp;&amp; t21 == 1.0))// the &quot;if&quot;</span>
+																		// makes
+																		// sure
+																		// this
+																		// has
+																		// not
+																		// been
+																		// already
+																		// calculated
+			{
+<span class="fc bfc" id="L885" title="All 2 branches covered.">				if (param1 != null)// if (param1)</span>
+<span class="fc" id="L886">					param1[counter] = 0;</span>
+<span class="fc bfc" id="L887" title="All 2 branches covered.">				if (param2 != null)// if (param2)</span>
+<span class="fc" id="L888">					param2[counter] = t21;</span>
+
+<span class="pc bpc" id="L890" title="1 of 2 branches missed.">				if (intersectionPoints != null)// if (intersectionPoints)</span>
+<span class="nc" id="L891">					intersectionPoints[counter] = Point2D.construct(</span>
+							line1.m_xStart, line1.m_yStart);
+<span class="fc" id="L893">				counter++;</span>
+			}
+		}
+
+<span class="fc bfc" id="L897" title="All 4 branches covered.">		if (counter != 2 &amp;&amp; !NumberUtils.isNaN(t22)) {</span>
+<span class="pc bpc" id="L898" title="2 of 8 branches missed.">			if (!(t11 == 1.0 &amp;&amp; t22 == 0) &amp;&amp; !(t12 == 1.0 &amp;&amp; t22 == 1.0))// the</span>
+																			// &quot;if&quot;
+																			// makes
+																			// sure
+																			// this
+																			// has
+																			// not
+																			// been
+																			// already
+																			// calculated
+			{
+<span class="fc bfc" id="L909" title="All 2 branches covered.">				if (param1 != null)// if (param1)</span>
+<span class="fc" id="L910">					param1[counter] = 1.0;</span>
+<span class="fc bfc" id="L911" title="All 2 branches covered.">				if (param2 != null)// if (param2)</span>
+<span class="fc" id="L912">					param2[counter] = t22;</span>
+
+<span class="pc bpc" id="L914" title="1 of 2 branches missed.">				if (intersectionPoints != null)// if (intersectionPoints)</span>
+<span class="nc" id="L915">					intersectionPoints[counter] = Point2D.construct(</span>
+							line2.m_xEnd, line2.m_yEnd);
+<span class="fc" id="L917">				counter++;</span>
+			}
+		}
+
+<span class="fc bfc" id="L921" title="All 2 branches covered.">		if (counter &gt; 0) {</span>
+<span class="fc bfc" id="L922" title="All 6 branches covered.">			if (counter == 2 &amp;&amp; param1 != null &amp;&amp; param1[0] &gt; param1[1]) {// make</span>
+																			// sure
+																			// the
+																			// intersection
+																			// events
+																			// are
+																			// sorted
+																			// along
+																			// the
+																			// line1
+																			// can't
+																			// swap
+																			// doulbes
+																			// in
+																			// java
+																			// NumberUtils::Swap(param1[0],
+																			// param1[1]);
+<span class="fc" id="L939">				double zeroParam1 = param1[0];</span>
+<span class="fc" id="L940">				param1[0] = param1[1];</span>
+<span class="fc" id="L941">				param1[1] = zeroParam1;</span>
+
+<span class="pc bpc" id="L943" title="1 of 2 branches missed.">				if (param2 != null)// if (param2)</span>
+				{
+<span class="fc" id="L945">					double zeroParam2 = param2[0];</span>
+<span class="fc" id="L946">					param2[0] = param2[1];</span>
+<span class="fc" id="L947">					param2[1] = zeroParam2;// NumberUtils::Swap(ARRAYELEMENT(param2,</span>
+											// 0), ARRAYELEMENT(param2, 1));
+				}
+
+<span class="pc bpc" id="L951" title="1 of 2 branches missed.">				if (intersectionPoints != null)// if (intersectionPoints)</span>
+				{
+<span class="nc" id="L953">					Point2D tmp = new Point2D(intersectionPoints[0].x,</span>
+							intersectionPoints[0].y);
+<span class="nc" id="L955">					intersectionPoints[0] = intersectionPoints[1];</span>
+<span class="nc" id="L956">					intersectionPoints[1] = tmp;</span>
+				}
+			}
+
+<span class="fc" id="L960">			return counter;</span>
+		}
+
+<span class="fc" id="L963">		Point2D params = _intersectHelper1(line1, line2, tolerance);</span>
+<span class="fc bfc" id="L964" title="All 2 branches covered.">		if (NumberUtils.isNaN(params.x))</span>
+<span class="fc" id="L965">			return 0;</span>
+
+<span class="fc bfc" id="L967" title="All 2 branches covered.">		if (intersectionPoints != null)// if (intersectionPoints)</span>
+		{
+<span class="fc" id="L969">			intersectionPoints[0] = line1.getCoord2D(params.x);</span>
+		}
+
+<span class="fc bfc" id="L972" title="All 2 branches covered.">		if (param1 != null)// if (param1)</span>
+		{
+<span class="fc" id="L974">			param1[0] = params.x;</span>
+		}
+
+<span class="fc bfc" id="L977" title="All 2 branches covered.">		if (param2 != null)// if (param2)</span>
+		{
+<span class="fc" id="L979">			param2[0] = params.y;</span>
+		}
+
+<span class="fc" id="L982">		return 1;</span>
+	}
+	
+    @Override
+    public void replaceNaNs(int semantics, double value) {
+<span class="nc" id="L987">    	addAttribute(semantics);</span>
+<span class="nc bnc" id="L988" title="All 2 branches missed.">    	if (isEmpty())</span>
+<span class="nc" id="L989">    		return;</span>
+    	
+<span class="nc" id="L991">    	int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="nc bnc" id="L992" title="All 2 branches missed.">    	for (int i = 0; i &lt; ncomps; i++) {</span>
+<span class="nc" id="L993">    		double v = _getAttributeAsDbl(0, semantics, i);</span>
+<span class="nc bnc" id="L994" title="All 2 branches missed.">    		if (Double.isNaN(v))</span>
+<span class="nc" id="L995">    			_setAttribute(0, semantics, 0, value);</span>
+    		
+<span class="nc" id="L997">    		v = _getAttributeAsDbl(1, semantics, i);</span>
+<span class="nc bnc" id="L998" title="All 2 branches missed.">    		if (Double.isNaN(v))</span>
+<span class="nc" id="L999">    			_setAttribute(1, semantics, 0, value);</span>
+    	}
+<span class="nc" id="L1001">    }</span>
+	
+
+	@Override
+	int getYMonotonicParts(SegmentBuffer[] monotonicSegments) {
+<span class="fc" id="L1006">		return 0;</span>
+	}
+
+	@Override
+	void _copyToImpl(Segment dst) {
+		// TODO Auto-generated method stub
+
+<span class="fc" id="L1013">	}</span>
+
+	/**
+	 * The output of this method can be only used for debugging. It is subject to change without notice. 
+	 */
+	@Override
+	public String toString() {
+<span class="fc" id="L1020">		String s = &quot;Line: [&quot; + m_xStart + &quot;, &quot; + m_yStart + &quot;, &quot; + m_xEnd + &quot;, &quot; + m_yEnd +&quot;]&quot;; </span>
+<span class="fc" id="L1021">		return s;</span>
+	}
+	
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

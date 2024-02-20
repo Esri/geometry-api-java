@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Proximity2DResult.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Proximity2DResult.java</span></div><h1>Proximity2DResult.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+/**
+ * Proximity operators are used to find the distance between two geometries or
+ * the distance from a given point to the nearest point on another geometry.
+ */
+public class Proximity2DResult {
+<span class="fc" id="L32">	Point2D m_coordinate = new Point2D();</span>
+	int m_vertexIndex;
+	double m_distance;
+	int m_info;
+
+	/**
+	 * Sets the right_side info to true or false.
+	 * 
+	 * @param bRight
+	 *            Whether the nearest coordinate is to the right or left of the
+	 *            geometry.
+	 */
+	public void setRightSide(boolean bRight) {
+<span class="pc bpc" id="L45" title="1 of 2 branches missed.">		if (bRight)</span>
+<span class="nc" id="L46">			m_info |= (int) OperatorProximity2D.ProxResultInfo.rightSide;</span>
+		else
+<span class="fc" id="L48">			m_info &amp;= ~(int) OperatorProximity2D.ProxResultInfo.rightSide;</span>
+<span class="fc" id="L49">	}</span>
+
+	/**
+	 * Returns TRUE if the Proximity2DResult is empty. This only happens if the
+	 * Geometry passed to the Proximity operator is empty.
+	 */
+	public boolean isEmpty() {
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">		return m_vertexIndex &lt; 0;</span>
+	}
+
+	/**
+	 * Returns the closest coordinate for
+	 * OperatorProximity2D.getNearestCoordinate or the vertex coordinates for
+	 * the OperatorProximity2D.getNearestVertex and
+	 * OperatorProximity2D.getNearestVertices.
+	 */
+	public Point getCoordinate() {
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L67">			throw new GeometryException(&quot;invalid call&quot;);</span>
+
+<span class="fc" id="L69">		return new Point(m_coordinate.x, m_coordinate.y);</span>
+	}
+
+	/**
+	 * Returns the vertex index. For OperatorProximity2D.getNearestCoordinate
+	 * the behavior is: When the input is a polygon or an envelope and the
+	 * bTestPolygonInterior is true, the value is zero. When the input is a
+	 * polygon or an Envelope and the bTestPolygonInterior is false, the value
+	 * is the start vertex index of a segment with the closest coordinate. When
+	 * the input is a polyline, the value is the start vertex index of a segment
+	 * with the closest coordinate. When the input is a point, the value is 0.
+	 * When the input is a multipoint, the value is the closest vertex.
+	 */
+	public int getVertexIndex() {
+<span class="nc bnc" id="L83" title="All 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L84">			throw new GeometryException(&quot;invalid call&quot;);</span>
+
+<span class="nc" id="L86">		return m_vertexIndex;</span>
+	}
+
+	/**
+	 * Returns the distance to the closest vertex or coordinate.
+	 */
+	public double getDistance() {
+<span class="pc bpc" id="L93" title="1 of 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L94">			throw new GeometryException(&quot;invalid call&quot;);</span>
+
+<span class="fc" id="L96">		return m_distance;</span>
+	}
+
+	/**
+	 *Returns true if the closest coordinate is to the right of the MultiPath.
+	 */
+	public boolean isRightSide() {
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">		return (m_info &amp; (int) OperatorProximity2D.ProxResultInfo.rightSide) != 0;</span>
+	}
+
+	void _setParams(double x, double y, int vertexIndex, double distance) {
+<span class="fc" id="L107">		m_coordinate.x = x;</span>
+<span class="fc" id="L108">		m_coordinate.y = y;</span>
+<span class="fc" id="L109">		m_vertexIndex = vertexIndex;</span>
+<span class="fc" id="L110">		m_distance = distance;</span>
+<span class="fc" id="L111">	}</span>
+
+	// static int _compare(Proximity2DResult v1, Proximity2DResult v2)
+	// {
+	// if (v1.m_distance &lt; v2.m_distance)
+	// return -1;
+	// if (v1.m_distance == v2.m_distance)
+	// return 0;
+	//
+	// return 1;
+	// }
+
+<span class="fc" id="L123">	Proximity2DResult() {</span>
+<span class="fc" id="L124">		m_vertexIndex = -1;</span>
+<span class="fc" id="L125">	}</span>
+
+<span class="fc" id="L127">	Proximity2DResult(Point2D coordinate, int vertexIndex, double distance) {</span>
+<span class="fc" id="L128">		m_coordinate.setCoords(coordinate);</span>
+<span class="fc" id="L129">		m_vertexIndex = vertexIndex;</span>
+<span class="fc" id="L130">		m_distance = distance;</span>
+<span class="fc" id="L131">		m_info = 0;</span>
+<span class="fc" id="L132">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

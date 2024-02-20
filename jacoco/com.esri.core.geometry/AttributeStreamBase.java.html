@@ -1,0 +1,514 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AttributeStreamBase.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">AttributeStreamBase.java</span></div><h1>AttributeStreamBase.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+
+package com.esri.core.geometry;
+
+import com.esri.core.geometry.VertexDescription.Persistence;
+import java.nio.ByteBuffer;
+
+/**
+ * Base class for AttributeStream instances.
+ */
+abstract class AttributeStreamBase {
+
+	protected boolean m_bLockedInSize;
+	protected boolean m_bReadonly;
+
+<span class="fc" id="L39">	public AttributeStreamBase() {</span>
+<span class="fc" id="L40">		m_bReadonly = false;</span>
+<span class="fc" id="L41">		m_bLockedInSize = false;</span>
+<span class="fc" id="L42">	}</span>
+
+	/**
+	 * Returns the number of elements in the stream.
+	 */
+	public abstract int virtualSize();
+
+	/**
+	 * Returns an estimate of this object size in bytes.
+	 *
+	 * @return Returns an estimate of this object size in bytes.
+	 */
+	public abstract long estimateMemorySize();
+
+	/**
+	 * Returns the Persistence type of the stream.
+	 */
+	public abstract int getPersistence();
+
+	/**
+	 * Reads given element and returns it as double.
+	 */
+	public abstract double readAsDbl(int offset);
+
+	/**
+	 * Writes given element as double. The double is cast to the internal
+	 * representation (truncated when int).
+	 */
+	public abstract void writeAsDbl(int offset, double d);
+
+	/**
+	 * Reads given element and returns it as int (truncated if double).
+	 */
+	public abstract int readAsInt(int offset);
+
+	/**
+	 * Writes given element as int. The int is cast to the internal
+	 * representation.
+	 */
+	public abstract void writeAsInt(int offset, int d);
+
+	/**
+	 * Reads given element and returns it as int (truncated if double).
+	 */
+	public abstract long readAsInt64(int offset);
+
+	/**
+	 * Writes given element as int. The int is cast to the internal
+	 * representation.
+	 */
+	public abstract void writeAsInt64(int offset, long d);
+
+	/**
+	 * Resizes the AttributeStream to the new size.
+	 */
+	public abstract void resize(int newSize, double defaultValue);
+
+	/**
+	 * Resizes the AttributeStream to the new size.
+	 */
+	public abstract void resize(int newSize);
+
+	/**
+	 * Resizes the AttributeStream to the new size. Does not change the capacity
+	 * of the stream.
+	 */
+	public abstract void resizePreserveCapacity(int newSize);// java only method
+
+	/**
+	 * Same as resize(0)
+	 */
+	void clear(boolean bFreeMemory) {
+<span class="pc bpc" id="L114" title="1 of 2 branches missed.">		if (bFreeMemory)</span>
+<span class="nc" id="L115">			resize(0);</span>
+		else
+<span class="fc" id="L117">			resizePreserveCapacity(0);</span>
+<span class="fc" id="L118">	}</span>
+
+	/**
+	 * Adds a range of elements from the source stream. The streams must be of
+	 * the same type.
+	 * 
+	 * @param src
+	 *            The source stream to read elements from.
+	 * @param srcStart
+	 *            The index of the element in the source stream to start reading
+	 *            from.
+	 * @param count
+	 *            The number of elements to add.
+	 * @param bForward
+	 *            True if adding the elements in order of the incoming source
+	 *            stream. False if adding the elements in reverse.
+	 * @param stride
+	 *            The number of elements to be grouped together if adding the
+	 *            elements in reverse.
+	 */
+	public abstract void addRange(AttributeStreamBase src, int srcStart,
+			int count, boolean bForward, int stride);
+
+	/**
+	 * Inserts a range of elements from the source stream. The streams must be
+	 * of the same type.
+	 * 
+	 * @param start
+	 *            The index where to start the insert.
+	 * @param src
+	 *            The source stream to read elements from.
+	 * @param srcStart
+	 *            The index of the element in the source stream to start reading
+	 *            from.
+	 * @param count
+	 *            The number of elements to read from the source stream.
+	 * @param validSize
+	 *            The number of valid elements in this stream.
+	 */
+	public abstract void insertRange(int start, AttributeStreamBase src,
+			int srcStart, int count, boolean bForward, int stride, int validSize);
+
+	/**
+	 * Inserts a range of elements of the given value.
+	 * 
+	 * @param start
+	 *            The index where to start the insert.
+	 * @param value
+	 *            The value to be inserted.
+	 * @param count
+	 *            The number of elements to be inserted.
+	 * @param validSize
+	 *            The number of valid elements in this stream.
+	 */
+	public abstract void insertRange(int start, double value, int count,
+			int validSize);
+
+	/**
+	 * Inserts the attributes of a given semantics from a Point geometry.
+	 * 
+	 * @param start
+	 *            The index where to start the insert.
+	 * @param pt
+	 *            The Point geometry holding the attributes to be inserted.
+	 * @param semantics
+	 *            The attribute semantics that are being inserted.
+	 * @param validSize
+	 *            The number of valid elements in this stream.
+	 */
+	public abstract void insertAttributes(int start, Point pt, int semantics,
+			int validSize);
+
+	/**
+	 * Sets a range of values to given value.
+	 * 
+	 * @param value
+	 *            The value to set stream elements to.
+	 * @param start
+	 *            The index of the element to start writing to.
+	 * @param count
+	 *            The number of elements to set.
+	 */
+	public abstract void setRange(double value, int start, int count);
+
+	/**
+	 * Adds a range of elements from the source byte buffer. This stream is
+	 * resized automatically to accomodate required number of elements.
+	 * 
+	 * @param startElement
+	 *            the index of the element in this stream to start setting
+	 *            elements from.
+	 * @param count
+	 *            The number of AttributeStream elements to read.
+	 * @param src
+	 *            The source ByteBuffer to read elements from.
+	 * @param sourceStart
+	 *            The offset from the start of the ByteBuffer in bytes.
+	 * @param bForward
+	 *            When False, the source is written in reversed order.
+	 * @param stride
+	 *            Used for reversed writing only to indicate the unit of
+	 *            writing. elements inside a stride are not reversed. Only the
+	 *            strides are reversed.
+	 */
+	public abstract void writeRange(int startElement, int count,
+			AttributeStreamBase src, int sourceStart, boolean bForward,
+			int stride);
+
+	/**
+	 * Adds a range of elements from the source byte buffer. The stream is
+	 * resized automatically to accomodate required number of elements.
+	 * 
+	 * @param startElement
+	 *            the index of the element in this stream to start setting
+	 *            elements from.
+	 * @param count
+	 *            The number of AttributeStream elements to read.
+	 * @param src
+	 *            The source ByteBuffer to read elements from.
+	 * @param offsetBytes
+	 *            The offset from the start of the ByteBuffer in bytes.
+	 */
+	public abstract void writeRange(int startElement, int count,
+			ByteBuffer src, int offsetBytes, boolean bForward);
+
+	/**
+	 * Write a range of elements to the source byte buffer.
+	 * 
+	 * @param srcStart
+	 *            The element index to start writing from.
+	 * @param count
+	 *            The number of AttributeStream elements to write.
+	 * @param dst
+	 *            The destination ByteBuffer. The buffer must be large enough or
+	 *            it will throw.
+	 * @param dstOffsetBytes
+	 *            The offset in the destination ByteBuffer to start write
+	 *            elements from.
+	 */
+	public abstract void readRange(int srcStart, int count, ByteBuffer dst,
+			int dstOffsetBytes, boolean bForward);
+
+	/**
+	 * Erases a range from the buffer and defragments the result.
+	 * 
+	 * @param index
+	 *            The index in this stream where the erasing starts.
+	 * @param count
+	 *            The number of elements to be erased.
+	 * @param validSize
+	 *            The number of valid elements in this stream.
+	 */
+	public abstract void eraseRange(int index, int count, int validSize);
+
+	/**
+	 * Reverses a range from the buffer.
+	 * 
+	 * @param index
+	 *            The index in this stream where the reversing starts.
+	 * @param count
+	 *            The number of elements to be reversed.
+	 * @param stride
+	 *            The number of elements to be grouped together when doing the
+	 *            reverse.
+	 */
+	public abstract void reverseRange(int index, int count, int stride);
+
+	/**
+	 * Creates a new attribute stream for storing bytes.
+	 * 
+	 * @param size
+	 *            The number of elements in the stream.
+	 */
+	public static AttributeStreamBase createByteStream(int size) {
+<span class="fc" id="L292">		AttributeStreamBase newStream = new AttributeStreamOfInt8(size);</span>
+<span class="fc" id="L293">		return newStream;</span>
+	}
+
+	/**
+	 * Creates a new attribute stream for storing bytes.
+	 * 
+	 * @param size
+	 *            The number of elements in the stream.
+	 * @param defaultValue
+	 *            The default value to fill the stream with.
+	 */
+	public static AttributeStreamBase createByteStream(int size,
+			byte defaultValue) {
+<span class="fc" id="L306">		AttributeStreamBase newStream = new AttributeStreamOfInt8(size,</span>
+				defaultValue);
+<span class="fc" id="L308">		return newStream;</span>
+
+	}
+
+	/**
+	 * Creates a new attribute stream for storing doubles.
+	 * 
+	 * @param size
+	 *            The number of elements in the stream.
+	 */
+	public static AttributeStreamBase createDoubleStream(int size) {
+<span class="fc" id="L319">		AttributeStreamBase newStream = new AttributeStreamOfDbl(size);</span>
+<span class="fc" id="L320">		return newStream;</span>
+	}
+
+	/**
+	 * Creates a new attribute stream for storing doubles.
+	 * 
+	 * @param size
+	 *            The number of elements in the stream.
+	 * @param defaultValue
+	 *            The default value to fill the stream with.
+	 */
+	public static AttributeStreamBase createDoubleStream(int size,
+			double defaultValue) {
+<span class="fc" id="L333">		AttributeStreamBase newStream = new AttributeStreamOfDbl(size,</span>
+				defaultValue);
+<span class="fc" id="L335">		return newStream;</span>
+	}
+
+	/**
+	 * Creats a copy of the stream that contains upto maxsize elements.
+	 */
+	public abstract AttributeStreamBase restrictedClone(int maxsize);
+
+	/**
+	 * Makes the stream to be readonly. Any operation that changes the content
+	 * or size of the stream will throw.
+	 */
+	public void setReadonly() {
+<span class="nc" id="L348">		m_bReadonly = true;</span>
+<span class="nc" id="L349">		m_bLockedInSize = true;</span>
+<span class="nc" id="L350">	}</span>
+
+	public boolean isReadonly() {
+<span class="nc" id="L353">		return m_bReadonly;</span>
+	}
+
+	/**
+	 * Lock the size of the stream. Any operation that changes the size of the
+	 * stream will throw.
+	 */
+	public void lockSize() {
+<span class="nc" id="L361">		m_bLockedInSize = true;</span>
+<span class="nc" id="L362">	}</span>
+
+	public boolean isLockedSize() {
+<span class="nc" id="L365">		return m_bLockedInSize;</span>
+	}
+
+	/**
+	 * Creates a new attribute stream of given persistence type and size.
+	 * 
+	 * @param persistence
+	 *            The persistence type of the stream (see VertexDescription).
+	 * @param size
+	 *            The number of elements (floats, doubles, or 32 bit integers)
+	 *            of the given type in the stream.
+	 */
+	public static AttributeStreamBase createAttributeStreamWithPersistence(
+			int persistence, int size) {
+		AttributeStreamBase newStream;
+<span class="nc bnc" id="L380" title="All 7 branches missed.">		switch (persistence) {</span>
+		case (Persistence.enumFloat):
+<span class="nc" id="L382">			newStream = new AttributeStreamOfFloat(size);</span>
+<span class="nc" id="L383">			break;</span>
+		case (Persistence.enumDouble):
+<span class="nc" id="L385">			newStream = new AttributeStreamOfDbl(size);</span>
+<span class="nc" id="L386">			break;</span>
+		case (Persistence.enumInt32):
+<span class="nc" id="L388">			newStream = new AttributeStreamOfInt32(size);</span>
+<span class="nc" id="L389">			break;</span>
+		case (Persistence.enumInt64):
+<span class="nc" id="L391">			newStream = new AttributeStreamOfInt64(size);</span>
+<span class="nc" id="L392">			break;</span>
+		case (Persistence.enumInt8):
+<span class="nc" id="L394">			newStream = new AttributeStreamOfInt8(size);</span>
+<span class="nc" id="L395">			break;</span>
+		case (Persistence.enumInt16):
+<span class="nc" id="L397">			newStream = new AttributeStreamOfInt16(size);</span>
+<span class="nc" id="L398">			break;</span>
+		default:
+<span class="nc" id="L400">			throw new GeometryException(&quot;Internal Error&quot;);</span>
+		}
+<span class="nc" id="L402">		return newStream;</span>
+	}
+
+	/**
+	 * Creates a new attribute stream of given persistence type and size.
+	 * 
+	 * @param persistence
+	 *            The persistence type of the stream (see VertexDescription).
+	 * @param size
+	 *            The number of elements (floats, doubles, or 32 bit integers)
+	 *            of the given type in the stream.
+	 * @param defaultValue
+	 *            The default value to fill the stream with.
+	 */
+	public static AttributeStreamBase createAttributeStreamWithPersistence(
+			int persistence, int size, double defaultValue) {
+		AttributeStreamBase newStream;
+<span class="pc bpc" id="L419" title="5 of 7 branches missed.">		switch (persistence) {</span>
+		case (Persistence.enumFloat):
+<span class="nc" id="L421">			newStream = new AttributeStreamOfFloat(size, (float) defaultValue);</span>
+<span class="nc" id="L422">			break;</span>
+		case (Persistence.enumDouble):
+<span class="fc" id="L424">			newStream = new AttributeStreamOfDbl(size, (double) defaultValue);</span>
+<span class="fc" id="L425">			break;</span>
+		case (Persistence.enumInt32):
+<span class="fc" id="L427">			newStream = new AttributeStreamOfInt32(size, (int) defaultValue);</span>
+<span class="fc" id="L428">			break;</span>
+		case (Persistence.enumInt64):
+<span class="nc" id="L430">			newStream = new AttributeStreamOfInt64(size, (long) defaultValue);</span>
+<span class="nc" id="L431">			break;</span>
+		case (Persistence.enumInt8):
+<span class="nc" id="L433">			newStream = new AttributeStreamOfInt8(size, (byte) defaultValue);</span>
+<span class="nc" id="L434">			break;</span>
+		case (Persistence.enumInt16):
+<span class="nc" id="L436">			newStream = new AttributeStreamOfInt16(size, (short) defaultValue);</span>
+<span class="nc" id="L437">			break;</span>
+		default:
+<span class="nc" id="L439">			throw new GeometryException(&quot;Internal Error&quot;);</span>
+		}
+<span class="fc" id="L441">		return newStream;</span>
+	}
+
+	/**
+	 * Creates a new attribute stream for the given semantics and vertex count.
+	 * 
+	 * @param semantics
+	 *            The semantics of the attribute (see VertexDescription).
+	 * @param vertexCount
+	 *            The number of vertices in the geometry. The actual number of
+	 *            elements in the stream is vertexCount * ncomponents.
+	 */
+	public static AttributeStreamBase createAttributeStreamWithSemantics(
+			int semantics, int vertexCount) {
+<span class="fc" id="L455">		int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="fc" id="L456">		int persistence = VertexDescription.getPersistence(semantics);</span>
+<span class="fc" id="L457">		return createAttributeStreamWithPersistence(persistence, vertexCount</span>
+<span class="fc" id="L458">				* ncomps, VertexDescription.getDefaultValue(semantics));</span>
+	}
+
+	/**
+	 * Creates a new attribute stream for storing vertex indices.
+	 * 
+	 * @param size
+	 *            The number of elements in the stream.
+	 */
+	public static AttributeStreamBase createIndexStream(int size) {
+<span class="fc" id="L468">		int persistence = Persistence.enumInt32;// VertexDescription.getPersistenceFromInt(NumberUtils::SizeOf((int)0));</span>
+		AttributeStreamBase newStream;
+<span class="pc bpc" id="L470" title="2 of 3 branches missed.">		switch (persistence) {</span>
+		case (Persistence.enumInt32):
+<span class="fc" id="L472">			newStream = new AttributeStreamOfInt32(size);</span>
+<span class="fc" id="L473">			break;</span>
+		case (Persistence.enumInt64):
+<span class="nc" id="L475">			newStream = new AttributeStreamOfInt64(size);</span>
+<span class="nc" id="L476">			break;</span>
+		default:
+<span class="nc" id="L478">			throw new GeometryException(&quot;Internal Error&quot;);</span>
+		}
+<span class="fc" id="L480">		return newStream;</span>
+
+	}
+
+	/**
+	 * Creates a new attribute stream for storing vertex indices.
+	 * 
+	 * @param size
+	 *            The number of elements in the stream.
+	 * @param defaultValue
+	 *            The default value to fill the stream with.
+	 */
+	public static AttributeStreamBase createIndexStream(int size,
+			int defaultValue) {
+<span class="fc" id="L494">		int persistence = Persistence.enumInt32;// VertexDescription.getPersistenceFromInt(NumberUtils::SizeOf((int)0));</span>
+		AttributeStreamBase newStream;
+<span class="pc bpc" id="L496" title="2 of 3 branches missed.">		switch (persistence) {</span>
+		case (Persistence.enumInt32):
+<span class="fc" id="L498">			newStream = new AttributeStreamOfInt32(size, (int) defaultValue);</span>
+<span class="fc" id="L499">			break;</span>
+		case (Persistence.enumInt64):
+<span class="nc" id="L501">			newStream = new AttributeStreamOfInt64(size, (long) defaultValue);</span>
+<span class="nc" id="L502">			break;</span>
+		default:
+<span class="nc" id="L504">			throw new GeometryException(&quot;Internal Error&quot;);</span>
+		}
+<span class="fc" id="L506">		return newStream;</span>
+	}
+
+	public abstract int calculateHashImpl(int hashCode, int start, int end);
+
+	public abstract boolean equals(AttributeStreamBase other, int start, int end);
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

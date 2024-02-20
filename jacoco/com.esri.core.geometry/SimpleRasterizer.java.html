@@ -1,0 +1,582 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SimpleRasterizer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">SimpleRasterizer.java</span></div><h1>SimpleRasterizer.java</h1><pre class="source lang-java linenums">/*
+ Copyright 2013-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+import java.util.Arrays;
+import java.util.Comparator;
+
+import static com.esri.core.geometry.SizeOf.SIZE_OF_EDGE;
+import static com.esri.core.geometry.SizeOf.SIZE_OF_SIMPLE_RASTERIZER;
+import static com.esri.core.geometry.SizeOf.sizeOfIntArray;
+import static com.esri.core.geometry.SizeOf.sizeOfObjectArray;
+
+/**
+ * Simple scanline rasterizer. Caller provides a callback to draw pixels to actual surface.
+ *
+ */
+public class SimpleRasterizer {
+	
+	/**
+	 * Even odd fill rule
+	 */
+	public final static int EVEN_ODD = 0;
+	
+	/**
+	 * Winding fill rule
+	 */
+	public final static int WINDING = 1;
+
+	public interface ScanCallback {
+		/**
+		 * Rasterizer calls this method for each scan it produced
+		 * @param scans array of scans. Scans are triplets of numbers. The start X coordinate for the scan (inclusive),
+		 * the end X coordinate of the scan (exclusive), the Y coordinate for the scan.
+		 * @param scanCount3 The number of initialized elements in the scans array. The scan count is scanCount3 / 3. 
+		 */
+		void drawScan(int[] scans, int scanCount3);
+	}
+	
+<span class="fc" id="L61">	public SimpleRasterizer() {</span>
+<span class="fc" id="L62">		width_ = -1;</span>
+<span class="fc" id="L63">		height_ = -1;</span>
+<span class="fc" id="L64">	}</span>
+	
+	/**
+	 * Sets up the rasterizer.
+	 */
+	public void setup(int width, int height, ScanCallback callback)
+	{
+<span class="fc" id="L71">		width_ = width; height_ = height;</span>
+<span class="fc" id="L72">		ySortedEdges_ = null;</span>
+<span class="fc" id="L73">		activeEdgesTable_ = null;</span>
+<span class="fc" id="L74">		numEdges_ = 0;</span>
+<span class="fc" id="L75">		callback_ = callback;</span>
+<span class="pc bpc" id="L76" title="1 of 2 branches missed.">		if (scanBuffer_ == null)</span>
+<span class="fc" id="L77">			scanBuffer_ = new int[128 * 3];</span>
+		
+<span class="fc" id="L79">		startAddingEdges();</span>
+<span class="fc" id="L80">	}</span>
+	
+	public final int getWidth() {
+<span class="nc" id="L83">		return width_;</span>
+	}
+	
+	public final int getHeight() {
+<span class="nc" id="L87">		return height_;</span>
+	}
+
+	/**
+	 * Flushes any cached scans.
+	 */
+	public final void flush() {
+<span class="fc bfc" id="L94" title="All 2 branches covered.">		if (scanPtr_ &gt; 0) {</span>
+<span class="fc" id="L95">			callback_.drawScan(scanBuffer_, scanPtr_);</span>
+<span class="fc" id="L96">			scanPtr_ = 0;</span>
+		}
+<span class="fc" id="L98">	}</span>
+	
+	/**
+	 * Adds edges of a triangle.
+	 */
+	public final void addTriangle(double x1, double y1, double x2, double y2, double x3, double y3) {
+<span class="nc" id="L104">		addEdge(x1, y1, x2, y2);</span>
+<span class="nc" id="L105">		addEdge(x2, y2, x3, y3);</span>
+<span class="nc" id="L106">		addEdge(x1, y1, x3, y3);</span>
+<span class="nc" id="L107">	}</span>
+
+	/**
+	 * Adds edges of the ring to the rasterizer.
+	 * @param xy interleaved coordinates x1, y1, x2, y2,...
+	 */
+	public final void addRing(double xy[]) {
+<span class="fc bfc" id="L114" title="All 2 branches covered.">		for (int i = 2; i &lt; xy.length; i += 2) {</span>
+<span class="fc" id="L115">			addEdge(xy[i-2], xy[i - 1], xy[i], xy[i + 1]);</span>
+		}
+<span class="fc" id="L117">	}</span>
+	
+	/**
+	 * Call before starting the edges.
+	 *
+	 * For example to render two polygons that consist of a single ring:
+	 * startAddingEdges();
+	 * addRing(...);
+	 * renderEdges(Rasterizer.EVEN_ODD);
+	 * addRing(...);
+	 * renderEdges(Rasterizer.EVEN_ODD);
+	 *
+	 * For example to render a polygon consisting of three rings:
+	 * startAddingEdges();
+	 * addRing(...);
+	 * addRing(...);
+	 * addRing(...);
+	 * renderEdges(Rasterizer.EVEN_ODD);
+	 */
+	public final void startAddingEdges() {
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">		if (numEdges_ &gt; 0) {</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">			for (int i = 0; i &lt; height_; i++) {</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">				for (Edge e = ySortedEdges_[i]; e != null;) {</span>
+<span class="nc" id="L140">					Edge p = e;</span>
+<span class="nc" id="L141">					e = e.next;</span>
+<span class="nc" id="L142">					p.next = null;</span>
+<span class="nc" id="L143">				}</span>
+				
+<span class="nc" id="L145">				ySortedEdges_[i] = null;</span>
+			}
+
+<span class="nc" id="L148">			activeEdgesTable_ = null;</span>
+		}
+		
+<span class="fc" id="L151">		minY_ = height_;</span>
+<span class="fc" id="L152">		maxY_ = -1;</span>
+<span class="fc" id="L153">		numEdges_ = 0;	</span>
+<span class="fc" id="L154">	}</span>
+	
+	/**
+	 * Renders all edges added so far, and removes them.
+	 * Calls startAddingEdges after it's done.
+	 * @param fillMode Fill mode for the polygon fill can be one of two values: EVEN_ODD or WINDING.
+	 *
+	 * Note, as any other graphics algorithm, the scan line rasterizer doesn't require polygons
+	 * to be topologically simple, or have correct ring orientation.
+	 */
+	public final void renderEdges(int fillMode) {
+<span class="pc bpc" id="L165" title="1 of 2 branches missed.">		evenOdd_ = fillMode == EVEN_ODD;</span>
+<span class="fc bfc" id="L166" title="All 2 branches covered.">		for (int line = minY_; line &lt;= maxY_; line++) {</span>
+<span class="fc" id="L167">			advanceAET_();</span>
+<span class="fc" id="L168">			addNewEdgesToAET_(line);</span>
+<span class="fc" id="L169">			emitScans_();</span>
+		}
+		
+<span class="fc" id="L172">		startAddingEdges();//reset for new edges</span>
+<span class="fc" id="L173">	}</span>
+	
+	/**
+	 * Add a single edge. 
+	 * @param x1
+	 * @param y1
+	 * @param x2
+	 * @param y2
+	 */
+	public final void addEdge(double x1, double y1, double x2, double y2) {
+<span class="fc bfc" id="L183" title="All 2 branches covered.">		if (y1 == y2)</span>
+<span class="fc" id="L184">			return;</span>
+			
+<span class="fc" id="L186">		int dir = 1;</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">		if (y1 &gt; y2) {</span>
+			double temp;
+<span class="fc" id="L189">			temp = x1; x1 = x2; x2 = temp;</span>
+<span class="fc" id="L190">			temp = y1; y1 = y2; y2 = temp;</span>
+<span class="fc" id="L191">			dir = -1;</span>
+		}
+		
+<span class="pc bpc" id="L194" title="1 of 4 branches missed.">		if (y2 &lt; 0 || y1 &gt;= height_)</span>
+<span class="fc" id="L195">			return;</span>
+
+<span class="fc bfc" id="L197" title="All 4 branches covered.">		if (x1 &lt; 0 &amp;&amp; x2 &lt; 0)</span>
+		{
+<span class="fc" id="L199">			x1 = -1; x2 = -1;</span>
+		}
+<span class="pc bpc" id="L201" title="1 of 4 branches missed.">		else if (x1 &gt;= width_ &amp;&amp; x2 &gt;= width_)</span>
+		{
+<span class="nc" id="L203">			x1 = width_; x2 = width_;</span>
+		}
+		
+		//clip to extent
+<span class="fc" id="L207">		double dxdy = (x2 - x1) / (y2 - y1);</span>
+
+<span class="fc bfc" id="L209" title="All 2 branches covered.">		if (y2 &gt; height_) {</span>
+<span class="fc" id="L210">			y2 = height_;</span>
+<span class="fc" id="L211">			x2 = dxdy * (y2 - y1) + x1;</span>
+		}
+		
+<span class="fc bfc" id="L214" title="All 2 branches covered.">		if (y1 &lt; 0) {</span>
+<span class="fc" id="L215">			x1 = dxdy * (0 - y1) + x1;</span>
+<span class="fc" id="L216">			y1 = 0;</span>
+		}
+
+		//do not clip x unless it is too small or too big
+<span class="fc" id="L220">		int bigX = Math.max(width_ + 1, 0x7fffff);</span>
+<span class="pc bpc" id="L221" title="1 of 2 branches missed.">		if (x1 &lt; -0x7fffff) {</span>
+		    //from earlier logic, x2 &gt;= -1, therefore dxdy is not 0
+<span class="nc" id="L223">			y1 = (0 - x1) / dxdy + y1;</span>
+<span class="nc" id="L224">			x1 = 0;</span>
+		}
+<span class="pc bpc" id="L226" title="1 of 2 branches missed.">		else if (x1 &gt; bigX) {</span>
+			//from earlier logic, x2 &lt;= width_, therefore dxdy is not 0
+<span class="nc" id="L228">			y1 = (width_ - x1) / dxdy + y1;</span>
+<span class="nc" id="L229">			x1 = width_;</span>
+		}
+
+<span class="pc bpc" id="L232" title="1 of 2 branches missed.">		if (x2 &lt; -0x7fffff) {</span>
+			//from earlier logic, x1 &gt;= -1, therefore dxdy is not 0
+<span class="nc" id="L234">			y2 = (0 - x1) / dxdy + y1;</span>
+<span class="nc" id="L235">			x2 = 0;</span>
+		}
+<span class="pc bpc" id="L237" title="1 of 2 branches missed.">		else if (x2 &gt; bigX) {</span>
+			//from earlier logic, x1 &lt;= width_, therefore dxdy is not 0
+<span class="nc" id="L239">			y2 = (width_ - x1) / dxdy + y1;</span>
+<span class="nc" id="L240">			x2 = width_;</span>
+		}
+		
+<span class="fc" id="L243">		int ystart = (int)y1;</span>
+<span class="fc" id="L244">		int yend = (int)y2;</span>
+<span class="fc bfc" id="L245" title="All 2 branches covered.">		if (ystart == yend)</span>
+<span class="fc" id="L246">			return;</span>
+		
+<span class="fc" id="L248">		Edge e = new Edge();</span>
+		
+<span class="fc" id="L250">		e.x = (long)(x1 * 4294967296.0);</span>
+<span class="fc" id="L251">		e.y = ystart;</span>
+<span class="fc" id="L252">		e.ymax = yend;</span>
+<span class="fc" id="L253">		e.dxdy = (long)(dxdy * 4294967296.0);</span>
+<span class="fc" id="L254">		e.dir = dir;</span>
+		
+<span class="fc bfc" id="L256" title="All 2 branches covered.">		if (ySortedEdges_ == null) {</span>
+<span class="fc" id="L257">			ySortedEdges_ = new Edge[height_];</span>
+		}
+
+<span class="fc" id="L260">		e.next = ySortedEdges_[e.y];</span>
+<span class="fc" id="L261">		ySortedEdges_[e.y] = e;</span>
+		
+<span class="fc bfc" id="L263" title="All 2 branches covered.">		if (e.y &lt; minY_)</span>
+<span class="fc" id="L264">			minY_ = e.y;</span>
+		
+<span class="fc bfc" id="L266" title="All 2 branches covered.">		if (e.ymax &gt; maxY_)</span>
+<span class="fc" id="L267">			maxY_ = e.ymax;</span>
+		
+<span class="fc" id="L269">		numEdges_++;</span>
+<span class="fc" id="L270">	}</span>
+	
+	public final void fillEnvelope(Envelope2D envIn) {
+<span class="nc" id="L273">		Envelope2D env = new Envelope2D(0, 0, width_, height_);</span>
+<span class="nc bnc" id="L274" title="All 2 branches missed.">		if (!env.intersect(envIn))</span>
+<span class="nc" id="L275">			return;</span>
+
+<span class="nc" id="L277">		int x0 = (int)env.xmin;</span>
+<span class="nc" id="L278">		int x = (int)env.xmax;</span>
+
+<span class="nc" id="L280">		int xn = NumberUtils.snap(x0, 0, width_);</span>
+<span class="nc" id="L281">		int xm = NumberUtils.snap(x, 0, width_);</span>
+<span class="nc bnc" id="L282" title="All 4 branches missed.">		if (x0 &lt; width_ &amp;&amp; xn &lt; xm) {</span>
+<span class="nc" id="L283">			int y0 = (int)env.ymin;</span>
+<span class="nc" id="L284">			int y1 = (int)env.ymax;</span>
+<span class="nc" id="L285">			y0 = NumberUtils.snap(y0, 0, height_);</span>
+<span class="nc" id="L286">			y1 = NumberUtils.snap(y1, 0, height_);</span>
+<span class="nc bnc" id="L287" title="All 2 branches missed.">			if (y0 &lt; height_) {</span>
+<span class="nc bnc" id="L288" title="All 2 branches missed.">				for (int y = y0; y &lt; y1; y++) {</span>
+<span class="nc" id="L289">					scanBuffer_[scanPtr_++] = xn;</span>
+<span class="nc" id="L290">					scanBuffer_[scanPtr_++] = xm;</span>
+<span class="nc" id="L291">					scanBuffer_[scanPtr_++] = y;</span>
+<span class="nc bnc" id="L292" title="All 2 branches missed.">					if (scanPtr_ == scanBuffer_.length) {</span>
+<span class="nc" id="L293">						callback_.drawScan(scanBuffer_, scanPtr_);</span>
+<span class="nc" id="L294">						scanPtr_ = 0;</span>
+					}
+				}
+			}
+		}
+<span class="nc" id="L299">	}</span>
+	
+	final boolean addSegmentStroke(double x1, double y1, double x2, double y2, double half_width, boolean skip_short,
+			double[] helper_xy_10_elm) {
+<span class="fc" id="L303">		double vec_x = x2 - x1;</span>
+<span class="fc" id="L304">		double vec_y = y2 - y1;</span>
+<span class="fc" id="L305">		double sqr_len = vec_x * vec_x + vec_y * vec_y;</span>
+<span class="fc bfc" id="L306" title="All 4 branches covered.">		if (skip_short &amp;&amp; sqr_len &lt; (0.5 * 0.5)) {</span>
+<span class="fc" id="L307">			return false;</span>
+		}
+
+<span class="pc bpc" id="L310" title="1 of 4 branches missed.">		boolean veryShort = !skip_short &amp;&amp; (sqr_len &lt; (0.00001 * 0.00001));</span>
+<span class="fc bfc" id="L311" title="All 2 branches covered.">		if (veryShort) {</span>
+<span class="fc" id="L312">			vec_x = half_width + 0.00001;</span>
+<span class="fc" id="L313">			vec_y = 0.0;</span>
+		} else {
+<span class="fc" id="L315">			double f = half_width / Math.sqrt(sqr_len);</span>
+<span class="fc" id="L316">			vec_x *= f;</span>
+<span class="fc" id="L317">			vec_y *= f;</span>
+		}
+
+<span class="fc" id="L320">		double vecA_x = -vec_y;</span>
+<span class="fc" id="L321">		double vecA_y = vec_x;</span>
+<span class="fc" id="L322">		double vecB_x = vec_y;</span>
+<span class="fc" id="L323">		double vecB_y = -vec_x;</span>
+		// extend by half width
+<span class="fc" id="L325">		x1 -= vec_x;</span>
+<span class="fc" id="L326">		y1 -= vec_y;</span>
+<span class="fc" id="L327">		x2 += vec_x;</span>
+<span class="fc" id="L328">		y2 += vec_y;</span>
+		// create rotated rectangle
+<span class="fc" id="L330">		double[] fan = helper_xy_10_elm;</span>
+<span class="pc bpc" id="L331" title="1 of 2 branches missed.">		assert (fan.length == 10);</span>
+<span class="fc" id="L332">		fan[0] = x1 + vecA_x;</span>
+<span class="fc" id="L333">		fan[1] = y1 + vecA_y;// fan[0].add(pt_start, vecA);</span>
+<span class="fc" id="L334">		fan[2] = x1 + vecB_x;</span>
+<span class="fc" id="L335">		fan[3] = y1 + vecB_y;// fan[1].add(pt_start, vecB);</span>
+<span class="fc" id="L336">		fan[4] = x2 + vecB_x;</span>
+<span class="fc" id="L337">		fan[5] = y2 + vecB_y;// fan[2].add(pt_end, vecB)</span>
+<span class="fc" id="L338">		fan[6] = x2 + vecA_x;</span>
+<span class="fc" id="L339">		fan[7] = y2 + vecA_y;// fan[3].add(pt_end, vecA)</span>
+<span class="fc" id="L340">		fan[8] = fan[0];</span>
+<span class="fc" id="L341">		fan[9] = fan[1];</span>
+<span class="fc" id="L342">		addRing(fan);</span>
+<span class="fc" id="L343">		return true;</span>
+	}
+
+<span class="nc" id="L346">	public final ScanCallback getScanCallback() { return callback_; }</span>
+
+	public long estimateMemorySize()
+	{
+		// callback_ is only a pointer, the actual size is accounted for in the caller of setup()
+<span class="fc" id="L351">		long size = SIZE_OF_SIMPLE_RASTERIZER +</span>
+<span class="pc bpc" id="L352" title="1 of 2 branches missed.">				(activeEdgesTable_ != null ? activeEdgesTable_.estimateMemorySize() : 0) +</span>
+<span class="pc bpc" id="L353" title="1 of 2 branches missed.">				(scanBuffer_ != null ? sizeOfIntArray(scanBuffer_.length) : 0);</span>
+
+<span class="pc bpc" id="L355" title="1 of 2 branches missed.">		if (ySortedEdges_ != null) {</span>
+<span class="fc" id="L356">			size += sizeOfObjectArray(ySortedEdges_.length);</span>
+<span class="fc bfc" id="L357" title="All 2 branches covered.">			for (int i = 0; i &lt; ySortedEdges_.length; i++) {</span>
+<span class="pc bpc" id="L358" title="1 of 2 branches missed.">				if (ySortedEdges_[i] != null) {</span>
+<span class="nc" id="L359">					size += ySortedEdges_[i].estimateMemorySize();</span>
+				}
+			}
+		}
+
+<span class="pc bpc" id="L364" title="1 of 2 branches missed.">		if (sortBuffer_ != null) {</span>
+<span class="fc" id="L365">			size += sizeOfObjectArray(sortBuffer_.length);</span>
+<span class="fc bfc" id="L366" title="All 2 branches covered.">			for (int i = 0; i &lt; sortBuffer_.length; i++) {</span>
+<span class="pc bpc" id="L367" title="1 of 2 branches missed.">				if (sortBuffer_[i] != null) {</span>
+<span class="nc" id="L368">					size += sortBuffer_[i].estimateMemorySize();</span>
+				}
+			}
+		}
+
+<span class="fc" id="L373">		return size;</span>
+	}
+
+	//PRIVATE
+	
+<span class="fc" id="L378">	static class Edge {</span>
+		long x;
+		long dxdy;
+		int y;
+		int ymax;
+		int dir;
+		Edge next;
+
+		long estimateMemorySize()
+		{
+			// next is only a pointer, the actual size is accounted for in SimpleRasterizer#estimateMemorySize
+<span class="nc" id="L389">			return SIZE_OF_EDGE;</span>
+		}
+	}
+	
+	private final void advanceAET_() {
+<span class="fc bfc" id="L394" title="All 2 branches covered.">		if (activeEdgesTable_ == null)</span>
+<span class="fc" id="L395">			return;</span>
+		
+<span class="fc" id="L397">		boolean needSort = false;</span>
+<span class="fc" id="L398">		Edge prev = null;</span>
+<span class="fc bfc" id="L399" title="All 2 branches covered.">		for (Edge e = activeEdgesTable_; e != null; ) {</span>
+<span class="fc" id="L400">			e.y++;</span>
+<span class="fc bfc" id="L401" title="All 2 branches covered.">			if (e.y == e.ymax) {</span>
+<span class="fc" id="L402">				Edge p = e; e = e.next;</span>
+<span class="fc bfc" id="L403" title="All 2 branches covered.">				if (prev != null)</span>
+<span class="fc" id="L404">					prev.next = e;</span>
+				else
+<span class="fc" id="L406">					activeEdgesTable_ = e;</span>
+				
+<span class="fc" id="L408">				p.next = null;</span>
+<span class="fc" id="L409">				continue;</span>
+			}
+			
+<span class="fc" id="L412">			e.x += e.dxdy;</span>
+<span class="fc bfc" id="L413" title="All 4 branches covered.">			if (prev != null &amp;&amp; prev.x &gt; e.x)</span>
+<span class="fc" id="L414">				needSort = true;</span>
+			
+<span class="fc" id="L416">			prev = e;</span>
+<span class="fc" id="L417">			e = e.next;</span>
+		}
+		
+<span class="fc bfc" id="L420" title="All 2 branches covered.">		if (needSort) {</span>
+			//resort to fix the order
+<span class="fc" id="L422">			activeEdgesTable_ = sortAET_(activeEdgesTable_);</span>
+		}
+<span class="fc" id="L424">	}</span>
+	
+	private final void addNewEdgesToAET_(int y) {
+<span class="fc bfc" id="L427" title="All 2 branches covered.">		if (y &gt;= height_)</span>
+<span class="fc" id="L428">			return;</span>
+
+<span class="fc" id="L430">		Edge edgesOnLine = ySortedEdges_[y];</span>
+<span class="fc bfc" id="L431" title="All 2 branches covered.">		if (edgesOnLine != null) {</span>
+<span class="fc" id="L432">			ySortedEdges_[y] = null;</span>
+<span class="fc" id="L433">			edgesOnLine = sortAET_(edgesOnLine);//sort new edges</span>
+<span class="fc" id="L434">			numEdges_ -= sortedNum_;//set in the sortAET</span>
+
+			// merge the edges with sorted AET - O(n) operation
+<span class="fc" id="L437">			Edge aet = activeEdgesTable_;</span>
+<span class="fc" id="L438">			boolean first = true; </span>
+<span class="fc" id="L439">			Edge newEdge = edgesOnLine;</span>
+<span class="fc" id="L440">			Edge prev_aet = null;</span>
+<span class="fc bfc" id="L441" title="All 4 branches covered.">			while (aet != null &amp;&amp; newEdge != null) {</span>
+<span class="fc bfc" id="L442" title="All 2 branches covered.">				if (aet.x &gt; newEdge.x) {</span>
+<span class="fc bfc" id="L443" title="All 2 branches covered.">					if (first)</span>
+<span class="fc" id="L444">						activeEdgesTable_ = newEdge;</span>
+					
+<span class="fc" id="L446">					Edge p = newEdge.next;</span>
+<span class="fc" id="L447">					newEdge.next = aet;</span>
+<span class="fc bfc" id="L448" title="All 2 branches covered.">					if (prev_aet != null) {</span>
+<span class="fc" id="L449">						prev_aet.next = newEdge;</span>
+					}
+					
+<span class="fc" id="L452">					prev_aet = newEdge;</span>
+<span class="fc" id="L453">					newEdge = p;</span>
+<span class="fc" id="L454">				} else { // aet.x &lt;= newEdges.x</span>
+<span class="fc" id="L455">					Edge p = aet.next;</span>
+<span class="fc" id="L456">					aet.next = newEdge;</span>
+<span class="fc bfc" id="L457" title="All 2 branches covered.">					if (prev_aet != null)</span>
+<span class="fc" id="L458">						prev_aet.next = aet;</span>
+					
+<span class="fc" id="L460">					prev_aet = aet;</span>
+<span class="fc" id="L461">					aet = p;</span>
+				}
+				
+<span class="fc" id="L464">				first = false;</span>
+			}
+			
+<span class="fc bfc" id="L467" title="All 2 branches covered.">			if (activeEdgesTable_ == null)</span>
+<span class="fc" id="L468">				activeEdgesTable_ = edgesOnLine;</span>
+		}
+<span class="fc" id="L470">	}</span>
+
+	private static int snap_(int x, int mi, int ma) {
+<span class="pc bpc" id="L473" title="1 of 4 branches missed.">		return x &lt; mi ? mi : x &gt; ma ? ma : x;</span>
+	}
+	
+	private final void emitScans_() {
+<span class="fc bfc" id="L477" title="All 2 branches covered.">		if (activeEdgesTable_ == null)</span>
+<span class="fc" id="L478">			return;</span>
+		
+<span class="fc" id="L480">		int w = 0;</span>
+<span class="fc" id="L481">		Edge e0 = activeEdgesTable_;</span>
+<span class="fc" id="L482">		int x0 = (int)(e0.x &gt;&gt; 32);</span>
+<span class="fc bfc" id="L483" title="All 2 branches covered.">		for (Edge e = e0.next; e != null; e = e.next) {</span>
+<span class="pc bpc" id="L484" title="1 of 2 branches missed.">			if (evenOdd_)</span>
+<span class="fc" id="L485">				w ^= 1;</span>
+			else
+<span class="nc" id="L487">				w += e.dir;</span>
+			
+<span class="fc bfc" id="L489" title="All 2 branches covered.">			if (e.x &gt; e0.x) {</span>
+<span class="fc" id="L490">				int x = (int)(e.x &gt;&gt; 32);</span>
+<span class="fc bfc" id="L491" title="All 2 branches covered.">				if (w != 0) {</span>
+<span class="fc" id="L492">					int xx0 = snap_(x0, 0, width_);</span>
+<span class="fc" id="L493">					int xx = snap_(x, 0, width_);</span>
+<span class="pc bpc" id="L494" title="1 of 4 branches missed.">					if (xx &gt; xx0 &amp;&amp; xx0 &lt; width_) {</span>
+<span class="fc" id="L495">						scanBuffer_[scanPtr_++] = xx0;</span>
+<span class="fc" id="L496">						scanBuffer_[scanPtr_++] = xx;</span>
+<span class="fc" id="L497">						scanBuffer_[scanPtr_++] = e.y;</span>
+<span class="fc bfc" id="L498" title="All 2 branches covered.">						if (scanPtr_ == scanBuffer_.length) {</span>
+<span class="fc" id="L499">							callback_.drawScan(scanBuffer_, scanPtr_);</span>
+<span class="fc" id="L500">							scanPtr_ = 0;</span>
+						}
+					}
+				}
+				
+<span class="fc" id="L505">				e0 = e;</span>
+<span class="fc" id="L506">				x0 = x;</span>
+			}
+		}
+<span class="fc" id="L509">	}</span>
+	
+	static private class EdgeComparator implements Comparator&lt;Edge&gt; {
+		@Override
+		public int compare(Edge o1, Edge o2) {
+<span class="pc bpc" id="L514" title="1 of 2 branches missed.">			if (o1 == o2)</span>
+<span class="nc" id="L515">				return 0;</span>
+			
+<span class="fc bfc" id="L517" title="All 4 branches covered.">			return o1.x &lt; o2.x ? -1 : o1.x &gt; o2.x ? 1 : 0;</span>
+		}
+	}
+	
+<span class="fc" id="L521">	private final static EdgeComparator edgeCompare_ = new EdgeComparator();</span>
+ 	
+	private final Edge sortAET_(Edge aet) {
+<span class="fc" id="L524">		int num = 0;</span>
+<span class="fc bfc" id="L525" title="All 2 branches covered.">		for (Edge e = aet; e != null; e = e.next)</span>
+<span class="fc" id="L526">			num++;</span>
+		
+<span class="fc" id="L528">		sortedNum_ = num;</span>
+<span class="fc bfc" id="L529" title="All 2 branches covered.">		if (num == 1)</span>
+<span class="fc" id="L530">			return aet;</span>
+		
+<span class="fc bfc" id="L532" title="All 2 branches covered.">		if (sortBuffer_ == null)</span>
+<span class="fc" id="L533">			sortBuffer_ = new Edge[Math.max(num, 16)];</span>
+		
+<span class="pc bpc" id="L535" title="1 of 2 branches missed.">		else if (sortBuffer_.length &lt; num)</span>
+<span class="nc" id="L536">			sortBuffer_ = new Edge[Math.max(num, sortBuffer_.length * 2)];</span>
+		
+		{
+<span class="fc" id="L539">			int i = 0;</span>
+<span class="fc bfc" id="L540" title="All 2 branches covered.">			for (Edge e = aet; e != null; e = e.next)</span>
+<span class="fc" id="L541">				sortBuffer_[i++] = e;</span>
+		}
+		
+<span class="fc bfc" id="L544" title="All 2 branches covered.">		if (num == 2) {</span>
+<span class="fc bfc" id="L545" title="All 2 branches covered.">			if (sortBuffer_[0].x &gt; sortBuffer_[1].x) {</span>
+<span class="fc" id="L546">				Edge tmp = sortBuffer_[0];</span>
+<span class="fc" id="L547">				sortBuffer_[0] = sortBuffer_[1];</span>
+<span class="fc" id="L548">				sortBuffer_[1] = tmp;</span>
+<span class="fc" id="L549">			}</span>
+		}
+		else {
+<span class="fc" id="L552">			Arrays.sort(sortBuffer_, 0, num, edgeCompare_);</span>
+		}
+
+<span class="fc" id="L555">		aet = sortBuffer_[0]; sortBuffer_[0] = null;</span>
+<span class="fc" id="L556">		Edge prev = aet;</span>
+<span class="fc bfc" id="L557" title="All 2 branches covered.">		for (int i = 1; i &lt; num; i++) {</span>
+<span class="fc" id="L558">			prev.next = sortBuffer_[i];</span>
+<span class="fc" id="L559">			prev = sortBuffer_[i];</span>
+<span class="fc" id="L560">			sortBuffer_[i] = null;</span>
+		}
+		
+<span class="fc" id="L563">		prev.next = null;</span>
+<span class="fc" id="L564">		return aet;</span>
+	}
+		
+	private Edge activeEdgesTable_;
+	private Edge[] ySortedEdges_;
+	private Edge[] sortBuffer_;
+	private int[] scanBuffer_;
+	int scanPtr_;
+	private ScanCallback callback_;
+	private int width_;
+	private int height_;
+	private int minY_;
+	private int maxY_;
+	private int numEdges_;
+	private int sortedNum_;
+	private boolean evenOdd_;
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

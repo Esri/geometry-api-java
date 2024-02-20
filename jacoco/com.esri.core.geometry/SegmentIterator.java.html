@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SegmentIterator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">SegmentIterator.java</span></div><h1>SegmentIterator.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+/**
+ * This class provides functionality to iterate over MultiPath segments.
+ * 
+ * Example:
+ * &lt;pre&gt;&lt;code&gt;
+ * SegmentIterator iterator = polygon.querySegmentIterator();
+ * while (iterator.nextPath()) {
+ *   while (iterator.hasNextSegment()) {
+ *     Segment segment = iterator.nextSegment();
+ *   }
+ * }
+ * &lt;/code&gt;&lt;/pre&gt;
+ */
+public class SegmentIterator {
+	private SegmentIteratorImpl m_impl;
+
+<span class="fc" id="L43">	SegmentIterator(Object obj) {</span>
+<span class="fc" id="L44">		m_impl = (SegmentIteratorImpl) obj;</span>
+<span class="fc" id="L45">	}</span>
+
+	/**
+	 * Moves the iterator to the next path. Returns the TRUE if successful.
+	 * 
+	 * @return TRUE if the next path exists.
+	 */
+	public boolean nextPath() {
+<span class="fc" id="L53">		return m_impl.nextPath();</span>
+	}
+
+	/**
+	 * Moves the iterator to the previous path. Returns the TRUE if successful.
+	 * 
+	 * @return TRUE if the previous path exists.
+	 */
+	public boolean previousPath() {
+<span class="nc" id="L62">		return m_impl.previousPath();</span>
+	}
+
+	/**
+	 * Resets the iterator such that a subsequent call to NextPath will set the
+	 * iterator to the first path.
+	 */
+	public void resetToFirstPath() {
+<span class="fc" id="L70">		m_impl.resetToFirstPath();</span>
+<span class="fc" id="L71">	}</span>
+
+	/**
+	 * Resets the iterator such that a subsequent call to PreviousPath will set
+	 * the iterator to the last path.
+	 */
+	public void resetToLastPath() {
+<span class="nc" id="L78">		m_impl.resetToLastPath();</span>
+<span class="nc" id="L79">	}</span>
+
+	/**
+	 * Resets the iterator such that a subsequent call to NextPath will set the
+	 * iterator to the given path index. A call to PreviousPath will set the
+	 * iterator to the path at pathIndex - 1.
+	 */
+	public void resetToPath(int pathIndex) {
+<span class="nc" id="L87">		m_impl.resetToPath(pathIndex);</span>
+<span class="nc" id="L88">	}</span>
+
+	/**
+	 * Indicates whether the iterator points to the first segment in the current
+	 * path.
+	 * 
+	 * @return TRUE if the iterator points to the first segment in the current
+	 *         path.
+	 */
+	public boolean isFirstSegmentInPath() {
+<span class="nc" id="L98">		return m_impl.isFirstSegmentInPath();</span>
+	}
+
+	/**
+	 * Indicates whether the iterator points to the last segment in the current
+	 * path.
+	 * 
+	 * @return TRUE if the iterator points to the last segment in the current
+	 *         path.
+	 */
+	public boolean isLastSegmentInPath() {
+<span class="nc" id="L109">		return m_impl.isLastSegmentInPath();</span>
+	}
+
+	/**
+	 * Resets the iterator so that the call to NextSegment will return the first
+	 * segment of the current path.
+	 */
+	public void resetToFirstSegment() {
+<span class="nc" id="L117">		m_impl.resetToFirstSegment();</span>
+<span class="nc" id="L118">	}</span>
+
+	/**
+	 * Resets the iterator so that the call to PreviousSegment will return the
+	 * last segment of the current path.
+	 */
+	public void resetToLastSegment() {
+<span class="nc" id="L125">		m_impl.resetToLastSegment();</span>
+<span class="nc" id="L126">	}</span>
+
+	/**
+	 *Resets the iterator to a specific vertex.
+	 *The call to next_segment will return the segment that starts at the vertex.
+	 *Call to previous_segment will return the segment that starts at the previous vertex.
+	 *@param vertexIndex The vertex index to reset the iterator to.
+	 *@param pathIndex The path index to reset the iterator to. Used as a hint. If the path_index is wrong or -1, then the path_index is automatically calculated.
+	 *
+	 */
+	public void resetToVertex(int vertexIndex, int pathIndex) {
+<span class="fc" id="L137">		m_impl.resetToVertex(vertexIndex, pathIndex);</span>
+<span class="fc" id="L138">	}</span>
+
+	/**
+	 * Indicates whether a next segment exists for the path.
+	 * 
+	 * @return TRUE is the next segment exists.
+	 */
+	public boolean hasNextSegment() {
+<span class="fc" id="L146">		return m_impl.hasNextSegment();</span>
+	}
+
+	/**
+	 * Indicates whether a previous segment exists in the path.
+	 * 
+	 * @return TRUE if the previous segment exists.
+	 */
+	public boolean hasPreviousSegment() {
+<span class="nc" id="L155">		return m_impl.hasPreviousSegment();</span>
+	}
+
+	/**
+	 * Moves the iterator to the next segment and returns the segment.
+	 * 
+	 * The Segment is returned by value and is owned by the iterator.
+	 */
+	public Segment nextSegment() {
+<span class="fc" id="L164">		return m_impl.nextSegment();</span>
+	}
+
+	/**
+	 * Moves the iterator to previous segment and returns the segment.
+	 * 
+	 * The Segment is returned by value and is owned by the iterator.
+	 */
+	public Segment previousSegment() {
+<span class="nc" id="L173">		return m_impl.previousSegment();</span>
+	}
+
+	/**
+	 * Returns the index of the current path.
+	 */
+	public int getPathIndex() {
+<span class="fc" id="L180">		return m_impl.getPathIndex();</span>
+	}
+
+	/**
+	 * Returns the index of the start point of this segment.
+	 */
+	public int getStartPointIndex() {
+<span class="fc" id="L187">		return m_impl.getStartPointIndex();</span>
+	}
+
+	/**
+	 * Returns the index of the end point of the current segment.
+	 */
+	public int getEndPointIndex() {
+<span class="nc" id="L194">		return m_impl.getEndPointIndex();</span>
+	}
+
+	/**
+	 * Returns TRUE, if the segment is the closing segment of the closed path
+	 */
+	public boolean isClosingSegment() {
+<span class="fc" id="L201">		return m_impl.isClosingSegment();</span>
+	}
+
+	/**
+	 * Switches the iterator to navigation mode.
+	 * 
+	 * @param bYesNo
+	 *            If TRUE, the iterator loops over the current path infinitely
+	 *            (unless the multipath is empty).
+	 */
+	public void setCirculator(boolean bYesNo) {
+<span class="nc" id="L212">		m_impl.setCirculator(bYesNo);</span>
+<span class="nc" id="L213">	}</span>
+
+	/**
+	 * Copies this SegmentIterator.
+	 * 
+	 * @return SegmentIterator.
+	 */
+	public Object copy() {
+<span class="nc" id="L221">		return new SegmentIterator(m_impl.copy());</span>
+	}
+
+	protected Object _getImpl() {
+<span class="nc" id="L225">		return (SegmentIteratorImpl) m_impl;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

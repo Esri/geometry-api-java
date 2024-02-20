@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GeometrySerializer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">GeometrySerializer.java</span></div><h1>GeometrySerializer.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+import java.io.InvalidObjectException;
+import java.io.ObjectStreamException;
+import java.io.Serializable;
+
+//Left here for backward compatibility. Use GenericGeometrySerializer instead
+@Deprecated
+<span class="nc" id="L32">final class GeometrySerializer implements Serializable {</span>
+	private static final long serialVersionUID = 1L;
+
+<span class="nc" id="L35">	static class BaseGeometryData implements Serializable {</span>
+		Geometry.Type geometryType;
+<span class="nc" id="L37">		byte[] esriShape = null;</span>
+	}
+
+<span class="nc" id="L40">	static class MultiVertexData extends BaseGeometryData {</span>
+<span class="nc" id="L41">		int simpleFlag = 0;</span>
+<span class="nc" id="L42">		double tolerance = 0;</span>
+	}
+
+<span class="nc" id="L45">	static class MultiPathData extends MultiVertexData {</span>
+<span class="nc" id="L46">		boolean[] ogcFlags = null;</span>
+	}
+
+	BaseGeometryData geometryData;
+
+	Object readResolve() throws ObjectStreamException {
+<span class="fc" id="L52">		Geometry geometry = null;</span>
+		try {
+<span class="fc" id="L54">			geometry = GeometryEngine.geometryFromEsriShape(</span>
+					geometryData.esriShape, geometryData.geometryType);
+<span class="fc bfc" id="L56" title="All 2 branches covered.">			if (Geometry.isMultiVertex(geometry.getType().value())) {</span>
+<span class="fc" id="L57">				MultiVertexData mvd = (MultiVertexData) geometryData;</span>
+<span class="fc" id="L58">				MultiVertexGeometryImpl mvImpl = (MultiVertexGeometryImpl) geometry</span>
+<span class="fc" id="L59">						._getImpl();</span>
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">				if (!geometry.isEmpty()</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">						&amp;&amp; Geometry.isMultiPath(geometry.getType().value())) {</span>
+<span class="fc" id="L62">					MultiPathData mpd = (MultiPathData) geometryData;</span>
+<span class="fc" id="L63">					MultiPathImpl mpImpl = (MultiPathImpl) geometry._getImpl();</span>
+<span class="fc" id="L64">					AttributeStreamOfInt8 pathFlags = mpImpl</span>
+<span class="fc" id="L65">							.getPathFlagsStreamRef();</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">					for (int i = 0, n = mpImpl.getPathCount(); i &lt; n; i++) {</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">						if (mpd.ogcFlags[i])</span>
+<span class="fc" id="L68">							pathFlags.setBits(i,</span>
+									(byte) PathFlags.enumOGCStartPolygon);
+					}
+				}
+<span class="fc" id="L72">				mvImpl.setIsSimple(mvd.simpleFlag, mvd.tolerance, false);</span>
+			}
+
+<span class="nc" id="L75">		} catch (Exception ex) {</span>
+<span class="nc" id="L76">			throw new InvalidObjectException(&quot;Cannot read geometry from stream&quot;);</span>
+<span class="fc" id="L77">		}</span>
+<span class="fc" id="L78">		return geometry;</span>
+	}
+
+	public void setGeometryByValue(Geometry geometry)
+			throws ObjectStreamException {
+		try {
+<span class="nc bnc" id="L84" title="All 2 branches missed.">			if (Geometry.isMultiPath(geometry.getType().value())) {</span>
+<span class="nc" id="L85">				geometryData = new MultiPathData();</span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">			} else if (Geometry.isMultiVertex(geometry.getType().value())) {</span>
+<span class="nc" id="L87">				geometryData = new MultiVertexData();</span>
+			} else {
+<span class="nc" id="L89">				geometryData = new BaseGeometryData();</span>
+			}
+<span class="nc" id="L91">			geometryData.esriShape = GeometryEngine</span>
+<span class="nc" id="L92">					.geometryToEsriShape(geometry);</span>
+<span class="nc" id="L93">			geometryData.geometryType = geometry.getType();</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">			if (Geometry.isMultiVertex(geometryData.geometryType.value())) {</span>
+<span class="nc" id="L95">				MultiVertexData mvd = (MultiVertexData) geometryData;</span>
+<span class="nc" id="L96">				MultiVertexGeometryImpl mvImpl = (MultiVertexGeometryImpl) geometry</span>
+<span class="nc" id="L97">						._getImpl();</span>
+<span class="nc" id="L98">				mvd.tolerance = mvImpl.m_simpleTolerance;</span>
+<span class="nc" id="L99">				mvd.simpleFlag = mvImpl.getIsSimple(0);</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">				if (!geometry.isEmpty()</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">						&amp;&amp; Geometry.isMultiPath(geometryData.geometryType</span>
+<span class="nc" id="L102">								.value())) {</span>
+<span class="nc" id="L103">					MultiPathData mpd = (MultiPathData) geometryData;</span>
+<span class="nc" id="L104">					MultiPathImpl mpImpl = (MultiPathImpl) geometry._getImpl();</span>
+<span class="nc" id="L105">					mpd.ogcFlags = new boolean[mpImpl.getPathCount()];</span>
+<span class="nc" id="L106">					AttributeStreamOfInt8 pathFlags = mpImpl</span>
+<span class="nc" id="L107">							.getPathFlagsStreamRef();</span>
+<span class="nc bnc" id="L108" title="All 2 branches missed.">					for (int i = 0, n = mpImpl.getPathCount(); i &lt; n; i++) {</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">						mpd.ogcFlags[i] = (pathFlags.read(i) &amp; (byte) PathFlags.enumOGCStartPolygon) != 0;</span>
+					}
+				}
+
+			}
+<span class="nc" id="L114">		} catch (Exception ex) {</span>
+<span class="nc" id="L115">			throw new InvalidObjectException(&quot;Cannot serialize this geometry&quot;);</span>
+<span class="nc" id="L116">		}</span>
+<span class="nc" id="L117">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

@@ -1,0 +1,809 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OperatorIntersectionCursor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">OperatorIntersectionCursor.java</span></div><h1>OperatorIntersectionCursor.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+import java.util.ArrayList;
+
+<span class="fc" id="L29">class OperatorIntersectionCursor extends GeometryCursor {</span>
+
+	GeometryCursor m_inputGeoms;
+	GeometryCursor m_smallCursor;
+	ProgressTracker m_progress_tracker;
+	SpatialReference m_spatial_reference;
+	Geometry m_geomIntersector;
+	Geometry m_geomIntersectorEmptyGeom;// holds empty geometry of intersector
+										// type.
+	int m_geomIntersectorType;
+	int m_currentGeomType;
+	int m_index;
+	int m_dimensionMask;
+	boolean m_bEmpty;
+
+	OperatorIntersectionCursor(GeometryCursor inputGeoms,
+			GeometryCursor geomIntersector, SpatialReference sr,
+<span class="fc" id="L46">			ProgressTracker progress_tracker, int dimensionMask) {</span>
+<span class="pc bpc" id="L47" title="1 of 2 branches missed.">		m_bEmpty = geomIntersector == null;</span>
+<span class="fc" id="L48">		m_index = -1;</span>
+<span class="fc" id="L49">		m_inputGeoms = inputGeoms;</span>
+<span class="fc" id="L50">		m_spatial_reference = sr;</span>
+<span class="fc" id="L51">		m_geomIntersector = geomIntersector.next();</span>
+<span class="fc" id="L52">		m_geomIntersectorType = m_geomIntersector.getType().value();</span>
+<span class="fc" id="L53">		m_currentGeomType = Geometry.Type.Unknown.value();</span>
+<span class="fc" id="L54">		m_progress_tracker = progress_tracker;</span>
+<span class="fc" id="L55">		m_dimensionMask = dimensionMask;</span>
+<span class="pc bpc" id="L56" title="2 of 6 branches missed.">		if (m_dimensionMask != -1</span>
+				&amp;&amp; (m_dimensionMask &lt;= 0 || m_dimensionMask &gt; 7))
+<span class="nc" id="L58">			throw new IllegalArgumentException(&quot;bad dimension mask&quot;);// dimension</span>
+																		// mask
+																		// can
+																		// be
+																		// -1,
+																		// for
+																		// the
+																		// default
+																		// behavior,
+																		// or a
+																		// value
+																		// between
+																		// 1 and
+																		// 7.
+<span class="fc" id="L72">	}</span>
+
+	@Override
+	public Geometry next() {
+<span class="pc bpc" id="L76" title="1 of 2 branches missed.">		if (m_bEmpty)</span>
+<span class="nc" id="L77">			return null;</span>
+
+		Geometry geom;
+<span class="fc bfc" id="L80" title="All 2 branches covered.">		if (m_smallCursor != null) {// when dimension mask is used, we produce a</span>
+<span class="fc" id="L81">			geom = m_smallCursor.next();</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">			if (geom != null)</span>
+<span class="fc" id="L83">				return geom;</span>
+			else
+<span class="fc" id="L85">				m_smallCursor = null;// done with the small cursor</span>
+		}
+
+<span class="fc bfc" id="L88" title="All 2 branches covered.">		while ((geom = m_inputGeoms.next()) != null) {</span>
+<span class="fc" id="L89">			m_index = m_inputGeoms.getGeometryID();</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">			if (m_dimensionMask == -1) {</span>
+<span class="fc" id="L91">				Geometry resGeom = intersect(geom);</span>
+<span class="pc bpc" id="L92" title="1 of 2 branches missed.">				assert (resGeom != null);</span>
+<span class="fc" id="L93">				return resGeom;</span>
+			} else {
+<span class="fc" id="L95">				m_smallCursor = intersectEx(geom);</span>
+<span class="fc" id="L96">				Geometry resGeom = m_smallCursor.next();</span>
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">				assert (resGeom != null);</span>
+<span class="fc" id="L98">				return resGeom;</span>
+			}
+		}
+<span class="fc" id="L101">		return null;</span>
+	}
+
+	@Override
+	public int getGeometryID() {
+<span class="nc" id="L106">		return m_index;</span>
+	}
+
+	Geometry intersect(Geometry input_geom) {
+<span class="fc" id="L110">		Geometry dst_geom = tryNativeImplementation_(input_geom);</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">		if (dst_geom != null)</span>
+<span class="fc" id="L112">			return dst_geom;</span>
+
+<span class="fc" id="L114">		Envelope2D commonExtent = InternalUtils.getMergedExtent(</span>
+				m_geomIntersector, input_geom);
+
+		// return Topological_operations::intersection(input_geom,
+		// m_geomIntersector, m_spatial_reference, m_progress_tracker);
+		// Preprocess geometries to be clipped to the extent of intersection to
+		// get rid of extra segments.
+<span class="fc" id="L121">		double t = InternalUtils.calculateToleranceFromGeometry(m_spatial_reference, commonExtent, true);</span>
+<span class="fc" id="L122">		Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L123">		m_geomIntersector.queryEnvelope2D(env);</span>
+<span class="fc" id="L124">		Envelope2D env1 = new Envelope2D();</span>
+<span class="fc" id="L125">		input_geom.queryEnvelope2D(env1);</span>
+<span class="fc" id="L126">		env.inflate(2.0 * t, 2.0 * t);</span>
+<span class="fc" id="L127">		env.intersect(env1);</span>
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">		assert (!env.isEmpty());</span>
+<span class="fc" id="L129">		env.inflate(100 * t, 100 * t);</span>
+<span class="fc" id="L130">		double tol = 0;</span>
+<span class="fc" id="L131">		Geometry clippedIntersector = Clipper.clip(m_geomIntersector, env, tol,</span>
+				0.0);
+<span class="fc" id="L133">		Geometry clippedInputGeom = Clipper.clip(input_geom, env, tol, 0.0);</span>
+		// perform the clip
+<span class="fc" id="L135">		return TopologicalOperations.intersection(clippedInputGeom,</span>
+				clippedIntersector, m_spatial_reference, m_progress_tracker);
+	}
+
+	// Parses the input vector to ensure the out result contains only geometries
+	// as indicated with the dimensionMask
+	GeometryCursor prepareVector_(VertexDescription descr, int dimensionMask,
+			Geometry[] res_vec) {
+<span class="fc" id="L143">		int inext = 0;</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">		if ((dimensionMask &amp; 1) != 0) {</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">			if (res_vec[0] == null)</span>
+<span class="fc" id="L146">				res_vec[0] = new MultiPoint(descr);</span>
+<span class="fc" id="L147">			inext++;</span>
+		} else {
+<span class="fc bfc" id="L149" title="All 2 branches covered.">			for (int i = 0; i &lt; res_vec.length - 1; i++)</span>
+<span class="fc" id="L150">				res_vec[i] = res_vec[i + 1];</span>
+		}
+
+<span class="fc bfc" id="L153" title="All 2 branches covered.">		if ((dimensionMask &amp; 2) != 0) {</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">			if (res_vec[inext] == null)</span>
+<span class="fc" id="L155">				res_vec[inext] = new Polyline(descr);</span>
+<span class="fc" id="L156">			inext++;</span>
+		} else {
+<span class="fc bfc" id="L158" title="All 2 branches covered.">			for (int i = inext; i &lt; res_vec.length - 1; i++)</span>
+<span class="fc" id="L159">				res_vec[i] = res_vec[i + 1];</span>
+		}
+
+<span class="fc bfc" id="L162" title="All 2 branches covered.">		if ((dimensionMask &amp; 4) != 0) {</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">			if (res_vec[inext] == null)</span>
+<span class="fc" id="L164">				res_vec[inext] = new Polygon(descr);</span>
+<span class="fc" id="L165">			inext++;</span>
+		} else {
+<span class="fc bfc" id="L167" title="All 2 branches covered.">			for (int i = inext; i &lt; res_vec.length - 1; i++)</span>
+<span class="fc" id="L168">				res_vec[i] = res_vec[i + 1];</span>
+		}
+		
+<span class="fc bfc" id="L171" title="All 2 branches covered.">		if (inext != 3) {</span>
+<span class="fc" id="L172">			Geometry[] r = new Geometry[inext];</span>
+<span class="fc bfc" id="L173" title="All 2 branches covered.">			for (int i = 0; i &lt; inext; i++)</span>
+<span class="fc" id="L174">				r[i] = res_vec[i];</span>
+
+<span class="fc" id="L176">			return new SimpleGeometryCursor(r);</span>
+		} else {
+<span class="fc" id="L178">			return new SimpleGeometryCursor(res_vec);</span>
+		}
+	}
+
+	GeometryCursor intersectEx(Geometry input_geom) {
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">		assert (m_dimensionMask != -1);</span>
+<span class="fc" id="L184">		Geometry dst_geom = tryNativeImplementation_(input_geom);</span>
+<span class="fc bfc" id="L185" title="All 2 branches covered.">		if (dst_geom != null) {</span>
+<span class="fc" id="L186">			Geometry[] res_vec = new Geometry[3];</span>
+<span class="fc" id="L187">			res_vec[dst_geom.getDimension()] = dst_geom;</span>
+<span class="fc" id="L188">			return prepareVector_(input_geom.getDescription(), m_dimensionMask,</span>
+					res_vec);
+		}
+
+<span class="fc" id="L192">		Envelope2D commonExtent = InternalUtils.getMergedExtent(</span>
+				m_geomIntersector, input_geom);
+<span class="fc" id="L194">		double t = InternalUtils.calculateToleranceFromGeometry(</span>
+				m_spatial_reference, commonExtent, true);
+
+		// Preprocess geometries to be clipped to the extent of intersection to
+		// get rid of extra segments.
+		
+<span class="fc" id="L200">		Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L201">		m_geomIntersector.queryEnvelope2D(env);</span>
+<span class="fc" id="L202">		env.inflate(2 * t, 2 * t);</span>
+<span class="fc" id="L203">		Envelope2D env1 = new Envelope2D();</span>
+<span class="fc" id="L204">		input_geom.queryEnvelope2D(env1);</span>
+<span class="fc" id="L205">		env.intersect(env1);</span>
+<span class="pc bpc" id="L206" title="1 of 2 branches missed.">		assert (!env.isEmpty());</span>
+<span class="fc" id="L207">		env.inflate(100 * t, 100 * t);</span>
+<span class="fc" id="L208">		double tol = 0;</span>
+<span class="fc" id="L209">		Geometry clippedIntersector = Clipper.clip(m_geomIntersector, env, tol,</span>
+				0.0);
+<span class="fc" id="L211">		Geometry clippedInputGeom = Clipper.clip(input_geom, env, tol, 0.0);</span>
+		// perform the clip
+		Geometry[] res_vec;
+<span class="fc" id="L214">		res_vec = TopologicalOperations.intersectionEx(clippedInputGeom,</span>
+				clippedIntersector, m_spatial_reference, m_progress_tracker);
+<span class="fc" id="L216">		return prepareVector_(input_geom.getDescription(), m_dimensionMask,</span>
+				res_vec);
+	}
+
+	Geometry tryNativeImplementation_(Geometry input_geom) {
+		// A note on attributes:
+		// 1. The geometry with lower dimension wins in regard to the
+		// attributes.
+		// 2. If the dimensions are the same, the input_geometry attributes win.
+		// 3. The exception to the 2. is when the input is an Envelope, and the
+		// intersector is a polygon, then the intersector wins.
+
+		// A note on the tolerance:
+		// This operator performs a simple intersection operation. Should it use
+		// the tolerance?
+		// Example: Point is intersected by the envelope.
+		// If it is slightly outside of the envelope, should we still return it
+		// if it is closer than the tolerance?
+		// Should we do crack and cluster and snap the point coordinates to the
+		// envelope boundary?
+		//
+		// Consider floating point arithmetics approach. When you compare
+		// doubles, you should use an epsilon (equals means ::fabs(a - b) &lt;
+		// eps), however when you add/subtract, etc them, you do not use
+		// epsilon.
+		// Shouldn't we do same here? Relational operators use tolerance, but
+		// the action operators don't.
+
+<span class="fc" id="L244">		Envelope2D mergedExtent = InternalUtils.getMergedExtent(input_geom,</span>
+				m_geomIntersector);
+<span class="fc" id="L246">		double tolerance = InternalUtils.calculateToleranceFromGeometry(</span>
+				m_spatial_reference, mergedExtent, false);
+
+<span class="fc" id="L249">		int gtInput = input_geom.getType().value();</span>
+<span class="fc" id="L250">		boolean bInputEmpty = input_geom.isEmpty();</span>
+<span class="fc" id="L251">		boolean bGeomIntersectorEmpty = m_geomIntersector.isEmpty();</span>
+<span class="fc bfc" id="L252" title="All 4 branches covered.">		boolean bResultIsEmpty = bInputEmpty || bGeomIntersectorEmpty;</span>
+<span class="fc bfc" id="L253" title="All 2 branches covered.">		if (!bResultIsEmpty) {// test envelopes</span>
+<span class="fc" id="L254">			Envelope2D env2D1 = new Envelope2D();</span>
+<span class="fc" id="L255">			input_geom.queryEnvelope2D(env2D1);</span>
+<span class="fc" id="L256">			Envelope2D env2D2 = new Envelope2D();</span>
+<span class="fc" id="L257">			m_geomIntersector.queryEnvelope2D(env2D2);</span>
+<span class="fc" id="L258">                        env2D2.inflate(2.0 * tolerance, 2.0 * tolerance);</span>
+<span class="fc bfc" id="L259" title="All 2 branches covered.">			bResultIsEmpty = !env2D1.isIntersecting(env2D2);</span>
+		}
+
+<span class="fc bfc" id="L262" title="All 2 branches covered.">		if (!bResultIsEmpty) {// try accelerated test</span>
+<span class="fc" id="L263">			int res = OperatorInternalRelationUtils</span>
+<span class="fc" id="L264">					.quickTest2D_Accelerated_DisjointOrContains(</span>
+							m_geomIntersector, input_geom, tolerance);
+<span class="pc bpc" id="L266" title="1 of 2 branches missed.">			if (res == OperatorInternalRelationUtils.Relation.Disjoint) {// disjoint</span>
+<span class="nc" id="L267">				bResultIsEmpty = true;</span>
+<span class="pc bpc" id="L268" title="1 of 2 branches missed.">			} else if ((res &amp; OperatorInternalRelationUtils.Relation.Within) != 0) {// intersector</span>
+																					// is
+																					// within
+																					// the
+																					// input_geom
+																					// TODO:
+																					// assign
+																					// input_geom
+																					// attributes
+																					// first
+<span class="nc" id="L278">				return m_geomIntersector;</span>
+<span class="pc bpc" id="L279" title="1 of 2 branches missed.">			} else if ((res &amp; OperatorInternalRelationUtils.Relation.Contains) != 0) {// intersector</span>
+																						// contains
+																						// input_geom
+<span class="nc" id="L282">				return input_geom;</span>
+			}
+		}
+
+<span class="fc bfc" id="L286" title="All 2 branches covered.">		if (bResultIsEmpty) {// When one geometry or both are empty, we need to</span>
+								// return an empty geometry.
+								// Here we do that end also ensure the type is
+								// correct.
+								// That is the lower dimension need to be
+								// returned. Also, for Point vs Multi_point, an
+								// empty Point need to be returned.
+<span class="fc" id="L293">			int dim1 = Geometry.getDimensionFromType(gtInput);</span>
+<span class="fc" id="L294">			int dim2 = Geometry.getDimensionFromType(m_geomIntersectorType);</span>
+<span class="fc bfc" id="L295" title="All 2 branches covered.">			if (dim1 &lt; dim2)</span>
+<span class="fc" id="L296">				return returnEmpty_(input_geom, bInputEmpty);</span>
+<span class="fc bfc" id="L297" title="All 2 branches covered.">			else if (dim1 &gt; dim2)</span>
+<span class="fc" id="L298">				return returnEmptyIntersector_();</span>
+<span class="fc bfc" id="L299" title="All 2 branches covered.">			else if (dim1 == 0) {</span>
+<span class="fc bfc" id="L300" title="All 4 branches covered.">				if (gtInput == Geometry.GeometryType.MultiPoint</span>
+						&amp;&amp; m_geomIntersectorType == Geometry.GeometryType.Point) {// point
+																					// vs
+																					// Multi_point
+																					// need
+																					// special
+																					// treatment
+																					// to
+																					// ensure
+																					// Point
+																					// is
+																					// returned
+																					// always.
+<span class="fc" id="L313">					return returnEmptyIntersector_();</span>
+				} else
+					// Both input and intersector have same gtype, or input is
+					// Point.
+<span class="fc" id="L317">					return returnEmpty_(input_geom, bInputEmpty);</span>
+			} else
+<span class="fc" id="L319">				return returnEmpty_(input_geom, bInputEmpty);</span>
+		}
+
+		// Note: No empty geometries after this point!
+
+		// Warning: Do not try clip for polylines and polygons.
+
+		// Try clip of Envelope with Envelope.
+<span class="pc bpc" id="L327" title="2 of 8 branches missed.">		if ((m_dimensionMask == -1 || m_dimensionMask == (1 &lt;&lt; 2))</span>
+				&amp;&amp; gtInput == Geometry.GeometryType.Envelope
+				&amp;&amp; m_geomIntersectorType == Geometry.GeometryType.Envelope) {
+<span class="fc" id="L330">			Envelope env1 = (Envelope) input_geom;</span>
+<span class="fc" id="L331">			Envelope env2 = (Envelope) m_geomIntersector;</span>
+<span class="fc" id="L332">			Envelope2D env2D_1 = new Envelope2D();</span>
+<span class="fc" id="L333">			env1.queryEnvelope2D(env2D_1);</span>
+<span class="fc" id="L334">			Envelope2D env2D_2 = new Envelope2D();</span>
+<span class="fc" id="L335">			env2.queryEnvelope2D(env2D_2);</span>
+<span class="fc" id="L336">			env2D_1.intersect(env2D_2);</span>
+<span class="fc" id="L337">			Envelope result_env = new Envelope();</span>
+<span class="fc" id="L338">			env1.copyTo(result_env);</span>
+<span class="fc" id="L339">			result_env.setEnvelope2D(env2D_1);</span>
+<span class="fc" id="L340">			return result_env;</span>
+		}
+
+		// Use clip for Point and Multi_point with Envelope
+<span class="pc bpc" id="L344" title="1 of 2 branches missed.">		if ((gtInput == Geometry.GeometryType.Envelope &amp;&amp; Geometry</span>
+<span class="pc bpc" id="L345" title="2 of 4 branches missed.">				.getDimensionFromType(m_geomIntersectorType) == 0)</span>
+				|| (m_geomIntersectorType == Geometry.GeometryType.Envelope &amp;&amp; Geometry
+<span class="fc bfc" id="L347" title="All 2 branches covered.">						.getDimensionFromType(gtInput) == 0)) {</span>
+<span class="pc bpc" id="L348" title="1 of 2 branches missed.">			Envelope env = gtInput == Geometry.GeometryType.Envelope ? (Envelope) input_geom</span>
+<span class="fc" id="L349">					: (Envelope) m_geomIntersector;</span>
+<span class="pc bpc" id="L350" title="1 of 2 branches missed.">			Geometry other = gtInput == Geometry.GeometryType.Envelope ? m_geomIntersector</span>
+<span class="fc" id="L351">					: input_geom;</span>
+<span class="fc" id="L352">			Envelope2D env_2D = new Envelope2D();</span>
+<span class="fc" id="L353">			env.queryEnvelope2D(env_2D);</span>
+<span class="fc" id="L354">			return Clipper.clip(other, env_2D, tolerance, 0);</span>
+		}
+
+<span class="fc bfc" id="L357" title="All 2 branches covered.">		if ((Geometry.getDimensionFromType(gtInput) == 0 &amp;&amp; Geometry</span>
+<span class="fc bfc" id="L358" title="All 2 branches covered.">				.getDimensionFromType(m_geomIntersectorType) &gt; 0)</span>
+<span class="fc bfc" id="L359" title="All 2 branches covered.">				|| (Geometry.getDimensionFromType(gtInput) &gt; 0 &amp;&amp; Geometry</span>
+<span class="fc bfc" id="L360" title="All 2 branches covered.">						.getDimensionFromType(m_geomIntersectorType) == 0)) {// multipoint</span>
+																				// intersection
+<span class="fc" id="L362">			double tolerance1 = InternalUtils.calculateToleranceFromGeometry(</span>
+					m_spatial_reference, input_geom, false);
+<span class="fc bfc" id="L364" title="All 2 branches covered.">			if (gtInput == Geometry.GeometryType.MultiPoint)</span>
+<span class="fc" id="L365">				return TopologicalOperations.intersection(</span>
+						(MultiPoint) input_geom, m_geomIntersector, tolerance1);
+<span class="fc bfc" id="L367" title="All 2 branches covered.">			if (gtInput == Geometry.GeometryType.Point)</span>
+<span class="fc" id="L368">				return TopologicalOperations.intersection((Point) input_geom,</span>
+						m_geomIntersector, tolerance1);
+<span class="fc bfc" id="L370" title="All 2 branches covered.">			if (m_geomIntersectorType == Geometry.GeometryType.MultiPoint)</span>
+<span class="fc" id="L371">				return TopologicalOperations.intersection(</span>
+						(MultiPoint) m_geomIntersector, input_geom, tolerance1);
+<span class="pc bpc" id="L373" title="1 of 2 branches missed.">			if (m_geomIntersectorType == Geometry.GeometryType.Point)</span>
+<span class="fc" id="L374">				return TopologicalOperations.intersection(</span>
+						(Point) m_geomIntersector, input_geom, tolerance1);
+<span class="nc" id="L376">			throw GeometryException.GeometryInternalError();</span>
+		}
+
+		// Try Polyline vs Polygon
+<span class="fc bfc" id="L380" title="All 8 branches covered.">		if ((m_dimensionMask == -1 || m_dimensionMask == (1 &lt;&lt; 1))</span>
+				&amp;&amp; (gtInput == Geometry.GeometryType.Polyline)
+				&amp;&amp; (m_geomIntersectorType == Geometry.GeometryType.Polygon)) {
+<span class="fc" id="L383">			return tryFastIntersectPolylinePolygon_((Polyline) (input_geom),</span>
+					(Polygon) (m_geomIntersector));
+		}
+
+		// Try Polygon vs Polyline
+<span class="fc bfc" id="L388" title="All 8 branches covered.">		if ((m_dimensionMask == -1 || m_dimensionMask == (1 &lt;&lt; 1))</span>
+				&amp;&amp; (gtInput == Geometry.GeometryType.Polygon)
+				&amp;&amp; (m_geomIntersectorType == Geometry.GeometryType.Polyline)) {
+<span class="fc" id="L391">			return tryFastIntersectPolylinePolygon_(</span>
+					(Polyline) (m_geomIntersector), (Polygon) (input_geom));
+		}
+
+<span class="fc" id="L395">		return null;</span>
+	}
+
+	Geometry tryFastIntersectPolylinePolygon_(Polyline polyline, Polygon polygon) {
+<span class="fc" id="L399">		MultiPathImpl polylineImpl = (MultiPathImpl) polyline._getImpl();</span>
+<span class="fc" id="L400">		MultiPathImpl polygonImpl = (MultiPathImpl) polygon._getImpl();</span>
+
+<span class="fc" id="L402">		double tolerance = InternalUtils.calculateToleranceFromGeometry(</span>
+				m_spatial_reference, polygon, false);
+<span class="fc" id="L404">		Envelope2D clipEnvelope = new Envelope2D();</span>
+		{
+<span class="fc" id="L406">			polygonImpl.queryEnvelope2D(clipEnvelope);</span>
+<span class="fc" id="L407">			Envelope2D env1 = new Envelope2D();</span>
+<span class="fc" id="L408">			polylineImpl.queryEnvelope2D(env1);</span>
+<span class="fc" id="L409">                        env1.inflate(2.0 * tolerance, 2.0 * tolerance);</span>
+<span class="fc" id="L410">			clipEnvelope.intersect(env1);</span>
+<span class="pc bpc" id="L411" title="1 of 2 branches missed.">			assert (!clipEnvelope.isEmpty());</span>
+		}
+
+<span class="fc" id="L414">		clipEnvelope.inflate(10 * tolerance, 10 * tolerance);</span>
+
+		if (true) {
+<span class="fc" id="L417">			double tol = 0;</span>
+<span class="fc" id="L418">			Geometry clippedPolyline = Clipper.clip(polyline, clipEnvelope,</span>
+					tol, 0.0);
+<span class="fc" id="L420">			polyline = (Polyline) clippedPolyline;</span>
+<span class="fc" id="L421">			polylineImpl = (MultiPathImpl) polyline._getImpl();</span>
+		}
+
+<span class="fc" id="L424">		AttributeStreamOfInt32 clipResult = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L425">		int unresolvedSegments = -1;</span>
+<span class="fc" id="L426">		GeometryAccelerators accel = polygonImpl._getAccelerators();</span>
+<span class="pc bpc" id="L427" title="1 of 2 branches missed.">		if (accel != null) {</span>
+<span class="nc" id="L428">			RasterizedGeometry2D rgeom = accel.getRasterizedGeometry();</span>
+<span class="nc bnc" id="L429" title="All 2 branches missed.">			if (rgeom != null) {</span>
+<span class="nc" id="L430">				unresolvedSegments = 0;</span>
+<span class="nc" id="L431">				clipResult.reserve(polylineImpl.getPointCount()</span>
+<span class="nc" id="L432">						+ polylineImpl.getPathCount());</span>
+<span class="nc" id="L433">				Envelope2D seg_env = new Envelope2D();</span>
+<span class="nc" id="L434">				SegmentIteratorImpl iter = polylineImpl.querySegmentIterator();</span>
+<span class="nc bnc" id="L435" title="All 2 branches missed.">				while (iter.nextPath()) {</span>
+<span class="nc bnc" id="L436" title="All 2 branches missed.">					while (iter.hasNextSegment()) {</span>
+<span class="nc" id="L437">						Segment seg = iter.nextSegment();</span>
+<span class="nc" id="L438">						seg.queryEnvelope2D(seg_env);</span>
+<span class="nc" id="L439">						RasterizedGeometry2D.HitType hit = rgeom</span>
+<span class="nc" id="L440">								.queryEnvelopeInGeometry(seg_env);</span>
+<span class="nc bnc" id="L441" title="All 2 branches missed.">						if (hit == RasterizedGeometry2D.HitType.Inside) {</span>
+<span class="nc" id="L442">							clipResult.add(1);</span>
+<span class="nc bnc" id="L443" title="All 2 branches missed.">						} else if (hit == RasterizedGeometry2D.HitType.Outside) {</span>
+<span class="nc" id="L444">							clipResult.add(0);</span>
+						} else {
+<span class="nc" id="L446">							clipResult.add(-1);</span>
+<span class="nc" id="L447">							unresolvedSegments++;</span>
+						}
+<span class="nc" id="L449">					}</span>
+				}
+			}
+		}
+
+<span class="pc bpc" id="L454" title="1 of 2 branches missed.">		if (polygon.getPointCount() &gt; 5) {</span>
+<span class="nc" id="L455">			double tol = 0;</span>
+<span class="nc" id="L456">			Geometry clippedPolygon = Clipper.clip(polygon, clipEnvelope, tol,</span>
+					0.0);
+
+<span class="nc" id="L459">			polygon = (Polygon) clippedPolygon;</span>
+<span class="nc" id="L460">			polygonImpl = (MultiPathImpl) polygon._getImpl();</span>
+<span class="nc" id="L461">            accel = polygonImpl._getAccelerators();//update accelerators</span>
+		}
+
+<span class="pc bpc" id="L464" title="1 of 2 branches missed.">		if (unresolvedSegments &lt; 0) {</span>
+<span class="fc" id="L465">			unresolvedSegments = polylineImpl.getSegmentCount();</span>
+		}
+
+		// Some heuristics to decide if it makes sense to go with fast intersect
+		// vs going with the regular planesweep.
+<span class="fc" id="L470">		double totalPoints = (double) (polylineImpl.getPointCount() + polygonImpl</span>
+<span class="fc" id="L471">				.getPointCount());</span>
+<span class="fc" id="L472">		double thisAlgorithmComplexity = ((double) unresolvedSegments * polygonImpl</span>
+<span class="fc" id="L473">				.getPointCount());// assume the worst case.</span>
+<span class="fc" id="L474">		double planesweepComplexity = Math.log(totalPoints) * totalPoints;</span>
+<span class="fc" id="L475">		double empiricConstantFactorPlaneSweep = 4;</span>
+<span class="pc bpc" id="L476" title="1 of 2 branches missed.">		if (thisAlgorithmComplexity &gt; planesweepComplexity</span>
+				* empiricConstantFactorPlaneSweep) {
+			// Based on the number of input points, we deduced that the
+			// plansweep performance should be better than the brute force
+			// performance.
+<span class="nc" id="L481">			return null; // resort to planesweep if quadtree does not help</span>
+		}
+
+<span class="fc" id="L484">		QuadTreeImpl polygonQuadTree = null;</span>
+<span class="fc" id="L485">		SegmentIteratorImpl polygonIter = polygonImpl.querySegmentIterator();</span>
+		// Some logic to decide if it makes sense to build a quadtree on the
+		// polygon segments
+<span class="pc bpc" id="L488" title="3 of 4 branches missed.">		if (accel != null &amp;&amp; accel.getQuadTree() != null)</span>
+<span class="nc" id="L489">			polygonQuadTree = accel.getQuadTree();</span>
+
+<span class="pc bpc" id="L491" title="2 of 4 branches missed.">		if (polygonQuadTree == null &amp;&amp; polygonImpl.getPointCount() &gt; 20) {</span>
+<span class="nc" id="L492">			polygonQuadTree = InternalUtils.buildQuadTree(polygonImpl);</span>
+		}
+
+<span class="fc" id="L495">		Polyline result_polyline = (Polyline) polyline.createInstance();</span>
+<span class="fc" id="L496">		MultiPathImpl resultPolylineImpl = (MultiPathImpl) result_polyline</span>
+<span class="fc" id="L497">				._getImpl();</span>
+<span class="fc" id="L498">		QuadTreeImpl.QuadTreeIteratorImpl qIter = null;</span>
+<span class="fc" id="L499">		SegmentIteratorImpl polylineIter = polylineImpl.querySegmentIterator();</span>
+<span class="fc" id="L500">		double[] params = new double[9];</span>
+<span class="fc" id="L501">		AttributeStreamOfDbl intersections = new AttributeStreamOfDbl(0);</span>
+<span class="fc" id="L502">		SegmentBuffer segmentBuffer = new SegmentBuffer();</span>
+<span class="fc" id="L503">		int start_index = -1;</span>
+<span class="fc" id="L504">		int inCount = 0;</span>
+<span class="fc" id="L505">		int segIndex = 0;</span>
+<span class="pc bpc" id="L506" title="1 of 2 branches missed.">		boolean bOptimized = clipResult.size() &gt; 0;</span>
+
+		// The algorithm is like that:
+		// Loop through all the segments of the polyline.
+		// For each polyline segment, intersect it with each of the polygon
+		// segments.
+		// If no intersections found then,
+		// If the polyline segment is completely inside, it is added to the
+		// result polyline.
+		// If it is outside, it is thrown out.
+		// If it intersects, then cut the polyline segment to pieces and test
+		// each part of the intersected result.
+		// The cut pieces will either have one point inside, or one point
+		// outside, or the middle point inside/outside.
+		//
+<span class="fc" id="L521">		int polylinePathIndex = -1;</span>
+
+<span class="fc bfc" id="L523" title="All 2 branches covered.">		while (polylineIter.nextPath()) {</span>
+<span class="fc" id="L524">			polylinePathIndex = polylineIter.getPathIndex();</span>
+<span class="fc" id="L525">			int stateNewPath = 0;</span>
+<span class="fc" id="L526">			int stateAddSegment = 1;</span>
+<span class="fc" id="L527">			int stateManySegments = 2;</span>
+<span class="fc" id="L528">			int stateManySegmentsContinuePath = 2;</span>
+<span class="fc" id="L529">			int stateManySegmentsNewPath = 3;</span>
+<span class="fc" id="L530">			int state = stateNewPath;</span>
+<span class="fc" id="L531">			start_index = -1;</span>
+<span class="fc" id="L532">			inCount = 0;</span>
+
+<span class="fc bfc" id="L534" title="All 2 branches covered.">			while (polylineIter.hasNextSegment()) {</span>
+<span class="pc bpc" id="L535" title="1 of 2 branches missed.">				int clipStatus = bOptimized ? (int) clipResult.get(segIndex)</span>
+<span class="fc" id="L536">						: -1;</span>
+<span class="fc" id="L537">				segIndex++;</span>
+<span class="fc" id="L538">				Segment polylineSeg = polylineIter.nextSegment();</span>
+<span class="pc bpc" id="L539" title="1 of 2 branches missed.">				if (clipStatus &lt; 0) {</span>
+<span class="pc bpc" id="L540" title="1 of 2 branches missed.">					assert (clipStatus == -1);</span>
+					// Analyse polyline segment for intersection with the
+					// polygon.
+<span class="pc bpc" id="L543" title="1 of 2 branches missed.">					if (polygonQuadTree != null) {</span>
+<span class="nc bnc" id="L544" title="All 2 branches missed.">						if (qIter == null) {</span>
+<span class="nc" id="L545">							qIter = polygonQuadTree.getIterator(polylineSeg,</span>
+									tolerance);
+						} else {
+<span class="nc" id="L548">							qIter.resetIterator(polylineSeg, tolerance);</span>
+						}
+
+<span class="nc" id="L551">						int path_index = -1;</span>
+<span class="nc bnc" id="L552" title="All 2 branches missed.">						for (int ind = qIter.next(); ind != -1; ind = qIter</span>
+<span class="nc" id="L553">								.next()) {</span>
+<span class="nc" id="L554">							polygonIter.resetToVertex(polygonQuadTree</span>
+<span class="nc" id="L555">									.getElement(ind)); // path_index</span>
+<span class="nc" id="L556">							path_index = polygonIter.getPathIndex();</span>
+<span class="nc" id="L557">							Segment polygonSeg = polygonIter.nextSegment();</span>
+							// intersect polylineSeg and polygonSeg.
+<span class="nc" id="L559">							int count = polylineSeg.intersect(polygonSeg, null,</span>
+									params, null, tolerance);
+<span class="nc bnc" id="L561" title="All 2 branches missed.">							for (int i = 0; i &lt; count; i++)</span>
+<span class="nc" id="L562">								intersections.add(params[i]);</span>
+						}
+<span class="nc" id="L564">					} else {// no quadtree built</span>
+<span class="fc" id="L565">						polygonIter.resetToFirstPath();</span>
+<span class="fc bfc" id="L566" title="All 2 branches covered.">						while (polygonIter.nextPath()) {</span>
+<span class="fc bfc" id="L567" title="All 2 branches covered.">							while (polygonIter.hasNextSegment()) {</span>
+<span class="fc" id="L568">								Segment polygonSeg = polygonIter.nextSegment();</span>
+								// intersect polylineSeg and polygonSeg.
+<span class="fc" id="L570">								int count = polylineSeg.intersect(polygonSeg,</span>
+										null, params, null, tolerance);
+<span class="fc bfc" id="L572" title="All 2 branches covered.">								for (int i = 0; i &lt; count; i++)</span>
+<span class="fc" id="L573">									intersections.add(params[i]);</span>
+<span class="fc" id="L574">							}</span>
+						}
+					}
+
+<span class="fc bfc" id="L578" title="All 2 branches covered.">					if (intersections.size() &gt; 0) {// intersections detected.</span>
+<span class="fc" id="L579">						intersections.sort(0, intersections.size()); // std::sort(intersections.begin(),</span>
+																		// intersections.end());
+
+<span class="fc" id="L582">						double t0 = 0;</span>
+<span class="fc" id="L583">						intersections.add(1.0);</span>
+<span class="fc" id="L584">						int status = -1;</span>
+<span class="fc bfc" id="L585" title="All 2 branches covered.">						for (int i = 0, n = intersections.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L586">							double t = intersections.get(i);</span>
+<span class="fc bfc" id="L587" title="All 2 branches covered.">							if (t == t0) {</span>
+<span class="fc" id="L588">								continue;</span>
+							}
+<span class="fc" id="L590">							boolean bWholeSegment = false;</span>
+							Segment resSeg;
+<span class="fc bfc" id="L592" title="All 4 branches covered.">							if (t0 != 0 || t != 1.0) {</span>
+<span class="fc" id="L593">								polylineSeg.cut(t0, t, segmentBuffer);</span>
+<span class="fc" id="L594">								resSeg = segmentBuffer.get();</span>
+							} else {
+<span class="fc" id="L596">								resSeg = polylineSeg;</span>
+<span class="fc" id="L597">								bWholeSegment = true;</span>
+							}
+
+<span class="fc bfc" id="L600" title="All 2 branches covered.">							if (state &gt;= stateManySegments) {</span>
+<span class="fc bfc" id="L601" title="All 2 branches covered.">								resultPolylineImpl.addSegmentsFromPath(</span>
+										polylineImpl, polylinePathIndex,
+										start_index, inCount,
+										state == stateManySegmentsNewPath);
+<span class="fc bfc" id="L605" title="All 2 branches covered.">								if (analyseClipSegment_(polygon,</span>
+<span class="fc" id="L606">										resSeg.getStartXY(), tolerance) != 1) {</span>
+<span class="pc bpc" id="L607" title="1 of 2 branches missed.">									if (analyseClipSegment_(polygon, resSeg,</span>
+											tolerance) != 1) {
+<span class="nc" id="L609">										return null;  //someting went wrong we'll falback to slower but robust planesweep code.</span>
+									}
+								}
+
+<span class="fc" id="L613">								resultPolylineImpl.addSegment(resSeg, false);</span>
+<span class="fc" id="L614">								state = stateAddSegment;</span>
+<span class="fc" id="L615">								inCount = 0;</span>
+							} else {
+<span class="fc" id="L617">								status = analyseClipSegment_(polygon, resSeg,</span>
+										tolerance);
+<span class="fc bfc" id="L619" title="All 3 branches covered.">								switch (status) {</span>
+								case 1:
+<span class="fc bfc" id="L621" title="All 2 branches covered.">									if (!bWholeSegment) {</span>
+<span class="pc bpc" id="L622" title="1 of 2 branches missed.">										resultPolylineImpl.addSegment(resSeg,</span>
+												state == stateNewPath);
+<span class="fc" id="L624">										state = stateAddSegment;</span>
+									} else {
+<span class="pc bpc" id="L626" title="1 of 2 branches missed.">										if (state &lt; stateManySegments) {</span>
+<span class="fc" id="L627">											start_index = polylineIter</span>
+<span class="fc" id="L628">													.getStartPointIndex()</span>
+													- polylineImpl
+<span class="fc" id="L630">															.getPathStart(polylinePathIndex);</span>
+<span class="fc" id="L631">											inCount = 1;</span>
+
+<span class="pc bpc" id="L633" title="1 of 2 branches missed.">											if (state == stateNewPath)</span>
+<span class="fc" id="L634">												state = stateManySegmentsNewPath;</span>
+											else {
+<span class="nc bnc" id="L636" title="All 2 branches missed.">												assert (state == stateAddSegment);</span>
+<span class="nc" id="L637">												state = stateManySegmentsContinuePath;</span>
+											}
+										} else
+<span class="nc" id="L640">											inCount++;</span>
+									}
+
+<span class="nc" id="L643">									break;</span>
+								case 0:
+<span class="fc" id="L645">									state = stateNewPath;</span>
+<span class="fc" id="L646">									start_index = -1;</span>
+<span class="fc" id="L647">									inCount = 0;</span>
+<span class="fc" id="L648">									break;</span>
+								default:
+<span class="fc" id="L650">									return null;// may happen if a segment</span>
+												// coincides with the border.
+								}
+							}
+
+<span class="fc" id="L655">							t0 = t;</span>
+						}
+<span class="fc" id="L657">					} else {</span>
+<span class="fc" id="L658">						clipStatus = analyseClipSegment_(polygon,</span>
+<span class="fc" id="L659">								polylineSeg.getStartXY(), tolerance);// simple</span>
+																		// case
+																		// no
+																		// intersection.
+																		// Both
+																		// points
+																		// must
+																		// be
+																		// inside.
+<span class="pc bpc" id="L668" title="1 of 2 branches missed.">						if (clipStatus &lt; 0) {</span>
+<span class="nc bnc" id="L669" title="All 2 branches missed.">							assert (clipStatus &gt;= 0);</span>
+<span class="nc" id="L670">							return null;// something goes wrong, resort to</span>
+										// planesweep
+						}
+
+<span class="pc bpc" id="L674" title="1 of 2 branches missed.">						assert (analyseClipSegment_(polygon,</span>
+<span class="fc" id="L675">								polylineSeg.getEndXY(), tolerance) == clipStatus);</span>
+<span class="fc bfc" id="L676" title="All 2 branches covered.">						if (clipStatus == 1) {// the whole segment inside</span>
+<span class="fc bfc" id="L677" title="All 2 branches covered.">							if (state &lt; stateManySegments) {</span>
+<span class="pc bpc" id="L678" title="1 of 2 branches missed.">								assert (inCount == 0);</span>
+<span class="fc" id="L679">								start_index = polylineIter.getStartPointIndex()</span>
+										- polylineImpl
+<span class="fc" id="L681">												.getPathStart(polylinePathIndex);</span>
+<span class="fc bfc" id="L682" title="All 2 branches covered.">								if (state == stateNewPath)</span>
+<span class="fc" id="L683">									state = stateManySegmentsNewPath;</span>
+								else {
+<span class="pc bpc" id="L685" title="1 of 2 branches missed.">									assert (state == stateAddSegment);</span>
+<span class="fc" id="L686">									state = stateManySegmentsContinuePath;</span>
+								}
+							}
+
+<span class="fc" id="L690">							inCount++;</span>
+						} else {
+<span class="pc bpc" id="L692" title="1 of 2 branches missed.">							assert (state &lt; stateManySegments);</span>
+<span class="fc" id="L693">							start_index = -1;</span>
+<span class="fc" id="L694">							inCount = 0;</span>
+						}
+					}
+
+<span class="fc" id="L698">					intersections.clear(false);</span>
+				} else {// clip status is determined by other means
+<span class="nc bnc" id="L700" title="All 2 branches missed.">					if (clipStatus == 0) {// outside</span>
+<span class="nc bnc" id="L701" title="All 2 branches missed.">						assert (analyseClipSegment_(polygon, polylineSeg,</span>
+								tolerance) == 0);
+<span class="nc bnc" id="L703" title="All 2 branches missed.">						assert (start_index &lt; 0);</span>
+<span class="nc bnc" id="L704" title="All 2 branches missed.">						assert (inCount == 0);</span>
+						continue;
+					}
+
+<span class="nc bnc" id="L708" title="All 2 branches missed.">					if (clipStatus == 1) {</span>
+<span class="nc bnc" id="L709" title="All 2 branches missed.">						assert (analyseClipSegment_(polygon, polylineSeg,</span>
+								tolerance) == 1);
+<span class="nc bnc" id="L711" title="All 2 branches missed.">						if (state == stateNewPath) {</span>
+<span class="nc" id="L712">							state = stateManySegmentsNewPath;</span>
+<span class="nc" id="L713">							start_index = polylineIter.getStartPointIndex()</span>
+									- polylineImpl
+<span class="nc" id="L715">											.getPathStart(polylinePathIndex);</span>
+<span class="nc bnc" id="L716" title="All 2 branches missed.">						} else if (state == stateAddSegment) {</span>
+<span class="nc" id="L717">							state = stateManySegmentsContinuePath;</span>
+<span class="nc" id="L718">							start_index = polylineIter.getStartPointIndex()</span>
+									- polylineImpl
+<span class="nc" id="L720">											.getPathStart(polylinePathIndex);</span>
+						} else
+<span class="nc bnc" id="L722" title="All 2 branches missed.">							assert (state &gt;= stateManySegments);</span>
+
+<span class="nc" id="L724">						inCount++;</span>
+<span class="nc" id="L725">						continue;</span>
+					}
+				}
+<span class="fc" id="L728">			}</span>
+
+<span class="fc bfc" id="L730" title="All 2 branches covered.">			if (state &gt;= stateManySegments) {</span>
+<span class="fc bfc" id="L731" title="All 2 branches covered.">				resultPolylineImpl.addSegmentsFromPath(polylineImpl,</span>
+						polylinePathIndex, start_index, inCount,
+						state == stateManySegmentsNewPath);
+<span class="fc" id="L734">				start_index = -1;</span>
+			}
+<span class="fc" id="L736">		}</span>
+
+<span class="fc" id="L738">		return result_polyline;</span>
+	}
+
+	int analyseClipSegment_(Polygon polygon, Point2D pt, double tol) {
+<span class="fc" id="L742">		int v = PointInPolygonHelper.isPointInPolygon(polygon, pt, tol);</span>
+<span class="fc" id="L743">		return v;</span>
+	}
+
+	int analyseClipSegment_(Polygon polygon, Segment seg, double tol) {
+<span class="fc" id="L747">		Point2D pt_1 = seg.getStartXY();</span>
+<span class="fc" id="L748">		Point2D pt_2 = seg.getEndXY();</span>
+<span class="fc" id="L749">		int v_1 = PointInPolygonHelper.isPointInPolygon(polygon, pt_1, tol);</span>
+<span class="fc" id="L750">		int v_2 = PointInPolygonHelper.isPointInPolygon(polygon, pt_2, tol);</span>
+<span class="pc bpc" id="L751" title="2 of 8 branches missed.">		if ((v_1 == 1 &amp;&amp; v_2 == 0) || (v_1 == 0 &amp;&amp; v_2 == 1)) {</span>
+			// Operator_factory_local::SaveJSONToTextFileDbg(&quot;c:/temp/badPointInPolygon.json&quot;,
+			// polygon, m_spatial_reference);
+<span class="nc" id="L754">			assert (false);// if happens</span>
+<span class="nc" id="L755">			return -1;// something went wrong. One point is inside, the other is</span>
+						// outside. Should not happen. We'll resort to
+						// planesweep.
+		}
+<span class="fc bfc" id="L759" title="All 4 branches covered.">		if (v_1 == 0 || v_2 == 0)</span>
+<span class="fc" id="L760">			return 0;</span>
+<span class="fc bfc" id="L761" title="All 4 branches covered.">		if (v_1 == 1 || v_2 == 1)</span>
+<span class="fc" id="L762">			return 1;</span>
+
+<span class="fc" id="L764">		Point2D midPt = new Point2D();</span>
+<span class="fc" id="L765">		midPt.add(pt_1, pt_2);</span>
+<span class="fc" id="L766">		midPt.scale(0.5);// calculate midpoint</span>
+<span class="fc" id="L767">		int v = PointInPolygonHelper.isPointInPolygon(polygon, midPt, tol);</span>
+<span class="pc bpc" id="L768" title="1 of 2 branches missed.">		if (v == 0) {</span>
+<span class="nc" id="L769">			return 0;</span>
+		}
+
+<span class="fc bfc" id="L772" title="All 2 branches covered.">		if (v == 1) {</span>
+<span class="fc" id="L773">			return 1;</span>
+		}
+
+<span class="fc" id="L776">		return -1;</span>
+	}
+
+	Geometry normalizeIntersectionOutput(Geometry geom, int GT_1, int GT_2) {
+<span class="nc bnc" id="L780" title="All 4 branches missed.">		if (GT_1 == Geometry.GeometryType.Point</span>
+				|| GT_2 == Geometry.GeometryType.Point) {
+<span class="nc bnc" id="L782" title="All 2 branches missed.">			assert (geom.getType().value() == Geometry.GeometryType.Point);</span>
+		}
+<span class="nc bnc" id="L784" title="All 2 branches missed.">		if (GT_1 == Geometry.GeometryType.MultiPoint) {</span>
+<span class="nc bnc" id="L785" title="All 2 branches missed.">			if (geom.getType().value() == Geometry.GeometryType.Point) {</span>
+<span class="nc" id="L786">				MultiPoint mp = new MultiPoint(geom.getDescription());</span>
+<span class="nc bnc" id="L787" title="All 2 branches missed.">				if (!geom.isEmpty())</span>
+<span class="nc" id="L788">					mp.add((Point) geom);</span>
+<span class="nc" id="L789">				return mp;</span>
+			}
+		}
+
+<span class="nc" id="L793">		return geom;</span>
+	}
+
+	static Geometry returnEmpty_(Geometry geom, boolean bEmpty) {
+<span class="fc bfc" id="L797" title="All 2 branches covered.">		return bEmpty ? geom : geom.createInstance();</span>
+	}
+
+	Geometry returnEmptyIntersector_() {
+<span class="pc bpc" id="L801" title="1 of 2 branches missed.">		if (m_geomIntersectorEmptyGeom == null)</span>
+<span class="fc" id="L802">			m_geomIntersectorEmptyGeom = m_geomIntersector.createInstance();</span>
+
+<span class="fc" id="L804">		return m_geomIntersectorEmptyGeom;</span>
+	}
+
+	// virtual boolean IsRecycling() OVERRIDE { return false; }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

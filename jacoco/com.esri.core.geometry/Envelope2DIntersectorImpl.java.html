@@ -1,0 +1,924 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Envelope2DIntersectorImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Envelope2DIntersectorImpl.java</span></div><h1>Envelope2DIntersectorImpl.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+import java.util.ArrayList;
+
+class Envelope2DIntersectorImpl {
+	/*
+	 * Constructor for Envelope_2D_intersector.
+	 */
+<span class="fc" id="L32">	Envelope2DIntersectorImpl() {</span>
+<span class="fc" id="L33">		m_function = -1;</span>
+<span class="fc" id="L34">		m_tolerance = 0.0;</span>
+<span class="fc" id="L35">		reset_();</span>
+<span class="fc" id="L36">	}</span>
+
+	void startConstruction() {
+<span class="fc" id="L39">		reset_();</span>
+<span class="fc" id="L40">		m_b_add_red_red = true;</span>
+
+<span class="pc bpc" id="L42" title="1 of 2 branches missed.">		if (m_envelopes_red == null) {</span>
+<span class="fc" id="L43">			m_elements_red = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L44">			m_envelopes_red = new ArrayList&lt;Envelope2D&gt;(0);</span>
+		} else {
+<span class="nc" id="L46">			m_elements_red.resizePreserveCapacity(0);</span>
+<span class="nc" id="L47">			m_envelopes_red.clear();</span>
+		}
+<span class="fc" id="L49">	}</span>
+
+	void addEnvelope(int element, Envelope2D envelope) {
+<span class="pc bpc" id="L52" title="1 of 2 branches missed.">		if (!m_b_add_red_red)</span>
+<span class="nc" id="L53">			throw new GeometryException(&quot;invalid call&quot;);</span>
+
+<span class="fc" id="L55">		Envelope2D e = new Envelope2D();</span>
+<span class="fc" id="L56">		e.setCoords(envelope);</span>
+<span class="fc" id="L57">		m_elements_red.add(element);</span>
+<span class="fc" id="L58">		m_envelopes_red.add(e);</span>
+<span class="fc" id="L59">	}</span>
+
+	void endConstruction() {
+<span class="pc bpc" id="L62" title="1 of 2 branches missed.">		if (!m_b_add_red_red)</span>
+<span class="nc" id="L63">			throw new GeometryException(&quot;invalid call&quot;);</span>
+
+<span class="fc" id="L65">		m_b_add_red_red = false;</span>
+
+<span class="pc bpc" id="L67" title="2 of 4 branches missed.">		if (m_envelopes_red != null &amp;&amp; m_envelopes_red.size() &gt; 0) {</span>
+<span class="fc" id="L68">			m_function = State.initialize;</span>
+<span class="fc" id="L69">			m_b_done = false;</span>
+		}
+<span class="fc" id="L71">	}</span>
+
+	void startRedConstruction() {
+<span class="fc" id="L74">		reset_();</span>
+<span class="fc" id="L75">		m_b_add_red = true;</span>
+
+<span class="pc bpc" id="L77" title="1 of 2 branches missed.">		if (m_envelopes_red == null) {</span>
+<span class="fc" id="L78">			m_elements_red = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L79">			m_envelopes_red = new ArrayList&lt;Envelope2D&gt;(0);</span>
+		} else {
+<span class="nc" id="L81">			m_elements_red.resizePreserveCapacity(0);</span>
+<span class="nc" id="L82">			m_envelopes_red.clear();</span>
+		}
+<span class="fc" id="L84">	}</span>
+
+	void addRedEnvelope(int element, Envelope2D red_envelope) {
+<span class="pc bpc" id="L87" title="1 of 2 branches missed.">		if (!m_b_add_red)</span>
+<span class="nc" id="L88">			throw new GeometryException(&quot;invalid call&quot;);</span>
+
+<span class="fc" id="L90">		Envelope2D e = new Envelope2D();</span>
+<span class="fc" id="L91">		e.setCoords(red_envelope);</span>
+<span class="fc" id="L92">		m_elements_red.add(element);</span>
+<span class="fc" id="L93">		m_envelopes_red.add(e);</span>
+<span class="fc" id="L94">	}</span>
+
+	void endRedConstruction() {
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">		if (!m_b_add_red)</span>
+<span class="nc" id="L98">			throw new GeometryException(&quot;invalid call&quot;);</span>
+
+<span class="fc" id="L100">		m_b_add_red = false;</span>
+
+<span class="pc bpc" id="L102" title="4 of 8 branches missed.">		if (m_envelopes_red != null &amp;&amp; m_envelopes_red.size() &gt; 0 &amp;&amp; m_envelopes_blue != null &amp;&amp; m_envelopes_blue.size() &gt; 0) {</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">			if (m_function == -1)</span>
+<span class="nc" id="L104">				m_function = State.initializeRedBlue;</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">			else if (m_function == State.initializeBlue)</span>
+<span class="nc" id="L106">				m_function = State.initializeRedBlue;</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">			else if (m_function != State.initializeRedBlue)</span>
+<span class="nc" id="L108">				m_function = State.initializeRed;</span>
+
+<span class="nc" id="L110">			m_b_done = false;</span>
+		}
+<span class="fc" id="L112">	}</span>
+
+	void startBlueConstruction() {
+<span class="fc" id="L115">		reset_();</span>
+<span class="fc" id="L116">		m_b_add_blue = true;</span>
+
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">		if (m_envelopes_blue == null) {</span>
+<span class="fc" id="L119">			m_elements_blue = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L120">			m_envelopes_blue = new ArrayList&lt;Envelope2D&gt;(0);</span>
+		} else {
+<span class="nc" id="L122">			m_elements_blue.resizePreserveCapacity(0);</span>
+<span class="nc" id="L123">			m_envelopes_blue.clear();</span>
+		}
+<span class="fc" id="L125">	}</span>
+
+	void addBlueEnvelope(int element, Envelope2D blue_envelope) {
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">		if (!m_b_add_blue)</span>
+<span class="nc" id="L129">			throw new GeometryException(&quot;invalid call&quot;);</span>
+
+<span class="fc" id="L131">		Envelope2D e = new Envelope2D();</span>
+<span class="fc" id="L132">		e.setCoords(blue_envelope);</span>
+<span class="fc" id="L133">		m_elements_blue.add(element);</span>
+<span class="fc" id="L134">		m_envelopes_blue.add(e);</span>
+<span class="fc" id="L135">	}</span>
+
+	void endBlueConstruction() {
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">		if (!m_b_add_blue)</span>
+<span class="nc" id="L139">			throw new GeometryException(&quot;invalid call&quot;);</span>
+
+<span class="fc" id="L141">		m_b_add_blue = false;</span>
+
+<span class="pc bpc" id="L143" title="3 of 8 branches missed.">		if (m_envelopes_red != null &amp;&amp; m_envelopes_red.size() &gt; 0 &amp;&amp; m_envelopes_blue != null &amp;&amp; m_envelopes_blue.size() &gt; 0) {</span>
+<span class="pc bpc" id="L144" title="1 of 2 branches missed.">			if (m_function == -1)</span>
+<span class="fc" id="L145">				m_function = State.initializeRedBlue;</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">			else if (m_function == State.initializeRed)</span>
+<span class="nc" id="L147">				m_function = State.initializeRedBlue;</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">			else if (m_function != State.initializeRedBlue)</span>
+<span class="nc" id="L149">				m_function = State.initializeBlue;</span>
+
+<span class="fc" id="L151">			m_b_done = false;</span>
+		}
+<span class="fc" id="L153">	}</span>
+
+	/*
+	 * Moves the iterator to the next intersecting pair of envelopes.Returns
+	 * true if an intersecting pair is found. You can call get_handle_a() and
+	 * get_handle_b() to get the index of each envelope in the current
+	 * intersection. Otherwise if false is returned, then are no more
+	 * intersections (if at all).
+	 */
+	boolean next() {
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">		if (m_b_done)</span>
+<span class="nc" id="L164">			return false;</span>
+
+<span class="fc" id="L166">		boolean b_searching = true;</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">		while (b_searching) {</span>
+<span class="pc bpc" id="L168" title="7 of 18 branches missed.">			switch (m_function) {</span>
+			case State.initialize:
+<span class="fc" id="L170">				b_searching = initialize_();</span>
+<span class="fc" id="L171">				break;</span>
+			case State.initializeRed:
+<span class="nc" id="L173">				b_searching = initializeRed_();</span>
+<span class="nc" id="L174">				break;</span>
+			case State.initializeBlue:
+<span class="nc" id="L176">				b_searching = initializeBlue_();</span>
+<span class="nc" id="L177">				break;</span>
+			case State.initializeRedBlue:
+<span class="fc" id="L179">				b_searching = initializeRedBlue_();</span>
+<span class="fc" id="L180">				break;</span>
+			case State.sweep:
+<span class="fc" id="L182">				b_searching = sweep_();</span>
+<span class="fc" id="L183">				break;</span>
+			case State.sweepBruteForce:
+<span class="fc" id="L185">				b_searching = sweepBruteForce_();</span>
+<span class="fc" id="L186">				break;</span>
+			case State.sweepRedBlueBruteForce:
+<span class="fc" id="L188">				b_searching = sweepRedBlueBruteForce_();</span>
+<span class="fc" id="L189">				break;</span>
+			case State.sweepRedBlue:
+<span class="fc" id="L191">				b_searching = sweepRedBlue_();</span>
+<span class="fc" id="L192">				break;</span>
+			case State.sweepRed:
+<span class="nc" id="L194">				b_searching = sweepRed_();</span>
+<span class="nc" id="L195">				break;</span>
+			case State.sweepBlue:
+<span class="nc" id="L197">				b_searching = sweepBlue_();</span>
+<span class="nc" id="L198">				break;</span>
+			case State.iterate:
+<span class="fc" id="L200">				b_searching = iterate_();</span>
+<span class="fc" id="L201">				break;</span>
+			case State.iterateRed:
+<span class="fc" id="L203">				b_searching = iterateRed_();</span>
+<span class="fc" id="L204">				break;</span>
+			case State.iterateBlue:
+<span class="fc" id="L206">				b_searching = iterateBlue_();</span>
+<span class="fc" id="L207">				break;</span>
+			case State.iterateBruteForce:
+<span class="fc" id="L209">				b_searching = iterateBruteForce_();</span>
+<span class="fc" id="L210">				break;</span>
+			case State.iterateRedBlueBruteForce:
+<span class="fc" id="L212">				b_searching = iterateRedBlueBruteForce_();</span>
+<span class="fc" id="L213">				break;</span>
+			case State.resetRed:
+<span class="nc" id="L215">				b_searching = resetRed_();</span>
+<span class="nc" id="L216">				break;</span>
+			case State.resetBlue:
+<span class="nc" id="L218">				b_searching = resetBlue_();</span>
+<span class="nc" id="L219">				break;</span>
+			default:
+<span class="nc" id="L221">				throw GeometryException.GeometryInternalError();</span>
+			}
+		}
+
+<span class="fc bfc" id="L225" title="All 2 branches covered.">		if (m_b_done)</span>
+<span class="fc" id="L226">			return false;</span>
+
+<span class="fc" id="L228">		return true;</span>
+	}
+
+	/*
+	 * Returns the index of the first envelope in the intersection. In the
+	 * red/blue case, this will be an index to the red envelopes.
+	 */
+	int getHandleA() {
+<span class="fc" id="L236">		return m_envelope_handle_a;</span>
+	}
+
+	/*
+	 * Returns the index of the second envelope in the intersection. In the
+	 * red/blue case, this will be an index to the blue envelopes.
+	 */
+	int getHandleB() {
+<span class="fc" id="L244">		return m_envelope_handle_b;</span>
+	}
+
+	/*
+	 * Sets the tolerance used for the intersection tests.\param tolerance The
+	 * tolerance used to determine intersection.
+	 */
+	void setTolerance(double tolerance) {
+<span class="fc" id="L252">		m_tolerance = tolerance;</span>
+<span class="fc" id="L253">	}</span>
+
+	/*
+	 * Returns a reference to the envelope at the given handle. Use this for the red/red intersection case.
+	 */
+	Envelope2D getEnvelope(int handle) {
+<span class="nc" id="L259">		return m_envelopes_red.get(handle);</span>
+	}
+
+	/*
+	 * Returns the user element associated with handle. Use this for the red/red intersection case.
+	 */
+	int getElement(int handle) {
+<span class="nc" id="L266">		return m_elements_red.read(handle);</span>
+	}
+
+	/*
+	 * Returns a reference to the red envelope at handle_a.
+	 */
+	Envelope2D getRedEnvelope(int handle_a) {
+<span class="fc" id="L273">		return m_envelopes_red.get(handle_a);</span>
+	}
+
+	/*
+	 * Returns a reference to the blue envelope at handle_b.
+	 */
+	Envelope2D getBlueEnvelope(int handle_b) {
+<span class="fc" id="L280">		return m_envelopes_blue.get(handle_b);</span>
+	}
+
+	/*
+	 * Returns the user element associated with handle_a.
+	 */
+	int getRedElement(int handle_a) {
+<span class="fc" id="L287">		return m_elements_red.read(handle_a);</span>
+	}
+
+	/*
+	 * Returns the user element associated with handle_b.
+	 */
+	int getBlueElement(int handle_b) {
+<span class="fc" id="L294">		return m_elements_blue.read(handle_b);</span>
+	}
+
+	private double m_tolerance;
+	private int m_sweep_index_red;
+	private int m_sweep_index_blue;
+	private int m_envelope_handle_a;
+	private int m_envelope_handle_b;
+	private IntervalTreeImpl m_interval_tree_red;
+	private IntervalTreeImpl m_interval_tree_blue;
+	private IntervalTreeImpl.IntervalTreeIteratorImpl m_iterator_red;
+	private IntervalTreeImpl.IntervalTreeIteratorImpl m_iterator_blue;
+<span class="fc" id="L306">	private Envelope2D m_envelope_helper = new Envelope2D();</span>
+
+	private ArrayList&lt;Envelope2D&gt; m_envelopes_red;
+	private ArrayList&lt;Envelope2D&gt; m_envelopes_blue;
+	private AttributeStreamOfInt32 m_elements_red;
+	private AttributeStreamOfInt32 m_elements_blue;
+
+	private AttributeStreamOfInt32 m_sorted_end_indices_red;
+	private AttributeStreamOfInt32 m_sorted_end_indices_blue;
+
+	private int m_queued_list_red;
+	private int m_queued_list_blue;
+	private IndexMultiDCList m_queued_envelopes;
+	private AttributeStreamOfInt32 m_queued_indices_red;
+	private AttributeStreamOfInt32 m_queued_indices_blue;
+	private boolean m_b_add_red;
+	private boolean m_b_add_blue;
+	private boolean m_b_add_red_red;
+	private boolean m_b_done;
+
+	private static boolean isTop_(int y_end_point_handle) {
+<span class="fc bfc" id="L327" title="All 2 branches covered.">		return (y_end_point_handle &amp; 0x1) == 1;</span>
+	}
+
+	private static boolean isBottom_(int y_end_point_handle) {
+<span class="fc bfc" id="L331" title="All 2 branches covered.">		return (y_end_point_handle &amp; 0x1) == 0;</span>
+	}
+
+	private void reset_() {
+<span class="fc" id="L335">		m_b_add_red = false;</span>
+<span class="fc" id="L336">		m_b_add_blue = false;</span>
+<span class="fc" id="L337">		m_b_add_red_red = false;</span>
+<span class="fc" id="L338">		m_sweep_index_red = -1;</span>
+<span class="fc" id="L339">		m_sweep_index_blue = -1;</span>
+<span class="fc" id="L340">		m_queued_list_red = -1;</span>
+<span class="fc" id="L341">		m_queued_list_blue = -1;</span>
+<span class="fc" id="L342">		m_b_done = true;</span>
+<span class="fc" id="L343">	}</span>
+
+	private boolean initialize_() {
+<span class="fc" id="L346">		m_envelope_handle_a = -1;</span>
+<span class="fc" id="L347">		m_envelope_handle_b = -1;</span>
+
+<span class="fc bfc" id="L349" title="All 2 branches covered.">		if (m_envelopes_red.size() &lt; 10) {</span>
+<span class="fc" id="L350">			m_sweep_index_red = m_envelopes_red.size();</span>
+<span class="fc" id="L351">			m_function = State.sweepBruteForce;</span>
+<span class="fc" id="L352">			return true;</span>
+		}
+
+<span class="pc bpc" id="L355" title="1 of 2 branches missed.">		if (m_interval_tree_red == null) {</span>
+<span class="fc" id="L356">			m_interval_tree_red = new IntervalTreeImpl(true);</span>
+<span class="fc" id="L357">			m_sorted_end_indices_red = new AttributeStreamOfInt32(0);</span>
+		}
+
+<span class="fc" id="L360">		m_interval_tree_red.addEnvelopesRef(m_envelopes_red);</span>
+
+<span class="pc bpc" id="L362" title="1 of 2 branches missed.">		if (m_iterator_red == null) {</span>
+<span class="fc" id="L363">			m_iterator_red = m_interval_tree_red.getIterator();</span>
+		}
+
+<span class="fc" id="L366">		m_sorted_end_indices_red.reserve(2 * m_envelopes_red.size());</span>
+<span class="fc" id="L367">		m_sorted_end_indices_red.resize(0);</span>
+
+<span class="fc bfc" id="L369" title="All 2 branches covered.">		for (int i = 0; i &lt; 2 * m_envelopes_red.size(); i++)</span>
+<span class="fc" id="L370">			m_sorted_end_indices_red.add(i);</span>
+
+<span class="fc" id="L372">		sortYEndIndices_(m_sorted_end_indices_red, 0, 2 * m_envelopes_red.size(), true);</span>
+
+<span class="fc" id="L374">		m_sweep_index_red = 2 * m_envelopes_red.size();</span>
+
+<span class="fc" id="L376">		m_function = State.sweep; // overwrite initialize_</span>
+
+<span class="fc" id="L378">		return true;</span>
+	}
+
+	private boolean initializeRed_() {
+<span class="nc" id="L382">		m_envelope_handle_a = -1;</span>
+<span class="nc" id="L383">		m_envelope_handle_b = -1;</span>
+
+<span class="nc bnc" id="L385" title="All 4 branches missed.">		if (m_envelopes_red.size() &lt; 10 || m_envelopes_blue.size() &lt; 10) {</span>
+<span class="nc" id="L386">			m_sweep_index_red = m_envelopes_red.size();</span>
+<span class="nc" id="L387">			m_function = State.sweepRedBlueBruteForce;</span>
+<span class="nc" id="L388">			return true;</span>
+		}
+
+<span class="nc bnc" id="L391" title="All 2 branches missed.">		if (m_interval_tree_red == null) {</span>
+<span class="nc" id="L392">			m_interval_tree_red = new IntervalTreeImpl(true);</span>
+<span class="nc" id="L393">			m_sorted_end_indices_red = new AttributeStreamOfInt32(0);</span>
+		}
+
+<span class="nc" id="L396">		m_interval_tree_red.addEnvelopesRef(m_envelopes_red);</span>
+
+<span class="nc bnc" id="L398" title="All 2 branches missed.">		if (m_iterator_red == null) {</span>
+<span class="nc" id="L399">			m_iterator_red = m_interval_tree_red.getIterator();</span>
+		}
+
+<span class="nc" id="L402">		m_sorted_end_indices_red.reserve(2 * m_envelopes_red.size());</span>
+<span class="nc" id="L403">		m_sorted_end_indices_red.resize(0);</span>
+
+<span class="nc bnc" id="L405" title="All 2 branches missed.">		for (int i = 0; i &lt; 2 * m_envelopes_red.size(); i++)</span>
+<span class="nc" id="L406">			m_sorted_end_indices_red.add(i);</span>
+
+<span class="nc" id="L408">		sortYEndIndices_(m_sorted_end_indices_red, 0, m_sorted_end_indices_red.size(), true);</span>
+<span class="nc" id="L409">		m_sweep_index_red = m_sorted_end_indices_red.size();</span>
+
+<span class="nc bnc" id="L411" title="All 2 branches missed.">		if (m_queued_list_red != -1) {</span>
+<span class="nc" id="L412">			m_queued_envelopes.deleteList(m_queued_list_red);</span>
+<span class="nc" id="L413">			m_queued_indices_red.resize(0);</span>
+<span class="nc" id="L414">			m_queued_list_red = -1;</span>
+		}
+
+<span class="nc" id="L417">		m_function = State.sweepRedBlue; // overwrite initialize_</span>
+
+<span class="nc" id="L419">		return resetBlue_();</span>
+	}
+
+	private boolean initializeBlue_() {
+<span class="nc" id="L423">		m_envelope_handle_a = -1;</span>
+<span class="nc" id="L424">		m_envelope_handle_b = -1;</span>
+
+<span class="nc bnc" id="L426" title="All 4 branches missed.">		if (m_envelopes_red.size() &lt; 10 || m_envelopes_blue.size() &lt; 10) {</span>
+<span class="nc" id="L427">			m_sweep_index_red = m_envelopes_red.size();</span>
+<span class="nc" id="L428">			m_function = State.sweepRedBlueBruteForce;</span>
+<span class="nc" id="L429">			return true;</span>
+		}
+
+<span class="nc bnc" id="L432" title="All 2 branches missed.">		if (m_interval_tree_blue == null) {</span>
+<span class="nc" id="L433">			m_interval_tree_blue = new IntervalTreeImpl(true);</span>
+<span class="nc" id="L434">			m_sorted_end_indices_blue = new AttributeStreamOfInt32(0);</span>
+		}
+
+<span class="nc" id="L437">		m_interval_tree_blue.addEnvelopesRef(m_envelopes_blue);</span>
+
+<span class="nc bnc" id="L439" title="All 2 branches missed.">		if (m_iterator_blue == null) {</span>
+<span class="nc" id="L440">			m_iterator_blue = m_interval_tree_blue.getIterator();</span>
+		}
+
+<span class="nc" id="L443">		m_sorted_end_indices_blue.reserve(2 * m_envelopes_blue.size());</span>
+<span class="nc" id="L444">		m_sorted_end_indices_blue.resize(0);</span>
+
+<span class="nc bnc" id="L446" title="All 2 branches missed.">		for (int i = 0; i &lt; 2 * m_envelopes_blue.size(); i++)</span>
+<span class="nc" id="L447">			m_sorted_end_indices_blue.add(i);</span>
+
+<span class="nc" id="L449">		sortYEndIndices_(m_sorted_end_indices_blue, 0, m_sorted_end_indices_blue.size(), false);</span>
+<span class="nc" id="L450">		m_sweep_index_blue = m_sorted_end_indices_blue.size();</span>
+
+<span class="nc bnc" id="L452" title="All 2 branches missed.">		if (m_queued_list_blue != -1) {</span>
+<span class="nc" id="L453">			m_queued_envelopes.deleteList(m_queued_list_blue);</span>
+<span class="nc" id="L454">			m_queued_indices_blue.resize(0);</span>
+<span class="nc" id="L455">			m_queued_list_blue = -1;</span>
+		}
+
+<span class="nc" id="L458">		m_function = State.sweepRedBlue; // overwrite initialize_</span>
+
+<span class="nc" id="L460">		return resetRed_();</span>
+	}
+
+	private boolean initializeRedBlue_() {
+<span class="fc" id="L464">		m_envelope_handle_a = -1;</span>
+<span class="fc" id="L465">		m_envelope_handle_b = -1;</span>
+
+<span class="fc bfc" id="L467" title="All 4 branches covered.">		if (m_envelopes_red.size() &lt; 10 || m_envelopes_blue.size() &lt; 10) {</span>
+<span class="fc" id="L468">			m_sweep_index_red = m_envelopes_red.size();</span>
+<span class="fc" id="L469">			m_function = State.sweepRedBlueBruteForce;</span>
+<span class="fc" id="L470">			return true;</span>
+		}
+
+<span class="pc bpc" id="L473" title="1 of 2 branches missed.">		if (m_interval_tree_red == null) {</span>
+<span class="fc" id="L474">			m_interval_tree_red = new IntervalTreeImpl(true);</span>
+<span class="fc" id="L475">			m_sorted_end_indices_red = new AttributeStreamOfInt32(0);</span>
+		}
+
+<span class="pc bpc" id="L478" title="1 of 2 branches missed.">		if (m_interval_tree_blue == null) {</span>
+<span class="fc" id="L479">			m_interval_tree_blue = new IntervalTreeImpl(true);</span>
+<span class="fc" id="L480">			m_sorted_end_indices_blue = new AttributeStreamOfInt32(0);</span>
+		}
+
+<span class="fc" id="L483">		m_interval_tree_red.addEnvelopesRef(m_envelopes_red);</span>
+<span class="fc" id="L484">		m_interval_tree_blue.addEnvelopesRef(m_envelopes_blue);</span>
+
+<span class="pc bpc" id="L486" title="1 of 2 branches missed.">		if (m_iterator_red == null) {</span>
+<span class="fc" id="L487">			m_iterator_red = m_interval_tree_red.getIterator();</span>
+		}
+
+<span class="pc bpc" id="L490" title="1 of 2 branches missed.">		if (m_iterator_blue == null) {</span>
+<span class="fc" id="L491">			m_iterator_blue = m_interval_tree_blue.getIterator();</span>
+		}
+
+<span class="fc" id="L494">		m_sorted_end_indices_red.reserve(2 * m_envelopes_red.size());</span>
+<span class="fc" id="L495">		m_sorted_end_indices_blue.reserve(2 * m_envelopes_blue.size());</span>
+<span class="fc" id="L496">		m_sorted_end_indices_red.resize(0);</span>
+<span class="fc" id="L497">		m_sorted_end_indices_blue.resize(0);</span>
+
+<span class="fc bfc" id="L499" title="All 2 branches covered.">		for (int i = 0; i &lt; 2 * m_envelopes_red.size(); i++)</span>
+<span class="fc" id="L500">			m_sorted_end_indices_red.add(i);</span>
+
+<span class="fc bfc" id="L502" title="All 2 branches covered.">		for (int i = 0; i &lt; 2 * m_envelopes_blue.size(); i++)</span>
+<span class="fc" id="L503">			m_sorted_end_indices_blue.add(i);</span>
+
+<span class="fc" id="L505">		sortYEndIndices_(m_sorted_end_indices_red, 0, m_sorted_end_indices_red.size(), true);</span>
+<span class="fc" id="L506">		sortYEndIndices_(m_sorted_end_indices_blue, 0, m_sorted_end_indices_blue.size(), false);</span>
+
+<span class="fc" id="L508">		m_sweep_index_red = m_sorted_end_indices_red.size();</span>
+<span class="fc" id="L509">		m_sweep_index_blue = m_sorted_end_indices_blue.size();</span>
+
+<span class="pc bpc" id="L511" title="1 of 2 branches missed.">		if (m_queued_list_red != -1) {</span>
+<span class="nc" id="L512">			m_queued_envelopes.deleteList(m_queued_list_red);</span>
+<span class="nc" id="L513">			m_queued_indices_red.resize(0);</span>
+<span class="nc" id="L514">			m_queued_list_red = -1;</span>
+		}
+
+<span class="pc bpc" id="L517" title="1 of 2 branches missed.">		if (m_queued_list_blue != -1) {</span>
+<span class="nc" id="L518">			m_queued_envelopes.deleteList(m_queued_list_blue);</span>
+<span class="nc" id="L519">			m_queued_indices_blue.resize(0);</span>
+<span class="nc" id="L520">			m_queued_list_blue = -1;</span>
+		}
+
+<span class="fc" id="L523">		m_function = State.sweepRedBlue; // overwrite initialize_</span>
+
+<span class="fc" id="L525">		return true;</span>
+	}
+
+	private boolean sweep_() {
+<span class="fc" id="L529">		int y_end_point_handle = m_sorted_end_indices_red.get(--m_sweep_index_red);</span>
+<span class="fc" id="L530">		int envelope_handle = y_end_point_handle &gt;&gt; 1;</span>
+
+<span class="fc bfc" id="L532" title="All 2 branches covered.">		if (isBottom_(y_end_point_handle)) {</span>
+<span class="fc" id="L533">			m_interval_tree_red.remove(envelope_handle);</span>
+
+<span class="fc bfc" id="L535" title="All 2 branches covered.">			if (m_sweep_index_red == 0) {</span>
+<span class="fc" id="L536">				m_envelope_handle_a = -1;</span>
+<span class="fc" id="L537">				m_envelope_handle_b = -1;</span>
+<span class="fc" id="L538">				m_b_done = true;</span>
+<span class="fc" id="L539">				return false;</span>
+			}
+
+<span class="fc" id="L542">			return true;</span>
+		}
+
+<span class="fc" id="L545">		m_iterator_red.resetIterator(m_envelopes_red.get(envelope_handle).xmin, m_envelopes_red.get(envelope_handle).xmax, m_tolerance);</span>
+<span class="fc" id="L546">		m_envelope_handle_a = envelope_handle;</span>
+<span class="fc" id="L547">		m_function = State.iterate;</span>
+
+<span class="fc" id="L549">		return true;</span>
+	}
+
+	private boolean sweepBruteForce_() {// this isn't really a sweep, it just walks along the array of red envelopes backward.
+<span class="fc bfc" id="L553" title="All 2 branches covered.">		if (--m_sweep_index_red == -1) {</span>
+<span class="fc" id="L554">			m_envelope_handle_a = -1;</span>
+<span class="fc" id="L555">			m_envelope_handle_b = -1;</span>
+<span class="fc" id="L556">			m_b_done = true;</span>
+<span class="fc" id="L557">			return false;</span>
+		}
+
+<span class="fc" id="L560">		m_envelope_handle_a = m_sweep_index_red;</span>
+<span class="fc" id="L561">		m_sweep_index_blue = m_sweep_index_red;</span>
+<span class="fc" id="L562">		m_function = State.iterateBruteForce;</span>
+
+<span class="fc" id="L564">		return true;</span>
+	}
+
+	private boolean sweepRedBlueBruteForce_() {// this isn't really a sweep, it just walks along the array of red envelopes backward.
+<span class="fc bfc" id="L568" title="All 2 branches covered.">		if (--m_sweep_index_red == -1) {</span>
+<span class="fc" id="L569">			m_envelope_handle_a = -1;</span>
+<span class="fc" id="L570">			m_envelope_handle_b = -1;</span>
+<span class="fc" id="L571">			m_b_done = true;</span>
+<span class="fc" id="L572">			return false;</span>
+		}
+
+<span class="fc" id="L575">		m_envelope_handle_a = m_sweep_index_red;</span>
+<span class="fc" id="L576">		m_sweep_index_blue = m_envelopes_blue.size();</span>
+<span class="fc" id="L577">		m_function = State.iterateRedBlueBruteForce;</span>
+
+<span class="fc" id="L579">		return true;</span>
+	}
+
+	private boolean sweepRedBlue_() {// controls whether we want to sweep the red envelopes or sweep the blue envelopes
+<span class="fc" id="L583">		int y_end_point_handle_red = m_sorted_end_indices_red.get(m_sweep_index_red - 1);</span>
+<span class="fc" id="L584">		int y_end_point_handle_blue = m_sorted_end_indices_blue.get(m_sweep_index_blue - 1);</span>
+
+<span class="fc" id="L586">		double y_red = getAdjustedValue_(y_end_point_handle_red, true);</span>
+<span class="fc" id="L587">		double y_blue = getAdjustedValue_(y_end_point_handle_blue, false);</span>
+
+<span class="fc bfc" id="L589" title="All 2 branches covered.">		if (y_red &gt; y_blue)</span>
+<span class="fc" id="L590">			return sweepRed_();</span>
+<span class="fc bfc" id="L591" title="All 2 branches covered.">		if (y_red &lt; y_blue)</span>
+<span class="fc" id="L592">			return sweepBlue_();</span>
+
+<span class="fc bfc" id="L594" title="All 2 branches covered.">		if (isTop_(y_end_point_handle_red))</span>
+<span class="fc" id="L595">			return sweepRed_();</span>
+<span class="pc bpc" id="L596" title="1 of 2 branches missed.">		if (isTop_(y_end_point_handle_blue))</span>
+<span class="nc" id="L597">			return sweepBlue_();</span>
+
+<span class="fc" id="L599">		return sweepRed_(); // arbitrary. can call sweep_blue_ instead and would also work correctly</span>
+	}
+
+	private boolean sweepRed_() {
+<span class="fc" id="L603">		int y_end_point_handle_red = m_sorted_end_indices_red.get(--m_sweep_index_red);</span>
+<span class="fc" id="L604">		int envelope_handle_red = y_end_point_handle_red &gt;&gt; 1;</span>
+
+<span class="fc bfc" id="L606" title="All 2 branches covered.">		if (isBottom_(y_end_point_handle_red)) {</span>
+<span class="pc bpc" id="L607" title="1 of 4 branches missed.">			if (m_queued_list_red != -1 &amp;&amp; m_queued_indices_red.get(envelope_handle_red) != -1) {</span>
+<span class="fc" id="L608">				m_queued_envelopes.deleteElement(m_queued_list_red, m_queued_indices_red.get(envelope_handle_red));</span>
+<span class="fc" id="L609">				m_queued_indices_red.set(envelope_handle_red, -1);</span>
+			} else
+<span class="fc" id="L611">				m_interval_tree_red.remove(envelope_handle_red);</span>
+
+<span class="fc bfc" id="L613" title="All 2 branches covered.">			if (m_sweep_index_red == 0) {</span>
+<span class="fc" id="L614">				m_envelope_handle_a = -1;</span>
+<span class="fc" id="L615">				m_envelope_handle_b = -1;</span>
+<span class="fc" id="L616">				m_b_done = true;</span>
+<span class="fc" id="L617">				return false;</span>
+			}
+
+<span class="fc" id="L620">			return true;</span>
+		}
+
+<span class="fc bfc" id="L623" title="All 4 branches covered.">		if (m_queued_list_blue != -1 &amp;&amp; m_queued_envelopes.getListSize(m_queued_list_blue) &gt; 0) {</span>
+<span class="fc" id="L624">			int node = m_queued_envelopes.getFirst(m_queued_list_blue);</span>
+<span class="fc bfc" id="L625" title="All 2 branches covered.">			while (node != -1) {</span>
+<span class="fc" id="L626">				int e = m_queued_envelopes.getData(node);</span>
+<span class="fc" id="L627">				m_interval_tree_blue.insert(e);</span>
+<span class="fc" id="L628">				m_queued_indices_blue.set(e, -1);</span>
+<span class="fc" id="L629">				int next_node = m_queued_envelopes.getNext(node);</span>
+<span class="fc" id="L630">				m_queued_envelopes.deleteElement(m_queued_list_blue, node);</span>
+<span class="fc" id="L631">				node = next_node;</span>
+<span class="fc" id="L632">			}</span>
+		}
+
+<span class="fc bfc" id="L635" title="All 2 branches covered.">		if (m_interval_tree_blue.size() &gt; 0) {</span>
+<span class="fc" id="L636">			m_iterator_blue.resetIterator(m_envelopes_red.get(envelope_handle_red).xmin, m_envelopes_red.get(envelope_handle_red).xmax, m_tolerance);</span>
+<span class="fc" id="L637">			m_envelope_handle_a = envelope_handle_red;</span>
+<span class="fc" id="L638">			m_function = State.iterateBlue;</span>
+		} else {
+<span class="fc bfc" id="L640" title="All 2 branches covered.">			if (m_queued_list_red == -1) {</span>
+<span class="pc bpc" id="L641" title="1 of 2 branches missed.">				if (m_queued_envelopes == null)</span>
+<span class="fc" id="L642">					m_queued_envelopes = new IndexMultiDCList();</span>
+
+<span class="fc" id="L644">				m_queued_indices_red = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L645">				m_queued_indices_red.resize(m_envelopes_red.size(), -1);</span>
+<span class="fc" id="L646">				m_queued_indices_red.setRange(-1, 0, m_envelopes_red.size());</span>
+<span class="fc" id="L647">				m_queued_list_red = m_queued_envelopes.createList(1);</span>
+			}
+
+<span class="fc" id="L650">			m_queued_indices_red.set(envelope_handle_red, m_queued_envelopes.addElement(m_queued_list_red, envelope_handle_red));</span>
+<span class="fc" id="L651">			m_function = State.sweepRedBlue;</span>
+		}
+
+<span class="fc" id="L654">		return true;</span>
+	}
+
+	private boolean sweepBlue_() {
+<span class="fc" id="L658">		int y_end_point_handle_blue = m_sorted_end_indices_blue.get(--m_sweep_index_blue);</span>
+<span class="fc" id="L659">		int envelope_handle_blue = y_end_point_handle_blue &gt;&gt; 1;</span>
+
+<span class="fc bfc" id="L661" title="All 2 branches covered.">		if (isBottom_(y_end_point_handle_blue)) {</span>
+<span class="fc bfc" id="L662" title="All 4 branches covered.">			if (m_queued_list_blue != -1 &amp;&amp; m_queued_indices_blue.get(envelope_handle_blue) != -1) {</span>
+<span class="fc" id="L663">				m_queued_envelopes.deleteElement(m_queued_list_blue, m_queued_indices_blue.get(envelope_handle_blue));</span>
+<span class="fc" id="L664">				m_queued_indices_blue.set(envelope_handle_blue, -1);</span>
+			} else
+<span class="fc" id="L666">				m_interval_tree_blue.remove(envelope_handle_blue);</span>
+
+<span class="fc bfc" id="L668" title="All 2 branches covered.">			if (m_sweep_index_blue == 0) {</span>
+<span class="fc" id="L669">				m_envelope_handle_a = -1;</span>
+<span class="fc" id="L670">				m_envelope_handle_b = -1;</span>
+<span class="fc" id="L671">				m_b_done = true;</span>
+<span class="fc" id="L672">				return false;</span>
+			}
+
+<span class="fc" id="L675">			return true;</span>
+		}
+
+<span class="pc bpc" id="L678" title="1 of 4 branches missed.">		if (m_queued_list_red != -1 &amp;&amp; m_queued_envelopes.getListSize(m_queued_list_red) &gt; 0) {</span>
+<span class="fc" id="L679">			int node = m_queued_envelopes.getFirst(m_queued_list_red);</span>
+<span class="fc bfc" id="L680" title="All 2 branches covered.">			while (node != -1) {</span>
+<span class="fc" id="L681">				int e = m_queued_envelopes.getData(node);</span>
+<span class="fc" id="L682">				m_interval_tree_red.insert(e);</span>
+<span class="fc" id="L683">				m_queued_indices_red.set(e, -1);</span>
+<span class="fc" id="L684">				int next_node = m_queued_envelopes.getNext(node);</span>
+<span class="fc" id="L685">				m_queued_envelopes.deleteElement(m_queued_list_red, node);</span>
+<span class="fc" id="L686">				node = next_node;</span>
+<span class="fc" id="L687">			}</span>
+		}
+
+<span class="fc bfc" id="L690" title="All 2 branches covered.">		if (m_interval_tree_red.size() &gt; 0) {</span>
+<span class="fc" id="L691">			m_iterator_red.resetIterator(m_envelopes_blue.get(envelope_handle_blue).xmin, m_envelopes_blue.get(envelope_handle_blue).xmax, m_tolerance);</span>
+<span class="fc" id="L692">			m_envelope_handle_b = envelope_handle_blue;</span>
+<span class="fc" id="L693">			m_function = State.iterateRed;</span>
+		} else {
+<span class="fc bfc" id="L695" title="All 2 branches covered.">			if (m_queued_list_blue == -1) {</span>
+<span class="pc bpc" id="L696" title="1 of 2 branches missed.">				if (m_queued_envelopes == null)</span>
+<span class="nc" id="L697">					m_queued_envelopes = new IndexMultiDCList();</span>
+
+<span class="fc" id="L699">				m_queued_indices_blue = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L700">				m_queued_indices_blue.resize(m_envelopes_blue.size(), -1);</span>
+<span class="fc" id="L701">				m_queued_indices_blue.setRange(-1, 0, m_envelopes_blue.size());</span>
+<span class="fc" id="L702">				m_queued_list_blue = m_queued_envelopes.createList(0);</span>
+			}
+
+<span class="fc" id="L705">			m_queued_indices_blue.set(envelope_handle_blue, m_queued_envelopes.addElement(m_queued_list_blue, envelope_handle_blue));</span>
+<span class="fc" id="L706">			m_function = State.sweepRedBlue;</span>
+		}
+
+<span class="fc" id="L709">		return true;</span>
+	}
+
+	private boolean iterate_() {
+<span class="fc" id="L713">		m_envelope_handle_b = m_iterator_red.next();</span>
+<span class="fc bfc" id="L714" title="All 2 branches covered.">		if (m_envelope_handle_b != -1)</span>
+<span class="fc" id="L715">			return false;</span>
+
+<span class="fc" id="L717">		int envelope_handle = m_sorted_end_indices_red.get(m_sweep_index_red) &gt;&gt; 1;</span>
+<span class="fc" id="L718">		m_interval_tree_red.insert(envelope_handle);</span>
+<span class="fc" id="L719">		m_function = State.sweep;</span>
+
+<span class="fc" id="L721">		return true;</span>
+	}
+
+	private boolean iterateRed_() {
+<span class="fc" id="L725">		m_envelope_handle_a = m_iterator_red.next();</span>
+<span class="fc bfc" id="L726" title="All 2 branches covered.">		if (m_envelope_handle_a != -1)</span>
+<span class="fc" id="L727">			return false;</span>
+
+<span class="fc" id="L729">		m_envelope_handle_a = -1;</span>
+<span class="fc" id="L730">		m_envelope_handle_b = -1;</span>
+
+<span class="fc" id="L732">		int envelope_handle_blue = m_sorted_end_indices_blue.get(m_sweep_index_blue) &gt;&gt; 1;</span>
+<span class="fc" id="L733">		m_interval_tree_blue.insert(envelope_handle_blue);</span>
+<span class="fc" id="L734">		m_function = State.sweepRedBlue;</span>
+
+<span class="fc" id="L736">		return true;</span>
+	}
+
+	private boolean iterateBlue_() {
+<span class="fc" id="L740">		m_envelope_handle_b = m_iterator_blue.next();</span>
+<span class="fc bfc" id="L741" title="All 2 branches covered.">		if (m_envelope_handle_b != -1)</span>
+<span class="fc" id="L742">			return false;</span>
+
+<span class="fc" id="L744">		int envelope_handle_red = m_sorted_end_indices_red.get(m_sweep_index_red) &gt;&gt; 1;</span>
+<span class="fc" id="L745">		m_interval_tree_red.insert(envelope_handle_red);</span>
+<span class="fc" id="L746">		m_function = State.sweepRedBlue;</span>
+
+<span class="fc" id="L748">		return true;</span>
+	}
+
+	private boolean iterateBruteForce_() {
+<span class="fc bfc" id="L752" title="All 2 branches covered.">		if (--m_sweep_index_blue == -1) {</span>
+<span class="fc" id="L753">			m_function = State.sweepBruteForce;</span>
+<span class="fc" id="L754">			return true;</span>
+		}
+
+<span class="fc" id="L757">		m_envelope_helper.setCoords(m_envelopes_red.get(m_sweep_index_red));</span>
+<span class="fc" id="L758">		Envelope2D envelope_b = m_envelopes_red.get(m_sweep_index_blue);</span>
+
+<span class="fc" id="L760">		m_envelope_helper.inflate(m_tolerance, m_tolerance);</span>
+<span class="fc bfc" id="L761" title="All 2 branches covered.">		if (m_envelope_helper.isIntersecting(envelope_b)) {</span>
+<span class="fc" id="L762">			m_envelope_handle_b = m_sweep_index_blue;</span>
+<span class="fc" id="L763">			return false;</span>
+		}
+
+<span class="fc" id="L766">		return true;</span>
+	}
+
+	private boolean iterateRedBlueBruteForce_() {
+<span class="fc bfc" id="L770" title="All 2 branches covered.">		if (--m_sweep_index_blue == -1) {</span>
+<span class="fc" id="L771">			m_function = State.sweepRedBlueBruteForce;</span>
+<span class="fc" id="L772">			return true;</span>
+		}
+
+<span class="fc" id="L775">		m_envelope_helper.setCoords(m_envelopes_red.get(m_sweep_index_red));</span>
+<span class="fc" id="L776">		Envelope2D envelope_b = m_envelopes_blue.get(m_sweep_index_blue);</span>
+
+<span class="fc" id="L778">		m_envelope_helper.inflate(m_tolerance, m_tolerance);</span>
+<span class="fc bfc" id="L779" title="All 2 branches covered.">		if (m_envelope_helper.isIntersecting(envelope_b)) {</span>
+<span class="fc" id="L780">			m_envelope_handle_b = m_sweep_index_blue;</span>
+<span class="fc" id="L781">			return false;</span>
+		}
+
+<span class="fc" id="L784">		return true;</span>
+	}
+
+	private boolean resetRed_() {
+<span class="nc bnc" id="L788" title="All 2 branches missed.">		if (m_interval_tree_red == null) {</span>
+<span class="nc" id="L789">			m_b_done = true;</span>
+<span class="nc" id="L790">			return false;</span>
+		}
+
+<span class="nc" id="L793">		m_sweep_index_red = m_sorted_end_indices_red.size();</span>
+
+<span class="nc bnc" id="L795" title="All 2 branches missed.">		if (m_interval_tree_red.size() &gt; 0)</span>
+<span class="nc" id="L796">			m_interval_tree_red.reset();</span>
+
+<span class="nc bnc" id="L798" title="All 2 branches missed.">		if (m_queued_list_red != -1) {</span>
+<span class="nc" id="L799">			m_queued_envelopes.deleteList(m_queued_list_red);</span>
+<span class="nc" id="L800">			m_queued_indices_red.resize(0);</span>
+<span class="nc" id="L801">			m_queued_list_red = -1;</span>
+		}
+
+<span class="nc" id="L804">		m_b_done = false;</span>
+<span class="nc" id="L805">		return true;</span>
+	}
+
+	private boolean resetBlue_() {
+<span class="nc bnc" id="L809" title="All 2 branches missed.">		if (m_interval_tree_blue == null) {</span>
+<span class="nc" id="L810">			m_b_done = true;</span>
+<span class="nc" id="L811">			return false;</span>
+		}
+
+<span class="nc" id="L814">		m_sweep_index_blue = m_sorted_end_indices_blue.size();</span>
+
+<span class="nc bnc" id="L816" title="All 2 branches missed.">		if (m_interval_tree_blue.size() &gt; 0)</span>
+<span class="nc" id="L817">			m_interval_tree_blue.reset();</span>
+
+<span class="nc bnc" id="L819" title="All 2 branches missed.">		if (m_queued_list_blue != -1) {</span>
+<span class="nc" id="L820">			m_queued_envelopes.deleteList(m_queued_list_blue);</span>
+<span class="nc" id="L821">			m_queued_indices_blue.resize(0);</span>
+<span class="nc" id="L822">			m_queued_list_blue = -1;</span>
+		}
+
+<span class="nc" id="L825">		m_b_done = false;</span>
+<span class="nc" id="L826">		return true;</span>
+	}
+
+	private int m_function;
+
+	private interface State {
+		static final int initialize = 0;
+		static final int initializeRed = 1;
+		static final int initializeBlue = 2;
+		static final int initializeRedBlue = 3;
+		static final int sweep = 4;
+		static final int sweepBruteForce = 5;
+		static final int sweepRedBlueBruteForce = 6;
+		static final int sweepRedBlue = 7;
+		static final int sweepRed = 8;
+		static final int sweepBlue = 9;
+		static final int iterate = 10;
+		static final int iterateRed = 11;
+		static final int iterateBlue = 12;
+		static final int iterateBruteForce = 13;
+		static final int iterateRedBlueBruteForce = 14;
+		static final int resetRed = 15;
+		static final int resetBlue = 16;
+	}
+
+	// *********** Helpers for Bucket sort**************
+	private BucketSort m_bucket_sort;
+
+	private void sortYEndIndices_(AttributeStreamOfInt32 end_indices, int begin_, int end_, boolean b_red) {
+<span class="fc bfc" id="L855" title="All 2 branches covered.">		if (m_bucket_sort == null)</span>
+<span class="fc" id="L856">			m_bucket_sort = new BucketSort();</span>
+
+<span class="fc" id="L858">		Envelope2DBucketSortHelper sorter = new Envelope2DBucketSortHelper(this, b_red);</span>
+<span class="fc" id="L859">		m_bucket_sort.sort(end_indices, begin_, end_, sorter);</span>
+<span class="fc" id="L860">	}</span>
+
+	private void sortYEndIndicesHelper_(AttributeStreamOfInt32 end_indices, int begin_, int end_, boolean b_red) {
+<span class="fc" id="L863">		end_indices.Sort(begin_, end_, new EndPointsComparer(this, b_red));</span>
+<span class="fc" id="L864">	}</span>
+
+	private double getAdjustedValue_(int e, boolean b_red) {
+<span class="fc" id="L867">		double dy = 0.5 * m_tolerance;</span>
+<span class="fc bfc" id="L868" title="All 2 branches covered.">		if (b_red) {</span>
+<span class="fc" id="L869">			Envelope2D envelope_red = m_envelopes_red.get(e &gt;&gt; 1);</span>
+<span class="fc bfc" id="L870" title="All 2 branches covered.">			double y = (isBottom_(e) ? envelope_red.ymin - dy : envelope_red.ymax + dy);</span>
+<span class="fc" id="L871">			return y;</span>
+		}
+
+<span class="fc" id="L874">		Envelope2D envelope_blue = m_envelopes_blue.get(e &gt;&gt; 1);</span>
+<span class="fc bfc" id="L875" title="All 2 branches covered.">		double y = (isBottom_(e) ? envelope_blue.ymin - dy : envelope_blue.ymax + dy);</span>
+<span class="fc" id="L876">		return y;</span>
+	}
+
+	private static final class EndPointsComparer extends AttributeStreamOfInt32.IntComparator {// For user sort
+
+<span class="fc" id="L881">		EndPointsComparer(Envelope2DIntersectorImpl intersector, boolean b_red) {</span>
+<span class="fc" id="L882">			m_intersector = intersector;</span>
+<span class="fc" id="L883">			m_b_red = b_red;</span>
+<span class="fc" id="L884">		}</span>
+
+		@Override
+		public int compare(int e_1, int e_2) {
+<span class="fc" id="L888">			double y1 = m_intersector.getAdjustedValue_(e_1, m_b_red);</span>
+<span class="fc" id="L889">			double y2 = m_intersector.getAdjustedValue_(e_2, m_b_red);</span>
+
+<span class="fc bfc" id="L891" title="All 8 branches covered.">			if (y1 &lt; y2 || (y1 == y2 &amp;&amp; isBottom_(e_1) &amp;&amp; isTop_(e_2)))</span>
+<span class="fc" id="L892">				return -1;</span>
+
+<span class="fc" id="L894">			return 1;</span>
+		}
+
+		private Envelope2DIntersectorImpl m_intersector;
+		private boolean m_b_red;
+	}
+
+	private static final class Envelope2DBucketSortHelper extends ClassicSort {// For
+
+		// bucket
+		// sort
+<span class="fc" id="L905">		Envelope2DBucketSortHelper(Envelope2DIntersectorImpl intersector, boolean b_red) {</span>
+<span class="fc" id="L906">			m_intersector = intersector;</span>
+<span class="fc" id="L907">			m_b_red = b_red;</span>
+<span class="fc" id="L908">		}</span>
+
+		@Override
+		public void userSort(int begin, int end, AttributeStreamOfInt32 indices) {
+<span class="fc" id="L912">			m_intersector.sortYEndIndicesHelper_(indices, begin, end, m_b_red);</span>
+<span class="fc" id="L913">		}</span>
+
+		@Override
+		public double getValue(int index) {
+<span class="fc" id="L917">			return m_intersector.getAdjustedValue_(index, m_b_red);</span>
+		}
+
+		private Envelope2DIntersectorImpl m_intersector;
+		private boolean m_b_red;
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

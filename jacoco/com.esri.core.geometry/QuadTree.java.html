@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>QuadTree.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">QuadTree.java</span></div><h1>QuadTree.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2018 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+
+package com.esri.core.geometry;
+
+import java.io.Serializable;
+
+public class QuadTree implements Serializable {
+	private static final long serialVersionUID = 1L;
+	
+	public static final class QuadTreeIterator {
+		/**
+		 * Resets the iterator to an starting state on the QuadTree. If the
+		 * input Geometry is a Line segment, then the query will be the segment.
+		 * Otherwise the query will be the Envelope2D bounding the Geometry.
+		 * \param query The Geometry used for the query.
+		 * \param tolerance The tolerance used for the intersection tests.
+		 */
+		public void resetIterator(Geometry query, double tolerance) {
+<span class="pc bpc" id="L42" title="1 of 2 branches missed.">			if (!m_b_sorted)</span>
+<span class="fc" id="L43">				((QuadTreeImpl.QuadTreeIteratorImpl) m_impl).resetIterator(query, tolerance);</span>
+			else
+<span class="nc" id="L45">				((QuadTreeImpl.QuadTreeSortedIteratorImpl) m_impl).resetIterator(query, tolerance);</span>
+<span class="fc" id="L46">		}</span>
+
+		/**
+		 * Resets the iterator to a starting state on the QuadTree using the
+		 * input Envelope2D as the query.
+		 * \param query The Envelope2D used for the query.
+		 * \param tolerance The tolerance used for the intersection
+		 * tests.
+		 */
+		public void resetIterator(Envelope2D query, double tolerance) {
+<span class="fc bfc" id="L56" title="All 2 branches covered.">			if (!m_b_sorted)</span>
+<span class="fc" id="L57">				((QuadTreeImpl.QuadTreeIteratorImpl) m_impl).resetIterator(query, tolerance);</span>
+			else
+<span class="fc" id="L59">				((QuadTreeImpl.QuadTreeSortedIteratorImpl) m_impl).resetIterator(query, tolerance);</span>
+<span class="fc" id="L60">		}</span>
+
+		/**
+		 * Moves the iterator to the next Element_handle and returns the
+		 * Element_handle.
+		 */
+		public int next() {
+<span class="fc bfc" id="L67" title="All 2 branches covered.">			if (!m_b_sorted)</span>
+<span class="fc" id="L68">				return ((QuadTreeImpl.QuadTreeIteratorImpl) m_impl).next();</span>
+			else
+<span class="fc" id="L70">				return ((QuadTreeImpl.QuadTreeSortedIteratorImpl) m_impl).next();</span>
+		}
+
+		/**
+		 * Returns a void* to the impl class.
+		 */
+		Object getImpl_() {
+<span class="nc" id="L77">			return m_impl;</span>
+		}
+
+		// Creates an iterator on the input QuadTreeImpl. The query will be
+		// the Envelope2D bounding the input Geometry.
+<span class="fc" id="L82">		private QuadTreeIterator(Object obj, boolean bSorted) {</span>
+
+<span class="fc" id="L84">			m_impl = obj;</span>
+<span class="fc" id="L85">			m_b_sorted = bSorted;</span>
+<span class="fc" id="L86">		}</span>
+
+		private Object m_impl;
+		private boolean m_b_sorted;
+	}
+
+	/**
+	 * Creates a QuadTree with the root having the extent of the input
+	 * Envelope2D, and height of the input height, where the root starts at height 0.
+	 * \param extent The extent of the QuadTree.
+	 * \param height The max height of the QuadTree.
+	 */
+<span class="fc" id="L98">	public QuadTree(Envelope2D extent, int height) {</span>
+<span class="fc" id="L99">		m_impl = new QuadTreeImpl(extent, height);</span>
+<span class="fc" id="L100">	}</span>
+
+	/**
+	 * Creates a QuadTree with the root having the extent of the input Envelope2D, and height of the input height, where the root starts at height 0.
+	 * \param extent The extent of the QuadTreeImpl.
+	 * \param height The max height of the QuadTreeImpl.
+	 * \param bStoreDuplicates Put true to place elements deeper into the quad tree at intesecting quads, duplicates will be stored. Put false to only place elements into quads that can contain it..
+	 */
+<span class="fc" id="L108">	public QuadTree(Envelope2D extent, int height, boolean bStoreDuplicates) {</span>
+<span class="fc" id="L109">		m_impl = new QuadTreeImpl(extent, height, bStoreDuplicates);</span>
+<span class="fc" id="L110">	}</span>
+
+	/**
+	 * Inserts the element and bounding_box into the QuadTree. Note that a copy
+	 * will me made of the input bounding_box. Note that this will invalidate
+	 * any active iterator on the QuadTree. Returns an Element_handle
+	 * corresponding to the element and bounding_box.
+	 * \param element The element of the Geometry to be inserted.
+	 * \param bounding_box The bounding_box of
+	 * the Geometry to be inserted.
+	 */
+	public int insert(int element, Envelope2D boundingBox) {
+<span class="fc" id="L122">		return m_impl.insert(element, boundingBox);</span>
+	}
+
+	/**
+	 * Inserts the element and bounding_box into the QuadTree at the given
+	 * quad_handle. Note that a copy will me made of the input bounding_box.
+	 * Note that this will invalidate any active iterator on the QuadTree.
+	 * Returns an Element_handle corresponding to the element and bounding_box.
+	 * \param element The element of the Geometry to be inserted.
+	 * \param bounding_box The bounding_box of the Geometry to be inserted.
+	 * \param hint_index A handle used as a hint where to place the element. This can
+	 * be a handle obtained from a previous insertion and is useful on data
+	 * having strong locality such as segments of a Polygon.
+	 */
+	public int insert(int element, Envelope2D boundingBox, int hintIndex) {
+<span class="fc" id="L137">		return m_impl.insert(element, boundingBox, hintIndex);</span>
+	}
+
+	/**
+	 * Removes the element and bounding_box at the given element_handle. Note
+	 * that this will invalidate any active iterator on the QuadTree.
+	 * \param element_handle The handle corresponding to the element and bounding_box
+	 * to be removed.
+	 */
+	public void removeElement(int elementHandle) {
+<span class="fc" id="L147">		m_impl.removeElement(elementHandle);</span>
+<span class="fc" id="L148">	}</span>
+
+	/**
+	 * Returns the element at the given element_handle.
+	 * \param element_handle The handle corresponding to the element to be retrieved.
+	 */
+	public int getElement(int elementHandle) {
+<span class="fc" id="L155">		return m_impl.getElement(elementHandle);</span>
+	}
+
+	/**
+	 * Returns the element extent at the given element_handle.
+	 * \param element_handle The handle corresponding to the element extent to be retrieved.
+	 */
+	public Envelope2D getElementExtent(int elementHandle) {
+<span class="nc" id="L163">		return m_impl.getElementExtent(elementHandle);</span>
+	}
+
+	/**
+	 * Returns the extent of all elements in the quad tree.
+	 */
+	public Envelope2D getDataExtent() {
+<span class="fc" id="L170">		return m_impl.getDataExtent();</span>
+	}
+
+	/**
+	 * Returns the extent of the quad tree.
+	 */
+	public Envelope2D getQuadTreeExtent() {
+<span class="nc" id="L177">		return m_impl.getQuadTreeExtent();</span>
+	}
+
+	/**
+	 * Returns the number of elements in the subtree rooted at the given quad_handle.
+	 * \param quad_handle The handle corresponding to the quad.
+	 */
+	public int getSubTreeElementCount(int quadHandle) {
+<span class="fc" id="L185">		return m_impl.getSubTreeElementCount(quadHandle);</span>
+	}
+
+	/**
+	 * Returns the number of elements contained in the subtree rooted at the given quad_handle.
+	 * \param quad_handle The handle corresponding to the quad.
+	 */
+	public int getContainedSubTreeElementCount(int quadHandle) {
+<span class="fc" id="L193">		return m_impl.getContainedSubTreeElementCount(quadHandle);</span>
+	}
+
+	/**
+	 * Returns the number of elements in the quad tree that intersect the qiven query. Some elements may be duplicated if the quad tree stores duplicates.
+	 * \param query The Envelope2D used for the query.
+	 * \param tolerance The tolerance used for the intersection tests.
+	 * \param max_count If the intersection count becomes greater than or equal to the max_count, then max_count is returned.
+	 */
+	public int getIntersectionCount(Envelope2D query, double tolerance, int maxCount) {
+<span class="fc" id="L203">		return m_impl.getIntersectionCount(query, tolerance, maxCount);</span>
+	}
+
+	/**
+	 * Returns true if the quad tree has data intersecting the given query.
+	 * \param query The Envelope2D used for the query.
+	 * \param tolerance The tolerance used for the intersection tests.
+	 */
+	public boolean hasData(Envelope2D query, double tolerance) {
+<span class="fc" id="L212">		return m_impl.hasData(query, tolerance);</span>
+	}
+
+	/**
+	 * Returns the height of the quad at the given quad_handle. \param
+	 * quad_handle The handle corresponding to the quad.
+	 */
+	public int getHeight(int quadHandle) {
+<span class="nc" id="L220">		return m_impl.getHeight(quadHandle);</span>
+	}
+
+	/**
+	 * Returns the max height the quad tree can grow to.
+	 */
+	public int getMaxHeight() {
+<span class="nc" id="L227">		return m_impl.getMaxHeight();</span>
+	}
+
+	/**
+	 * Returns the extent of the quad at the given quad_handle.
+	 * \param quad_handle The handle corresponding to the quad.
+	 */
+	public Envelope2D getExtent(int quadHandle) {
+<span class="nc" id="L235">		return m_impl.getExtent(quadHandle);</span>
+	}
+
+	/**
+	 * Returns the Quad_handle of the quad containing the given element_handle.
+	 * \param element_handle The handle corresponding to the element.
+	 */
+	public int getQuad(int elementHandle) {
+<span class="fc" id="L243">		return m_impl.getQuad(elementHandle);</span>
+	}
+
+	/**
+	 * Returns the number of elements in the QuadTree.
+	 */
+	public int getElementCount() {
+<span class="fc" id="L250">		return m_impl.getElementCount();</span>
+	}
+
+	/**
+	 * Gets an iterator on the QuadTree. The query will be the Envelope2D that
+	 * bounds the input Geometry. To reuse the existing iterator on the same
+	 * QuadTree but with a new query, use the reset_iterator function on the
+	 * QuadTree_iterator.
+	 * \param query The Geometry used for the query. If the
+	 * Geometry is a Line segment, then the query will be the segment. Otherwise
+	 * the query will be the Envelope2D bounding the Geometry.
+	 * \param tolerance The tolerance used for the intersection tests.
+	 */
+	public QuadTreeIterator getIterator(Geometry query, double tolerance) {
+<span class="nc" id="L264">		QuadTreeImpl.QuadTreeIteratorImpl iterator = m_impl.getIterator(query, tolerance);</span>
+<span class="nc" id="L265">		return new QuadTreeIterator(iterator, false);</span>
+	}
+
+	/**
+	 * Gets an iterator on the QuadTree using the input Envelope2D as the
+	 * query. To reuse the existing iterator on the same QuadTree but with a
+	 * new query, use the reset_iterator function on the QuadTree_iterator.
+	 * \param query The Envelope2D used for the query.
+	 * \param tolerance The tolerance used for the intersection tests.
+	 */
+	public QuadTreeIterator getIterator(Envelope2D query, double tolerance) {
+<span class="nc" id="L276">		QuadTreeImpl.QuadTreeIteratorImpl iterator = m_impl.getIterator(query, tolerance);</span>
+<span class="nc" id="L277">		return new QuadTreeIterator(iterator, false);</span>
+	}
+
+	/**
+	 * Gets an iterator on the QuadTree.
+	 */
+	public QuadTreeIterator getIterator() {
+<span class="fc" id="L284">		QuadTreeImpl.QuadTreeIteratorImpl iterator = m_impl.getIterator();</span>
+<span class="fc" id="L285">		return new QuadTreeIterator(iterator, false);</span>
+	}
+
+	/**
+	 * Gets an iterator on the QuadTree. The query will be the Envelope2D that bounds the input Geometry.
+	 * To reuse the existing iterator on the same QuadTree but with a new query, use the reset_iterator function on the QuadTree_iterator.
+	 * \param query The Geometry used for the query. If the Geometry is a Line segment, then the query will be the segment. Otherwise the query will be the Envelope2D bounding the Geometry.
+	 * \param tolerance The tolerance used for the intersection tests.
+	 * \param bSorted Put true to iterate the quad tree in the order of the Element_types.
+	 */
+	public QuadTreeIterator getIterator(Geometry query, double tolerance, boolean bSorted) {
+<span class="nc bnc" id="L296" title="All 2 branches missed.">		if (!bSorted) {</span>
+<span class="nc" id="L297">			QuadTreeImpl.QuadTreeIteratorImpl iterator = m_impl.getIterator(query, tolerance);</span>
+<span class="nc" id="L298">			return new QuadTreeIterator(iterator, false);</span>
+		} else {
+<span class="nc" id="L300">			QuadTreeImpl.QuadTreeSortedIteratorImpl iterator = m_impl.getSortedIterator(query, tolerance);</span>
+<span class="nc" id="L301">			return new QuadTreeIterator(iterator, true);</span>
+		}
+	}
+
+	/**
+	 * Gets an iterator on the QuadTree using the input Envelope2D as the query.
+	 * To reuse the existing iterator on the same QuadTree but with a new query, use the reset_iterator function on the QuadTree_iterator.
+	 * \param query The Envelope2D used for the query.
+	 * \param tolerance The tolerance used for the intersection tests.
+	 * \param bSorted Put true to iterate the quad tree in the order of the Element_types.
+	 */
+	public QuadTreeIterator getIterator(Envelope2D query, double tolerance, boolean bSorted) {
+<span class="nc bnc" id="L313" title="All 2 branches missed.">		if (!bSorted) {</span>
+<span class="nc" id="L314">			QuadTreeImpl.QuadTreeIteratorImpl iterator = m_impl.getIterator(query, tolerance);</span>
+<span class="nc" id="L315">			return new QuadTreeIterator(iterator, false);</span>
+		} else {
+<span class="nc" id="L317">			QuadTreeImpl.QuadTreeSortedIteratorImpl iterator = m_impl.getSortedIterator(query, tolerance);</span>
+<span class="nc" id="L318">			return new QuadTreeIterator(iterator, true);</span>
+		}
+	}
+
+	/**
+	 * Gets an iterator on the QuadTree.
+	 * \param bSorted Put true to iterate the quad tree in the order of the Element_types.
+	 */
+	public QuadTreeIterator getIterator(boolean bSorted) {
+<span class="pc bpc" id="L327" title="1 of 2 branches missed.">		if (!bSorted) {</span>
+<span class="nc" id="L328">			QuadTreeImpl.QuadTreeIteratorImpl iterator = m_impl.getIterator();</span>
+<span class="nc" id="L329">			return new QuadTreeIterator(iterator, false);</span>
+		} else {
+<span class="fc" id="L331">			QuadTreeImpl.QuadTreeSortedIteratorImpl iterator = m_impl.getSortedIterator();</span>
+<span class="fc" id="L332">			return new QuadTreeIterator(iterator, true);</span>
+		}
+	}
+
+	/**
+	 * Returns a void* to the impl class.
+	 */
+	Object getImpl_() {
+<span class="nc" id="L340">		return m_impl;</span>
+	}
+
+	private QuadTreeImpl m_impl;
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

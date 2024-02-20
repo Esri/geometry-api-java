@@ -1,0 +1,1136 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Envelope.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Envelope.java</span></div><h1>Envelope.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2018 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+
+package com.esri.core.geometry;
+
+import com.esri.core.geometry.VertexDescription.Semantics;
+
+import java.io.Serializable;
+
+import static com.esri.core.geometry.SizeOf.SIZE_OF_ENVELOPE;
+
+/**
+ * An envelope is an axis-aligned rectangle.
+ */
+<span class="fc" id="L37">public class Envelope extends Geometry implements Serializable {</span>
+	//We are using writeReplace instead.
+	//private static final long serialVersionUID = 2L;
+
+<span class="pc" id="L41">	Envelope2D m_envelope = new Envelope2D();</span>
+
+	double[] m_attributes;// use doubles to store everything
+
+	/**
+	 * Creates an envelope by defining its center, width, and height.
+	 * 
+	 * @param center
+	 *            The center point of the envelope.
+	 * @param width
+	 *            The width of the envelope.
+	 * @param height
+	 *            The height of the envelope.
+	 */
+<span class="fc" id="L55">	public Envelope(Point center, double width, double height) {</span>
+<span class="fc" id="L56">		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();</span>
+<span class="fc" id="L57">		m_envelope.setEmpty();</span>
+<span class="pc bpc" id="L58" title="1 of 2 branches missed.">		if (center.isEmpty())</span>
+<span class="nc" id="L59">			return;</span>
+
+<span class="fc" id="L61">		_setFromPoint(center, width, height);</span>
+<span class="fc" id="L62">	}</span>
+
+<span class="fc" id="L64">	public Envelope(Envelope2D env2D) {</span>
+<span class="fc" id="L65">		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();</span>
+<span class="fc" id="L66">		m_envelope.setCoords(env2D);</span>
+<span class="fc" id="L67">		m_envelope.normalize();</span>
+<span class="fc" id="L68">	}</span>
+
+<span class="fc" id="L70">	public Envelope(VertexDescription vd) {</span>
+<span class="pc bpc" id="L71" title="1 of 2 branches missed.">		if (vd == null)</span>
+<span class="nc" id="L72">			throw new IllegalArgumentException();</span>
+		
+<span class="fc" id="L74">		m_description = vd;</span>
+<span class="fc" id="L75">		m_envelope.setEmpty();</span>
+<span class="fc" id="L76">		_ensureAttributes();</span>
+<span class="fc" id="L77">	}</span>
+
+<span class="nc" id="L79">	public Envelope(VertexDescription vd, Envelope2D env2D) {</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">		if (vd == null)</span>
+<span class="nc" id="L81">			throw new IllegalArgumentException();</span>
+		
+<span class="nc" id="L83">		m_description = vd;</span>
+<span class="nc" id="L84">		m_envelope.setCoords(env2D);</span>
+<span class="nc" id="L85">		m_envelope.normalize();</span>
+<span class="nc" id="L86">		_ensureAttributes();</span>
+<span class="nc" id="L87">	}</span>
+
+	/**
+	 * Constructs an empty envelope.
+	 */
+<span class="fc" id="L92">	public Envelope() {</span>
+<span class="fc" id="L93">		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();</span>
+<span class="fc" id="L94">		m_envelope.setEmpty();</span>
+<span class="fc" id="L95">	}</span>
+
+	/**
+	 * Constructs an envelope that covers the given point. The coordinates of
+	 * the point are used to set the extent of the envelope.
+	 * 
+	 * @param point The point that the envelope covers.
+	 */
+<span class="nc" id="L103">	public Envelope(Point point) {</span>
+<span class="nc" id="L104">		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();</span>
+<span class="nc" id="L105">		m_envelope.setEmpty();</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">		if (point.isEmpty())</span>
+<span class="nc" id="L107">			return;</span>
+
+<span class="nc" id="L109">		_setFromPoint(point);</span>
+<span class="nc" id="L110">	}</span>
+
+	/**
+	 * Constructs an envelope with the specified X and Y extents.
+	 * 
+	 * @param xmin
+	 *            The minimum x-coordinate of the envelope.
+	 * @param ymin
+	 *            The minimum y-coordinate of the envelope.
+	 * @param xmax
+	 *            The maximum x-coordinate of the envelope.
+	 * @param ymax
+	 *            The maximum y-coordinate of the envelope.
+	 */
+<span class="fc" id="L124">	public Envelope(double xmin, double ymin, double xmax, double ymax) {</span>
+<span class="fc" id="L125">		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();</span>
+<span class="fc" id="L126">		setCoords(xmin, ymin, xmax, ymax);</span>
+<span class="fc" id="L127">	}</span>
+
+	/**
+	 * Sets the 2-dimensional extents of the envelope.
+	 * 
+	 * @param xmin
+	 *            The minimum x-coordinate of the envelope.
+	 * @param ymin
+	 *            The minimum y-coordinate of the envelope.
+	 * @param xmax
+	 *            The maximum x-coordinate of the envelope.
+	 * @param ymax
+	 *            The maximum y-coordinate of the envelope.
+	 */
+	public void setCoords(double xmin, double ymin, double xmax, double ymax) {
+<span class="fc" id="L142">		_touch();</span>
+<span class="fc" id="L143">		m_envelope.setCoords(xmin, ymin, xmax, ymax);</span>
+<span class="fc" id="L144">	}</span>
+
+	/**
+	 * Sets the envelope from the array of points. The result envelope is a
+	 * bounding box of all the points in the array. If the array has zero
+	 * length, the envelope will be empty.
+	 * 
+	 * @param points
+	 *            The point array.
+	 */
+	void setCoords(Point[] points) {
+<span class="nc" id="L155">		_touch();</span>
+<span class="nc" id="L156">		setEmpty();</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">		for (int i = 0, n = points.length; i &lt; n; i++)</span>
+<span class="nc" id="L158">			merge(points[i]);</span>
+<span class="nc" id="L159">	}</span>
+
+	void setEnvelope2D(Envelope2D e2d) {
+<span class="fc" id="L162">		_touch();</span>
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">		if (!e2d.isValid())</span>
+<span class="nc" id="L164">			throw new IllegalArgumentException();</span>
+
+<span class="fc" id="L166">		m_envelope.setCoords(e2d);</span>
+<span class="fc" id="L167">	}</span>
+
+	/**
+	 * Removes all points from this geometry.
+	 */
+	@Override
+	public void setEmpty() {
+<span class="fc" id="L174">		_touch();</span>
+<span class="fc" id="L175">		m_envelope.setEmpty();</span>
+<span class="fc" id="L176">	}</span>
+
+	/**
+	 * Indicates whether this envelope contains any points.
+	 * 
+	 * @return boolean Returns true if the envelope is empty.
+	 */
+	@Override
+	public boolean isEmpty() {
+<span class="fc" id="L185">		return m_envelope.isEmpty();</span>
+	}
+
+	/**
+	 * The width of the envelope.
+	 * 
+	 * @return The width of the envelope.
+	 */
+
+	public double getWidth() {
+<span class="fc" id="L195">		return m_envelope.getWidth();</span>
+	}
+
+	/**
+	 * The height of the envelope.
+	 * 
+	 * @return The height of the envelope.
+	 */
+	public double getHeight() {
+<span class="fc" id="L204">		return m_envelope.getHeight();</span>
+	}
+
+	/**
+	 * The x-coordinate of the center of the envelope.
+	 * 
+	 * @return The x-coordinate of the center of the envelope.
+	 */
+	public double getCenterX() {
+<span class="fc" id="L213">		return m_envelope.getCenterX();</span>
+	}
+
+	/**
+	 * The y-coordinate of center of the envelope.
+	 * 
+	 * @return The y-coordinate of center of the envelope.
+	 */
+	public double getCenterY() {
+<span class="fc" id="L222">		return m_envelope.getCenterY();</span>
+	}
+
+	/**
+	 * The x and y-coordinates of the center of the envelope.
+	 * 
+	 * @return A point whose x and y-coordinates are that of the center of the envelope.
+	 */
+	public Point2D getCenterXY() {
+<span class="fc" id="L231">		return m_envelope.getCenter();</span>
+	}
+
+	public void getCenter(Point point_out) {
+<span class="fc" id="L235">		point_out.assignVertexDescription(m_description);</span>
+<span class="fc bfc" id="L236" title="All 2 branches covered.">		if (isEmpty()) {</span>
+<span class="fc" id="L237">			point_out.setEmpty();</span>
+<span class="fc" id="L238">			return;</span>
+		}
+
+<span class="fc" id="L241">		int nattrib = m_description.getAttributeCount();</span>
+<span class="pc bpc" id="L242" title="1 of 2 branches missed.">		for (int i = 1; i &lt; nattrib; i++) {</span>
+<span class="nc" id="L243">			int semantics = m_description.getSemantics(i);</span>
+<span class="nc" id="L244">			int ncomp = VertexDescription.getComponentCount(semantics);</span>
+<span class="nc bnc" id="L245" title="All 2 branches missed.">			for (int iord = 0; iord &lt; ncomp; iord++) {</span>
+<span class="nc" id="L246">				double v = 0.5 * (getAttributeAsDblImpl_(0, semantics, iord) + getAttributeAsDblImpl_(</span>
+						1, semantics, iord));
+<span class="nc" id="L248">				point_out.setAttribute(semantics, iord, v);</span>
+			}
+		}
+<span class="fc" id="L251">		point_out.setXY(m_envelope.getCenter());</span>
+<span class="fc" id="L252">	}</span>
+
+	public void merge(Point2D pt) {
+<span class="fc" id="L255">		_touch();</span>
+<span class="fc" id="L256">		m_envelope.merge(pt);</span>
+<span class="fc" id="L257">	}</span>
+
+	/**
+	 * Merges this envelope with the extent of the given envelope. If this
+	 * envelope is empty, the coordinates of the given envelope 
+	 * are assigned. If the given envelope is empty, this envelope is unchanged.
+	 * 
+	 * @param other
+	 *            The envelope to merge.
+	 */
+	public void merge(Envelope other) {
+<span class="fc" id="L268">		_touch();</span>
+<span class="pc bpc" id="L269" title="1 of 2 branches missed.">		if (other.isEmpty())</span>
+<span class="nc" id="L270">			return;</span>
+
+<span class="fc" id="L272">		VertexDescription otherVD = other.m_description;</span>
+<span class="pc bpc" id="L273" title="1 of 2 branches missed.">		if (otherVD != m_description)</span>
+<span class="nc" id="L274">			mergeVertexDescription(otherVD);</span>
+<span class="fc" id="L275">		m_envelope.merge(other.m_envelope);</span>
+<span class="pc bpc" id="L276" title="1 of 2 branches missed.">		for (int iattrib = 1, nattrib = otherVD.getAttributeCount(); iattrib &lt; nattrib; iattrib++) {</span>
+<span class="nc" id="L277">			int semantics = otherVD.getSemantics(iattrib);</span>
+<span class="nc" id="L278">			int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="nc bnc" id="L279" title="All 2 branches missed.">			for (int iord = 0; iord &lt; ncomps; iord++) {</span>
+<span class="nc" id="L280">				Envelope1D intervalOther = other.queryInterval(semantics, iord);</span>
+<span class="nc" id="L281">				Envelope1D interval = queryInterval(semantics, iord);</span>
+<span class="nc" id="L282">				interval.merge(intervalOther);</span>
+<span class="nc" id="L283">				setInterval(semantics, iord, interval);</span>
+			}
+		}
+<span class="fc" id="L286">	}</span>
+
+	/**
+	 * Merges this envelope with the point. The boundary of the envelope is
+	 * increased to include the point. If the envelope is empty, the coordinates
+	 * of the point to merge are assigned. If the point is empty, the original
+	 * envelope is unchanged.
+	 * 
+	 * @param point
+	 *            The point to be merged.
+	 */
+	public void merge(Point point) {
+<span class="fc" id="L298">		_touch();</span>
+<span class="fc bfc" id="L299" title="All 2 branches covered.">		if (point.isEmptyImpl())</span>
+<span class="fc" id="L300">			return;</span>
+
+<span class="fc" id="L302">		VertexDescription pointVD = point.m_description;</span>
+<span class="pc bpc" id="L303" title="1 of 2 branches missed.">		if (m_description != pointVD)</span>
+<span class="nc" id="L304">			mergeVertexDescription(pointVD);</span>
+
+<span class="fc bfc" id="L306" title="All 2 branches covered.">		if (isEmpty()) {</span>
+<span class="fc" id="L307">			_setFromPoint(point);</span>
+<span class="fc" id="L308">			return;</span>
+		}
+
+<span class="fc" id="L311">		m_envelope.merge(point.getXY());</span>
+<span class="pc bpc" id="L312" title="1 of 2 branches missed.">		for (int iattrib = 1, nattrib = pointVD.getAttributeCount(); iattrib &lt; nattrib; iattrib++) {</span>
+<span class="nc" id="L313">			int semantics = pointVD._getSemanticsImpl(iattrib);</span>
+<span class="nc" id="L314">			int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="nc bnc" id="L315" title="All 2 branches missed.">			for (int iord = 0; iord &lt; ncomps; iord++) {</span>
+<span class="nc" id="L316">				double v = point.getAttributeAsDbl(semantics, iord);</span>
+<span class="nc" id="L317">				Envelope1D interval = queryInterval(semantics, iord);</span>
+<span class="nc" id="L318">				interval.merge(v);</span>
+<span class="nc" id="L319">				setInterval(semantics, iord, interval);</span>
+			}
+		}
+<span class="fc" id="L322">	}</span>
+
+	void _setFromPoint(Point centerPoint, double width, double height) {
+<span class="fc" id="L325">		m_envelope.setCoords(centerPoint.getXY(), width, height);</span>
+<span class="fc" id="L326">		VertexDescription pointVD = centerPoint.m_description;</span>
+<span class="pc bpc" id="L327" title="1 of 2 branches missed.">		for (int iattrib = 1, nattrib = pointVD.getAttributeCount(); iattrib &lt; nattrib; iattrib++) {</span>
+<span class="nc" id="L328">			int semantics = pointVD._getSemanticsImpl(iattrib);</span>
+<span class="nc" id="L329">			int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="nc bnc" id="L330" title="All 2 branches missed.">			for (int iord = 0; iord &lt; ncomps; iord++) {</span>
+<span class="nc" id="L331">				double v = centerPoint.getAttributeAsDbl(semantics, iord);</span>
+<span class="nc" id="L332">				setInterval(semantics, iord, v, v);</span>
+			}
+		}
+<span class="fc" id="L335">	}</span>
+
+	void _setFromPoint(Point centerPoint) {
+<span class="fc" id="L338">		mergeVertexDescription(centerPoint.getDescription());</span>
+<span class="fc" id="L339">		m_envelope.setCoords(centerPoint.getX(), centerPoint.getY());</span>
+<span class="fc" id="L340">		VertexDescription pointVD = centerPoint.m_description;</span>
+<span class="fc bfc" id="L341" title="All 2 branches covered.">		for (int iattrib = 1, nattrib = pointVD.getAttributeCount(); iattrib &lt; nattrib; iattrib++) {</span>
+<span class="fc" id="L342">			int semantics = pointVD._getSemanticsImpl(iattrib);</span>
+<span class="fc" id="L343">			int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="fc bfc" id="L344" title="All 2 branches covered.">			for (int iord = 0; iord &lt; ncomps; iord++) {</span>
+<span class="fc" id="L345">				double v = centerPoint.getAttributeAsDbl(semantics, iord);</span>
+<span class="fc" id="L346">				setInterval(semantics, iord, v, v);</span>
+			}
+		}
+<span class="fc" id="L349">	}</span>
+
+	public void merge(Envelope2D other) {
+<span class="nc" id="L352">		_touch();</span>
+<span class="nc" id="L353">		m_envelope.merge(other);</span>
+<span class="nc" id="L354">	}</span>
+
+	public void setInterval(int semantics, int ordinate, double vmin,
+			double vmax) {
+<span class="fc" id="L358">		setInterval(semantics, ordinate, new Envelope1D(vmin, vmax));</span>
+<span class="fc" id="L359">	}</span>
+
+	/**
+	 * Re-aspects this envelope to fit within the specified width and height.
+	 * 
+	 * @param arWidth
+	 *            The width within which to fit the envelope.
+	 * @param arHeight
+	 *            The height within which to fit the envelope.
+	 */
+	public void reaspect(double arWidth, double arHeight) {
+<span class="nc" id="L370">		_touch();</span>
+<span class="nc" id="L371">		m_envelope.reaspect(arWidth, arHeight);</span>
+<span class="nc" id="L372">	}</span>
+
+	/**
+	 * Changes the dimensions of the envelope while preserving the center. New width
+	 * is Width + 2 * dx, new height is Height + 2 * dy. If the result envelope
+	 * width or height becomes negative, the envelope is set to be empty.
+	 * 
+	 * @param dx
+	 *            The inflation along the x-axis.
+	 * @param dy
+	 *            The inflation along the y-axis.
+	 */
+	public void inflate(double dx, double dy) {
+<span class="fc" id="L385">		_touch();</span>
+<span class="fc" id="L386">		m_envelope.inflate(dx, dy);</span>
+<span class="fc" id="L387">	}</span>
+
+	@Override
+	public void applyTransformation(Transformation2D transform) {
+<span class="nc" id="L391">		_touch();</span>
+<span class="nc" id="L392">		transform.transform(m_envelope);</span>
+<span class="nc" id="L393">	}</span>
+
+	@Override
+	void applyTransformation(Transformation3D transform) {
+<span class="nc" id="L397">		_touch();</span>
+<span class="nc bnc" id="L398" title="All 2 branches missed.">		if (!m_envelope.isEmpty()) {</span>
+<span class="nc" id="L399">			Envelope3D env = new Envelope3D();</span>
+<span class="nc" id="L400">			queryEnvelope3D(env);</span>
+<span class="nc bnc" id="L401" title="All 2 branches missed.">			if (env.isEmptyZ())</span>
+<span class="nc" id="L402">				env.setEmpty(); // Z components is empty, the</span>
+								// AffineTransformation3D makes the whole
+								// envelope empty. Consider
+			// throwing an assert instead.
+			else
+<span class="nc" id="L407">				transform.transform(env);</span>
+		}
+<span class="nc" id="L409">	}</span>
+
+	@Override
+	public void copyTo(Geometry dst) {
+<span class="pc bpc" id="L413" title="1 of 2 branches missed.">		if (dst.getType() != getType())</span>
+<span class="nc" id="L414">			throw new IllegalArgumentException();</span>
+
+<span class="fc" id="L416">		Envelope envDst = (Envelope) dst;</span>
+<span class="fc" id="L417">		dst._touch();</span>
+<span class="fc" id="L418">		envDst.m_description = m_description;</span>
+<span class="fc" id="L419">		envDst.m_envelope.setCoords(m_envelope);</span>
+<span class="fc" id="L420">		envDst.m_attributes = null;</span>
+<span class="fc bfc" id="L421" title="All 2 branches covered.">		if (m_attributes != null)</span>
+		{
+<span class="fc" id="L423">			envDst._ensureAttributes();</span>
+<span class="fc" id="L424">			System.arraycopy(m_attributes, 0, envDst.m_attributes, 0,</span>
+<span class="fc" id="L425">					(m_description.getTotalComponentCount() - 2) * 2);</span>
+		}
+<span class="fc" id="L427">	}</span>
+
+	@Override
+	public Geometry createInstance() {
+<span class="fc" id="L431">		return new Envelope(m_description);</span>
+	}
+
+	@Override
+	public double calculateArea2D() {
+<span class="fc" id="L436">		return m_envelope.getArea();</span>
+	}
+
+	@Override
+	public double calculateLength2D() {
+<span class="nc" id="L441">		return m_envelope.getLength();</span>
+	}
+
+	@Override
+	public Geometry.Type getType() {
+<span class="fc" id="L446">		return Type.Envelope;</span>
+	}
+
+	@Override
+	public int getDimension() {
+<span class="fc" id="L451">		return 2;</span>
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+<span class="fc" id="L457">		return SIZE_OF_ENVELOPE + m_envelope.estimateMemorySize() + estimateMemorySize(m_attributes);</span>
+	}
+
+	@Override
+	public void queryEnvelope(Envelope env) {
+<span class="fc" id="L462">		copyTo(env);</span>
+<span class="fc" id="L463">	}</span>
+
+	@Override
+	public void queryEnvelope2D(Envelope2D env) {
+<span class="fc" id="L467">		env.xmin = m_envelope.xmin;</span>
+<span class="fc" id="L468">		env.ymin = m_envelope.ymin;</span>
+<span class="fc" id="L469">		env.xmax = m_envelope.xmax;</span>
+<span class="fc" id="L470">		env.ymax = m_envelope.ymax;</span>
+<span class="fc" id="L471">	}</span>
+
+	@Override
+	void queryEnvelope3D(Envelope3D env) {
+<span class="nc" id="L475">		env.xmin = m_envelope.xmin;</span>
+<span class="nc" id="L476">		env.ymin = m_envelope.ymin;</span>
+<span class="nc" id="L477">		env.xmax = m_envelope.xmax;</span>
+<span class="nc" id="L478">		env.ymax = m_envelope.ymax;</span>
+<span class="nc" id="L479">		env.setCoords(m_envelope.xmin, m_envelope.ymin,</span>
+<span class="nc" id="L480">				_getAttributeAsDbl(0, Semantics.Z, 0), m_envelope.xmax,</span>
+<span class="nc" id="L481">				m_envelope.ymax, _getAttributeAsDbl(1, Semantics.Z, 0));</span>
+<span class="nc" id="L482">	}</span>
+
+	@Override
+	public Envelope1D queryInterval(int semantics, int ordinate) {
+<span class="fc" id="L486">		Envelope1D env = new Envelope1D();</span>
+<span class="fc" id="L487">		env.setCoords(_getAttributeAsDbl(0, semantics, ordinate),</span>
+<span class="fc" id="L488">				_getAttributeAsDbl(1, semantics, ordinate));</span>
+<span class="fc" id="L489">		return env;</span>
+	}
+
+	public void setInterval(int semantics, int ordinate, Envelope1D env) {
+<span class="fc" id="L493">		_touch();</span>
+<span class="pc bpc" id="L494" title="1 of 2 branches missed.">		if (semantics == Semantics.POSITION) {</span>
+<span class="nc bnc" id="L495" title="All 2 branches missed.">			if (ordinate == 0) {</span>
+<span class="nc" id="L496">				m_envelope.xmin = env.vmin;</span>
+<span class="nc" id="L497">				m_envelope.xmax = env.vmax;</span>
+<span class="nc bnc" id="L498" title="All 2 branches missed.">			} else if (ordinate == 1) {</span>
+<span class="nc" id="L499">				m_envelope.ymin = env.vmin;</span>
+<span class="nc" id="L500">				m_envelope.ymax = env.vmax;</span>
+			} else
+<span class="nc" id="L502">				throw new IndexOutOfBoundsException();</span>
+		} else {
+<span class="fc" id="L504">			_setAttributeAsDbl(0, semantics, ordinate, env.vmin);</span>
+<span class="fc" id="L505">			_setAttributeAsDbl(1, semantics, ordinate, env.vmax);</span>
+		}
+<span class="fc" id="L507">	}</span>
+
+	public void queryCoordinates(Point2D[] dst) {
+<span class="nc bnc" id="L510" title="All 6 branches missed.">		if (dst == null || dst.length &lt; 4 || m_envelope.isEmpty())</span>
+<span class="nc" id="L511">			throw new IllegalArgumentException();</span>
+
+<span class="nc" id="L513">		m_envelope.queryCorners(dst);</span>
+<span class="nc" id="L514">	}</span>
+
+	/**
+	 * Sets the point's coordinates to the coordinates of the envelope at the
+	 * given corner.
+	 * 
+	 * @param index
+	 *            The index of the envelope's corners from 0 to 3.
+	 *            &lt;p&gt;
+	 *            0 = lower left corner
+	 *            &lt;p&gt;
+	 *            1 = top-left corner
+	 *            &lt;p&gt;
+	 *            2 = top right corner
+	 *            &lt;p&gt;
+	 *            3 = bottom right corner
+	 * @param ptDst
+	 *            The point whose coordinates are used to set the envelope's
+	 *            coordinate at a specified corner.
+	 */
+	public void queryCornerByVal(int index, Point ptDst) {
+<span class="fc" id="L535">		ptDst.assignVertexDescription(m_description);</span>
+<span class="fc" id="L536">		int nattrib = getDescription().getAttributeCount() - 1;</span>
+<span class="pc bpc" id="L537" title="1 of 5 branches missed.">		switch (index) {</span>
+		case 0: {
+<span class="pc bpc" id="L539" title="1 of 2 branches missed.">			for (int i = 0; i &lt; nattrib; i++) {</span>
+<span class="nc" id="L540">				int semantics = m_description.getSemantics(i);</span>
+<span class="nc" id="L541">				int ncomp = VertexDescription.getComponentCount(semantics);</span>
+<span class="nc bnc" id="L542" title="All 2 branches missed.">				for (int iord = 0; iord &lt; ncomp; iord++)</span>
+<span class="nc" id="L543">					ptDst.setAttribute(semantics, iord,</span>
+<span class="nc" id="L544">							_getAttributeAsDbl(0, semantics, iord));</span>
+			}
+<span class="fc" id="L546">			ptDst.setXY(m_envelope.xmin, m_envelope.ymin);</span>
+<span class="fc" id="L547">			return;</span>
+		}
+
+		case 1: {
+<span class="pc bpc" id="L551" title="1 of 2 branches missed.">			for (int i = 0; i &lt; nattrib; i++) {</span>
+<span class="nc" id="L552">				int semantics = m_description.getSemantics(i);</span>
+<span class="nc" id="L553">				int ncomp = VertexDescription.getComponentCount(semantics);</span>
+<span class="nc bnc" id="L554" title="All 2 branches missed.">				for (int iord = 0; iord &lt; ncomp; iord++)</span>
+<span class="nc" id="L555">					ptDst.setAttribute(semantics, iord,</span>
+<span class="nc" id="L556">							_getAttributeAsDbl(1, semantics, iord));</span>
+			}
+<span class="fc" id="L558">			ptDst.setXY(m_envelope.xmin, m_envelope.ymax);</span>
+<span class="fc" id="L559">			return;</span>
+		}
+		case 2: {
+<span class="pc bpc" id="L562" title="1 of 2 branches missed.">			for (int i = 0; i &lt; nattrib; i++) {</span>
+<span class="nc" id="L563">				int semantics = m_description.getSemantics(i);</span>
+<span class="nc" id="L564">				int ncomp = VertexDescription.getComponentCount(semantics);</span>
+<span class="nc bnc" id="L565" title="All 2 branches missed.">				for (int iord = 0; iord &lt; ncomp; iord++)</span>
+<span class="nc" id="L566">					ptDst.setAttribute(semantics, iord,</span>
+<span class="nc" id="L567">							_getAttributeAsDbl(0, semantics, iord));</span>
+			}
+<span class="fc" id="L569">			ptDst.setXY(m_envelope.xmax, m_envelope.ymax);</span>
+
+<span class="fc" id="L571">			return;</span>
+		}
+		case 3: {
+<span class="pc bpc" id="L574" title="1 of 2 branches missed.">			for (int i = 0; i &lt; nattrib; i++) {</span>
+<span class="nc" id="L575">				int semantics = m_description.getSemantics(i);</span>
+<span class="nc" id="L576">				int ncomp = VertexDescription.getComponentCount(semantics);</span>
+<span class="nc bnc" id="L577" title="All 2 branches missed.">				for (int iord = 0; iord &lt; ncomp; iord++)</span>
+<span class="nc" id="L578">					ptDst.setAttribute(semantics, iord,</span>
+<span class="nc" id="L579">							_getAttributeAsDbl(1, semantics, iord));</span>
+			}
+<span class="fc" id="L581">			ptDst.setXY(m_envelope.xmax, m_envelope.ymin);</span>
+<span class="fc" id="L582">			return;</span>
+		}
+		default:
+<span class="nc" id="L585">			throw new IndexOutOfBoundsException();</span>
+		}
+	}
+
+	public void queryCorner(int index, Point2D ptDst) {
+<span class="fc" id="L590">		Point2D p = m_envelope.queryCorner(index);</span>
+<span class="fc" id="L591">		ptDst.setCoords(p.x, p.y);</span>
+<span class="fc" id="L592">	}</span>
+
+	int getEndPointOffset(VertexDescription descr, int end_point) {
+<span class="nc" id="L595">		return end_point * (descr.getTotalComponentCount() - 2);</span>
+	}
+
+	double getAttributeAsDblImpl_(int end_point, int semantics, int ordinate) {
+<span class="nc bnc" id="L599" title="All 2 branches missed.">		if (m_envelope.isEmpty())</span>
+<span class="nc" id="L600">			throw new GeometryException(&quot;empty geometry&quot;);</span>
+
+<span class="nc bnc" id="L602" title="All 4 branches missed.">		assert (end_point == 0 || end_point == 1);</span>
+
+<span class="nc bnc" id="L604" title="All 2 branches missed.">		if (semantics == VertexDescription.Semantics.POSITION) {</span>
+<span class="nc bnc" id="L605" title="All 2 branches missed.">			if (end_point != 0) {</span>
+<span class="nc bnc" id="L606" title="All 2 branches missed.">				return ordinate != 0 ? m_envelope.ymax : m_envelope.xmax;</span>
+			} else {
+<span class="nc bnc" id="L608" title="All 2 branches missed.">				return ordinate != 0 ? m_envelope.ymin : m_envelope.xmin;</span>
+			}
+		}
+
+<span class="nc" id="L612">		int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="nc bnc" id="L613" title="All 2 branches missed.">		if (ordinate &gt;= ncomps)</span>
+<span class="nc" id="L614">			throw new IllegalArgumentException();</span>
+
+<span class="nc" id="L616">		int attribute_index = m_description.getAttributeIndex(semantics);</span>
+<span class="nc bnc" id="L617" title="All 2 branches missed.">		if (attribute_index &gt;= 0) {</span>
+<span class="nc" id="L618">			return m_attributes[getEndPointOffset(m_description, end_point)</span>
+<span class="nc" id="L619">					+ m_description.getPointAttributeOffset_(attribute_index)</span>
+					- 2 + ordinate];
+		}
+
+<span class="nc" id="L623">		return VertexDescription.getDefaultValue(semantics);</span>
+	}
+
+	void setAttributeAsDblImpl_(int end_point, int semantics, int ordinate,
+			double value) {
+<span class="nc bnc" id="L628" title="All 4 branches missed.">		assert (end_point == 0 || end_point == 1);</span>
+
+<span class="nc bnc" id="L630" title="All 2 branches missed.">		if (semantics == VertexDescription.Semantics.POSITION) {</span>
+<span class="nc bnc" id="L631" title="All 2 branches missed.">			if (end_point != 0) {</span>
+<span class="nc bnc" id="L632" title="All 2 branches missed.">				if (ordinate != 0)</span>
+<span class="nc" id="L633">					m_envelope.ymax = value;</span>
+				else
+<span class="nc" id="L635">					m_envelope.xmax = value;</span>
+			} else {
+<span class="nc bnc" id="L637" title="All 2 branches missed.">				if (ordinate != 0)</span>
+<span class="nc" id="L638">					m_envelope.ymin = value;</span>
+				else
+<span class="nc" id="L640">					m_envelope.xmin = value;</span>
+			}
+			
+<span class="nc" id="L643">			return;</span>
+		}
+
+<span class="nc" id="L646">		int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="nc bnc" id="L647" title="All 2 branches missed.">		if (ordinate &gt;= ncomps)</span>
+<span class="nc" id="L648">			throw new IllegalArgumentException();</span>
+
+<span class="nc" id="L650">		addAttribute(semantics);</span>
+<span class="nc" id="L651">		int attribute_index = m_description.getAttributeIndex(semantics);</span>
+<span class="nc" id="L652">		m_attributes[getEndPointOffset(m_description, end_point)</span>
+<span class="nc" id="L653">				+ m_description.getPointAttributeOffset_(attribute_index) - 2</span>
+				+ ordinate] = value;
+<span class="nc" id="L655">	}</span>
+
+	void _ensureAttributes() {
+<span class="fc" id="L658">		_touch();</span>
+<span class="pc bpc" id="L659" title="1 of 4 branches missed.">		if (m_attributes == null &amp;&amp; m_description.getTotalComponentCount() &gt; 2) {</span>
+<span class="fc" id="L660">			int halfLength = m_description.getTotalComponentCount() - 2;</span>
+<span class="fc" id="L661">			m_attributes = new double[halfLength * 2];</span>
+<span class="fc" id="L662">			int offset0 = _getEndPointOffset(m_description, 0);</span>
+<span class="fc" id="L663">			int offset1 = _getEndPointOffset(m_description, 1);</span>
+<span class="fc" id="L664">			System.arraycopy(m_description._getDefaultPointAttributes(), 2, m_attributes, offset0, halfLength);</span>
+<span class="fc" id="L665">			System.arraycopy(m_description._getDefaultPointAttributes(), 2, m_attributes, offset1, halfLength);</span>
+		}
+<span class="fc" id="L667">	}</span>
+
+	@Override
+	protected void _assignVertexDescriptionImpl(VertexDescription newDescription) {
+<span class="pc bpc" id="L671" title="1 of 2 branches missed.">		if (newDescription.getTotalComponentCount() &gt; 2) {</span>
+<span class="fc" id="L672">			int[] mapping = VertexDescriptionDesignerImpl.mapAttributes(newDescription, m_description);</span>
+			
+<span class="fc" id="L674">			double[] newAttributes = new double[(newDescription.getTotalComponentCount() - 2) * 2];</span>
+			
+<span class="fc" id="L676">			int old_offset0 = _getEndPointOffset(m_description, 0);</span>
+<span class="fc" id="L677">			int old_offset1 = _getEndPointOffset(m_description, 1);</span>
+	
+<span class="fc" id="L679">			int new_offset0 = _getEndPointOffset(newDescription, 0);</span>
+<span class="fc" id="L680">			int new_offset1 = _getEndPointOffset(newDescription, 1);</span>
+			
+<span class="fc" id="L682">			int j = 0;</span>
+<span class="fc bfc" id="L683" title="All 2 branches covered.">			for (int i = 1, n = newDescription.getAttributeCount(); i &lt; n; i++) {</span>
+<span class="fc" id="L684">				int semantics = newDescription.getSemantics(i);</span>
+<span class="fc" id="L685">				int nords = VertexDescription.getComponentCount(semantics);</span>
+<span class="fc bfc" id="L686" title="All 2 branches covered.">				if (mapping[i] == -1)</span>
+				{
+<span class="fc" id="L688">					double d = VertexDescription.getDefaultValue(semantics);</span>
+<span class="fc bfc" id="L689" title="All 2 branches covered.">					for (int ord = 0; ord &lt; nords; ord++)</span>
+					{
+<span class="fc" id="L691">						newAttributes[new_offset0 + j] = d;</span>
+<span class="fc" id="L692">						newAttributes[new_offset1 + j] = d;</span>
+<span class="fc" id="L693">						j++;</span>
+					}
+<span class="fc" id="L695">				}</span>
+				else {
+<span class="fc" id="L697">					int m = mapping[i];</span>
+<span class="fc" id="L698">					int offset = m_description._getPointAttributeOffset(m) - 2;</span>
+<span class="fc bfc" id="L699" title="All 2 branches covered.">					for (int ord = 0; ord &lt; nords; ord++)</span>
+					{
+<span class="fc" id="L701">						newAttributes[new_offset0 + j] = m_attributes[old_offset0 + offset];</span>
+<span class="fc" id="L702">						newAttributes[new_offset1 + j] = m_attributes[old_offset1 + offset];</span>
+<span class="fc" id="L703">						j++;</span>
+<span class="fc" id="L704">						offset++;</span>
+					}
+				}
+					 
+			}
+			
+<span class="fc" id="L710">			m_attributes = newAttributes;</span>
+<span class="fc" id="L711">		}</span>
+		else {
+<span class="nc" id="L713">			m_attributes = null;</span>
+		}
+		
+<span class="fc" id="L716">		m_description = newDescription;</span>
+<span class="fc" id="L717">	}</span>
+
+	double _getAttributeAsDbl(int endPoint, int semantics, int ordinate) {
+<span class="pc bpc" id="L720" title="1 of 2 branches missed.">		if (m_envelope.isEmpty())</span>
+<span class="nc" id="L721">			throw new GeometryException(</span>
+					&quot;This operation was performed on an Empty Geometry.&quot;);
+
+<span class="fc bfc" id="L724" title="All 2 branches covered.">		if (semantics == Semantics.POSITION) {</span>
+<span class="fc bfc" id="L725" title="All 2 branches covered.">			if (endPoint != 0) {</span>
+<span class="pc bpc" id="L726" title="1 of 2 branches missed.">				return ordinate != 0 ? m_envelope.ymax : m_envelope.xmax;</span>
+			} else {
+<span class="pc bpc" id="L728" title="1 of 2 branches missed.">				return ordinate != 0 ? m_envelope.ymin : m_envelope.xmin;</span>
+			}
+		}
+
+<span class="fc" id="L732">		int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="pc bpc" id="L733" title="1 of 2 branches missed.">		if (ordinate &gt;= ncomps)</span>
+<span class="nc" id="L734">			throw new IndexOutOfBoundsException();</span>
+
+<span class="fc" id="L736">		int attributeIndex = m_description.getAttributeIndex(semantics);</span>
+<span class="fc bfc" id="L737" title="All 2 branches covered.">		if (attributeIndex &gt;= 0) {</span>
+<span class="fc" id="L738">			return m_attributes[_getEndPointOffset(m_description, endPoint)</span>
+<span class="fc" id="L739">					+ m_description._getPointAttributeOffset(attributeIndex)</span>
+					- 2 + ordinate];
+		} else
+<span class="fc" id="L742">			return VertexDescription.getDefaultValue(semantics);</span>
+	}
+
+	void _setAttributeAsDbl(int endPoint, int semantics, int ordinate,
+			double value) {
+<span class="fc" id="L747">		_touch();</span>
+		// _ASSERT(endPoint == 0 || endPoint == 1);
+
+<span class="pc bpc" id="L750" title="1 of 2 branches missed.">		if (semantics == Semantics.POSITION) {</span>
+<span class="nc bnc" id="L751" title="All 2 branches missed.">			if (endPoint != 0) {</span>
+<span class="nc bnc" id="L752" title="All 2 branches missed.">				if (ordinate != 0)</span>
+<span class="nc" id="L753">					m_envelope.ymax = value;</span>
+				else
+<span class="nc" id="L755">					m_envelope.xmax = value;</span>
+			} else {
+<span class="nc bnc" id="L757" title="All 2 branches missed.">				if (ordinate != 0)</span>
+<span class="nc" id="L758">					m_envelope.ymin = value;</span>
+				else
+<span class="nc" id="L760">					m_envelope.xmin = value;</span>
+			}
+			
+<span class="nc" id="L763">			return;</span>
+		}
+
+<span class="fc" id="L766">		int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="pc bpc" id="L767" title="1 of 2 branches missed.">		if (ordinate &gt;= ncomps)</span>
+<span class="nc" id="L768">			throw new IndexOutOfBoundsException();</span>
+
+<span class="fc bfc" id="L770" title="All 2 branches covered.">		if (!hasAttribute(semantics)) {</span>
+<span class="fc" id="L771">			addAttribute(semantics);</span>
+		}
+
+<span class="fc" id="L774">		int attributeIndex = m_description.getAttributeIndex(semantics);</span>
+<span class="fc" id="L775">		m_attributes[_getEndPointOffset(m_description, endPoint)</span>
+<span class="fc" id="L776">				+ m_description._getPointAttributeOffset(attributeIndex) - 2</span>
+				+ ordinate] = value;
+<span class="fc" id="L778">	}</span>
+
+	int _getAttributeAsInt(int endPoint, int semantics, int ordinate) {
+<span class="nc" id="L781">		return (int) _getAttributeAsDbl(endPoint, semantics, ordinate);</span>
+	}
+
+	static int _getEndPointOffset(VertexDescription vd, int endPoint) {
+<span class="fc" id="L785">		return endPoint * (vd.getTotalComponentCount() - 2);</span>
+	}
+
+	public boolean isIntersecting(Envelope2D other) {
+<span class="nc" id="L789">		return m_envelope.isIntersecting(other);</span>
+	}
+
+	/**
+	 * Changes this envelope to be the intersection of itself with the other
+	 * envelope.
+	 * 
+	 * @param other
+	 *            The envelope to intersect.
+	 * @return Returns true if the result is not empty.
+	 */
+	public boolean intersect(Envelope other) {
+<span class="fc" id="L801">		_touch();</span>
+<span class="fc" id="L802">		Envelope2D e2d = new Envelope2D();</span>
+<span class="fc" id="L803">		other.queryEnvelope2D(e2d);</span>
+<span class="fc" id="L804">		return m_envelope.intersect(e2d);</span>
+	}
+
+	/**
+	 * Returns true if the envelope and the other given envelope intersect.
+	 * 
+	 * @param other
+	 *            The envelope to with which to test intersection.
+	 * @return Returns true if the two envelopes intersect.
+	 */
+	public boolean isIntersecting(Envelope other) {// TODO: attributes.
+<span class="nc" id="L815">		return m_envelope.isIntersecting(other.m_envelope);</span>
+	}
+
+	/**
+	 * Sets the envelope's corners to be centered around the specified point,
+	 * using its center, width, and height.
+	 * 
+	 * @param c
+	 *            The point around which to center the envelope.
+	 * @param w
+	 *            The width to be set for the envelope.
+	 * @param h
+	 *            The height to be set for this envelope.
+	 */
+	public void centerAt(Point c, double w, double h) {
+<span class="nc" id="L830">		_touch();</span>
+<span class="nc bnc" id="L831" title="All 2 branches missed.">		if (c.isEmpty()) {</span>
+<span class="nc" id="L832">			setEmpty();</span>
+<span class="nc" id="L833">			return;</span>
+		}
+
+<span class="nc" id="L836">		_setFromPoint(c, w, h);</span>
+<span class="nc" id="L837">	}</span>
+
+	/**
+	 * Offsets the envelope by the specified distances along x and y-coordinates.
+	 * 
+	 * @param dx
+	 *            The X offset to be applied.
+	 * @param dy
+	 *            The Y offset to be applied.
+	 */
+	public void offset(double dx, double dy) {
+<span class="nc" id="L848">		_touch();</span>
+<span class="nc" id="L849">		m_envelope.offset(dx, dy);</span>
+<span class="nc" id="L850">	}</span>
+
+	/**
+	 * Normalizes envelopes if the minimum dimension is larger than the
+	 * maximum dimension.
+	 */
+	public void normalize() {// TODO: attributes
+<span class="nc" id="L857">		_touch();</span>
+<span class="nc" id="L858">		m_envelope.normalize();</span>
+<span class="nc" id="L859">	}</span>
+
+	/**
+	 * Gets the center point of the envelope. The center point occurs at: ((XMin
+	 * + XMax) / 2, (YMin + YMax) / 2).
+	 * 
+	 * @return The center point of the envelope.
+	 */
+	public Point2D getCenter2D() {
+<span class="nc" id="L868">		return m_envelope.getCenter();</span>
+	}
+
+	/**
+	 * Returns the center point of the envelope.
+	 * 
+	 * @return The center point of the envelope.
+	 */
+	public Point getCenter() {
+<span class="fc" id="L877">		Point pointOut = new Point(m_description);</span>
+<span class="pc bpc" id="L878" title="1 of 2 branches missed.">		if (isEmpty()) {</span>
+<span class="nc" id="L879">			return pointOut;</span>
+		}
+<span class="fc" id="L881">		int nattrib = m_description.getAttributeCount();</span>
+<span class="pc bpc" id="L882" title="1 of 2 branches missed.">		for (int i = 1; i &lt; nattrib; i++) {</span>
+<span class="nc" id="L883">			int semantics = m_description._getSemanticsImpl(i);</span>
+<span class="nc" id="L884">			int ncomp = VertexDescription.getComponentCount(semantics);</span>
+<span class="nc bnc" id="L885" title="All 2 branches missed.">			for (int iord = 0; iord &lt; ncomp; iord++) {</span>
+<span class="nc" id="L886">				double v = 0.5 * (_getAttributeAsDbl(0, semantics, iord) + _getAttributeAsDbl(</span>
+						1, semantics, iord));
+<span class="nc" id="L888">				pointOut.setAttribute(semantics, iord, v);</span>
+			}
+		}
+<span class="fc" id="L891">		pointOut.setXY(m_envelope.getCenterX(), m_envelope.getCenterY());</span>
+<span class="fc" id="L892">		return pointOut;</span>
+	}
+
+	/**
+	 * Centers the envelope around the specified point preserving the envelope's
+	 * width and height.
+	 * 
+	 * @param c
+	 *            The new center point.
+	 */
+	public void centerAt(Point c) {
+<span class="nc" id="L903">		_touch();</span>
+<span class="nc bnc" id="L904" title="All 2 branches missed.">		if (c.isEmpty()) {</span>
+<span class="nc" id="L905">			setEmpty();</span>
+<span class="nc" id="L906">			return;</span>
+		}
+<span class="nc" id="L908">		m_envelope.centerAt(c.getX(), c.getY());</span>
+<span class="nc" id="L909">	}</span>
+
+	/**
+	 * Returns the envelope's lower left corner point.
+	 * 
+	 * @return Returns the lower left corner point.
+	 */
+	public Point getLowerLeft() {
+<span class="nc" id="L917">		return new Point(m_envelope.getLowerLeft());</span>
+	}
+
+	/**
+	 * Returns the envelope's upper right corner point.
+	 * 
+	 * @return Returns the upper right corner point.
+	 */
+	public Point getUpperRight() {
+<span class="nc" id="L926">		return new Point(m_envelope.getUpperRight());</span>
+	}
+
+	/**
+	 * Returns the envelope's lower right corner point.
+	 * 
+	 * @return Returns the lower right corner point.
+	 */
+	public Point getLowerRight() {
+<span class="nc" id="L935">		return new Point(m_envelope.getLowerRight());</span>
+	}
+
+	/**
+	 * Returns the envelope's upper left corner point.
+	 * 
+	 * @return Returns the upper left corner point.
+	 */
+	public Point getUpperLeft() {
+<span class="nc" id="L944">		return new Point(m_envelope.getUpperLeft());</span>
+	}
+
+	/**
+	 * Checks if this envelope contains (covers) the specified point.
+	 * 
+	 * @param p
+	 *            The Point to be tested for coverage.
+	 * @return TRUE if this envelope contains (covers) the specified point.
+	 */
+	public boolean contains(Point p) {
+<span class="nc bnc" id="L955" title="All 2 branches missed.">		if (p.isEmpty())</span>
+<span class="nc" id="L956">			return false;</span>
+<span class="nc" id="L957">		return m_envelope.contains(p.getX(), p.getY());</span>
+	}
+
+	/**
+	 * Checks if this envelope contains (covers) other envelope.
+	 * 
+	 * @param env
+	 *            The envelope to be tested for coverage.
+	 * @return TRUE if this envelope contains (covers) the specified envelope.
+	 */
+	public boolean contains(Envelope env) {
+<span class="nc" id="L968">		return m_envelope.contains(env.m_envelope);</span>
+	}
+
+	/**
+	 * Returns TRUE when this geometry has exactly same type, properties, and
+	 * coordinates as the other geometry.
+	 */
+	@Override
+	public boolean equals(Object _other) {
+<span class="pc bpc" id="L977" title="1 of 2 branches missed.">		if (_other == this)</span>
+<span class="nc" id="L978">			return true;</span>
+
+<span class="pc bpc" id="L980" title="1 of 2 branches missed.">		if (!(_other instanceof Envelope))</span>
+<span class="nc" id="L981">			return false;</span>
+
+<span class="fc" id="L983">		Envelope other = (Envelope) _other;</span>
+
+<span class="fc bfc" id="L985" title="All 2 branches covered.">		if (m_description != other.m_description)</span>
+<span class="fc" id="L986">			return false;</span>
+
+<span class="pc bpc" id="L988" title="1 of 2 branches missed.">		if (isEmpty())</span>
+<span class="nc bnc" id="L989" title="All 2 branches missed.">			if (other.isEmpty())</span>
+<span class="nc" id="L990">				return true;</span>
+			else
+<span class="nc" id="L992">				return false;</span>
+
+<span class="fc bfc" id="L994" title="All 2 branches covered.">		if (!this.m_envelope.equals(other.m_envelope))</span>
+<span class="fc" id="L995">			return false;</span>
+
+<span class="fc bfc" id="L997" title="All 2 branches covered.">		for (int i = 0, n = (m_description.getTotalComponentCount() - 2) * 2; i &lt; n; i++)</span>
+<span class="fc bfc" id="L998" title="All 2 branches covered.">			if (!NumberUtils.isEqualNonIEEE(m_attributes[i], other.m_attributes[i]))</span>
+<span class="fc" id="L999">				return false;</span>
+
+<span class="fc" id="L1001">		return true;</span>
+	}
+
+	/**
+	 * Returns a hash code value for this envelope.
+	 * 
+	 * @return A hash code value for this envelope.
+	 */
+	@Override
+	public int hashCode() {
+<span class="nc" id="L1011">		int hashCode = m_description.hashCode();</span>
+<span class="nc" id="L1012">		hashCode = NumberUtils.hash(hashCode, m_envelope.hashCode());</span>
+<span class="nc bnc" id="L1013" title="All 2 branches missed.">		if (!isEmpty()) {</span>
+<span class="nc bnc" id="L1014" title="All 2 branches missed.">			for (int i = 0, n = (m_description.getTotalComponentCount() - 2) * 2; i &lt; n; i++) {</span>
+<span class="nc" id="L1015">				hashCode = NumberUtils.hash(hashCode, m_attributes[i]);</span>
+			}
+		}
+<span class="nc" id="L1018">		return hashCode;</span>
+	}
+
+	/**
+	 * Returns the X coordinate of the left corners of the envelope.
+	 * 
+	 * @return The X coordinate of the left corners.
+	 */
+	public final double getXMin() {
+<span class="fc" id="L1027">		return m_envelope.xmin;</span>
+	}
+
+	/**
+	 * Returns the Y coordinate of the bottom corners of the envelope.
+	 * 
+	 * @return The Y coordinate of the bottom corners.
+	 */
+	public final double getYMin() {
+<span class="fc" id="L1036">		return m_envelope.ymin;</span>
+	}
+
+	/**
+	 * Returns the X coordinate of the right corners of the envelope.
+	 * 
+	 * @return The X coordinate of the right corners.
+	 */
+	public final double getXMax() {
+<span class="fc" id="L1045">		return m_envelope.xmax;</span>
+	}
+
+	/**
+	 * Returns the Y coordinate of the top corners of the envelope.
+	 * 
+	 * @return The Y coordinate of the top corners.
+	 */
+	public final double getYMax() {
+<span class="fc" id="L1054">		return m_envelope.ymax;</span>
+	}
+
+	/**
+	 * Sets the left X coordinate.
+	 * 
+	 * @param x
+	 *            The X coordinate of the left corner
+	 */
+	public void setXMin(double x) {
+<span class="fc" id="L1064">		_touch();</span>
+<span class="fc" id="L1065">		m_envelope.xmin = x;</span>
+<span class="fc" id="L1066">	}</span>
+
+	/**
+	 * Sets the right X coordinate.
+	 * 
+	 * @param x
+	 *            The X coordinate of the right corner.
+	 */
+	public void setXMax(double x) {
+<span class="fc" id="L1075">		_touch();</span>
+<span class="fc" id="L1076">		m_envelope.xmax = x;</span>
+<span class="fc" id="L1077">	}</span>
+
+	/**
+	 * Sets the bottom Y coordinate.
+	 * 
+	 * @param y
+	 *            the Y coordinate of the bottom corner.
+	 */
+	public void setYMin(double y) {
+<span class="fc" id="L1086">		_touch();</span>
+<span class="fc" id="L1087">		m_envelope.ymin = y;</span>
+<span class="fc" id="L1088">	}</span>
+
+	/**
+	 * Sets the top Y coordinate.
+	 * 
+	 * @param y
+	 *            The Y coordinate of the top corner.
+	 */
+	public void setYMax(double y) {
+<span class="fc" id="L1097">		_touch();</span>
+<span class="fc" id="L1098">		m_envelope.ymax = y;</span>
+<span class="fc" id="L1099">	}</span>
+
+	@Override
+	public Geometry getBoundary() {
+<span class="nc" id="L1103">		return Boundary.calculate(this, null);</span>
+	}
+
+	@Override
+	public void replaceNaNs(int semantics, double value) {
+<span class="fc" id="L1108">		addAttribute(semantics);</span>
+<span class="pc bpc" id="L1109" title="1 of 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L1110">			return;</span>
+
+<span class="fc" id="L1112">		int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="fc bfc" id="L1113" title="All 2 branches covered.">		for (int i = 0; i &lt; ncomps; i++) {</span>
+<span class="fc" id="L1114">			Envelope1D interval = queryInterval(semantics, i);</span>
+<span class="pc bpc" id="L1115" title="1 of 2 branches missed.">			if (interval.isEmpty()) {</span>
+<span class="fc" id="L1116">				interval.vmin = value;</span>
+<span class="fc" id="L1117">				interval.vmax = value;</span>
+<span class="fc" id="L1118">				setInterval(semantics, i, interval);</span>
+			}
+		}
+<span class="fc" id="L1121">	}</span>
+
+	/**
+	 * The output of this method can be only used for debugging. It is subject to change without notice. 
+	 */
+	@Override
+	public String toString() {
+<span class="pc bpc" id="L1128" title="1 of 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L1129">			return &quot;Envelope: []&quot;;</span>
+		
+<span class="fc" id="L1131">		String s = &quot;Envelope: [&quot; + m_envelope.xmin + &quot;, &quot; + m_envelope.ymin + &quot;, &quot; + m_envelope.xmax + &quot;, &quot; + m_envelope.ymax +&quot;]&quot;; </span>
+<span class="fc" id="L1132">		return s;</span>
+	}
+    
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

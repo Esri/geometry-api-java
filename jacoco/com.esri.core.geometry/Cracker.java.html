@@ -1,0 +1,553 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Cracker.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Cracker.java</span></div><h1>Cracker.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+
+/**
+ * Implementation for the segment cracking.
+ * 
+ * Finds and splits all intersecting segments. Used by the TopoGraph and
+ * Simplify.
+ */
+<span class="fc" id="L33">final class Cracker {</span>
+	private EditShape m_shape;
+	private ProgressTracker m_progress_tracker;
+	private NonSimpleResult m_non_simple_result;
+	private double m_tolerance;
+	private Treap m_sweep_structure;
+	private SweepComparator m_sweep_comparator;
+	private boolean m_bAllowCoincident;
+
+	private Segment getSegment_(int vertex, Line lineHelper) {
+<span class="fc" id="L43">		Segment seg = m_shape.getSegment(vertex);</span>
+<span class="pc bpc" id="L44" title="1 of 2 branches missed.">		if (seg == null) {</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">			if (!m_shape.queryLineConnector(vertex, lineHelper))</span>
+<span class="fc" id="L46">				return null;</span>
+			
+<span class="fc" id="L48">			seg = (Segment)lineHelper;</span>
+		}
+		
+<span class="fc" id="L51">		return seg;</span>
+	}
+	
+	private boolean crackBruteForce_() {
+<span class="fc" id="L55">		EditShape.VertexIterator iter_1 = m_shape.queryVertexIterator(false);</span>
+<span class="fc" id="L56">		boolean b_cracked = false;</span>
+<span class="fc" id="L57">		Line line_1 = new Line();</span>
+<span class="fc" id="L58">		Line line_2 = new Line();</span>
+<span class="fc" id="L59">		Envelope2D seg_1_env = new Envelope2D();</span>
+<span class="fc" id="L60">		seg_1_env.setEmpty();</span>
+<span class="fc" id="L61">		Envelope2D seg_2_env = new Envelope2D();</span>
+<span class="fc" id="L62">		seg_2_env.setEmpty();</span>
+<span class="fc" id="L63">		boolean assume_intersecting = false;</span>
+<span class="fc" id="L64">		Point helper_point = new Point();</span>
+<span class="fc" id="L65">		SegmentIntersector segment_intersector = new SegmentIntersector();</span>
+
+<span class="fc bfc" id="L67" title="All 2 branches covered.">		for (int vertex_1 = iter_1.next(); vertex_1 != -1; vertex_1 = iter_1</span>
+<span class="fc" id="L68">				.next()) {</span>
+<span class="fc" id="L69">			ProgressTracker.checkAndThrow(m_progress_tracker);</span>
+
+<span class="fc" id="L71">			int GT_1 = m_shape.getGeometryType(iter_1.currentGeometry());</span>
+
+<span class="fc" id="L73">			Segment seg_1 = null;</span>
+<span class="fc" id="L74">			boolean seg_1_zero = false;</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">			if (!Geometry.isPoint(GT_1)) {</span>
+<span class="fc" id="L76">				seg_1 = getSegment_(vertex_1, line_1);</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">				if (seg_1 == null)</span>
+<span class="fc" id="L78">					continue;</span>
+				
+<span class="fc" id="L80">				seg_1.queryEnvelope2D(seg_1_env);</span>
+<span class="fc" id="L81">				seg_1_env.inflate(m_tolerance, m_tolerance);</span>
+
+<span class="fc bfc" id="L83" title="All 2 branches covered.">				if (seg_1.isDegenerate(m_tolerance))// do not crack with</span>
+													// degenerate segments
+				{
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">					if (seg_1.isDegenerate(0)) {</span>
+<span class="fc" id="L87">						seg_1_zero = true;</span>
+<span class="fc" id="L88">						seg_1 = null;</span>
+					}
+					else {
+						continue;
+					}
+				}
+			}
+
+<span class="fc" id="L96">			EditShape.VertexIterator iter_2 = m_shape</span>
+<span class="fc" id="L97">					.queryVertexIterator(iter_1);</span>
+<span class="fc" id="L98">			int vertex_2 = iter_2.next();</span>
+<span class="pc bpc" id="L99" title="1 of 2 branches missed.">			if (vertex_2 != -1)</span>
+<span class="fc" id="L100">				vertex_2 = iter_2.next();</span>
+
+<span class="fc bfc" id="L102" title="All 2 branches covered.">			for (; vertex_2 != -1; vertex_2 = iter_2.next()) {</span>
+<span class="fc" id="L103">				int GT_2 = m_shape.getGeometryType(iter_2.currentGeometry());</span>
+
+<span class="fc" id="L105">				Segment seg_2 = null;</span>
+<span class="fc" id="L106">				boolean seg_2_zero = false;</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">				if (!Geometry.isPoint(GT_2)) {</span>
+<span class="fc" id="L108">					seg_2 = getSegment_(vertex_2, line_2);</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">					if (seg_2 == null) {</span>
+<span class="fc" id="L110">						continue;</span>
+					}
+					
+<span class="fc" id="L113">					seg_2.queryEnvelope2D(seg_2_env);</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">					if (seg_2.isDegenerate(m_tolerance))// do not crack with</span>
+														// degenerate segments
+					{
+<span class="fc bfc" id="L117" title="All 2 branches covered.">						if (seg_2.isDegenerate(0)) {</span>
+<span class="fc" id="L118">							seg_2_zero = true;</span>
+<span class="fc" id="L119">							seg_2 = null;</span>
+						}
+						else {
+							continue;
+						}
+					}
+				}
+
+<span class="fc" id="L127">				int split_count_1 = 0;</span>
+<span class="fc" id="L128">				int split_count_2 = 0;</span>
+<span class="fc bfc" id="L129" title="All 4 branches covered.">				if (seg_1 != null &amp;&amp; seg_2 != null) {</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">					if (seg_1_env.isIntersectingNE(seg_2_env)) {</span>
+<span class="fc" id="L131">						segment_intersector.pushSegment(seg_1);</span>
+<span class="fc" id="L132">						segment_intersector.pushSegment(seg_2);</span>
+<span class="fc" id="L133">						segment_intersector.intersect(m_tolerance,</span>
+								assume_intersecting);
+<span class="fc" id="L135">						split_count_1 = segment_intersector</span>
+<span class="fc" id="L136">								.getResultSegmentCount(0);</span>
+<span class="fc" id="L137">						split_count_2 = segment_intersector</span>
+<span class="fc" id="L138">								.getResultSegmentCount(1);</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">						if (split_count_1 + split_count_2 &gt; 0) {</span>
+<span class="fc" id="L140">							m_shape.splitSegment_(vertex_1,</span>
+									segment_intersector, 0, true);
+<span class="fc" id="L142">							m_shape.splitSegment_(vertex_2,</span>
+									segment_intersector, 1, true);
+						}
+<span class="fc" id="L145">						segment_intersector.clear();</span>
+					}
+				} else {
+<span class="fc bfc" id="L148" title="All 2 branches covered.">					if (seg_1 != null) {</span>
+<span class="fc" id="L149">						Point2D pt = new Point2D();</span>
+<span class="fc" id="L150">						m_shape.getXY(vertex_2, pt);</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">						if (seg_1_env.contains(pt)) {</span>
+<span class="fc" id="L152">							segment_intersector.pushSegment(seg_1);</span>
+<span class="fc" id="L153">							m_shape.queryPoint(vertex_2, helper_point);</span>
+<span class="fc" id="L154">							segment_intersector.intersect(m_tolerance,</span>
+									helper_point, 0, 1.0, assume_intersecting);
+<span class="fc" id="L156">							split_count_1 = segment_intersector</span>
+<span class="fc" id="L157">									.getResultSegmentCount(0);</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">							if (split_count_1 &gt; 0) {</span>
+<span class="fc" id="L159">								m_shape.splitSegment_(vertex_1,</span>
+										segment_intersector, 0, true);
+<span class="fc bfc" id="L161" title="All 2 branches covered.">								if (seg_2_zero) {</span>
+				                    //seg_2 was zero length. Need to change all coincident points
+				                    //segment at vertex_2 is dzero length, change all attached zero length segments
+<span class="fc" id="L164">				                    int v_to = -1;</span>
+<span class="pc bpc" id="L165" title="2 of 4 branches missed.">				                    for (int v = m_shape.getNextVertex(vertex_2); v != -1 &amp;&amp; v != vertex_2; v = m_shape.getNextVertex(v))</span>
+				                    {
+<span class="fc" id="L167">				                      seg_2 = getSegment_(v, line_2);</span>
+<span class="fc" id="L168">				                      v_to = v;</span>
+<span class="pc bpc" id="L169" title="1 of 4 branches missed.">				                      if (seg_2 == null || !seg_2.isDegenerate(0))</span>
+<span class="nc" id="L170">				                        break;</span>
+				                    }
+				                    //change from vertex_2 to v_to (inclusive).
+<span class="pc bpc" id="L173" title="1 of 2 branches missed.">				                    for (int v = vertex_2; v != -1; v = m_shape.getNextVertex(v))</span>
+				                    {
+<span class="fc" id="L175">				                      m_shape.setPoint(v, segment_intersector.getResultPoint());</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">				                      if (v == v_to)</span>
+<span class="fc" id="L177">				                        break;</span>
+				                    }									
+<span class="fc" id="L179">								}</span>
+								else {
+<span class="fc" id="L181">									m_shape.setPoint(vertex_2,</span>
+<span class="fc" id="L182">											segment_intersector.getResultPoint());</span>
+								}
+							}
+<span class="fc" id="L185">							segment_intersector.clear();</span>
+						}
+<span class="fc bfc" id="L187" title="All 2 branches covered.">					} else if (seg_2 != null) {</span>
+<span class="fc" id="L188">						Point2D pt = new Point2D();</span>
+<span class="fc" id="L189">						m_shape.getXY(vertex_1, pt);</span>
+<span class="fc" id="L190">						seg_2_env.inflate(m_tolerance, m_tolerance);</span>
+<span class="fc bfc" id="L191" title="All 2 branches covered.">						if (seg_2_env.contains(pt)) {</span>
+<span class="fc" id="L192">							segment_intersector.pushSegment(seg_2);</span>
+<span class="fc" id="L193">							m_shape.queryPoint(vertex_1, helper_point);</span>
+<span class="fc" id="L194">							segment_intersector.intersect(m_tolerance,</span>
+									helper_point, 0, 1.0, assume_intersecting);
+<span class="fc" id="L196">							split_count_2 = segment_intersector</span>
+<span class="fc" id="L197">									.getResultSegmentCount(0);</span>
+<span class="fc bfc" id="L198" title="All 2 branches covered.">							if (split_count_2 &gt; 0) {</span>
+<span class="fc" id="L199">								m_shape.splitSegment_(vertex_2,</span>
+										segment_intersector, 0, true);
+<span class="pc bpc" id="L201" title="1 of 2 branches missed.">								if (seg_1_zero) {</span>
+				                    //seg_1 was zero length. Need to change all coincident points
+				                    //segment at vertex_2 is dzero length, change all attached zero length segments
+<span class="nc" id="L204">				                    int v_to = -1;</span>
+<span class="nc bnc" id="L205" title="All 4 branches missed.">				                    for (int v = m_shape.getNextVertex(vertex_1); v != -1 &amp;&amp; v != vertex_1; v = m_shape.getNextVertex(v)) {</span>
+<span class="nc" id="L206">				                      seg_2 = getSegment_(v, line_2);//using here seg_2 for seg_1</span>
+<span class="nc" id="L207">				                      v_to = v;</span>
+<span class="nc bnc" id="L208" title="All 4 branches missed.">				                      if (seg_2 == null || !seg_2.isDegenerate(0))</span>
+<span class="nc" id="L209">				                        break;</span>
+				                    }
+				                    //change from vertex_2 to v_to (inclusive).
+<span class="nc bnc" id="L212" title="All 2 branches missed.">				                    for (int v = vertex_1; v != -1; v = m_shape.getNextVertex(v)) {</span>
+<span class="nc" id="L213">				                      m_shape.setPoint(v, segment_intersector.getResultPoint());</span>
+<span class="nc bnc" id="L214" title="All 2 branches missed.">				                      if (v == v_to)</span>
+<span class="nc" id="L215">				                        break;</span>
+				                    }
+<span class="nc" id="L217">								}</span>
+								else {
+<span class="fc" id="L219">									m_shape.setPoint(vertex_1,</span>
+<span class="fc" id="L220">											segment_intersector.getResultPoint());</span>
+								}
+							}
+<span class="fc" id="L223">							segment_intersector.clear();</span>
+						}
+					} else {
+						continue;// points on points
+					}
+				}
+
+<span class="fc bfc" id="L230" title="All 2 branches covered.">				if (split_count_1 + split_count_2 != 0) {</span>
+<span class="fc bfc" id="L231" title="All 2 branches covered.">					if (split_count_1 != 0) {</span>
+<span class="fc" id="L232">						seg_1 = m_shape.getSegment(vertex_1);// reload segment</span>
+																// after split
+<span class="pc bpc" id="L234" title="1 of 2 branches missed.">						if (seg_1 == null) {</span>
+<span class="pc bpc" id="L235" title="1 of 2 branches missed.">							if (!m_shape.queryLineConnector(vertex_1, line_1))</span>
+<span class="nc" id="L236">								continue;</span>
+<span class="fc" id="L237">							seg_1 = line_1;</span>
+<span class="fc" id="L238">							line_1.queryEnvelope2D(seg_1_env);</span>
+						} else
+<span class="nc" id="L240">							seg_1.queryEnvelope2D(seg_1_env);</span>
+
+<span class="pc bpc" id="L242" title="1 of 2 branches missed.">						if (seg_1.isDegenerate(m_tolerance))// do not crack with</span>
+															// degenerate
+															// segments
+						{
+<span class="nc" id="L246">							break;</span>
+						}
+					}
+
+<span class="fc" id="L250">					b_cracked = true;</span>
+				}
+			}
+		}
+
+<span class="fc" id="L255">		return b_cracked;</span>
+	}
+
+	boolean crackerPlaneSweep_() {
+<span class="fc" id="L259">		boolean b_cracked = planeSweep_();</span>
+<span class="fc" id="L260">		return b_cracked;</span>
+	}
+
+	boolean planeSweep_() {
+<span class="fc" id="L264">		PlaneSweepCrackerHelper plane_sweep = new PlaneSweepCrackerHelper();</span>
+<span class="fc" id="L265">		boolean b_cracked = plane_sweep.sweep(m_shape, m_tolerance);</span>
+<span class="fc" id="L266">		return b_cracked;</span>
+	}
+
+	boolean needsCrackingImpl_() {
+<span class="fc" id="L270">		boolean b_needs_cracking = false;</span>
+		
+<span class="pc bpc" id="L272" title="1 of 2 branches missed.">		if (m_sweep_structure == null)</span>
+<span class="fc" id="L273">			m_sweep_structure = new Treap();</span>
+
+<span class="fc" id="L275">		AttributeStreamOfInt32 event_q = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L276">		event_q.reserve(m_shape.getTotalPointCount() + 1);</span>
+
+<span class="fc" id="L278">		EditShape.VertexIterator iter = m_shape.queryVertexIterator();</span>
+<span class="fc bfc" id="L279" title="All 2 branches covered.">		for (int vert = iter.next(); vert != -1; vert = iter.next()) {</span>
+<span class="fc" id="L280">			event_q.add(vert);</span>
+		}
+<span class="pc bpc" id="L282" title="1 of 2 branches missed.">		assert (m_shape.getTotalPointCount() == event_q.size());</span>
+
+<span class="fc" id="L284">		m_shape.sortVerticesSimpleByY_(event_q, 0, event_q.size());</span>
+<span class="fc" id="L285">		event_q.add(-1);// for termination;</span>
+		// create user indices to store edges that end at vertices.
+<span class="fc" id="L287">		int edge_index_1 = m_shape.createUserIndex();</span>
+<span class="fc" id="L288">		int edge_index_2 = m_shape.createUserIndex();</span>
+<span class="fc bfc" id="L289" title="All 2 branches covered.">		m_sweep_comparator = new SweepComparator(m_shape, m_tolerance, !m_bAllowCoincident);</span>
+<span class="fc" id="L290">		m_sweep_structure.setComparator(m_sweep_comparator);</span>
+
+<span class="fc" id="L292">		AttributeStreamOfInt32 swept_edges_to_delete = new AttributeStreamOfInt32(</span>
+				0);
+<span class="fc" id="L294">		AttributeStreamOfInt32 edges_to_insert = new AttributeStreamOfInt32(0);</span>
+
+		// Go throught the sorted vertices
+<span class="fc" id="L297">		int event_q_index = 0;</span>
+<span class="fc" id="L298">		Point2D cluster_pt = new Point2D();</span>
+
+		// sweep-line algorithm:
+<span class="fc bfc" id="L301" title="All 2 branches covered.">		for (int vertex = event_q.get(event_q_index++); vertex != -1;) {</span>
+<span class="fc" id="L302">			m_shape.getXY(vertex, cluster_pt);</span>
+			
+			do {
+<span class="fc" id="L305">				int next_vertex = m_shape.getNextVertex(vertex);</span>
+<span class="fc" id="L306">				int prev_vertex = m_shape.getPrevVertex(vertex);</span>
+
+<span class="fc bfc" id="L308" title="All 2 branches covered.">				if (next_vertex != -1</span>
+<span class="fc bfc" id="L309" title="All 2 branches covered.">						&amp;&amp; m_shape.compareVerticesSimpleY_(vertex, next_vertex) &lt; 0) {</span>
+<span class="fc" id="L310">					edges_to_insert.add(vertex);</span>
+<span class="fc" id="L311">					edges_to_insert.add(next_vertex);</span>
+				}
+
+<span class="fc bfc" id="L314" title="All 2 branches covered.">				if (prev_vertex != -1</span>
+<span class="fc bfc" id="L315" title="All 2 branches covered.">						&amp;&amp; m_shape.compareVerticesSimpleY_(vertex, prev_vertex) &lt; 0) {</span>
+<span class="fc" id="L316">					edges_to_insert.add(prev_vertex);</span>
+<span class="fc" id="L317">					edges_to_insert.add(prev_vertex);</span>
+				}
+
+				// Continue accumulating current cluster
+<span class="fc" id="L321">				int attached_edge_1 = m_shape</span>
+<span class="fc" id="L322">						.getUserIndex(vertex, edge_index_1);</span>
+<span class="fc bfc" id="L323" title="All 2 branches covered.">				if (attached_edge_1 != -1) {</span>
+<span class="fc" id="L324">					swept_edges_to_delete.add(attached_edge_1);</span>
+<span class="fc" id="L325">					m_shape.setUserIndex(vertex, edge_index_1, -1);</span>
+				}
+<span class="fc" id="L327">				int attached_edge_2 = m_shape</span>
+<span class="fc" id="L328">						.getUserIndex(vertex, edge_index_2);</span>
+<span class="fc bfc" id="L329" title="All 2 branches covered.">				if (attached_edge_2 != -1) {</span>
+<span class="fc" id="L330">					swept_edges_to_delete.add(attached_edge_2);</span>
+<span class="fc" id="L331">					m_shape.setUserIndex(vertex, edge_index_2, -1);</span>
+				}
+<span class="fc" id="L333">				vertex = event_q.get(event_q_index++);</span>
+<span class="fc bfc" id="L334" title="All 4 branches covered.">			} while (vertex != -1 &amp;&amp; m_shape.isEqualXY(vertex, cluster_pt));</span>
+
+<span class="fc" id="L336">			boolean b_continuing_segment_chain_optimization = swept_edges_to_delete</span>
+<span class="fc bfc" id="L337" title="All 4 branches covered.">					.size() == 1 &amp;&amp; edges_to_insert.size() == 2;</span>
+
+<span class="fc" id="L339">			int new_left = -1;</span>
+<span class="fc" id="L340">			int new_right = -1;</span>
+			// Process the cluster
+<span class="fc bfc" id="L342" title="All 2 branches covered.">			for (int i = 0, n = swept_edges_to_delete.size(); i &lt; n; i++) {</span>
+				// Find left and right neighbour of the edges that terminate at
+				// the cluster (there will be atmost only one left and one
+				// right).
+<span class="fc" id="L346">				int edge = swept_edges_to_delete.get(i);</span>
+<span class="fc" id="L347">				int left = m_sweep_structure.getPrev(edge);</span>
+<span class="fc bfc" id="L348" title="All 4 branches covered.">				if (left != -1 &amp;&amp; !swept_edges_to_delete.hasElement(left))// Note:</span>
+																			// for
+																			// some
+																			// heavy
+																			// cases,
+																			// it
+																			// could
+																			// be
+																			// better
+																			// to
+																			// use
+																			// binary
+																			// search.
+				{
+<span class="pc bpc" id="L362" title="1 of 2 branches missed.">					assert (new_left == -1);</span>
+<span class="fc" id="L363">					new_left = left;</span>
+				}
+
+<span class="fc" id="L366">				int right = m_sweep_structure.getNext(edge);</span>
+<span class="fc bfc" id="L367" title="All 4 branches covered.">				if (right != -1 &amp;&amp; !swept_edges_to_delete.hasElement(right)) {</span>
+<span class="pc bpc" id="L368" title="1 of 2 branches missed.">					assert (new_right == -1);</span>
+<span class="fc" id="L369">					new_right = right;</span>
+				}
+//#ifdef NDEBUG				
+<span class="fc bfc" id="L372" title="All 4 branches covered.">				if (new_left != -1 &amp;&amp; new_right != -1)</span>
+<span class="fc" id="L373">					break;</span>
+//#endif
+			}
+
+<span class="pc bpc" id="L377" title="1 of 4 branches missed.">			assert (new_left == -1 || new_left != new_right);</span>
+
+<span class="fc" id="L379">			m_sweep_comparator.setSweepY(cluster_pt.y, cluster_pt.x);</span>
+
+			// Delete the edges that terminate at the cluster.
+<span class="fc bfc" id="L382" title="All 2 branches covered.">			for (int i = 0, n = swept_edges_to_delete.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L383">				int edge = swept_edges_to_delete.get(i);</span>
+<span class="fc" id="L384">				m_sweep_structure.deleteNode(edge, -1);</span>
+			}
+<span class="fc" id="L386">			swept_edges_to_delete.clear(false);</span>
+
+<span class="fc bfc" id="L388" title="All 6 branches covered.">			if (!b_continuing_segment_chain_optimization &amp;&amp; new_left != -1 &amp;&amp; new_right != -1) {</span>
+<span class="pc bpc" id="L389" title="1 of 2 branches missed.">				if (checkForIntersections_(new_left, new_right)) {</span>
+<span class="nc" id="L390">					b_needs_cracking = true;</span>
+<span class="nc" id="L391">					m_non_simple_result = m_sweep_comparator.getResult();</span>
+<span class="nc" id="L392">					break;</span>
+				}
+			}
+
+<span class="fc bfc" id="L396" title="All 2 branches covered.">			for (int i = 0, n = edges_to_insert.size(); i &lt; n; i += 2) {</span>
+<span class="fc" id="L397">				int v = edges_to_insert.get(i);</span>
+<span class="fc" id="L398">				int otherv = edges_to_insert.get(i + 1);</span>
+
+<span class="fc" id="L400">				int new_edge_1 = -1;</span>
+<span class="fc bfc" id="L401" title="All 2 branches covered.">				if (b_continuing_segment_chain_optimization) {</span>
+<span class="fc" id="L402">					new_edge_1 = m_sweep_structure.addElementAtPosition(</span>
+							new_left, new_right, v, true, true, -1);
+<span class="fc" id="L404">					b_continuing_segment_chain_optimization = false;</span>
+				} else {
+<span class="fc" id="L406">					new_edge_1 = m_sweep_structure.addElement(v, -1); // the</span>
+																		// sweep
+																		// structure
+																		// consist
+																		// of
+																		// the
+																		// origin
+																		// vertices
+																		// for
+																		// edges.
+																		// One
+																		// can
+																		// always
+																		// get
+																		// the
+																		// other
+																		// endpoint
+																		// as
+																		// the
+																		// next
+																		// vertex.
+				}
+
+<span class="fc bfc" id="L429" title="All 2 branches covered.">				if (m_sweep_comparator.intersectionDetected()) {</span>
+<span class="fc" id="L430">					m_non_simple_result = m_sweep_comparator.getResult();</span>
+<span class="fc" id="L431">					b_needs_cracking = true;</span>
+<span class="fc" id="L432">					break;</span>
+				}
+
+<span class="fc" id="L435">				int e_1 = m_shape.getUserIndex(otherv, edge_index_1);</span>
+<span class="fc bfc" id="L436" title="All 2 branches covered.">				if (e_1 == -1)</span>
+<span class="fc" id="L437">					m_shape.setUserIndex(otherv, edge_index_1, new_edge_1);</span>
+				else {
+<span class="pc bpc" id="L439" title="1 of 2 branches missed.">					assert (m_shape.getUserIndex(otherv, edge_index_2) == -1);</span>
+<span class="fc" id="L440">					m_shape.setUserIndex(otherv, edge_index_2, new_edge_1);</span>
+				}
+			}
+
+<span class="fc bfc" id="L444" title="All 2 branches covered.">			if (b_needs_cracking)</span>
+<span class="fc" id="L445">				break;</span>
+
+			// Start accumulating new cluster
+<span class="fc" id="L448">			edges_to_insert.resizePreserveCapacity(0);</span>
+<span class="fc" id="L449">		}</span>
+
+<span class="fc" id="L451">		m_shape.removeUserIndex(edge_index_1);</span>
+<span class="fc" id="L452">		m_shape.removeUserIndex(edge_index_2);</span>
+<span class="fc" id="L453">		return b_needs_cracking;</span>
+	}
+
+	boolean checkForIntersections_(int sweep_edge_1, int sweep_edge_2) {
+<span class="pc bpc" id="L457" title="1 of 2 branches missed.">		assert (sweep_edge_1 != sweep_edge_2);</span>
+<span class="fc" id="L458">		int left = m_sweep_structure.getElement(sweep_edge_1);</span>
+<span class="pc bpc" id="L459" title="1 of 2 branches missed.">		assert (left != m_sweep_structure.getElement(sweep_edge_2));</span>
+<span class="fc" id="L460">		m_sweep_comparator.compare(m_sweep_structure, left, sweep_edge_2);// compare</span>
+																			// detects
+																			// intersections
+<span class="fc" id="L463">		boolean b_intersects = m_sweep_comparator.intersectionDetected();</span>
+<span class="fc" id="L464">		m_sweep_comparator.clearIntersectionDetectedFlag();</span>
+<span class="fc" id="L465">		return b_intersects;</span>
+	}
+
+	// void dbg_print_sweep_edge_(int edge);
+	// void dbg_print_sweep_structure_();
+	// void dbg_check_sweep_structure_();
+<span class="fc" id="L471">	Cracker(ProgressTracker progress_tracker) {</span>
+<span class="fc" id="L472">		m_progress_tracker = progress_tracker;</span>
+<span class="fc" id="L473">		m_bAllowCoincident = true;</span>
+<span class="fc" id="L474">	}</span>
+
+	static boolean canBeCracked(EditShape shape) {
+<span class="fc bfc" id="L477" title="All 2 branches covered.">		for (int geometry = shape.getFirstGeometry(); geometry != -1; geometry = shape</span>
+<span class="fc" id="L478">				.getNextGeometry(geometry)) {</span>
+<span class="fc bfc" id="L479" title="All 2 branches covered.">			if (!Geometry.isMultiPath(shape.getGeometryType(geometry)))</span>
+<span class="fc" id="L480">				continue;</span>
+<span class="fc" id="L481">			return true;</span>
+		}
+<span class="fc" id="L483">		return false;</span>
+	}
+
+	static boolean execute(EditShape shape, Envelope2D extent,
+			double tolerance, ProgressTracker progress_tracker) {
+<span class="fc bfc" id="L488" title="All 2 branches covered.">		if (!canBeCracked(shape)) // make sure it contains some segments,</span>
+									// otherwise no need to crack.
+<span class="fc" id="L490">			return false;</span>
+
+<span class="fc" id="L492">		Cracker cracker = new Cracker(progress_tracker);</span>
+<span class="fc" id="L493">		cracker.m_shape = shape;</span>
+<span class="fc" id="L494">		cracker.m_tolerance = tolerance;</span>
+		// Use brute force for smaller shapes, and a planesweep for bigger
+		// shapes.
+<span class="fc" id="L497">		boolean b_cracked = false;</span>
+<span class="fc bfc" id="L498" title="All 2 branches covered.">		if (shape.getTotalPointCount() &lt; 15) // what is a good number?</span>
+		{
+<span class="fc" id="L500">			b_cracked = cracker.crackBruteForce_();</span>
+		} else {
+<span class="fc" id="L502">			boolean b_cracked_1 = cracker.crackerPlaneSweep_();</span>
+<span class="fc" id="L503">			return b_cracked_1;</span>
+		}
+<span class="fc" id="L505">		return b_cracked;</span>
+	}
+
+	static boolean execute(EditShape shape, double tolerance,
+			ProgressTracker progress_tracker) {
+<span class="fc" id="L510">		return Cracker.execute(shape, shape.getEnvelope2D(), tolerance,</span>
+				progress_tracker);
+	}
+
+	// Used for IsSimple.
+	static boolean needsCracking(boolean allowCoincident, EditShape shape, double tolerance,
+			NonSimpleResult result, ProgressTracker progress_tracker) {
+<span class="pc bpc" id="L517" title="1 of 2 branches missed.">		if (!canBeCracked(shape))</span>
+<span class="nc" id="L518">			return false;</span>
+
+<span class="fc" id="L520">		Cracker cracker = new Cracker(progress_tracker);</span>
+<span class="fc" id="L521">		cracker.m_shape = shape;</span>
+<span class="fc" id="L522">		cracker.m_tolerance = tolerance;</span>
+<span class="fc" id="L523">		cracker.m_bAllowCoincident = allowCoincident;</span>
+<span class="fc bfc" id="L524" title="All 2 branches covered.">		if (cracker.needsCrackingImpl_()) {</span>
+<span class="fc bfc" id="L525" title="All 2 branches covered.">			if (result != null)</span>
+<span class="fc" id="L526">				result.Assign(cracker.m_non_simple_result);</span>
+<span class="fc" id="L527">			return true;</span>
+		}
+
+		// Now swap the coordinates to catch horizontal cases.
+<span class="fc" id="L531">		Transformation2D transform = new Transformation2D();</span>
+<span class="fc" id="L532">		transform.setSwapCoordinates();</span>
+<span class="fc" id="L533">		shape.applyTransformation(transform);</span>
+
+<span class="fc" id="L535">		cracker = new Cracker(progress_tracker);</span>
+<span class="fc" id="L536">		cracker.m_shape = shape;</span>
+<span class="fc" id="L537">		cracker.m_tolerance = tolerance;</span>
+<span class="fc" id="L538">		cracker.m_bAllowCoincident = allowCoincident;</span>
+<span class="fc" id="L539">		boolean b_res = cracker.needsCrackingImpl_();</span>
+
+<span class="fc" id="L541">		transform.setSwapCoordinates();</span>
+<span class="fc" id="L542">		shape.applyTransformation(transform);// restore shape</span>
+
+<span class="fc bfc" id="L544" title="All 2 branches covered.">		if (b_res) {</span>
+<span class="pc bpc" id="L545" title="1 of 2 branches missed.">			if (result != null)</span>
+<span class="nc" id="L546">				result.Assign(cracker.m_non_simple_result);</span>
+<span class="fc" id="L547">			return true;</span>
+		}
+
+<span class="fc" id="L550">		return false;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

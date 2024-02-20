@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OGCPolygon.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry.ogc</a> &gt; <span class="el_source">OGCPolygon.java</span></div><h1>OGCPolygon.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2018 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry.ogc;
+
+import com.esri.core.geometry.Geometry;
+import com.esri.core.geometry.GeometryEngine;
+import com.esri.core.geometry.Operator;
+import com.esri.core.geometry.OperatorExportToWkb;
+import com.esri.core.geometry.OperatorFactoryLocal;
+import com.esri.core.geometry.Polygon;
+import com.esri.core.geometry.Polyline;
+import com.esri.core.geometry.SpatialReference;
+import com.esri.core.geometry.WkbExportFlags;
+import com.esri.core.geometry.WktExportFlags;
+
+import java.nio.ByteBuffer;
+
+import static com.esri.core.geometry.SizeOf.SIZE_OF_OGC_POLYGON;
+
+public class OGCPolygon extends OGCSurface {
+<span class="fc" id="L43">	public static String TYPE = &quot;Polygon&quot;;</span>
+	
+<span class="fc" id="L45">	public OGCPolygon(Polygon src, int exteriorRing, SpatialReference sr) {</span>
+<span class="fc" id="L46">		polygon = new Polygon();</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">		for (int i = exteriorRing, n = src.getPathCount(); i &lt; n; i++) {</span>
+<span class="fc bfc" id="L48" title="All 4 branches covered.">			if (i &gt; exteriorRing &amp;&amp; src.isExteriorRing(i))</span>
+<span class="fc" id="L49">				break;</span>
+<span class="fc" id="L50">			polygon.addPath(src, i, true);</span>
+		}
+<span class="fc" id="L52">		esriSR = sr;</span>
+<span class="fc" id="L53">	}</span>
+
+<span class="fc" id="L55">	public OGCPolygon(Polygon geom, SpatialReference sr) {</span>
+<span class="fc" id="L56">		polygon = geom;</span>
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">		if (geom.getExteriorRingCount() &gt; 1)</span>
+<span class="nc" id="L58">			throw new IllegalArgumentException(</span>
+					&quot;Polygon has to have one exterior ring. Simplify geom with OperatorSimplify.&quot;);
+<span class="fc" id="L60">		esriSR = sr;</span>
+<span class="fc" id="L61">	}</span>
+
+	@Override
+	public String asText() {
+<span class="fc" id="L65">		return GeometryEngine.geometryToWkt(getEsriGeometry(),</span>
+				WktExportFlags.wktExportPolygon);
+	}
+
+	@Override
+	public ByteBuffer asBinary() {
+		OperatorExportToWkb op = (OperatorExportToWkb) OperatorFactoryLocal
+<span class="fc" id="L72">				.getInstance().getOperator(Operator.Type.ExportToWkb);</span>
+<span class="fc" id="L73">		return op.execute(WkbExportFlags.wkbExportPolygon, getEsriGeometry(),</span>
+				null);
+	}
+
+	/**
+	 * Returns the exterior ring of this Polygon.
+	 * @return OGCLinearRing instance.
+	 */
+	public OGCLineString exteriorRing() {
+<span class="pc bpc" id="L82" title="1 of 2 branches missed.">		if (polygon.isEmpty())</span>
+<span class="nc" id="L83">			return new OGCLinearRing((Polygon) polygon.createInstance(), 0,</span>
+					esriSR, true);
+<span class="fc" id="L85">		return new OGCLinearRing(polygon, 0, esriSR, true);</span>
+	}
+
+	/**
+	 * Returns the number of interior rings in this Polygon.
+	 */
+	public int numInteriorRing() {
+<span class="fc" id="L92">		return polygon.getPathCount() - 1;</span>
+	}
+
+	/**
+	 * Returns the Nth interior ring for this Polygon as a LineString.
+	 * @param n The 0 based index of the interior ring.
+	 * @return OGCLinearRing instance.
+	 */
+	public OGCLineString interiorRingN(int n) {
+<span class="fc" id="L101">		return new OGCLinearRing(polygon, n + 1, esriSR, true);</span>
+	}
+
+	@Override
+	public OGCMultiCurve boundary() {
+<span class="fc" id="L106">		Polyline polyline = new Polyline();</span>
+<span class="fc" id="L107">		polyline.add(polygon, true); // adds reversed path</span>
+<span class="fc" id="L108">		return (OGCMultiCurve) OGCGeometry.createFromEsriGeometry(polyline,</span>
+				esriSR, true);
+	}
+
+	@Override
+	public String geometryType() {
+<span class="fc" id="L114">		return TYPE;</span>
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">		return SIZE_OF_OGC_POLYGON + (polygon != null ? polygon.estimateMemorySize() : 0);</span>
+	}
+
+	@Override
+	public OGCGeometry locateAlong(double mValue) {
+		// TODO Auto-generated method stub
+<span class="nc" id="L126">		throw new UnsupportedOperationException();</span>
+	}
+
+	@Override
+	public OGCGeometry locateBetween(double mStart, double mEnd) {
+		// TODO Auto-generated method stub
+<span class="nc" id="L132">		throw new UnsupportedOperationException();</span>
+	}
+
+	@Override
+	public Geometry getEsriGeometry() {
+<span class="fc" id="L137">		return polygon;</span>
+	}
+
+	@Override
+	public OGCGeometry convertToMulti()
+	{
+<span class="fc" id="L143">		return new OGCMultiPolygon(polygon, esriSR);</span>
+	}
+	
+	@Override
+	public OGCGeometry reduceFromMulti() {
+<span class="fc" id="L148">		return this;</span>
+	}
+	
+	Polygon polygon;
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

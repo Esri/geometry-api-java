@@ -1,0 +1,987 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Segment.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Segment.java</span></div><h1>Segment.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+import com.esri.core.geometry.VertexDescription.Semantics;
+
+import java.io.Serializable;
+
+/**
+ * A base class for segments. Presently only Line segments are supported.
+ */
+public abstract class Segment extends Geometry implements Serializable {
+	double m_xStart;
+
+	double m_yStart;
+
+	double m_xEnd;
+
+	double m_yEnd;
+
+	double[] m_attributes;
+
+	// Header Definitions
+	/**
+	 * Returns XY coordinates of the start point.
+	 */
+	public Point2D getStartXY() {
+<span class="fc" id="L50">		return Point2D.construct(m_xStart, m_yStart);</span>
+	}
+
+	public void getStartXY(Point2D pt) {
+<span class="fc" id="L54">		pt.x = m_xStart;</span>
+<span class="fc" id="L55">		pt.y = m_yStart;</span>
+<span class="fc" id="L56">	}</span>
+
+	/**
+	 * Sets the XY coordinates of the start point.
+	 */
+	public void setStartXY(Point2D pt) {
+<span class="fc" id="L62">		_setXY(0, pt);</span>
+<span class="fc" id="L63">	}</span>
+
+	public void setStartXY(double x, double y) {
+<span class="fc" id="L66">		_setXY(0, Point2D.construct(x, y));</span>
+<span class="fc" id="L67">	}</span>
+
+	/**
+	 * Returns XYZ coordinates of the start point. Z if 0 if Z is missing.
+	 */
+	public Point3D getStartXYZ() {
+<span class="nc" id="L73">		return _getXYZ(0);</span>
+	}
+
+	/**
+	 * Sets the XYZ coordinates of the start point.
+	 */
+	public void setStartXYZ(Point3D pt) {
+<span class="nc" id="L80">		_setXYZ(0, pt);</span>
+<span class="nc" id="L81">	}</span>
+
+	public void setStartXYZ(double x, double y, double z) {
+<span class="nc" id="L84">		_setXYZ(0, Point3D.construct(x, y, z));</span>
+<span class="nc" id="L85">	}</span>
+
+	/**
+	 * Returns coordinates of the start point in a Point class.
+	 */
+	public void queryStart(Point dstPoint) {
+<span class="fc" id="L91">		_get(0, dstPoint);</span>
+<span class="fc" id="L92">	}</span>
+
+	/**
+	 * Sets the coordinates of the start point in this segment.
+	 * 
+	 * @param srcPoint
+	 *            The new start point of this segment.
+	 */
+	public void setStart(Point srcPoint) {
+<span class="fc" id="L101">		_set(0, srcPoint);</span>
+<span class="fc" id="L102">	}</span>
+
+	/**
+	 * Returns value of the start vertex attribute's ordinate. Throws if the
+	 * Point is empty.
+	 * 
+	 * @param semantics
+	 *            The attribute semantics.
+	 * @param ordinate
+	 *            The attribute's ordinate. For example, the y coordinate of the
+	 *            NORMAL has ordinate of 1.
+	 * @return Ordinate value as double.
+	 */
+	public double getStartAttributeAsDbl(int semantics, int ordinate) {
+<span class="fc" id="L116">		return _getAttributeAsDbl(0, semantics, ordinate);</span>
+	}
+
+	/**
+	 * Returns the value of the start vertex attribute's ordinate. The ordinate
+	 * is always 0 because integer attributes always have one component.
+	 * 
+	 * @param semantics
+	 *            The attribute semantics.
+	 * @param ordinate
+	 *            The attribute's ordinate. For example, the y coordinate of the
+	 *            NORMAL has ordinate of 1.
+	 * @return Ordinate value truncated to 32 bit integer.
+	 */
+	public int getStartAttributeAsInt(int semantics, int ordinate) {
+<span class="nc" id="L131">		return _getAttributeAsInt(0, semantics, ordinate);</span>
+	}
+
+	/**
+	 * Sets the value of the start vertex attribute.
+	 * 
+	 * @param semantics
+	 *            The attribute semantics.
+	 * @param value
+	 *            is the array to write values to. The attribute type and the
+	 *            number of elements must match the persistence type, as well as
+	 *            the number of components of the attribute.
+	 */
+	public void setStartAttribute(int semantics, int ordinate, double value) {
+<span class="fc" id="L145">		_setAttribute(0, semantics, ordinate, value);</span>
+<span class="fc" id="L146">	}</span>
+
+	public void setStartAttribute(int semantics, int ordinate, int value) {
+<span class="fc" id="L149">		_setAttribute(0, semantics, ordinate, value);</span>
+<span class="fc" id="L150">	}</span>
+
+	/**
+	 * Returns the X coordinate of starting point.
+	 * 
+	 * @return The X coordinate of starting point.
+	 */
+	public double getStartX() {
+<span class="fc" id="L158">		return m_xStart;</span>
+	}
+
+	/**
+	 * Returns the Y coordinate of starting point.
+	 * 
+	 * @return The Y coordinate of starting point.
+	 */
+	public double getStartY() {
+<span class="fc" id="L167">		return m_yStart;</span>
+	}
+
+	/**
+	 * Returns the X coordinate of ending point.
+	 * 
+	 * @return The X coordinate of ending point.
+	 */
+	public double getEndX() {
+<span class="fc" id="L176">		return m_xEnd;</span>
+	}
+
+	/**
+	 * Returns the Y coordinate of ending point.
+	 * 
+	 * @return The Y coordinate of ending point.
+	 */
+	public double getEndY() {
+<span class="fc" id="L185">		return m_yEnd;</span>
+	}
+
+	/**
+	 * Returns XY coordinates of the end point.
+	 * 
+	 * @return The XY coordinates of the end point.
+	 */
+	public Point2D getEndXY() {
+<span class="fc" id="L194">		return Point2D.construct(m_xEnd, m_yEnd);</span>
+	}
+
+	public void getEndXY(Point2D pt) {
+<span class="nc" id="L198">		pt.x = m_xEnd;</span>
+<span class="nc" id="L199">		pt.y = m_yEnd;</span>
+<span class="nc" id="L200">	}</span>
+
+	/**
+	 * Sets the XY coordinates of the end point.
+	 * 
+	 * @param pt
+	 *            The end point of the segment.
+	 */
+	public void setEndXY(Point2D pt) {
+<span class="fc" id="L209">		_setXY(1, pt);</span>
+<span class="fc" id="L210">	}</span>
+
+	public void setEndXY(double x, double y) {
+<span class="fc" id="L213">		_setXY(1, Point2D.construct(x, y));</span>
+<span class="fc" id="L214">	}</span>
+
+	/**
+	 * Returns XYZ coordinates of the end point. Z if 0 if Z is missing.
+	 * 
+	 * @return The XYZ coordinates of the end point.
+	 */
+	public Point3D getEndXYZ() {
+<span class="nc" id="L222">		return _getXYZ(1);</span>
+	}
+
+	/**
+	 * Sets the XYZ coordinates of the end point.
+	 */
+	public void setEndXYZ(Point3D pt) {
+<span class="nc" id="L229">		_setXYZ(1, pt);</span>
+<span class="nc" id="L230">	}</span>
+
+	public void setEndXYZ(double x, double y, double z) {
+<span class="nc" id="L233">		_setXYZ(1, Point3D.construct(x, y, z));</span>
+<span class="nc" id="L234">	}</span>
+
+	/**
+	 * Returns coordinates of the end point in this segment.
+	 * 
+	 * @param dstPoint
+	 *            The end point of this segment.
+	 */
+	public void queryEnd(Point dstPoint) {
+<span class="fc" id="L243">		_get(1, dstPoint);</span>
+<span class="fc" id="L244">	}</span>
+
+	/**
+	 * Sets the coordinates of the end point in a Point class.
+	 * 
+	 * @param srcPoint
+	 *            The new end point of this segment.
+	 */
+	public void setEnd(Point srcPoint) {
+<span class="fc" id="L253">		_set(1, srcPoint);</span>
+<span class="fc" id="L254">	}</span>
+
+	/**
+	 * Returns value of the end vertex attribute's ordinate. Throws if the Point
+	 * is empty.
+	 * 
+	 * @param semantics
+	 *            The attribute semantics.
+	 * @param ordinate
+	 *            The attribute's ordinate. For example, the y coordinate of the
+	 *            NORMAL has ordinate of 1.
+	 * @return Ordinate value as double.
+	 */
+	public double getEndAttributeAsDbl(int semantics, int ordinate) {
+<span class="fc" id="L268">		return _getAttributeAsDbl(1, semantics, ordinate);</span>
+	}
+
+	/**
+	 * Returns the value of the end vertex attribute's ordinate. The ordinate is
+	 * always 0 because integer attributes always have one component.
+	 * 
+	 * @param semantics
+	 *            The attribute semantics.
+	 * @param ordinate
+	 *            The attribute's ordinate. For example, the y coordinate of the
+	 *            NORMAL has ordinate of 1.
+	 * @return The ordinate value truncated to 32 bit integer.
+	 */
+	public int getEndAttributeAsInt(int semantics, int ordinate) {
+<span class="nc" id="L283">		return _getAttributeAsInt(1, semantics, ordinate);</span>
+	}
+
+	/**
+	 * Sets the value of end vertex attribute.
+	 * 
+	 * @param semantics
+	 *            The attribute semantics.
+	 * @param ordinate
+	 *            The attribute's ordinate.
+	 * @param value
+	 *            Is the array to write values to. The attribute type and the
+	 *            number of elements must match the persistence type, as well as
+	 *            the number of components of the attribute.
+	 */
+	public void setEndAttribute(int semantics, int ordinate, double value) {
+<span class="fc" id="L299">		_setAttribute(1, semantics, ordinate, value);</span>
+<span class="fc" id="L300">	}</span>
+
+	public void setEndAttribute(int semantics, int ordinate, int value) {
+<span class="fc" id="L303">		_setAttribute(1, semantics, ordinate, value);</span>
+<span class="fc" id="L304">	}</span>
+
+	@Override
+	public final int getDimension() {
+<span class="nc" id="L308">		return 1;</span>
+	}
+
+	@Override
+	public final boolean isEmpty() {
+<span class="fc" id="L313">		return isEmptyImpl();</span>
+	}
+
+	@Override
+	public final void setEmpty() {
+
+<span class="nc" id="L319">	}</span>
+
+	@Override
+	public double calculateArea2D() {
+<span class="nc" id="L323">		return 0;</span>
+	}
+
+	/**
+	 * Calculates intersections of this segment with another segment.
+	 * &lt;p&gt;
+	 * Note: This is not a topological operation. It needs to be paired with the
+	 * Segment.Overlap call.
+	 * 
+	 * @param other
+	 *            The segment to calculate intersection with.
+	 * @param intersectionPoints
+	 *            The intersection points. Can be NULL.
+	 * @param paramThis
+	 *            The value of the parameter in the intersection points for this
+	 *            Segment (between 0 and 1). Can be NULL.
+	 * @param paramOther
+	 *            The value of the parameter in the intersection points for the
+	 *            other Segment (between 0 and 1). Can be NULL.
+	 * @param tolerance
+	 *            The tolerance value for the intersection calculation. Can be
+	 *            0.
+	 * @return The number of intersection points, 0 when no intersection points
+	 *         exist.
+	 */
+	int intersect(Segment other, Point2D[] intersectionPoints,
+			double[] paramThis, double[] paramOther, double tolerance) {
+<span class="fc" id="L350">		return _intersect(other, intersectionPoints, paramThis, paramOther,</span>
+				tolerance);
+	}
+
+	/**
+	 * Returns TRUE if this segment intersects with the other segment with the
+	 * given tolerance.
+	 */
+	public boolean isIntersecting(Segment other, double tolerance) {
+<span class="nc bnc" id="L359" title="All 2 branches missed.">		return _isIntersecting(other, tolerance, false) != 0;</span>
+	}
+
+	/**
+	 * Returns TRUE if the point and segment intersect (not disjoint) for the
+	 * given tolerance.
+	 */
+	public boolean isIntersecting(Point2D pt, double tolerance) {
+<span class="nc" id="L367">		return _isIntersectingPoint(pt, tolerance, false);</span>
+	}
+
+	/**
+	 * Non public abstract version of the function.
+	 */
+	public boolean isEmptyImpl() {
+<span class="fc" id="L374">		return false;</span>
+	}
+
+	// Header Definitions
+
+	// Cpp definitions
+	/**
+	 * Creates a segment with start and end points (0,0).
+	 */
+<span class="fc" id="L383">	public Segment() {</span>
+<span class="fc" id="L384">		m_xStart = 0;</span>
+<span class="fc" id="L385">		m_yStart = 0;</span>
+<span class="fc" id="L386">		m_xEnd = 0;</span>
+<span class="fc" id="L387">		m_yEnd = 0;</span>
+<span class="fc" id="L388">		m_attributes = null;</span>
+<span class="fc" id="L389">	}</span>
+
+	void _resizeAttributes(int newSize) {
+<span class="fc" id="L392">		_touch();</span>
+<span class="fc bfc" id="L393" title="All 4 branches covered.">		if (m_attributes == null &amp;&amp; newSize &gt; 0) {</span>
+<span class="fc" id="L394">			m_attributes = new double[newSize * 2];</span>
+<span class="pc bpc" id="L395" title="1 of 4 branches missed.">		} else if (m_attributes != null &amp;&amp; m_attributes.length &lt; newSize * 2) {</span>
+<span class="nc" id="L396">			double[] newbuffer = new double[newSize * 2];</span>
+<span class="nc" id="L397">			System.arraycopy(m_attributes, 0, newbuffer, 0, m_attributes.length);</span>
+<span class="nc" id="L398">			m_attributes = newbuffer;</span>
+		}
+<span class="fc" id="L400">	}</span>
+
+	static void _attributeCopy(double[] src, int srcStart, double[] dst,
+			int dstStart, int count) {
+<span class="fc bfc" id="L404" title="All 2 branches covered.">		if (count &gt; 0)</span>
+<span class="fc" id="L405">			System.arraycopy(src, srcStart, dst, dstStart, count);</span>
+<span class="fc" id="L406">	}</span>
+
+	private Point2D _getXY(int endPoint) {
+<span class="nc" id="L409">		Point2D pt = new Point2D();</span>
+<span class="nc bnc" id="L410" title="All 2 branches missed.">		if (endPoint != 0) {</span>
+<span class="nc" id="L411">			pt.setCoords(m_xEnd, m_yEnd);</span>
+		} else {
+<span class="nc" id="L413">			pt.setCoords(m_xStart, m_yStart);</span>
+		}
+<span class="nc" id="L415">		return pt;</span>
+	}
+
+	private void _setXY(int endPoint, Point2D pt) {
+<span class="fc bfc" id="L419" title="All 2 branches covered.">		if (endPoint != 0) {</span>
+<span class="fc" id="L420">			m_xEnd = pt.x;</span>
+<span class="fc" id="L421">			m_yEnd = pt.y;</span>
+		} else {
+<span class="fc" id="L423">			m_xStart = pt.x;</span>
+<span class="fc" id="L424">			m_yStart = pt.y;</span>
+		}
+<span class="fc" id="L426">	}</span>
+
+	private Point3D _getXYZ(int endPoint) {
+<span class="nc" id="L429">		Point3D pt = new Point3D();</span>
+<span class="nc bnc" id="L430" title="All 2 branches missed.">		if (endPoint != 0) {</span>
+<span class="nc" id="L431">			pt.x = m_xEnd;</span>
+<span class="nc" id="L432">			pt.y = m_yEnd;</span>
+		} else {
+<span class="nc" id="L434">			pt.x = m_xStart;</span>
+<span class="nc" id="L435">			pt.y = m_yStart;</span>
+		}
+
+<span class="nc bnc" id="L438" title="All 2 branches missed.">		if (m_description.hasZ())</span>
+<span class="nc" id="L439">			pt.z = m_attributes[_getEndPointOffset(m_description, endPoint)];</span>
+		else
+<span class="nc" id="L441">			pt.z = VertexDescription.getDefaultValue(Semantics.Z);</span>
+
+<span class="nc" id="L443">		return pt;</span>
+	}
+
+	private void _setXYZ(int endPoint, Point3D pt) {
+<span class="nc" id="L447">		_touch();</span>
+<span class="nc" id="L448">		boolean bHasZ = hasAttribute(Semantics.Z);</span>
+<span class="nc bnc" id="L449" title="All 4 branches missed.">		if (!bHasZ &amp;&amp; !VertexDescription.isDefaultValue(Semantics.Z, pt.z)) {// add</span>
+																				// Z
+																				// only
+																				// if
+																				// pt.z
+																				// is
+																				// not
+																				// a
+																				// default
+																				// value.
+<span class="nc" id="L459">			addAttribute(Semantics.Z);</span>
+<span class="nc" id="L460">			bHasZ = true;</span>
+		}
+
+<span class="nc bnc" id="L463" title="All 2 branches missed.">		if (endPoint != 0) {</span>
+<span class="nc" id="L464">			m_xEnd = pt.x;</span>
+<span class="nc" id="L465">			m_yEnd = pt.y;</span>
+		} else {
+<span class="nc" id="L467">			m_xStart = pt.x;</span>
+<span class="nc" id="L468">			m_yStart = pt.y;</span>
+		}
+
+<span class="nc bnc" id="L471" title="All 2 branches missed.">		if (bHasZ)</span>
+<span class="nc" id="L472">			m_attributes[_getEndPointOffset(m_description, endPoint)] = pt.z;</span>
+
+<span class="nc" id="L474">	}</span>
+
+	@Override
+	protected void _assignVertexDescriptionImpl(VertexDescription newDescription) {
+<span class="fc bfc" id="L478" title="All 2 branches covered.">		if (m_attributes == null) {</span>
+<span class="fc" id="L479">			m_description = newDescription;</span>
+<span class="fc" id="L480">			return;</span>
+		}
+		
+<span class="fc" id="L483">		int[] mapping = VertexDescriptionDesignerImpl.mapAttributes(newDescription, m_description);</span>
+		
+<span class="fc" id="L485">		double[] newAttributes = new double[(newDescription.getTotalComponentCount() - 2) * 2];</span>
+		
+<span class="fc" id="L487">		int old_offset0 = _getEndPointOffset(m_description, 0);</span>
+<span class="fc" id="L488">		int old_offset1 = _getEndPointOffset(m_description, 1);</span>
+
+<span class="fc" id="L490">		int new_offset0 = _getEndPointOffset(newDescription, 0);</span>
+<span class="fc" id="L491">		int new_offset1 = _getEndPointOffset(newDescription, 1);</span>
+		
+<span class="fc" id="L493">		int j = 0;</span>
+<span class="fc bfc" id="L494" title="All 2 branches covered.">		for (int i = 1, n = newDescription.getAttributeCount(); i &lt; n; i++) {</span>
+<span class="fc" id="L495">			int semantics = newDescription.getSemantics(i);</span>
+<span class="fc" id="L496">			int nords = VertexDescription.getComponentCount(semantics);</span>
+<span class="fc bfc" id="L497" title="All 2 branches covered.">			if (mapping[i] == -1)</span>
+			{
+<span class="fc" id="L499">				double d = VertexDescription.getDefaultValue(semantics);</span>
+<span class="fc bfc" id="L500" title="All 2 branches covered.">				for (int ord = 0; ord &lt; nords; ord++)</span>
+				{
+<span class="fc" id="L502">					newAttributes[new_offset0 + j] = d;</span>
+<span class="fc" id="L503">					newAttributes[new_offset1 + j] = d;</span>
+<span class="fc" id="L504">					j++;</span>
+				}
+<span class="fc" id="L506">			}</span>
+			else {
+<span class="fc" id="L508">				int m = mapping[i];</span>
+<span class="fc" id="L509">				int offset = m_description._getPointAttributeOffset(m) - 2;</span>
+<span class="fc bfc" id="L510" title="All 2 branches covered.">				for (int ord = 0; ord &lt; nords; ord++)</span>
+				{
+<span class="fc" id="L512">					newAttributes[new_offset0 + j] = m_attributes[old_offset0 + offset];</span>
+<span class="fc" id="L513">					newAttributes[new_offset1 + j] = m_attributes[old_offset1 + offset];</span>
+<span class="fc" id="L514">					j++;</span>
+<span class="fc" id="L515">					offset++;</span>
+				}
+			}
+				 
+		}
+		
+<span class="fc" id="L521">		m_attributes = newAttributes;</span>
+<span class="fc" id="L522">		m_description = newDescription;</span>
+<span class="fc" id="L523">	}</span>
+
+	private void _get(int endPoint, Point outPoint) {
+<span class="pc bpc" id="L526" title="1 of 2 branches missed.">		if (isEmptyImpl())</span>
+<span class="nc" id="L527">			throw new GeometryException(&quot;empty geometry&quot;);// ._setToDefault();</span>
+
+<span class="fc" id="L529">		outPoint.assignVertexDescription(m_description);</span>
+
+<span class="fc" id="L531">		for (int attributeIndex = 0; attributeIndex &lt; m_description</span>
+<span class="fc bfc" id="L532" title="All 2 branches covered.">				.getAttributeCount(); attributeIndex++) {</span>
+<span class="fc" id="L533">			int semantics = m_description._getSemanticsImpl(attributeIndex);</span>
+<span class="fc" id="L534">			for (int icomp = 0, ncomp = VertexDescription</span>
+<span class="fc bfc" id="L535" title="All 2 branches covered.">					.getComponentCount(semantics); icomp &lt; ncomp; icomp++) {</span>
+<span class="fc" id="L536">				double v = _getAttributeAsDbl(endPoint, semantics, icomp);</span>
+<span class="fc" id="L537">				outPoint.setAttribute(semantics, icomp, v);</span>
+			}
+		}
+<span class="fc" id="L540">	}</span>
+
+	private void _set(int endPoint, Point src) {
+<span class="fc" id="L543">		_touch();</span>
+<span class="fc" id="L544">		Point point = src;</span>
+
+<span class="pc bpc" id="L546" title="1 of 2 branches missed.">		if (src.isEmptyImpl())// can not assign an empty point</span>
+<span class="nc" id="L547">			throw new GeometryException(&quot;empty_Geometry&quot;);</span>
+
+<span class="fc" id="L549">		VertexDescription vdin = point.getDescription();</span>
+<span class="fc bfc" id="L550" title="All 2 branches covered.">		for (int attributeIndex = 0, nattrib = vdin.getAttributeCount(); attributeIndex &lt; nattrib; attributeIndex++) {</span>
+<span class="fc" id="L551">			int semantics = vdin._getSemanticsImpl(attributeIndex);</span>
+<span class="fc" id="L552">			int ncomp = VertexDescription.getComponentCount(semantics);</span>
+<span class="fc bfc" id="L553" title="All 2 branches covered.">			for (int icomp = 0; icomp &lt; ncomp; icomp++) {</span>
+<span class="fc" id="L554">				double v = point.getAttributeAsDbl(semantics, icomp);</span>
+<span class="fc" id="L555">				_setAttribute(endPoint, semantics, icomp, v);</span>
+			}
+		}
+<span class="fc" id="L558">	}</span>
+
+	double _getAttributeAsDbl(int endPoint, int semantics, int ordinate) {
+<span class="pc bpc" id="L561" title="1 of 2 branches missed.">		if (isEmptyImpl())</span>
+<span class="nc" id="L562">			throw new GeometryException(</span>
+					&quot;This operation was performed on an Empty Geometry.&quot;);
+
+<span class="fc bfc" id="L565" title="All 2 branches covered.">		if (semantics == Semantics.POSITION) {</span>
+<span class="fc bfc" id="L566" title="All 2 branches covered.">			if (endPoint != 0) {</span>
+<span class="fc bfc" id="L567" title="All 2 branches covered.">				return (ordinate != 0) ? m_yEnd : m_xEnd;</span>
+			} else {
+<span class="fc bfc" id="L569" title="All 2 branches covered.">				return (ordinate != 0) ? m_yStart : m_xStart;</span>
+			}
+		}
+
+<span class="fc" id="L573">		int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="pc bpc" id="L574" title="1 of 2 branches missed.">		if (ordinate &gt;= ncomps)</span>
+<span class="nc" id="L575">			throw new IndexOutOfBoundsException();</span>
+
+<span class="fc" id="L577">		int attributeIndex = m_description.getAttributeIndex(semantics);</span>
+<span class="pc bpc" id="L578" title="1 of 2 branches missed.">		if (attributeIndex &gt;= 0) {</span>
+<span class="pc bpc" id="L579" title="1 of 2 branches missed.">			if (m_attributes != null)</span>
+<span class="fc" id="L580">				_resizeAttributes(m_description.getTotalComponentCount() - 2);</span>
+
+<span class="fc" id="L582">			return m_attributes[_getEndPointOffset(m_description, endPoint)</span>
+<span class="fc" id="L583">					+ m_description._getPointAttributeOffset(attributeIndex)</span>
+					- 2 + ordinate];
+		} else
+<span class="nc" id="L586">			return VertexDescription.getDefaultValue(semantics);</span>
+	}
+
+	private int _getAttributeAsInt(int endPoint, int semantics, int ordinate) {
+<span class="nc bnc" id="L590" title="All 2 branches missed.">		if (isEmptyImpl())</span>
+<span class="nc" id="L591">			throw new GeometryException(&quot;Empty_Geometry.&quot;);</span>
+
+<span class="nc" id="L593">		return (int) _getAttributeAsDbl(endPoint, semantics, ordinate);</span>
+	}
+
+	void _setAttribute(int endPoint, int semantics, int ordinate, double value) {
+<span class="fc" id="L597">		_touch();</span>
+<span class="fc" id="L598">		int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="pc bpc" id="L599" title="1 of 2 branches missed.">		if (ordinate &gt;= ncomps)</span>
+<span class="nc" id="L600">			throw new IndexOutOfBoundsException();</span>
+
+<span class="fc" id="L602">		int attributeIndex = m_description.getAttributeIndex(semantics);</span>
+<span class="fc bfc" id="L603" title="All 2 branches covered.">		if (attributeIndex &lt; 0) {</span>
+<span class="fc" id="L604">			addAttribute(semantics);</span>
+<span class="fc" id="L605">			attributeIndex = m_description.getAttributeIndex(semantics);</span>
+		}
+
+<span class="fc bfc" id="L608" title="All 2 branches covered.">		if (semantics == Semantics.POSITION) {</span>
+<span class="fc bfc" id="L609" title="All 2 branches covered.">			if (endPoint != 0) {</span>
+<span class="fc bfc" id="L610" title="All 2 branches covered.">				if (ordinate != 0)</span>
+<span class="fc" id="L611">					m_yEnd = value;</span>
+				else
+<span class="fc" id="L613">					m_xEnd = value;</span>
+			}
+<span class="fc bfc" id="L615" title="All 2 branches covered.">			else if (ordinate != 0)</span>
+<span class="fc" id="L616">				m_yStart = value;</span>
+			else
+<span class="fc" id="L618">				m_xStart = value;</span>
+<span class="fc" id="L619">			return;</span>
+		}
+
+<span class="fc bfc" id="L622" title="All 2 branches covered.">		if (m_attributes == null)</span>
+<span class="fc" id="L623">			_resizeAttributes(m_description.getTotalComponentCount() - 2);</span>
+
+<span class="fc" id="L625">		m_attributes[_getEndPointOffset(m_description, endPoint)</span>
+<span class="fc" id="L626">				+ m_description._getPointAttributeOffset(attributeIndex) - 2</span>
+				+ ordinate] = value;
+
+<span class="fc" id="L629">	}</span>
+
+	void _setAttribute(int endPoint, int semantics, int ordinate, int value) {
+<span class="fc" id="L632">		_setAttribute(endPoint, semantics, ordinate, (double) value);</span>
+<span class="fc" id="L633">	}</span>
+
+	@Override
+	public void copyTo(Geometry dst) {
+<span class="pc bpc" id="L637" title="1 of 2 branches missed.">		if (dst.getType() != getType())</span>
+<span class="nc" id="L638">			throw new IllegalArgumentException();</span>
+
+<span class="fc" id="L640">		Segment segDst = (Segment) dst;</span>
+<span class="fc" id="L641">		segDst.m_description = m_description;</span>
+<span class="fc" id="L642">		segDst._resizeAttributes(m_description.getTotalComponentCount() - 2);</span>
+<span class="fc" id="L643">		_attributeCopy(m_attributes, 0, segDst.m_attributes, 0,</span>
+<span class="fc" id="L644">				(m_description.getTotalComponentCount() - 2) * 2);</span>
+<span class="fc" id="L645">		segDst.m_xStart = m_xStart;</span>
+<span class="fc" id="L646">		segDst.m_yStart = m_yStart;</span>
+<span class="fc" id="L647">		segDst.m_xEnd = m_xEnd;</span>
+<span class="fc" id="L648">		segDst.m_yEnd = m_yEnd;</span>
+<span class="fc" id="L649">		dst._touch();</span>
+
+<span class="fc" id="L651">		_copyToImpl(segDst);</span>
+<span class="fc" id="L652">	}</span>
+
+	@Override
+	public Envelope1D queryInterval(int semantics, int ordinate) {
+<span class="fc" id="L656">		Envelope1D env = new Envelope1D();</span>
+<span class="pc bpc" id="L657" title="1 of 2 branches missed.">		if (isEmptyImpl()) {</span>
+<span class="nc" id="L658">			env.setEmpty();</span>
+<span class="nc" id="L659">			return env;</span>
+		}
+
+<span class="fc" id="L662">		env.vmin = _getAttributeAsDbl(0, semantics, ordinate);</span>
+<span class="fc" id="L663">		env.vmax = env.vmin;</span>
+<span class="fc" id="L664">		env.mergeNE(_getAttributeAsDbl(1, semantics, ordinate));</span>
+<span class="fc" id="L665">		return env;</span>
+	}
+
+	void queryCoord(double t, Point point) {
+<span class="fc" id="L669">		point.assignVertexDescription(m_description);</span>
+<span class="fc" id="L670">		point.setXY(getCoord2D(t));</span>
+<span class="pc bpc" id="L671" title="1 of 2 branches missed.">		for (int iattrib = 1, nattrib = m_description.getAttributeCount(); iattrib &lt; nattrib; iattrib++) {</span>
+<span class="nc" id="L672">			int semantics = m_description._getSemanticsImpl(iattrib);</span>
+<span class="nc" id="L673">			int ncomp = VertexDescription.getComponentCount(semantics);</span>
+<span class="nc bnc" id="L674" title="All 2 branches missed.">			for (int iord = 0; iord &lt; ncomp; iord++) {</span>
+<span class="nc" id="L675">				double value = getAttributeAsDbl(t, semantics, iord);</span>
+<span class="nc" id="L676">				point.setAttribute(semantics, iord, value);</span>
+			}
+		}
+<span class="fc" id="L679">	}</span>
+
+	boolean _equalsImpl(Segment other) {
+<span class="pc bpc" id="L682" title="1 of 2 branches missed.">		if (m_description != other.m_description)</span>
+<span class="nc" id="L683">			return false;</span>
+
+<span class="pc bpc" id="L685" title="4 of 8 branches missed.">		if (m_xStart != other.m_xStart || m_xEnd != other.m_xEnd</span>
+				|| m_yStart != other.m_yStart || m_yEnd != other.m_yEnd)
+<span class="nc" id="L687">			return false;</span>
+<span class="pc bpc" id="L688" title="1 of 2 branches missed.">		for (int i = 0; i &lt; (m_description.getTotalComponentCount() - 2) * 2; i++)</span>
+<span class="nc bnc" id="L689" title="All 2 branches missed.">			if (!NumberUtils.isEqualNonIEEE(m_attributes[i], other.m_attributes[i]))</span>
+<span class="nc" id="L690">				return false;</span>
+
+<span class="fc" id="L692">		return true;</span>
+	}
+
+	@Override
+	public int hashCode() {
+<span class="nc" id="L697">		int hash = m_description.hashCode();</span>
+<span class="nc" id="L698">		hash = NumberUtils.hash(hash, m_xStart);</span>
+<span class="nc" id="L699">		hash = NumberUtils.hash(hash, m_yStart);</span>
+<span class="nc" id="L700">		hash = NumberUtils.hash(hash, m_xEnd);</span>
+<span class="nc" id="L701">		hash = NumberUtils.hash(hash, m_yEnd);</span>
+<span class="nc bnc" id="L702" title="All 2 branches missed.">		for (int i = 0; i &lt; (m_description.getTotalComponentCount() - 2) * 2; i++) {</span>
+<span class="nc" id="L703">			hash = NumberUtils.hash(hash, m_attributes[i]);</span>
+		}
+
+<span class="nc" id="L706">		return hash;</span>
+	}
+	
+	/**
+	 * Returns true, when this segment is a closed curve (start point is equal
+	 * to end point exactly).
+	 * 
+	 * Note, this will return true for lines, that are degenerate to a point
+	 * too.
+	 */
+	boolean isClosed() {
+<span class="nc bnc" id="L717" title="All 4 branches missed.">		return m_xStart == m_xEnd &amp;&amp; m_yStart == m_yEnd;</span>
+	}
+
+	void reverse() {
+<span class="nc" id="L721">		_reverseImpl();</span>
+<span class="nc" id="L722">		double origxStart = m_xStart;</span>
+<span class="nc" id="L723">		double origxEnd = m_xEnd;</span>
+<span class="nc" id="L724">		m_xStart = origxEnd;</span>
+<span class="nc" id="L725">		m_xEnd = origxStart;</span>
+<span class="nc" id="L726">		double origyStart = m_yStart;</span>
+<span class="nc" id="L727">		double origyEnd = m_yEnd;</span>
+<span class="nc" id="L728">		m_yStart = origyEnd;</span>
+<span class="nc" id="L729">		m_yEnd = origyStart;</span>
+
+<span class="nc bnc" id="L731" title="All 2 branches missed.">		for (int i = 1, n = m_description.getAttributeCount(); i &lt; n; i++) {</span>
+<span class="nc" id="L732">			int semantics = m_description.getSemantics(i);// VertexDescription.Semantics</span>
+															// semantics =
+															// m_description.getSemantics(i);
+<span class="nc" id="L735">			for (int iord = 0, nord = VertexDescription</span>
+<span class="nc bnc" id="L736" title="All 2 branches missed.">					.getComponentCount(semantics); iord &lt; nord; iord++) {</span>
+<span class="nc" id="L737">				double v1 = _getAttributeAsDbl(0, semantics, iord);</span>
+<span class="nc" id="L738">				double v2 = _getAttributeAsDbl(1, semantics, iord);</span>
+<span class="nc" id="L739">				_setAttribute(0, semantics, iord, v2);</span>
+<span class="nc" id="L740">				_setAttribute(1, semantics, iord, v1);</span>
+			}
+		}
+<span class="nc" id="L743">	}</span>
+
+	int _isIntersecting(Segment other, double tolerance,
+			boolean bExcludeExactEndpoints) {
+<span class="fc" id="L747">		int gtThis = getType().value();</span>
+<span class="fc" id="L748">		int gtOther = other.getType().value();</span>
+<span class="pc bpc" id="L749" title="1 of 2 branches missed.">		switch (gtThis) {</span>
+		case Geometry.GeometryType.Line:
+<span class="pc bpc" id="L751" title="1 of 2 branches missed.">			if (gtOther == Geometry.GeometryType.Line)</span>
+<span class="fc" id="L752">				return Line._isIntersectingLineLine((Line) this, (Line) other,</span>
+						tolerance, bExcludeExactEndpoints);
+			else
+<span class="nc" id="L755">				throw GeometryException.GeometryInternalError();</span>
+		default:
+<span class="nc" id="L757">			throw GeometryException.GeometryInternalError();</span>
+		}
+	}
+
+	int _intersect(Segment other, Point2D[] intersectionPoints,
+			double[] paramThis, double[] paramOther, double tolerance) {
+<span class="fc" id="L763">		int gtThis = getType().value();</span>
+<span class="fc" id="L764">		int gtOther = other.getType().value();</span>
+<span class="pc bpc" id="L765" title="1 of 2 branches missed.">		switch (gtThis) {</span>
+		case Geometry.GeometryType.Line:
+<span class="pc bpc" id="L767" title="1 of 2 branches missed.">			if (gtOther == Geometry.GeometryType.Line)</span>
+<span class="fc" id="L768">				return Line._intersectLineLine((Line) this, (Line) other,</span>
+						intersectionPoints, paramThis, paramOther, tolerance);
+			else
+<span class="nc" id="L771">				throw GeometryException.GeometryInternalError();</span>
+		default:
+<span class="nc" id="L773">			throw GeometryException.GeometryInternalError();</span>
+		}
+	}
+
+	/**
+	 * A helper function for area calculation. Calculates the Integral(y(t) *
+	 * x'(t) * dt) for t = [0, 1]. The area of a ring is caluclated as a sum of
+	 * the results of CalculateArea2DHelper.
+	 */
+	abstract double _calculateArea2DHelper(double xorg, double yorg);
+
+	static int _getEndPointOffset(VertexDescription vd, int endPoint) {
+<span class="fc" id="L785">		return endPoint * (vd.getTotalComponentCount() - 2);</span>
+	}
+
+	/**
+	 * Returns the coordinate of the point on this segment for the given
+	 * parameter value.
+	 */
+	public Point2D getCoord2D(double t) {
+<span class="fc" id="L793">		Point2D pt = new Point2D();</span>
+<span class="fc" id="L794">		getCoord2D(t, pt);</span>
+<span class="fc" id="L795">		return pt;</span>
+	}
+
+	/**
+	 * Returns the coordinate of the point on this segment for the given
+	 * parameter value (segments are parametric curves).
+	 * 
+	 * @param t
+	 *            the parameter coordinate along the segment from 0.0 to 1.0.
+	 *            Value of 0 returns the start point, 1 returns end point.
+	 * @param dst
+	 *            the coordinate where result will be placed.
+	 */
+	public abstract void getCoord2D(double t, Point2D dst);
+
+	/**
+	 * Finds a closest coordinate on this segment.
+	 * 
+	 * @param inputPoint
+	 *            The 2D point to find the closest coordinate on this segment.
+	 * @param bExtrapolate
+	 *            TRUE if the segment is extrapolated at the end points along
+	 *            the end point tangents. Otherwise the result is limited to
+	 *            values between 0 and 1.
+	 * @return The parametric coordinate t on the segment (0 corresponds to the
+	 *         start point, 1 corresponds to the end point). Use getCoord2D to
+	 *         obtain the 2D coordinate on the segment from t. To find the
+	 *         distance, call (inputPoint.sub(seg.getCoord2D(t))).length();
+	 */
+	public abstract double getClosestCoordinate(Point2D inputPoint,
+			boolean bExtrapolate);
+
+	/**
+	 * Splits this segment into Y monotonic parts and places them into the input
+	 * array.
+	 * 
+	 * @param monotonicSegments
+	 *            The in/out array of SegmentBuffer structures that will be
+	 *            filled with the monotonic parts. The monotonicSegments array
+	 *            must contain at least 3 elements.
+	 * @return The number of monotonic parts if the split had happened. Returns
+	 *         0 if the segment is already monotonic.
+	 */
+	abstract int getYMonotonicParts(SegmentBuffer[] monotonicSegments);
+
+	/**
+	 * Calculates intersection points of this segment with an infinite line,
+	 * parallel to one of the axes.
+	 * 
+	 * @param bAxisX
+	 *            TRUE if the function works with the line parallel to the axis
+	 *            X.
+	 * @param ordinate
+	 *            The ordinate value of the line (x for axis Y, y for axis X).
+	 * @param resultOrdinates
+	 *            The value of ordinate in the intersection points One ordinate
+	 *            is equal to the ordinate parameter. This parameter can be
+	 *            NULL.
+	 * @param parameters
+	 *            The value of the parameter in the intersection points (between
+	 *            0 and 1). This parameter can be NULL.
+	 * @return The number of intersection points, 0 when no intersection points
+	 *         exist, -1 when the segment coincides with the line (infinite
+	 *         number of intersection points).
+	 */
+	public abstract int intersectionWithAxis2D(boolean bAxisX, double ordinate,
+			double[] resultOrdinates, double[] parameters);
+
+	void _reverseImpl() {
+<span class="nc" id="L864">	}</span>
+
+	/**
+	 * Returns True if the segment is degenerate to a point with relation to the
+	 * given tolerance. For Lines this means the line length is not longer than
+	 * the tolerance. For the curves, the distance between the segment endpoints
+	 * should not be longer than the tolerance and the distance from the line,
+	 * connecting the endpoints to the furtherst point on the segment is not
+	 * larger than the tolerance.
+	 */
+	abstract boolean isDegenerate(double tolerance);
+
+	// Cpp definitions
+
+	abstract boolean isCurve();
+
+	abstract Point2D _getTangent(double t);
+
+	abstract boolean _isDegenerate(double tolerance);
+
+<span class="nc" id="L884">	double _calculateSubLength(double t) { return tToLength(t); }</span>
+	
+<span class="nc" id="L886">	double _calculateSubLength(double t1, double t2) { return tToLength(t2) - tToLength(t1); }</span>
+
+	abstract void _copyToImpl(Segment dst);
+
+	/**
+	 * Returns subsegment between parameters t1 and t2. The attributes are
+	 * interpolated along the length of the curve.
+	 */
+	public abstract Segment cut(double t1, double t2);
+
+	/**
+	 * Calculates the subsegment between parameters t1 and t2, and stores the
+	 * result in subSegmentBuffer. The attributes are interpolated along the
+	 * length of the curve.
+	 */
+	abstract void cut(double t1, double t2, SegmentBuffer subSegmentBuffer);
+
+	/**
+	 * Returns the attribute on the segment for the given parameter value. The
+	 * interpolation of attribute is given by the attribute interpolation type.
+	 */
+	public abstract double getAttributeAsDbl(double t, int semantics,
+			int ordinate);
+
+	abstract boolean _isIntersectingPoint(Point2D pt, double tolerance,
+			boolean bExcludeExactEndpoints);
+
+	/**
+	 * Calculates intersection point of this segment with an infinite line,
+	 * parallel to axis X. This segment must be to be y-monotonic (or
+	 * horizontal).
+	 * 
+	 * @param y
+	 *            The y coordinate of the line.
+	 * @param xParallel
+	 *            For segments, that are horizontal, and have y coordinate, this
+	 *            value is returned.
+	 * @return X coordinate of the intersection, or NaN, if no intersection.
+	 */
+	abstract double intersectionOfYMonotonicWithAxisX(double y, double xParallel);
+  
+	/**
+	 * Converts curves parameter t to the curve length. Can be expensive for curves.
+	 */
+	abstract double tToLength(double t);
+
+	abstract double lengthToT(double len);
+
+	public double distance(/* const */Segment otherSegment,
+			boolean bSegmentsKnownDisjoint)
+	{
+		// if the segments are not known to be disjoint, and
+		// the segments are found to touch in any way, then return 0.0
+<span class="fc bfc" id="L939" title="All 2 branches covered.">		if (!bSegmentsKnownDisjoint</span>
+<span class="fc bfc" id="L940" title="All 2 branches covered.">				&amp;&amp; _isIntersecting(otherSegment, 0, false) != 0) {</span>
+<span class="fc" id="L941">			return 0.0;</span>
+		}
+
+<span class="fc" id="L944">		double minDistance = NumberUtils.doubleMax();</span>
+
+		Point2D input_point;
+		double t;
+		double distance;
+
+<span class="fc" id="L950">		input_point = getStartXY();</span>
+<span class="fc" id="L951">		t = otherSegment.getClosestCoordinate(input_point, false);</span>
+<span class="fc" id="L952">		input_point.sub(otherSegment.getCoord2D(t));</span>
+<span class="fc" id="L953">		distance = input_point.length();</span>
+<span class="pc bpc" id="L954" title="1 of 2 branches missed.">		if (distance &lt; minDistance)</span>
+<span class="fc" id="L955">			minDistance = distance;</span>
+
+<span class="fc" id="L957">		input_point = getEndXY();</span>
+<span class="fc" id="L958">		t = otherSegment.getClosestCoordinate(input_point, false);</span>
+<span class="fc" id="L959">		input_point.sub(otherSegment.getCoord2D(t));</span>
+<span class="fc" id="L960">		distance = input_point.length();</span>
+<span class="fc bfc" id="L961" title="All 2 branches covered.">		if (distance &lt; minDistance)</span>
+<span class="fc" id="L962">			minDistance = distance;</span>
+
+<span class="fc" id="L964">		input_point = otherSegment.getStartXY();</span>
+<span class="fc" id="L965">		t = getClosestCoordinate(input_point, false);</span>
+<span class="fc" id="L966">		input_point.sub(getCoord2D(t));</span>
+<span class="fc" id="L967">		distance = input_point.length();</span>
+<span class="fc bfc" id="L968" title="All 2 branches covered.">		if (distance &lt; minDistance)</span>
+<span class="fc" id="L969">			minDistance = distance;</span>
+
+<span class="fc" id="L971">		input_point = otherSegment.getEndXY();</span>
+<span class="fc" id="L972">		t = getClosestCoordinate(input_point, false);</span>
+<span class="fc" id="L973">		input_point.sub(getCoord2D(t));</span>
+<span class="fc" id="L974">		distance = input_point.length();</span>
+<span class="pc bpc" id="L975" title="1 of 2 branches missed.">		if (distance &lt; minDistance)</span>
+<span class="nc" id="L976">			minDistance = distance;</span>
+
+<span class="fc" id="L978">		return minDistance;</span>
+	}    
+
+    public Geometry getBoundary() {
+<span class="nc" id="L982">        return Boundary.calculate(this, null);</span>
+    }
+
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

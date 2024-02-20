@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OperatorCutCursor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">OperatorCutCursor.java</span></div><h1>OperatorCutCursor.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+
+package com.esri.core.geometry;
+
+import com.esri.core.geometry.OperatorCutLocal.Side;
+import com.esri.core.geometry.VertexDescription.Semantics;
+import java.util.ArrayList;
+
+class OperatorCutCursor extends GeometryCursor {
+	boolean m_bConsiderTouch;
+	Geometry m_cuttee;
+	Polyline m_cutter;
+	double m_tolerance;
+	ProgressTracker m_progressTracker;
+	int m_cutIndex;
+<span class="fc" id="L39">	ArrayList&lt;MultiPath&gt; m_cuts = null;</span>
+
+	OperatorCutCursor(boolean bConsiderTouch, Geometry cuttee, Polyline cutter,
+<span class="fc" id="L42">			SpatialReference spatialReference, ProgressTracker progressTracker) {</span>
+<span class="pc bpc" id="L43" title="2 of 4 branches missed.">		if (cuttee == null || cutter == null)</span>
+<span class="nc" id="L44">			throw new GeometryException(&quot;invalid argument&quot;);</span>
+
+<span class="fc" id="L46">		m_bConsiderTouch = bConsiderTouch;</span>
+<span class="fc" id="L47">		m_cuttee = cuttee;</span>
+<span class="fc" id="L48">		m_cutter = cutter;</span>
+<span class="fc" id="L49">		Envelope2D e = InternalUtils.getMergedExtent(cuttee,  cutter);</span>
+<span class="fc" id="L50">		m_tolerance = InternalUtils.calculateToleranceFromGeometry(spatialReference, e, true);</span>
+<span class="fc" id="L51">		m_cutIndex = -1;</span>
+<span class="fc" id="L52">		m_progressTracker = progressTracker;</span>
+<span class="fc" id="L53">	}</span>
+
+	@Override
+	public int getGeometryID() {
+<span class="nc" id="L57">		return 0;</span>
+	}
+
+	@Override
+	public Geometry next() {
+<span class="fc" id="L62">		generateCuts_();</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">		if (++m_cutIndex &lt; m_cuts.size()) {</span>
+<span class="fc" id="L64">			return (Geometry)m_cuts.get(m_cutIndex);</span>
+		}
+		
+<span class="fc" id="L67">		return null;</span>
+	}
+
+	private void generateCuts_() {
+<span class="fc bfc" id="L71" title="All 2 branches covered.">		if (m_cuts != null)</span>
+<span class="fc" id="L72">			return;</span>
+		
+<span class="fc" id="L74">		m_cuts = new ArrayList&lt;MultiPath&gt;();</span>
+		
+<span class="fc" id="L76">		Geometry.Type type = m_cuttee.getType();</span>
+<span class="pc bpc" id="L77" title="1 of 3 branches missed.">		switch (type.value()) {</span>
+		case Geometry.GeometryType.Polyline:
+<span class="fc" id="L79">			generate_polyline_cuts_();</span>
+<span class="fc" id="L80">			break;</span>
+
+		case Geometry.GeometryType.Polygon:
+<span class="fc" id="L83">			generate_polygon_cuts_();</span>
+<span class="fc" id="L84">			break;</span>
+
+		default:
+			break; // warning fix
+		}
+<span class="fc" id="L89">	}</span>
+	
+	private void generate_polyline_cuts_() {
+<span class="fc" id="L92">		MultiPath left = new Polyline();</span>
+<span class="fc" id="L93">		MultiPath right = new Polyline();</span>
+<span class="fc" id="L94">		MultiPath uncut = new Polyline();</span>
+
+<span class="fc" id="L96">		m_cuts.add(left);</span>
+<span class="fc" id="L97">		m_cuts.add(right);</span>
+
+<span class="fc" id="L99">		ArrayList&lt;OperatorCutLocal.CutPair&gt; cutPairs = new ArrayList&lt;OperatorCutLocal.CutPair&gt;(</span>
+				0);
+<span class="fc" id="L101">		Cutter.CutPolyline(m_bConsiderTouch, (Polyline) m_cuttee, m_cutter,</span>
+				m_tolerance, cutPairs, null, m_progressTracker);
+
+<span class="fc bfc" id="L104" title="All 2 branches covered.">		for (int icut = 0; icut &lt; cutPairs.size(); icut++) {</span>
+<span class="fc" id="L105">			OperatorCutLocal.CutPair cutPair = cutPairs.get(icut);</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">			if (cutPair.m_side == Side.Left) {</span>
+<span class="fc" id="L107">				left.add((MultiPath) cutPair.m_geometry, false);</span>
+<span class="fc bfc" id="L108" title="All 4 branches covered.">			} else if (cutPair.m_side == Side.Right</span>
+					|| cutPair.m_side == Side.Coincident) {
+<span class="fc" id="L110">				right.add((MultiPath) cutPair.m_geometry, false);</span>
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">			} else if (cutPair.m_side == Side.Undefined) {</span>
+<span class="fc" id="L112">				m_cuts.add((MultiPath) cutPair.m_geometry);</span>
+			} else {
+<span class="nc" id="L114">				uncut.add((MultiPath) cutPair.m_geometry, false);</span>
+			}
+		}
+
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">		if (!uncut.isEmpty()</span>
+<span class="nc bnc" id="L119" title="All 6 branches missed.">				&amp;&amp; (!left.isEmpty() || !right.isEmpty() || m_cuts.size() &gt;= 3))</span>
+<span class="nc" id="L120">			m_cuts.add(uncut);</span>
+
+<span class="pc bpc" id="L122" title="2 of 6 branches missed.">		if (left.isEmpty() &amp;&amp; right.isEmpty() &amp;&amp; m_cuts.size() &lt; 3)</span>
+<span class="fc" id="L123">			m_cuts.clear(); // no cuts</span>
+<span class="fc" id="L124">	}</span>
+
+	private void generate_polygon_cuts_() {
+<span class="fc" id="L127">		AttributeStreamOfInt32 cutHandles = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L128">		EditShape shape = new EditShape();</span>
+<span class="fc" id="L129">		int sideIndex = shape.createGeometryUserIndex();</span>
+<span class="fc" id="L130">		int cutteeHandle = shape.addGeometry(m_cuttee);</span>
+<span class="fc" id="L131">		int cutterHandle = shape.addGeometry(m_cutter);</span>
+<span class="fc" id="L132">		TopologicalOperations topoOp = new TopologicalOperations();</span>
+		try {
+<span class="fc" id="L134">			topoOp.setEditShapeCrackAndCluster(shape, m_tolerance,</span>
+					m_progressTracker);
+<span class="fc" id="L136">			topoOp.cut(sideIndex, cutteeHandle, cutterHandle, cutHandles);</span>
+<span class="fc" id="L137">			Polygon cutteeRemainder = (Polygon) shape.getGeometry(cutteeHandle);</span>
+
+<span class="fc" id="L139">			MultiPath left = new Polygon();</span>
+<span class="fc" id="L140">			MultiPath right = new Polygon();</span>
+
+<span class="fc" id="L142">			m_cuts.clear();</span>
+<span class="fc" id="L143">			m_cuts.add(left);</span>
+<span class="fc" id="L144">			m_cuts.add(right);</span>
+
+<span class="fc bfc" id="L146" title="All 2 branches covered.">			for (int icutIndex = 0; icutIndex &lt; cutHandles.size(); icutIndex++) {</span>
+				Geometry cutGeometry;
+				{
+					// intersection
+<span class="fc" id="L150">					EditShape shapeIntersect = new EditShape();</span>
+<span class="fc" id="L151">					int geometryA = shapeIntersect.addGeometry(cutteeRemainder);</span>
+<span class="fc" id="L152">					int geometryB = shapeIntersect.addGeometry(shape</span>
+<span class="fc" id="L153">							.getGeometry(cutHandles.get(icutIndex)));</span>
+<span class="fc" id="L154">					topoOp.setEditShape(shapeIntersect, m_progressTracker);</span>
+<span class="fc" id="L155">					int intersectHandle = topoOp.intersection(geometryA,</span>
+							geometryB);
+<span class="fc" id="L157">					cutGeometry = shapeIntersect.getGeometry(intersectHandle);</span>
+
+<span class="pc bpc" id="L159" title="1 of 2 branches missed.">					if (cutGeometry.isEmpty())</span>
+<span class="nc" id="L160">						continue;</span>
+
+<span class="fc" id="L162">					int side = shape.getGeometryUserIndex(</span>
+<span class="fc" id="L163">							cutHandles.get(icutIndex), sideIndex);</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">					if (side == 2)</span>
+<span class="fc" id="L165">						left.add((MultiPath) cutGeometry, false);</span>
+<span class="pc bpc" id="L166" title="1 of 2 branches missed.">					else if (side == 1)</span>
+<span class="fc" id="L167">						right.add((MultiPath) cutGeometry, false);</span>
+					else
+<span class="nc" id="L169">						m_cuts.add((MultiPath) cutGeometry); // Undefined</span>
+				}
+
+				{
+					// difference
+<span class="fc" id="L174">					EditShape shapeDifference = new EditShape();</span>
+<span class="fc" id="L175">					int geometryA = shapeDifference</span>
+<span class="fc" id="L176">							.addGeometry(cutteeRemainder);</span>
+<span class="fc" id="L177">					int geometryB = shapeDifference.addGeometry(shape</span>
+<span class="fc" id="L178">							.getGeometry(cutHandles.get(icutIndex)));</span>
+<span class="fc" id="L179">					topoOp.setEditShape(shapeDifference, m_progressTracker);</span>
+<span class="fc" id="L180">					cutteeRemainder = (Polygon) shapeDifference</span>
+<span class="fc" id="L181">							.getGeometry(topoOp</span>
+<span class="fc" id="L182">									.difference(geometryA, geometryB));</span>
+				}
+			}
+
+<span class="pc bpc" id="L186" title="1 of 4 branches missed.">			if (!cutteeRemainder.isEmpty() &amp;&amp; cutHandles.size() &gt; 0)</span>
+<span class="fc" id="L187">				m_cuts.add((MultiPath) cutteeRemainder);</span>
+
+<span class="pc bpc" id="L189" title="1 of 4 branches missed.">			if (left.isEmpty() &amp;&amp; right.isEmpty())</span>
+<span class="nc" id="L190">				m_cuts.clear(); // no cuts</span>
+
+		} finally {
+<span class="fc" id="L193">			topoOp.removeShape();</span>
+		}
+<span class="fc" id="L195">	}</span>
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

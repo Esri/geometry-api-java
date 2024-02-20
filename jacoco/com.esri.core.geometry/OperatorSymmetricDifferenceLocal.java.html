@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OperatorSymmetricDifferenceLocal.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">OperatorSymmetricDifferenceLocal.java</span></div><h1>OperatorSymmetricDifferenceLocal.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+<span class="fc" id="L26">class OperatorSymmetricDifferenceLocal extends OperatorSymmetricDifference {</span>
+
+	@Override
+	public GeometryCursor execute(GeometryCursor inputGeometries,
+			GeometryCursor rightGeometry, SpatialReference sr,
+			ProgressTracker progressTracker) {
+<span class="fc" id="L32">		return new OperatorSymmetricDifferenceCursor(inputGeometries,</span>
+				rightGeometry, sr, progressTracker);
+	}
+
+	@Override
+	public Geometry execute(Geometry leftGeometry, Geometry rightGeometry,
+			SpatialReference sr, ProgressTracker progressTracker) {
+<span class="fc" id="L39">		SimpleGeometryCursor leftGeomCurs = new SimpleGeometryCursor(</span>
+				leftGeometry);
+<span class="fc" id="L41">		SimpleGeometryCursor rightGeomCurs = new SimpleGeometryCursor(</span>
+				rightGeometry);
+<span class="fc" id="L43">		GeometryCursor geometryCursor = execute(leftGeomCurs, rightGeomCurs,</span>
+				sr, progressTracker);
+<span class="fc" id="L45">		return geometryCursor.next();</span>
+	}
+
+	static Geometry symmetricDifference(Geometry geometry_a,
+			Geometry geometry_b, SpatialReference spatial_reference,
+			ProgressTracker progress_tracker) {
+<span class="fc" id="L51">		int dim_a = geometry_a.getDimension();</span>
+<span class="fc" id="L52">		int dim_b = geometry_b.getDimension();</span>
+
+<span class="pc bpc" id="L54" title="3 of 4 branches missed.">		if (geometry_a.isEmpty() &amp;&amp; geometry_b.isEmpty())</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">			return dim_a &gt; dim_b ? geometry_a : geometry_b;</span>
+
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">		if (geometry_a.isEmpty())</span>
+<span class="nc" id="L58">			return geometry_b;</span>
+<span class="pc bpc" id="L59" title="1 of 2 branches missed.">		if (geometry_b.isEmpty())</span>
+<span class="nc" id="L60">			return geometry_a;</span>
+
+<span class="fc" id="L62">		Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D(), env_merged = new Envelope2D();</span>
+<span class="fc" id="L63">		geometry_a.queryEnvelope2D(env_a);</span>
+<span class="fc" id="L64">		geometry_b.queryEnvelope2D(env_b);</span>
+<span class="fc" id="L65">		env_merged.setCoords(env_a);</span>
+<span class="fc" id="L66">		env_merged.merge(env_b);</span>
+
+<span class="fc" id="L68">		double tolerance = InternalUtils.calculateToleranceFromGeometry(</span>
+				spatial_reference, env_merged, false);
+
+<span class="fc" id="L71">		int type_a = geometry_a.getType().value();</span>
+<span class="fc" id="L72">		int type_b = geometry_b.getType().value();</span>
+
+<span class="fc bfc" id="L74" title="All 4 branches covered.">		if (type_a == Geometry.GeometryType.Point</span>
+				&amp;&amp; type_b == Geometry.GeometryType.Point)
+<span class="fc" id="L76">			return pointSymDiffPoint_((Point) (geometry_a),</span>
+					(Point) (geometry_b), tolerance, progress_tracker);
+
+<span class="fc bfc" id="L79" title="All 2 branches covered.">		if (type_a != type_b) {</span>
+<span class="fc bfc" id="L80" title="All 4 branches covered.">			if (dim_a &gt; 0 || dim_b &gt; 0)</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">				return dim_a &gt; dim_b ? geometry_a : geometry_b;</span>
+
+			// Multi_point/Point case
+
+<span class="pc bpc" id="L85" title="1 of 2 branches missed.">			if (type_a == Geometry.GeometryType.MultiPoint)</span>
+<span class="fc" id="L86">				return multiPointSymDiffPoint_((MultiPoint) (geometry_a),</span>
+						(Point) (geometry_b), tolerance, progress_tracker);
+
+<span class="nc" id="L89">			return multiPointSymDiffPoint_((MultiPoint) (geometry_b),</span>
+					(Point) (geometry_a), tolerance, progress_tracker);
+		}
+
+<span class="fc" id="L93">		return TopologicalOperations.symmetricDifference(geometry_a,</span>
+				geometry_b, spatial_reference, progress_tracker);
+	}
+
+	static Geometry pointSymDiffPoint_(Point point_a, Point point_b,
+			double tolerance, ProgressTracker progress_tracker) {
+<span class="fc" id="L99">		double tolerance_cluster = tolerance * Math.sqrt(2.0) * 1.00001;</span>
+<span class="fc" id="L100">		double tolerance_cluster_sq = tolerance_cluster * tolerance_cluster;</span>
+
+<span class="fc" id="L102">		Point2D pt_a = point_a.getXY();</span>
+<span class="fc" id="L103">		Point2D pt_b = point_b.getXY();</span>
+
+<span class="fc" id="L105">		MultiPoint multi_point = new MultiPoint(point_a.getDescription());</span>
+
+<span class="fc bfc" id="L107" title="All 2 branches covered.">		if (Point2D.sqrDistance(pt_a, pt_b) &gt; tolerance_cluster_sq) {</span>
+<span class="fc" id="L108">			multi_point.add(point_a);</span>
+<span class="fc" id="L109">			multi_point.add(point_b);</span>
+		}
+
+<span class="fc" id="L112">		return multi_point;</span>
+	}
+
+	static Geometry multiPointSymDiffPoint_(MultiPoint multi_point,
+			Point point, double tolerance, ProgressTracker progress_tracker) {
+<span class="fc" id="L117">		MultiPointImpl multipointImpl = (MultiPointImpl) (multi_point</span>
+<span class="fc" id="L118">				._getImpl());</span>
+<span class="fc" id="L119">		AttributeStreamOfDbl position = (AttributeStreamOfDbl) (multipointImpl</span>
+<span class="fc" id="L120">				.getAttributeStreamRef(VertexDescription.Semantics.POSITION));</span>
+<span class="fc" id="L121">		int point_count = multi_point.getPointCount();</span>
+<span class="fc" id="L122">		Point2D point2D = point.getXY();</span>
+
+<span class="fc" id="L124">		MultiPoint new_multipoint = (MultiPoint) (multi_point.createInstance());</span>
+<span class="fc" id="L125">		double tolerance_cluster = tolerance * Math.sqrt(2.0) * 1.00001;</span>
+
+<span class="fc" id="L127">		Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L128">		multi_point.queryEnvelope2D(env);</span>
+<span class="fc" id="L129">		env.inflate(tolerance_cluster, tolerance_cluster);</span>
+
+<span class="pc bpc" id="L131" title="1 of 2 branches missed.">		if (env.contains(point2D)) {</span>
+<span class="fc" id="L132">			double tolerance_cluster_sq = tolerance_cluster * tolerance_cluster;</span>
+
+<span class="fc" id="L134">			boolean b_found_covered = false;</span>
+<span class="fc" id="L135">			boolean[] covered = new boolean[point_count];</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">			for (int i = 0; i &lt; point_count; i++)</span>
+<span class="fc" id="L137">				covered[i] = false;</span>
+
+<span class="fc bfc" id="L139" title="All 2 branches covered.">			for (int i = 0; i &lt; point_count; i++) {</span>
+<span class="fc" id="L140">				double x = position.read(2 * i);</span>
+<span class="fc" id="L141">				double y = position.read(2 * i + 1);</span>
+
+<span class="fc" id="L143">				double dx = x - point2D.x;</span>
+<span class="fc" id="L144">				double dy = y - point2D.y;</span>
+
+<span class="fc bfc" id="L146" title="All 2 branches covered.">				if (dx * dx + dy * dy &lt;= tolerance_cluster_sq) {</span>
+<span class="fc" id="L147">					b_found_covered = true;</span>
+<span class="fc" id="L148">					covered[i] = true;</span>
+				}
+			}
+
+<span class="fc bfc" id="L152" title="All 2 branches covered.">			if (!b_found_covered) {</span>
+<span class="fc" id="L153">				new_multipoint.add(multi_point, 0, point_count);</span>
+<span class="fc" id="L154">				new_multipoint.add(point);</span>
+			} else {
+<span class="fc bfc" id="L156" title="All 2 branches covered.">				for (int i = 0; i &lt; point_count; i++) {</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">					if (!covered[i])</span>
+<span class="fc" id="L158">						new_multipoint.add(multi_point, i, i + 1);</span>
+				}
+			}
+<span class="fc" id="L161">		} else {</span>
+<span class="nc" id="L162">			new_multipoint.add(multi_point, 0, point_count);</span>
+<span class="nc" id="L163">			new_multipoint.add(point);</span>
+		}
+
+<span class="fc" id="L166">		return new_multipoint;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

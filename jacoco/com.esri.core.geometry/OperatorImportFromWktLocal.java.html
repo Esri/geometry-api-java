@@ -1,0 +1,663 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OperatorImportFromWktLocal.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">OperatorImportFromWktLocal.java</span></div><h1>OperatorImportFromWktLocal.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+import java.util.ArrayList;
+
+<span class="fc" id="L28">class OperatorImportFromWktLocal extends OperatorImportFromWkt {</span>
+	@Override
+	public Geometry execute(int import_flags, Geometry.Type type,
+			String wkt_string, ProgressTracker progress_tracker) {
+<span class="fc" id="L32">		WktParser wkt_parser = new WktParser(wkt_string);</span>
+<span class="fc" id="L33">		int current_token = wkt_parser.nextToken();</span>
+<span class="fc" id="L34">		return importFromWkt(import_flags, type, wkt_parser);</span>
+	}
+
+	@Override
+	public OGCStructure executeOGC(int import_flags, String wkt_string,
+			ProgressTracker progress_tracker) {
+<span class="fc" id="L40">		ArrayList&lt;OGCStructure&gt; stack = new ArrayList&lt;OGCStructure&gt;(0);</span>
+<span class="fc" id="L41">		WktParser wkt_parser = new WktParser(wkt_string);</span>
+
+<span class="fc" id="L43">		OGCStructure root = new OGCStructure();</span>
+<span class="fc" id="L44">		root.m_structures = new ArrayList&lt;OGCStructure&gt;(0);</span>
+<span class="fc" id="L45">		stack.add(root); // add dummy root</span>
+
+<span class="fc bfc" id="L47" title="All 2 branches covered.">		while (wkt_parser.nextToken() != WktParser.WktToken.not_available) {</span>
+<span class="fc" id="L48">			int current_token = wkt_parser.currentToken();</span>
+
+<span class="fc bfc" id="L50" title="All 2 branches covered.">			if (current_token == WktParser.WktToken.right_paren) {</span>
+<span class="fc" id="L51">				stack.remove(stack.size() - 1);</span>
+<span class="fc" id="L52">				continue;</span>
+			}
+
+<span class="fc" id="L55">			int ogc_type = current_token;</span>
+<span class="fc" id="L56">			OGCStructure last = stack.get(stack.size() - 1);</span>
+
+<span class="fc bfc" id="L58" title="All 2 branches covered.">			if (current_token == WktParser.WktToken.geometrycollection) {</span>
+<span class="fc" id="L59">				current_token = wkt_parser.nextToken();</span>
+
+<span class="pc bpc" id="L61" title="3 of 6 branches missed.">				if (current_token == WktParser.WktToken.attribute_z</span>
+						|| current_token == WktParser.WktToken.attribute_m
+						|| current_token == WktParser.WktToken.attribute_zm)
+<span class="nc" id="L64">					wkt_parser.nextToken();</span>
+
+<span class="fc" id="L66">				OGCStructure next = new OGCStructure();</span>
+<span class="fc" id="L67">				next.m_type = ogc_type;</span>
+<span class="fc" id="L68">				next.m_structures = new ArrayList&lt;OGCStructure&gt;(0);</span>
+<span class="fc" id="L69">				last.m_structures.add(next);</span>
+
+<span class="fc bfc" id="L71" title="All 2 branches covered.">				if (current_token != WktParser.WktToken.empty)</span>
+<span class="fc" id="L72">					stack.add(next);</span>
+				continue;
+			}
+
+<span class="fc" id="L76">			Geometry geometry = importFromWkt(import_flags,</span>
+					Geometry.Type.Unknown, wkt_parser);
+
+<span class="fc" id="L79">			OGCStructure leaf = new OGCStructure();</span>
+<span class="fc" id="L80">			leaf.m_type = ogc_type;</span>
+<span class="fc" id="L81">			leaf.m_geometry = geometry;</span>
+<span class="fc" id="L82">			last.m_structures.add(leaf);</span>
+<span class="fc" id="L83">		}</span>
+
+<span class="fc" id="L85">		return root;</span>
+	}
+
+	static Geometry importFromWkt(int import_flags, Geometry.Type type,
+			WktParser wkt_parser) {
+<span class="fc" id="L90">		int current_token = wkt_parser.currentToken();</span>
+
+<span class="pc bpc" id="L92" title="1 of 7 branches missed.">		switch (current_token) {</span>
+		case WktParser.WktToken.multipolygon:
+<span class="pc bpc" id="L94" title="1 of 4 branches missed.">			if (type != Geometry.Type.Polygon &amp;&amp; type != Geometry.Type.Unknown)</span>
+<span class="nc" id="L95">				throw new IllegalArgumentException(&quot;invalid shapetype&quot;);</span>
+<span class="fc" id="L96">			return polygonTaggedText(true, import_flags, wkt_parser);</span>
+
+		case WktParser.WktToken.multilinestring:
+<span class="pc bpc" id="L99" title="2 of 4 branches missed.">			if (type != Geometry.Type.Polyline &amp;&amp; type != Geometry.Type.Unknown)</span>
+<span class="nc" id="L100">				throw new IllegalArgumentException(&quot;invalid shapetype&quot;);</span>
+<span class="fc" id="L101">			return lineStringTaggedText(true, import_flags, wkt_parser);</span>
+
+		case WktParser.WktToken.multipoint:
+<span class="pc bpc" id="L104" title="2 of 4 branches missed.">			if (type != Geometry.Type.MultiPoint</span>
+					&amp;&amp; type != Geometry.Type.Unknown)
+<span class="nc" id="L106">				throw new IllegalArgumentException(&quot;invalid shapetype&quot;);</span>
+<span class="fc" id="L107">			return multiPointTaggedText(import_flags, wkt_parser);</span>
+
+		case WktParser.WktToken.polygon:
+<span class="pc bpc" id="L110" title="1 of 4 branches missed.">			if (type != Geometry.Type.Polygon &amp;&amp; type != Geometry.Type.Unknown)</span>
+<span class="nc" id="L111">				throw new IllegalArgumentException(&quot;invalid shapetype&quot;);</span>
+<span class="fc" id="L112">			return polygonTaggedText(false, import_flags, wkt_parser);</span>
+
+		case WktParser.WktToken.linestring:
+<span class="pc bpc" id="L115" title="2 of 4 branches missed.">			if (type != Geometry.Type.Polyline &amp;&amp; type != Geometry.Type.Unknown)</span>
+<span class="nc" id="L116">				throw new IllegalArgumentException(&quot;invalid shapetype&quot;);</span>
+<span class="fc" id="L117">			return lineStringTaggedText(false, import_flags, wkt_parser);</span>
+
+		case WktParser.WktToken.point:
+<span class="pc bpc" id="L120" title="2 of 4 branches missed.">			if (type != Geometry.Type.Point &amp;&amp; type != Geometry.Type.Unknown)</span>
+<span class="nc" id="L121">				throw new IllegalArgumentException(&quot;invalid shapetype&quot;);</span>
+<span class="fc" id="L122">			return pointTaggedText(import_flags, wkt_parser);</span>
+
+		default:
+			break; // warning fix
+		}
+
+<span class="nc" id="L128">		return null;</span>
+	}
+
+	static Geometry polygonTaggedText(boolean b_multi_polygon,
+			int import_flags, WktParser wkt_parser) {
+		MultiPath multi_path;
+		MultiPathImpl multi_path_impl;
+<span class="fc" id="L135">		AttributeStreamOfDbl zs = null;</span>
+<span class="fc" id="L136">		AttributeStreamOfDbl ms = null;</span>
+		AttributeStreamOfDbl position;
+		AttributeStreamOfInt32 paths;
+		AttributeStreamOfInt8 path_flags;
+
+<span class="fc" id="L141">		position = (AttributeStreamOfDbl) AttributeStreamBase</span>
+<span class="fc" id="L142">				.createDoubleStream(0);</span>
+<span class="fc" id="L143">		paths = (AttributeStreamOfInt32) AttributeStreamBase.createIndexStream(</span>
+				1, 0);
+<span class="fc" id="L145">		path_flags = (AttributeStreamOfInt8) AttributeStreamBase</span>
+<span class="fc" id="L146">				.createByteStream(1, (byte) 0);</span>
+
+<span class="fc" id="L148">		multi_path = new Polygon();</span>
+<span class="fc" id="L149">		multi_path_impl = (MultiPathImpl) multi_path._getImpl();</span>
+
+<span class="fc" id="L151">		int current_token = wkt_parser.nextToken();</span>
+
+<span class="fc bfc" id="L153" title="All 2 branches covered.">		if (current_token == WktParser.WktToken.attribute_z) {</span>
+<span class="fc" id="L154">			zs = (AttributeStreamOfDbl) AttributeStreamBase.createDoubleStream(</span>
+					0, NumberUtils.TheNaN);
+<span class="fc" id="L156">			multi_path_impl.addAttribute(VertexDescription.Semantics.Z);</span>
+<span class="fc" id="L157">			wkt_parser.nextToken();</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">		} else if (current_token == WktParser.WktToken.attribute_m) {</span>
+<span class="fc" id="L159">			ms = (AttributeStreamOfDbl) AttributeStreamBase.createDoubleStream(</span>
+					0, NumberUtils.TheNaN);
+<span class="fc" id="L161">			multi_path_impl.addAttribute(VertexDescription.Semantics.M);</span>
+<span class="fc" id="L162">			wkt_parser.nextToken();</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">		} else if (current_token == WktParser.WktToken.attribute_zm) {</span>
+<span class="fc" id="L164">			zs = (AttributeStreamOfDbl) AttributeStreamBase.createDoubleStream(</span>
+					0, NumberUtils.TheNaN);
+<span class="fc" id="L166">			ms = (AttributeStreamOfDbl) AttributeStreamBase.createDoubleStream(</span>
+					0, NumberUtils.TheNaN);
+<span class="fc" id="L168">			multi_path_impl.addAttribute(VertexDescription.Semantics.Z);</span>
+<span class="fc" id="L169">			multi_path_impl.addAttribute(VertexDescription.Semantics.M);</span>
+<span class="fc" id="L170">			wkt_parser.nextToken();</span>
+		}
+
+		int point_count;
+
+<span class="fc bfc" id="L175" title="All 2 branches covered.">		if (b_multi_polygon)</span>
+<span class="fc" id="L176">			point_count = multiPolygonText(zs, ms, position, paths, path_flags,</span>
+					wkt_parser);
+		else
+<span class="fc" id="L179">			point_count = polygonText(zs, ms, position, paths, path_flags, 0,</span>
+					wkt_parser);
+
+<span class="fc bfc" id="L182" title="All 2 branches covered.">		if (point_count != 0) {</span>
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">			assert (2 * point_count == position.size());</span>
+<span class="fc" id="L184">			multi_path_impl.setAttributeStreamRef(</span>
+					VertexDescription.Semantics.POSITION, position);
+<span class="fc" id="L186">			multi_path_impl.setPathStreamRef(paths);</span>
+<span class="fc" id="L187">			multi_path_impl.setPathFlagsStreamRef(path_flags);</span>
+
+<span class="fc bfc" id="L189" title="All 2 branches covered.">			if (zs != null)</span>
+<span class="fc" id="L190">				multi_path_impl.setAttributeStreamRef(</span>
+						VertexDescription.Semantics.Z, zs);
+
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">			if (ms != null)</span>
+<span class="nc" id="L194">				multi_path_impl.setAttributeStreamRef(</span>
+						VertexDescription.Semantics.M, ms);
+
+<span class="fc" id="L197">			multi_path_impl.notifyModified(MultiPathImpl.DirtyFlags.DirtyAll);</span>
+
+<span class="fc" id="L199">			AttributeStreamOfInt8 path_flags_clone = new AttributeStreamOfInt8(</span>
+					path_flags);
+
+<span class="fc bfc" id="L202" title="All 2 branches covered.">			for (int i = 0; i &lt; path_flags_clone.size() - 1; i++) {</span>
+<span class="fc bfc" id="L203" title="All 2 branches covered.">				if (((int) path_flags_clone.read(i) &amp; (int) PathFlags.enumOGCStartPolygon) != 0) {// Should</span>
+																									// be
+																									// clockwise
+<span class="fc bfc" id="L206" title="All 2 branches covered.">					if (!InternalUtils.isClockwiseRing(multi_path_impl, i))</span>
+<span class="fc" id="L207">						multi_path_impl.reversePath(i); // make clockwise</span>
+				} else {// Should be counter-clockwise
+<span class="fc bfc" id="L209" title="All 2 branches covered.">					if (InternalUtils.isClockwiseRing(multi_path_impl, i))</span>
+<span class="fc" id="L210">						multi_path_impl.reversePath(i); // make</span>
+														// counter-clockwise
+				}
+			}
+
+<span class="fc" id="L215">			multi_path_impl.setPathFlagsStreamRef(path_flags_clone);</span>
+		}
+
+<span class="pc bpc" id="L218" title="1 of 2 branches missed.">		if ((import_flags &amp; (int) WktImportFlags.wktImportNonTrusted) == 0)</span>
+<span class="fc" id="L219">			multi_path_impl.setIsSimple(MultiPathImpl.GeometryXSimple.Weak,</span>
+					0.0, false);
+
+<span class="fc" id="L222">		multi_path_impl.setDirtyOGCFlags(false);</span>
+
+<span class="fc" id="L224">		return multi_path;</span>
+	}
+
+	static Geometry lineStringTaggedText(boolean b_multi_linestring,
+			int import_flags, WktParser wkt_parser) {
+		MultiPath multi_path;
+		MultiPathImpl multi_path_impl;
+<span class="fc" id="L231">		AttributeStreamOfDbl zs = null;</span>
+<span class="fc" id="L232">		AttributeStreamOfDbl ms = null;</span>
+		AttributeStreamOfDbl position;
+		AttributeStreamOfInt32 paths;
+		AttributeStreamOfInt8 path_flags;
+
+<span class="fc" id="L237">		position = (AttributeStreamOfDbl) AttributeStreamBase</span>
+<span class="fc" id="L238">				.createDoubleStream(0);</span>
+<span class="fc" id="L239">		paths = (AttributeStreamOfInt32) AttributeStreamBase.createIndexStream(</span>
+				1, 0);
+<span class="fc" id="L241">		path_flags = (AttributeStreamOfInt8) AttributeStreamBase</span>
+<span class="fc" id="L242">				.createByteStream(1, (byte) 0);</span>
+
+<span class="fc" id="L244">		multi_path = new Polyline();</span>
+<span class="fc" id="L245">		multi_path_impl = (MultiPathImpl) multi_path._getImpl();</span>
+
+<span class="fc" id="L247">		int current_token = wkt_parser.nextToken();</span>
+
+<span class="fc bfc" id="L249" title="All 2 branches covered.">		if (current_token == WktParser.WktToken.attribute_z) {</span>
+<span class="fc" id="L250">			zs = (AttributeStreamOfDbl) AttributeStreamBase.createDoubleStream(</span>
+					0, NumberUtils.TheNaN);
+<span class="fc" id="L252">			multi_path_impl.addAttribute(VertexDescription.Semantics.Z);</span>
+<span class="fc" id="L253">			wkt_parser.nextToken();</span>
+<span class="fc bfc" id="L254" title="All 2 branches covered.">		} else if (current_token == WktParser.WktToken.attribute_m) {</span>
+<span class="fc" id="L255">			ms = (AttributeStreamOfDbl) AttributeStreamBase.createDoubleStream(</span>
+					0, NumberUtils.TheNaN);
+<span class="fc" id="L257">			multi_path_impl.addAttribute(VertexDescription.Semantics.M);</span>
+<span class="fc" id="L258">			wkt_parser.nextToken();</span>
+<span class="fc bfc" id="L259" title="All 2 branches covered.">		} else if (current_token == WktParser.WktToken.attribute_zm) {</span>
+<span class="fc" id="L260">			zs = (AttributeStreamOfDbl) AttributeStreamBase.createDoubleStream(</span>
+					0, NumberUtils.TheNaN);
+<span class="fc" id="L262">			ms = (AttributeStreamOfDbl) AttributeStreamBase.createDoubleStream(</span>
+					0, NumberUtils.TheNaN);
+<span class="fc" id="L264">			multi_path_impl.addAttribute(VertexDescription.Semantics.Z);</span>
+<span class="fc" id="L265">			multi_path_impl.addAttribute(VertexDescription.Semantics.M);</span>
+<span class="fc" id="L266">			wkt_parser.nextToken();</span>
+		}
+
+		int point_count;
+
+<span class="fc bfc" id="L271" title="All 2 branches covered.">		if (b_multi_linestring)</span>
+<span class="fc" id="L272">			point_count = multiLineStringText(zs, ms, position, paths,</span>
+					path_flags, wkt_parser);
+		else
+<span class="fc" id="L275">			point_count = lineStringText(false, zs, ms, position, paths,</span>
+					path_flags, wkt_parser);
+
+<span class="fc bfc" id="L278" title="All 2 branches covered.">		if (point_count != 0) {</span>
+<span class="pc bpc" id="L279" title="1 of 2 branches missed.">			assert (2 * point_count == position.size());</span>
+<span class="fc" id="L280">			multi_path_impl.setAttributeStreamRef(</span>
+					VertexDescription.Semantics.POSITION, position);
+<span class="fc" id="L282">			multi_path_impl.setPathStreamRef(paths);</span>
+<span class="fc" id="L283">			multi_path_impl.setPathFlagsStreamRef(path_flags);</span>
+
+<span class="fc bfc" id="L285" title="All 2 branches covered.">			if (zs != null)</span>
+<span class="fc" id="L286">				multi_path_impl.setAttributeStreamRef(</span>
+						VertexDescription.Semantics.Z, zs);
+
+<span class="fc bfc" id="L289" title="All 2 branches covered.">			if (ms != null)</span>
+<span class="fc" id="L290">				multi_path_impl.setAttributeStreamRef(</span>
+						VertexDescription.Semantics.M, ms);
+
+<span class="fc" id="L293">			multi_path_impl.notifyModified(MultiPathImpl.DirtyFlags.DirtyAll);</span>
+		}
+
+<span class="fc" id="L296">		return multi_path;</span>
+	}
+
+	static Geometry multiPointTaggedText(int import_flags, WktParser wkt_parser) {
+		MultiPoint multi_point;
+		MultiPointImpl multi_point_impl;
+<span class="fc" id="L302">		AttributeStreamOfDbl zs = null;</span>
+<span class="fc" id="L303">		AttributeStreamOfDbl ms = null;</span>
+		AttributeStreamOfDbl position;
+
+<span class="fc" id="L306">		position = (AttributeStreamOfDbl) AttributeStreamBase</span>
+<span class="fc" id="L307">				.createDoubleStream(0);</span>
+
+<span class="fc" id="L309">		multi_point = new MultiPoint();</span>
+<span class="fc" id="L310">		multi_point_impl = (MultiPointImpl) multi_point._getImpl();</span>
+
+<span class="fc" id="L312">		int current_token = wkt_parser.nextToken();</span>
+
+<span class="pc bpc" id="L314" title="1 of 2 branches missed.">		if (current_token == WktParser.WktToken.attribute_z) {</span>
+<span class="nc" id="L315">			zs = (AttributeStreamOfDbl) AttributeStreamBase.createDoubleStream(</span>
+					0, NumberUtils.TheNaN);
+<span class="nc" id="L317">			multi_point_impl.addAttribute(VertexDescription.Semantics.Z);</span>
+<span class="nc" id="L318">			wkt_parser.nextToken();</span>
+<span class="pc bpc" id="L319" title="1 of 2 branches missed.">		} else if (current_token == WktParser.WktToken.attribute_m) {</span>
+<span class="nc" id="L320">			ms = (AttributeStreamOfDbl) AttributeStreamBase.createDoubleStream(</span>
+					0, NumberUtils.TheNaN);
+<span class="nc" id="L322">			multi_point_impl.addAttribute(VertexDescription.Semantics.M);</span>
+<span class="nc" id="L323">			wkt_parser.nextToken();</span>
+<span class="fc bfc" id="L324" title="All 2 branches covered.">		} else if (current_token == WktParser.WktToken.attribute_zm) {</span>
+<span class="fc" id="L325">			zs = (AttributeStreamOfDbl) AttributeStreamBase.createDoubleStream(</span>
+					0, NumberUtils.TheNaN);
+<span class="fc" id="L327">			ms = (AttributeStreamOfDbl) AttributeStreamBase.createDoubleStream(</span>
+					0, NumberUtils.TheNaN);
+<span class="fc" id="L329">			multi_point_impl.addAttribute(VertexDescription.Semantics.Z);</span>
+<span class="fc" id="L330">			multi_point_impl.addAttribute(VertexDescription.Semantics.M);</span>
+<span class="fc" id="L331">			wkt_parser.nextToken();</span>
+		}
+
+<span class="fc" id="L334">		int point_count = multiPointText(zs, ms, position, wkt_parser);</span>
+
+<span class="fc bfc" id="L336" title="All 2 branches covered.">		if (point_count != 0) {</span>
+<span class="pc bpc" id="L337" title="1 of 2 branches missed.">			assert (2 * point_count == position.size());</span>
+<span class="fc" id="L338">			multi_point_impl.resize(point_count);</span>
+<span class="fc" id="L339">			multi_point_impl.setAttributeStreamRef(</span>
+					VertexDescription.Semantics.POSITION, position);
+
+<span class="fc bfc" id="L342" title="All 2 branches covered.">			if (zs != null)</span>
+<span class="fc" id="L343">				multi_point_impl.setAttributeStreamRef(</span>
+						VertexDescription.Semantics.Z, zs);
+
+<span class="fc bfc" id="L346" title="All 2 branches covered.">			if (ms != null)</span>
+<span class="fc" id="L347">				multi_point_impl.setAttributeStreamRef(</span>
+						VertexDescription.Semantics.M, ms);
+
+<span class="fc" id="L350">			multi_point_impl.notifyModified(MultiPointImpl.DirtyFlags.DirtyAll);</span>
+		}
+
+<span class="fc" id="L353">		return multi_point;</span>
+	}
+
+	static Geometry pointTaggedText(int import_flags, WktParser wkt_parser) {
+<span class="fc" id="L357">		Point point = new Point();</span>
+
+<span class="fc" id="L359">		int current_token = wkt_parser.nextToken();</span>
+
+<span class="pc bpc" id="L361" title="1 of 2 branches missed.">		if (current_token == WktParser.WktToken.attribute_z) {</span>
+<span class="nc" id="L362">			point.addAttribute(VertexDescription.Semantics.Z);</span>
+<span class="nc" id="L363">			wkt_parser.nextToken();</span>
+<span class="pc bpc" id="L364" title="1 of 2 branches missed.">		} else if (current_token == WktParser.WktToken.attribute_m) {</span>
+<span class="nc" id="L365">			point.addAttribute(VertexDescription.Semantics.M);</span>
+<span class="nc" id="L366">			wkt_parser.nextToken();</span>
+<span class="fc bfc" id="L367" title="All 2 branches covered.">		} else if (current_token == WktParser.WktToken.attribute_zm) {</span>
+<span class="fc" id="L368">			point.addAttribute(VertexDescription.Semantics.Z);</span>
+<span class="fc" id="L369">			point.addAttribute(VertexDescription.Semantics.M);</span>
+<span class="fc" id="L370">			wkt_parser.nextToken();</span>
+		}
+		// At start of PointText
+
+<span class="fc" id="L374">		current_token = wkt_parser.currentToken();</span>
+
+<span class="fc bfc" id="L376" title="All 2 branches covered.">		if (current_token != WktParser.WktToken.empty) {</span>
+<span class="fc" id="L377">			wkt_parser.nextToken();</span>
+
+<span class="fc" id="L379">			double x = wkt_parser.currentNumericLiteral();</span>
+<span class="fc" id="L380">			wkt_parser.nextToken();</span>
+
+<span class="fc" id="L382">			double y = wkt_parser.currentNumericLiteral();</span>
+<span class="fc" id="L383">			wkt_parser.nextToken();</span>
+
+<span class="fc" id="L385">			point.setXY(x, y);</span>
+
+<span class="fc bfc" id="L387" title="All 2 branches covered.">			if (wkt_parser.hasZs()) {</span>
+<span class="fc" id="L388">				double z = wkt_parser.currentNumericLiteral();</span>
+<span class="fc" id="L389">				wkt_parser.nextToken();</span>
+<span class="fc" id="L390">				point.setZ(z);</span>
+			}
+
+<span class="fc bfc" id="L393" title="All 2 branches covered.">			if (wkt_parser.hasMs()) {</span>
+<span class="fc" id="L394">				double m = wkt_parser.currentNumericLiteral();</span>
+<span class="fc" id="L395">				wkt_parser.nextToken();</span>
+<span class="fc" id="L396">				point.setM(m);</span>
+			}
+		}
+
+<span class="fc" id="L400">		return point;</span>
+	}
+
+	static int multiPolygonText(AttributeStreamOfDbl zs,
+			AttributeStreamOfDbl ms, AttributeStreamOfDbl position,
+			AttributeStreamOfInt32 paths, AttributeStreamOfInt8 path_flags,
+			WktParser wkt_parser) {
+		// At start of MultiPolygonText
+
+<span class="fc" id="L409">		int current_token = wkt_parser.currentToken();</span>
+
+<span class="fc" id="L411">		int total_point_count = 0;</span>
+
+<span class="fc bfc" id="L413" title="All 2 branches covered.">		if (current_token == WktParser.WktToken.empty)</span>
+<span class="fc" id="L414">			return total_point_count;</span>
+
+<span class="fc" id="L416">		current_token = wkt_parser.nextToken();</span>
+
+<span class="fc bfc" id="L418" title="All 2 branches covered.">		while (current_token != WktParser.WktToken.right_paren) {</span>
+			// At start of PolygonText
+
+<span class="fc" id="L421">			total_point_count = polygonText(zs, ms, position, paths,</span>
+					path_flags, total_point_count, wkt_parser);
+<span class="fc" id="L423">			current_token = wkt_parser.nextToken();</span>
+		}
+
+<span class="fc" id="L426">		return total_point_count;</span>
+	}
+
+	static int multiLineStringText(AttributeStreamOfDbl zs,
+			AttributeStreamOfDbl ms, AttributeStreamOfDbl position,
+			AttributeStreamOfInt32 paths, AttributeStreamOfInt8 path_flags,
+			WktParser wkt_parser) {
+		// At start of MultiLineStringText
+
+<span class="fc" id="L435">		int current_token = wkt_parser.currentToken();</span>
+
+<span class="fc" id="L437">		int total_point_count = 0;</span>
+
+<span class="fc bfc" id="L439" title="All 2 branches covered.">		if (current_token == WktParser.WktToken.empty)</span>
+<span class="fc" id="L440">			return total_point_count;</span>
+
+<span class="fc" id="L442">		current_token = wkt_parser.nextToken();</span>
+
+<span class="fc bfc" id="L444" title="All 2 branches covered.">		while (current_token != WktParser.WktToken.right_paren) {</span>
+			// At start of LineStringText
+
+<span class="fc" id="L447">			int point_count = lineStringText(false, zs, ms, position, paths,</span>
+					path_flags, wkt_parser);
+<span class="fc" id="L449">			total_point_count += point_count;</span>
+
+<span class="fc" id="L451">			current_token = wkt_parser.nextToken();</span>
+<span class="fc" id="L452">		}</span>
+
+<span class="fc" id="L454">		return total_point_count;</span>
+	}
+
+	static int multiPointText(AttributeStreamOfDbl zs, AttributeStreamOfDbl ms,
+			AttributeStreamOfDbl position, WktParser wkt_parser) {
+		// At start of MultiPointText
+
+<span class="fc" id="L461">		int current_token = wkt_parser.currentToken();</span>
+
+<span class="fc" id="L463">		int point_count = 0;</span>
+
+<span class="fc bfc" id="L465" title="All 2 branches covered.">		if (current_token == WktParser.WktToken.empty)</span>
+<span class="fc" id="L466">			return point_count;</span>
+
+<span class="fc" id="L468">		current_token = wkt_parser.nextToken();</span>
+
+<span class="fc bfc" id="L470" title="All 2 branches covered.">		while (current_token != WktParser.WktToken.right_paren) {</span>
+			// At start of PointText
+
+<span class="fc" id="L473">			point_count += pointText(zs, ms, position, wkt_parser);</span>
+
+<span class="fc bfc" id="L475" title="All 4 branches covered.">			if (current_token == WktParser.WktToken.left_paren</span>
+					|| current_token == WktParser.WktToken.empty)
+<span class="fc" id="L477">				current_token = wkt_parser.nextToken(); // ogc standard</span>
+			else
+<span class="fc" id="L479">				current_token = wkt_parser.currentToken(); // not ogc standard.</span>
+															// treat as
+															// linestring
+		}
+
+<span class="fc" id="L484">		return point_count;</span>
+	}
+
+	static int polygonText(AttributeStreamOfDbl zs, AttributeStreamOfDbl ms,
+			AttributeStreamOfDbl position, AttributeStreamOfInt32 paths,
+			AttributeStreamOfInt8 path_flags, int total_point_count,
+			WktParser wkt_parser) {
+		// At start of PolygonText
+
+<span class="fc" id="L493">		int current_token = wkt_parser.currentToken();</span>
+
+<span class="fc bfc" id="L495" title="All 2 branches covered.">		if (current_token == WktParser.WktToken.empty)</span>
+<span class="fc" id="L496">			return total_point_count;</span>
+
+<span class="fc" id="L498">		boolean b_first_line_string = true;</span>
+
+<span class="fc" id="L500">		current_token = wkt_parser.nextToken();</span>
+
+<span class="fc bfc" id="L502" title="All 2 branches covered.">		while (current_token != WktParser.WktToken.right_paren) {</span>
+			// At start of LineStringText
+
+<span class="fc" id="L505">			int point_count = lineStringText(true, zs, ms, position, paths,</span>
+					path_flags, wkt_parser);
+
+<span class="fc bfc" id="L508" title="All 2 branches covered.">			if (point_count != 0) {</span>
+<span class="fc bfc" id="L509" title="All 2 branches covered.">				if (b_first_line_string) {</span>
+<span class="fc" id="L510">					b_first_line_string = false;</span>
+<span class="fc" id="L511">					path_flags.setBits(path_flags.size() - 2,</span>
+							(byte) PathFlags.enumOGCStartPolygon);
+				}
+
+<span class="fc" id="L515">				path_flags.setBits(path_flags.size() - 2,</span>
+						(byte) PathFlags.enumClosed);
+<span class="fc" id="L517">				total_point_count += point_count;</span>
+			}
+
+<span class="fc" id="L520">			current_token = wkt_parser.nextToken();</span>
+<span class="fc" id="L521">		}</span>
+
+<span class="fc" id="L523">		return total_point_count;</span>
+	}
+
+	static int lineStringText(boolean b_ring, AttributeStreamOfDbl zs,
+			AttributeStreamOfDbl ms, AttributeStreamOfDbl position,
+			AttributeStreamOfInt32 paths, AttributeStreamOfInt8 path_flags,
+			WktParser wkt_parser) {
+		// At start of LineStringText
+
+<span class="fc" id="L532">		int current_token = wkt_parser.currentToken();</span>
+
+<span class="fc" id="L534">		int point_count = 0;</span>
+
+<span class="fc bfc" id="L536" title="All 2 branches covered.">		if (current_token == WktParser.WktToken.empty)</span>
+<span class="fc" id="L537">			return point_count;</span>
+
+<span class="fc" id="L539">		boolean b_start_path = true;</span>
+<span class="fc" id="L540">		double startx = NumberUtils.TheNaN;</span>
+<span class="fc" id="L541">		double starty = NumberUtils.TheNaN;</span>
+<span class="fc" id="L542">		double startz = NumberUtils.TheNaN;</span>
+<span class="fc" id="L543">		double startm = NumberUtils.TheNaN;</span>
+
+<span class="fc" id="L545">		current_token = wkt_parser.nextToken();</span>
+
+<span class="fc bfc" id="L547" title="All 2 branches covered.">		while (current_token != WktParser.WktToken.right_paren) {</span>
+			// At start of x
+
+<span class="fc" id="L550">			double x = wkt_parser.currentNumericLiteral();</span>
+<span class="fc" id="L551">			wkt_parser.nextToken();</span>
+
+<span class="fc" id="L553">			double y = wkt_parser.currentNumericLiteral();</span>
+<span class="fc" id="L554">			wkt_parser.nextToken();</span>
+
+<span class="fc" id="L556">			double z = NumberUtils.TheNaN, m = NumberUtils.TheNaN;</span>
+
+<span class="fc bfc" id="L558" title="All 2 branches covered.">			if (wkt_parser.hasZs()) {</span>
+<span class="fc" id="L559">				z = wkt_parser.currentNumericLiteral();</span>
+<span class="fc" id="L560">				wkt_parser.nextToken();</span>
+			}
+
+<span class="fc bfc" id="L563" title="All 2 branches covered.">			if (wkt_parser.hasMs()) {</span>
+<span class="fc" id="L564">				m = wkt_parser.currentNumericLiteral();</span>
+<span class="fc" id="L565">				wkt_parser.nextToken();</span>
+			}
+
+<span class="fc" id="L568">			current_token = wkt_parser.currentToken();</span>
+<span class="fc" id="L569">			boolean b_add_point = true;</span>
+
+<span class="fc bfc" id="L571" title="All 6 branches covered.">			if (b_ring &amp;&amp; point_count &gt;= 2</span>
+					&amp;&amp; current_token == WktParser.WktToken.right_paren) {
+				// If the last point in the ring is not equal to the start
+				// point, then let's add it.
+
+<span class="pc bpc" id="L576" title="1 of 4 branches missed.">				if ((startx == x || (NumberUtils.isNaN(startx) &amp;&amp; NumberUtils</span>
+<span class="pc bpc" id="L577" title="3 of 4 branches missed.">						.isNaN(x)))</span>
+<span class="nc bnc" id="L578" title="All 2 branches missed.">						&amp;&amp; (starty == y || (NumberUtils.isNaN(starty) &amp;&amp; NumberUtils</span>
+<span class="pc bnc" id="L579" title="All 2 branches missed.">								.isNaN(y)))</span>
+<span class="pc bpc" id="L580" title="1 of 4 branches missed.">						&amp;&amp; (!wkt_parser.hasZs() || startz == z || (NumberUtils</span>
+<span class="pc bnc" id="L581" title="All 4 branches missed.">								.isNaN(startz) &amp;&amp; NumberUtils.isNaN(z)))</span>
+<span class="pc bpc" id="L582" title="3 of 4 branches missed.">						&amp;&amp; (!wkt_parser.hasMs() || startm == m || (NumberUtils</span>
+<span class="nc bnc" id="L583" title="All 4 branches missed.">								.isNaN(startm) &amp;&amp; NumberUtils.isNaN(m))))</span>
+<span class="fc" id="L584">					b_add_point = false;</span>
+			}
+
+<span class="fc bfc" id="L587" title="All 2 branches covered.">			if (b_add_point) {</span>
+<span class="fc bfc" id="L588" title="All 2 branches covered.">				if (b_start_path) {</span>
+<span class="fc" id="L589">					b_start_path = false;</span>
+<span class="fc" id="L590">					startx = x;</span>
+<span class="fc" id="L591">					starty = y;</span>
+<span class="fc" id="L592">					startz = z;</span>
+<span class="fc" id="L593">					startm = m;</span>
+				}
+
+<span class="fc" id="L596">				point_count++;</span>
+<span class="fc" id="L597">				addToStreams(zs, ms, position, x, y, z, m);</span>
+			}
+<span class="fc" id="L599">		}</span>
+
+<span class="fc bfc" id="L601" title="All 2 branches covered.">		if (point_count == 1) {</span>
+<span class="fc" id="L602">			point_count++;</span>
+<span class="fc" id="L603">			addToStreams(zs, ms, position, startx, starty, startz, startm);</span>
+		}
+
+<span class="fc" id="L606">		paths.add(position.size() / 2);</span>
+<span class="fc" id="L607">		path_flags.add((byte) 0);</span>
+
+<span class="fc" id="L609">		return point_count;</span>
+	}
+
+	static int pointText(AttributeStreamOfDbl zs, AttributeStreamOfDbl ms,
+			AttributeStreamOfDbl position, WktParser wkt_parser) {
+		// At start of PointText
+
+<span class="fc" id="L616">		int current_token = wkt_parser.currentToken();</span>
+
+<span class="fc bfc" id="L618" title="All 2 branches covered.">		if (current_token == WktParser.WktToken.empty)</span>
+<span class="fc" id="L619">			return 0;</span>
+
+<span class="fc bfc" id="L621" title="All 2 branches covered.">		if (current_token == WktParser.WktToken.left_paren)</span>
+<span class="fc" id="L622">			wkt_parser.nextToken(); // ogc standard</span>
+
+		// At start of x
+
+<span class="fc" id="L626">		double x = wkt_parser.currentNumericLiteral();</span>
+<span class="fc" id="L627">		wkt_parser.nextToken();</span>
+
+<span class="fc" id="L629">		double y = wkt_parser.currentNumericLiteral();</span>
+<span class="fc" id="L630">		wkt_parser.nextToken();</span>
+
+<span class="fc" id="L632">		double z = NumberUtils.TheNaN;</span>
+<span class="fc" id="L633">		double m = NumberUtils.TheNaN;</span>
+
+<span class="fc bfc" id="L635" title="All 2 branches covered.">		if (zs != null) {</span>
+<span class="fc" id="L636">			z = wkt_parser.currentNumericLiteral();</span>
+<span class="fc" id="L637">			wkt_parser.nextToken();</span>
+		}
+
+<span class="fc bfc" id="L640" title="All 2 branches covered.">		if (ms != null) {</span>
+<span class="fc" id="L641">			m = wkt_parser.currentNumericLiteral();</span>
+<span class="fc" id="L642">			wkt_parser.nextToken();</span>
+		}
+
+<span class="fc" id="L645">		addToStreams(zs, ms, position, x, y, z, m);</span>
+
+<span class="fc" id="L647">		return 1;</span>
+	}
+
+	static void addToStreams(AttributeStreamOfDbl zs, AttributeStreamOfDbl ms,
+			AttributeStreamOfDbl position, double x, double y, double z,
+			double m) {
+<span class="fc" id="L653">		position.add(x);</span>
+<span class="fc" id="L654">		position.add(y);</span>
+
+<span class="fc bfc" id="L656" title="All 2 branches covered.">		if (zs != null)</span>
+<span class="fc" id="L657">			zs.add(z);</span>
+
+<span class="fc bfc" id="L659" title="All 2 branches covered.">		if (ms != null)</span>
+<span class="fc" id="L660">			ms.add(m);</span>
+<span class="fc" id="L661">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

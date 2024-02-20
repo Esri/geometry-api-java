@@ -1,0 +1,1428 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Cutter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Cutter.java</span></div><h1>Cutter.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+
+package com.esri.core.geometry;
+
+import com.esri.core.geometry.OperatorCutLocal;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+
+<span class="nc" id="L33">class Cutter {</span>
+	static class CompareVertices {
+		int m_orderIndex;
+		EditShape m_editShape;
+
+<span class="fc" id="L38">		CompareVertices(int orderIndex, EditShape editShape) {</span>
+<span class="fc" id="L39">			m_orderIndex = orderIndex;</span>
+<span class="fc" id="L40">			m_editShape = editShape;</span>
+<span class="fc" id="L41">		}</span>
+
+		int _compareVertices(int v1, int v2) {
+<span class="fc" id="L44">			Point2D pt1 = new Point2D();</span>
+<span class="fc" id="L45">			m_editShape.getXY(v1, pt1);</span>
+<span class="fc" id="L46">			Point2D pt2 = new Point2D();</span>
+<span class="fc" id="L47">			m_editShape.getXY(v2, pt2);</span>
+<span class="fc" id="L48">			int res = pt1.compare(pt2);</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">			if (res != 0)</span>
+<span class="fc" id="L50">				return res;</span>
+<span class="fc" id="L51">			int z1 = m_editShape.getUserIndex(v1, m_orderIndex);</span>
+<span class="fc" id="L52">			int z2 = m_editShape.getUserIndex(v2, m_orderIndex);</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">			if (z1 &lt; z2)</span>
+<span class="fc" id="L54">				return -1;</span>
+<span class="pc bpc" id="L55" title="1 of 2 branches missed.">			if (z1 == z2)</span>
+<span class="nc" id="L56">				return 0;</span>
+<span class="fc" id="L57">			return 1;</span>
+		}
+	}
+
+	static class CutterVertexComparer extends
+			AttributeStreamOfInt32.IntComparator {
+		CompareVertices m_compareVertices;
+
+<span class="fc" id="L65">		CutterVertexComparer(CompareVertices _compareVertices) {</span>
+<span class="fc" id="L66">			m_compareVertices = _compareVertices;</span>
+<span class="fc" id="L67">		}</span>
+
+		@Override
+		public int compare(int v1, int v2) {
+<span class="fc" id="L71">			return m_compareVertices._compareVertices(v1, v2);</span>
+		}
+	}
+
+	static class CutEvent {
+		int m_ivertexCuttee;
+		int m_ipartCuttee;
+		double m_scalarCuttee0;
+		double m_scalarCuttee1;
+		int m_count;
+		int m_ivertexCutter;
+		int m_ipartCutter;
+		double m_scalarCutter0;
+		double m_scalarCutter1;
+
+		CutEvent(int ivertexCuttee, int ipartCuttee, double scalarCuttee0,
+				double scalarCuttee1, int count, int ivertexCutter,
+<span class="fc" id="L88">				int ipartCutter, double scalarCutter0, double scalarCutter1) {</span>
+<span class="fc" id="L89">			m_ivertexCuttee = ivertexCuttee;</span>
+<span class="fc" id="L90">			m_ipartCuttee = ipartCuttee;</span>
+<span class="fc" id="L91">			m_scalarCuttee0 = scalarCuttee0;</span>
+<span class="fc" id="L92">			m_scalarCuttee1 = scalarCuttee1;</span>
+<span class="fc" id="L93">			m_count = count;</span>
+<span class="fc" id="L94">			m_ivertexCutter = ivertexCutter;</span>
+<span class="fc" id="L95">			m_ipartCutter = ipartCutter;</span>
+<span class="fc" id="L96">			m_scalarCutter0 = scalarCutter0;</span>
+<span class="fc" id="L97">			m_scalarCutter1 = scalarCutter1;</span>
+<span class="fc" id="L98">		}</span>
+	}
+
+	static EditShape CutPolyline(boolean bConsiderTouch, Polyline cuttee,
+			Polyline cutter, double tolerance,
+			ArrayList&lt;OperatorCutLocal.CutPair&gt; cutPairs,
+			AttributeStreamOfInt32 segmentCounts, ProgressTracker progressTracker) {
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">		if (cuttee.isEmpty()) {</span>
+			OperatorCutLocal.CutPair cutPair;
+<span class="nc" id="L107">			cutPair = new OperatorCutLocal.CutPair(cuttee,</span>
+<span class="nc" id="L108">					OperatorCutLocal.Side.Uncut, -1, -1, NumberUtils.NaN(),</span>
+<span class="nc" id="L109">					OperatorCutLocal.Side.Uncut, -1, -1, NumberUtils.NaN(), -1,</span>
+<span class="nc" id="L110">					-1, NumberUtils.NaN(), -1, -1, NumberUtils.NaN());</span>
+<span class="nc" id="L111">			cutPairs.add(cutPair);</span>
+<span class="nc" id="L112">			return null;</span>
+		}
+
+<span class="fc" id="L115">		EditShape editShape = new EditShape();</span>
+<span class="fc" id="L116">		int cutteeHandle = editShape.addGeometry(cuttee);</span>
+<span class="fc" id="L117">		int cutterHandle = editShape.addGeometry(cutter);</span>
+<span class="fc" id="L118">		CrackAndCluster.execute(editShape, tolerance, progressTracker, true);</span>
+
+<span class="fc" id="L120">		int order = 0;</span>
+<span class="fc" id="L121">		int orderIndex = editShape.createUserIndex();</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">		for (int igeometry = editShape.getFirstGeometry(); igeometry != -1; igeometry = editShape</span>
+<span class="fc" id="L123">				.getNextGeometry(igeometry))</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">			for (int ipath = editShape.getFirstPath(igeometry); ipath != -1; ipath = editShape</span>
+<span class="fc" id="L125">					.getNextPath(ipath))</span>
+<span class="fc" id="L126">				for (int ivertex = editShape.getFirstVertex(ipath), i = 0, n = editShape</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">						.getPathSize(ipath); i &lt; n; ivertex = editShape</span>
+<span class="fc" id="L128">						.getNextVertex(ivertex), i++)</span>
+<span class="fc" id="L129">					editShape.setUserIndex(ivertex, orderIndex, order++);</span>
+
+<span class="fc" id="L131">		ArrayList&lt;CutEvent&gt; cutEvents = _getCutEvents(orderIndex, editShape);</span>
+<span class="fc" id="L132">		_Cut(bConsiderTouch, false, cutEvents, editShape, cutPairs,</span>
+				segmentCounts);
+<span class="fc" id="L134">		return editShape;</span>
+	}
+
+	private static ArrayList&lt;CutEvent&gt; _getCutEvents(int orderIndex,
+			EditShape editShape) {
+<span class="fc" id="L139">		int pointCount = editShape.getTotalPointCount();</span>
+<span class="fc bfc" id="L140" title="All 2 branches covered.">		if (pointCount == 0)</span>
+<span class="fc" id="L141">			return null;</span>
+
+		// Sort vertices lexicographically
+		// Firstly copy allvertices to an array.
+<span class="fc" id="L145">		AttributeStreamOfInt32 vertices = new AttributeStreamOfInt32(0);</span>
+
+<span class="fc bfc" id="L147" title="All 2 branches covered.">		for (int igeometry = editShape.getFirstGeometry(); igeometry != -1; igeometry = editShape</span>
+<span class="fc" id="L148">				.getNextGeometry(igeometry))</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">			for (int ipath = editShape.getFirstPath(igeometry); ipath != -1; ipath = editShape</span>
+<span class="fc" id="L150">					.getNextPath(ipath))</span>
+<span class="fc" id="L151">				for (int ivertex = editShape.getFirstVertex(ipath), i = 0, n = editShape</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">						.getPathSize(ipath); i &lt; n; ivertex = editShape</span>
+<span class="fc" id="L153">						.getNextVertex(ivertex), i++)</span>
+<span class="fc" id="L154">					vertices.add(ivertex);</span>
+
+		// Sort
+<span class="fc" id="L157">		CompareVertices compareVertices = new CompareVertices(orderIndex,</span>
+				editShape);
+<span class="fc" id="L159">		vertices.Sort(0, pointCount, new CutterVertexComparer(compareVertices));</span>
+
+		// Find Cut Events
+<span class="fc" id="L162">		ArrayList&lt;CutEvent&gt; cutEvents = new ArrayList&lt;CutEvent&gt;(0);</span>
+<span class="fc" id="L163">		ArrayList&lt;CutEvent&gt; cutEventsTemp = new ArrayList&lt;CutEvent&gt;(0);</span>
+
+<span class="fc" id="L165">		int eventIndex = editShape.createUserIndex();</span>
+<span class="fc" id="L166">		int eventIndexTemp = editShape.createUserIndex();</span>
+
+<span class="fc" id="L168">		int cutteeHandle = editShape.getFirstGeometry();</span>
+<span class="fc" id="L169">		int cutterHandle = editShape.getNextGeometry(cutteeHandle);</span>
+
+<span class="fc" id="L171">		Point2D pointCuttee = new Point2D();</span>
+<span class="fc" id="L172">		Point2D pointCutter = new Point2D();</span>
+
+<span class="fc" id="L174">		int ivertexCuttee = vertices.get(0);</span>
+		;
+<span class="fc" id="L176">		int ipartCuttee = editShape.getPathFromVertex(ivertexCuttee);</span>
+<span class="fc" id="L177">		int igeometryCuttee = editShape.getGeometryFromPath(ipartCuttee);</span>
+<span class="fc" id="L178">		editShape.getXY(ivertexCuttee, pointCuttee);</span>
+
+<span class="fc" id="L180">		int istart = 1;</span>
+<span class="fc" id="L181">		int ivertex = 0;</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">		while (istart &lt; pointCount - 1) {</span>
+<span class="fc" id="L183">			boolean bCutEvent = false;</span>
+<span class="pc bpc" id="L184" title="1 of 2 branches missed.">			for (int i = istart; i &lt; pointCount; i++) {</span>
+<span class="fc bfc" id="L185" title="All 2 branches covered.">				if (i == ivertex)</span>
+<span class="fc" id="L186">					continue;</span>
+
+<span class="fc" id="L188">				int ivertexCutter = vertices.get(i);</span>
+<span class="fc" id="L189">				int ipartCutter = editShape.getPathFromVertex(ivertexCutter);</span>
+<span class="fc" id="L190">				int igeometryCutter = editShape</span>
+<span class="fc" id="L191">						.getGeometryFromPath(ipartCutter);</span>
+<span class="fc" id="L192">				editShape.getXY(ivertexCutter, pointCutter);</span>
+
+<span class="fc bfc" id="L194" title="All 2 branches covered.">				if (pointCuttee.isEqual(pointCutter)) {</span>
+<span class="pc bpc" id="L195" title="1 of 4 branches missed.">					boolean bCondition = igeometryCuttee == cutteeHandle</span>
+							&amp;&amp; igeometryCutter == cutterHandle;
+
+<span class="fc bfc" id="L198" title="All 2 branches covered.">					if (bCondition)</span>
+<span class="fc" id="L199">						bCutEvent = _cutteeCutterEvents(eventIndex,</span>
+								eventIndexTemp, editShape, cutEvents,
+								cutEventsTemp, ipartCuttee, ivertexCuttee,
+								ipartCutter, ivertexCutter);
+				} else
+					break;
+			}
+
+<span class="fc bfc" id="L207" title="All 4 branches covered.">			if (bCutEvent || ivertex == istart - 1) {</span>
+<span class="pc bpc" id="L208" title="1 of 4 branches missed.">				if (bCutEvent &amp;&amp; (ivertex == istart - 1))</span>
+<span class="fc" id="L209">					istart--;</span>
+
+<span class="pc bpc" id="L211" title="1 of 2 branches missed.">				if (++ivertex == pointCount)</span>
+<span class="nc" id="L212">					break;</span>
+
+<span class="fc" id="L214">				ivertexCuttee = vertices.get(ivertex);</span>
+<span class="fc" id="L215">				ipartCuttee = editShape.getPathFromVertex(ivertexCuttee);</span>
+<span class="fc" id="L216">				igeometryCuttee = editShape.getGeometryFromPath(ipartCuttee);</span>
+<span class="fc" id="L217">				editShape.getXY(ivertexCuttee, pointCuttee);</span>
+			}
+
+<span class="fc bfc" id="L220" title="All 2 branches covered.">			if (!bCutEvent)</span>
+<span class="fc" id="L221">				istart = ivertex + 1;</span>
+<span class="fc" id="L222">		}</span>
+
+<span class="fc" id="L224">		ArrayList&lt;CutEvent&gt; cutEventsSorted = new ArrayList&lt;CutEvent&gt;(0);</span>
+
+		// Sort CutEvents
+		int icutEvent;
+		int icutEventTemp;
+<span class="fc bfc" id="L229" title="All 2 branches covered.">		for (int igeometry = editShape.getFirstGeometry(); igeometry != -1; igeometry = editShape</span>
+<span class="fc" id="L230">				.getNextGeometry(igeometry)) {</span>
+<span class="fc bfc" id="L231" title="All 2 branches covered.">			for (int ipath = editShape.getFirstPath(igeometry); ipath != -1; ipath = editShape</span>
+<span class="fc" id="L232">					.getNextPath(ipath)) {</span>
+<span class="fc" id="L233">				for (int iv = editShape.getFirstVertex(ipath), i = 0, n = editShape</span>
+<span class="fc bfc" id="L234" title="All 2 branches covered.">						.getPathSize(ipath); i &lt; n; iv = editShape</span>
+<span class="fc" id="L235">						.getNextVertex(iv), i++) {</span>
+<span class="fc" id="L236">					icutEventTemp = editShape.getUserIndex(iv, eventIndexTemp);</span>
+<span class="fc bfc" id="L237" title="All 2 branches covered.">					if (icutEventTemp &gt;= 0) {</span>
+						// _ASSERT(cutEventsTemp.get(icutEventTemp).m_ivertexCuttee
+						// == iv);
+<span class="fc bfc" id="L240" title="All 2 branches covered.">						while (icutEventTemp &lt; cutEventsTemp.size()</span>
+<span class="fc bfc" id="L241" title="All 2 branches covered.">								&amp;&amp; cutEventsTemp.get(icutEventTemp).m_ivertexCuttee == iv)</span>
+<span class="fc" id="L242">							cutEventsSorted.add(cutEventsTemp</span>
+<span class="fc" id="L243">									.get(icutEventTemp++));</span>
+					}
+
+<span class="fc" id="L246">					icutEvent = editShape.getUserIndex(iv, eventIndex);</span>
+<span class="fc bfc" id="L247" title="All 2 branches covered.">					if (icutEvent &gt;= 0) {</span>
+						// _ASSERT(cutEvents-&gt;Get(icutEvent)-&gt;m_ivertexCuttee ==
+						// iv);
+<span class="fc bfc" id="L250" title="All 2 branches covered.">						while (icutEvent &lt; cutEvents.size()</span>
+<span class="fc bfc" id="L251" title="All 2 branches covered.">								&amp;&amp; cutEvents.get(icutEvent).m_ivertexCuttee == iv)</span>
+<span class="fc" id="L252">							cutEventsSorted.add(cutEvents.get(icutEvent++));</span>
+					}
+				}
+			}
+		}
+
+		// _ASSERT(cutEvents-&gt;Size() + cutEventsTemp-&gt;Size() ==
+		// cutEventsSorted-&gt;Size());
+<span class="fc" id="L260">		editShape.removeUserIndex(eventIndex);</span>
+<span class="fc" id="L261">		editShape.removeUserIndex(eventIndexTemp);</span>
+<span class="fc" id="L262">		return cutEventsSorted;</span>
+	}
+
+	static boolean _cutteeCutterEvents(int eventIndex, int eventIndexTemp,
+			EditShape editShape, ArrayList&lt;CutEvent&gt; cutEvents,
+			ArrayList&lt;CutEvent&gt; cutEventsTemp, int ipartCuttee,
+			int ivertexCuttee, int ipartCutter, int ivertexCutter) {
+<span class="fc" id="L269">		int ilastVertexCuttee = editShape.getLastVertex(ipartCuttee);</span>
+<span class="fc" id="L270">		int ilastVertexCutter = editShape.getLastVertex(ipartCutter);</span>
+<span class="fc" id="L271">		int ifirstVertexCuttee = editShape.getFirstVertex(ipartCuttee);</span>
+<span class="fc" id="L272">		int ifirstVertexCutter = editShape.getFirstVertex(ipartCutter);</span>
+<span class="fc" id="L273">		int ivertexCutteePrev = editShape.getPrevVertex(ivertexCuttee);</span>
+<span class="fc" id="L274">		int ivertexCutterPrev = editShape.getPrevVertex(ivertexCutter);</span>
+
+<span class="fc" id="L276">		boolean bEndEnd = false;</span>
+<span class="fc" id="L277">		boolean bEndStart = false;</span>
+<span class="fc" id="L278">		boolean bStartEnd = false;</span>
+<span class="fc" id="L279">		boolean bStartStart = false;</span>
+
+<span class="pc bpc" id="L281" title="1 of 2 branches missed.">		if (ivertexCuttee != ifirstVertexCuttee) {</span>
+<span class="fc bfc" id="L282" title="All 2 branches covered.">			if (ivertexCutter != ifirstVertexCutter)</span>
+<span class="fc" id="L283">				bEndEnd = _cutteeEndCutterEndEvent(eventIndex, editShape,</span>
+						cutEvents, ipartCuttee, ivertexCutteePrev, ipartCutter,
+						ivertexCutterPrev);
+
+<span class="fc bfc" id="L287" title="All 2 branches covered.">			if (ivertexCutter != ilastVertexCutter)</span>
+<span class="fc" id="L288">				bEndStart = _cutteeEndCutterStartEvent(eventIndex, editShape,</span>
+						cutEvents, ipartCuttee, ivertexCutteePrev, ipartCutter,
+						ivertexCutter);
+		}
+
+<span class="fc bfc" id="L293" title="All 2 branches covered.">		if (ivertexCuttee != ilastVertexCuttee) {</span>
+<span class="fc bfc" id="L294" title="All 2 branches covered.">			if (ivertexCutter != ifirstVertexCutter)</span>
+<span class="fc" id="L295">				bStartEnd = _cutteeStartCutterEndEvent(eventIndexTemp,</span>
+						editShape, cutEventsTemp, ipartCuttee, ivertexCuttee,
+						ipartCutter, ivertexCutterPrev, ifirstVertexCuttee);
+
+<span class="fc bfc" id="L299" title="All 2 branches covered.">			if (ivertexCutter != ilastVertexCutter)</span>
+<span class="fc" id="L300">				bStartStart = _cutteeStartCutterStartEvent(eventIndexTemp,</span>
+						editShape, cutEventsTemp, ipartCuttee, ivertexCuttee,
+						ipartCutter, ivertexCutter, ifirstVertexCuttee);
+		}
+
+<span class="pc bpc" id="L305" title="1 of 6 branches missed.">		if (bEndEnd &amp;&amp; bEndStart &amp;&amp; bStartEnd) {</span>
+<span class="nc" id="L306">			int iendstart = cutEvents.size() - 1;</span>
+<span class="nc bnc" id="L307" title="All 2 branches missed.">			int istartend = (bStartStart ? cutEventsTemp.size() - 2</span>
+<span class="nc" id="L308">					: cutEventsTemp.size() - 1);</span>
+
+<span class="nc bnc" id="L310" title="All 2 branches missed.">			if (cutEventsTemp.get(istartend).m_count == 2) {</span>
+				// Replace bEndEnd with bEndStart, and remove duplicate
+				// bEndStart (get rid of bEndEnd)
+<span class="nc" id="L313">				cutEvents.set(iendstart - 1, cutEvents.get(iendstart));</span>
+<span class="nc" id="L314">				cutEvents.remove(cutEvents.size() - 1);</span>
+			}
+<span class="pc bfc" id="L316" title="All 6 branches covered.">		} else if (bEndEnd &amp;&amp; bEndStart &amp;&amp; bStartStart) {</span>
+<span class="fc" id="L317">			int istartstart = cutEventsTemp.size() - 1;</span>
+
+<span class="pc bpc" id="L319" title="1 of 2 branches missed.">			if (cutEventsTemp.get(istartstart).m_count == 2) {</span>
+				// Remove bEndStart
+<span class="fc" id="L321">				CutEvent lastEvent = cutEvents.get(cutEvents.size() - 1);</span>
+<span class="fc" id="L322">				cutEvents.remove(cutEvents.get(cutEvents.size() - 1));</span>
+<span class="fc" id="L323">				int icutEvent = editShape.getUserIndex(</span>
+						lastEvent.m_ivertexCuttee, eventIndex);
+<span class="fc bfc" id="L325" title="All 2 branches covered.">				if (icutEvent == cutEvents.size())</span>
+<span class="fc" id="L326">					editShape.setUserIndex(lastEvent.m_ivertexCuttee,</span>
+							eventIndex, -1);
+			}
+		}
+
+<span class="pc bpc" id="L331" title="5 of 8 branches missed.">		return bEndEnd || bEndStart || bStartEnd || bStartStart;</span>
+	}
+
+	private static boolean _cutteeEndCutterEndEvent(int eventIndex,
+			EditShape editShape, ArrayList&lt;CutEvent&gt; cutEvents,
+			int ipartCuttee, int ivertexCuttee, int ipartCutter,
+			int ivertexCutter) {
+		Segment segmentCuttee;
+		Segment segmentCutter;
+<span class="fc" id="L340">		Line lineCuttee = new Line();</span>
+<span class="fc" id="L341">		Line lineCutter = new Line();</span>
+<span class="fc" id="L342">		double[] scalarsCuttee = new double[2];</span>
+<span class="fc" id="L343">		double[] scalarsCutter = new double[2];</span>
+
+		CutEvent cutEvent;
+
+<span class="fc" id="L347">		segmentCuttee = editShape.getSegment(ivertexCuttee);</span>
+<span class="pc bpc" id="L348" title="1 of 2 branches missed.">		if (segmentCuttee == null) {</span>
+<span class="fc" id="L349">			editShape.queryLineConnector(ivertexCuttee, lineCuttee);</span>
+<span class="fc" id="L350">			segmentCuttee = lineCuttee;</span>
+		}
+
+<span class="fc" id="L353">		segmentCutter = editShape.getSegment(ivertexCutter);</span>
+<span class="pc bpc" id="L354" title="1 of 2 branches missed.">		if (segmentCutter == null) {</span>
+<span class="fc" id="L355">			editShape.queryLineConnector(ivertexCutter, lineCutter);</span>
+<span class="fc" id="L356">			segmentCutter = lineCutter;</span>
+		}
+
+<span class="fc" id="L359">		int count = segmentCuttee.intersect(segmentCutter, null, scalarsCuttee,</span>
+				scalarsCutter, 0.0);
+		// _ASSERT(count &gt; 0);
+		int icutEvent;
+
+		// If count == 2 (i.e. when they overlap), this this event would have
+		// been discovered by _CutteeStartCutterStartEvent at the previous index
+<span class="fc bfc" id="L366" title="All 2 branches covered.">		if (count &lt; 2) {</span>
+<span class="fc" id="L367">			cutEvent = new CutEvent(ivertexCuttee, ipartCuttee,</span>
+<span class="fc" id="L368">					scalarsCuttee[0], NumberUtils.NaN(), count, ivertexCutter,</span>
+<span class="fc" id="L369">					ipartCutter, scalarsCutter[0], NumberUtils.NaN());</span>
+<span class="fc" id="L370">			cutEvents.add(cutEvent);</span>
+<span class="fc" id="L371">			icutEvent = editShape.getUserIndex(ivertexCuttee, eventIndex);</span>
+
+<span class="fc bfc" id="L373" title="All 2 branches covered.">			if (icutEvent &lt; 0)</span>
+<span class="fc" id="L374">				editShape.setUserIndex(ivertexCuttee, eventIndex,</span>
+<span class="fc" id="L375">						cutEvents.size() - 1);</span>
+		}
+
+<span class="fc" id="L378">		return true;</span>
+	}
+
+	private static boolean _cutteeEndCutterStartEvent(int eventIndex,
+			EditShape editShape, ArrayList&lt;CutEvent&gt; cutEvents,
+			int ipartCuttee, int ivertexCuttee, int ipartCutter,
+			int ivertexCutter) {
+		Segment segmentCuttee;
+		Segment segmentCutter;
+<span class="fc" id="L387">		Line lineCuttee = new Line();</span>
+<span class="fc" id="L388">		Line lineCutter = new Line();</span>
+<span class="fc" id="L389">		double[] scalarsCuttee = new double[2];</span>
+<span class="fc" id="L390">		double[] scalarsCutter = new double[2];</span>
+
+		CutEvent cutEvent;
+
+<span class="fc" id="L394">		segmentCuttee = editShape.getSegment(ivertexCuttee);</span>
+<span class="pc bpc" id="L395" title="1 of 2 branches missed.">		if (segmentCuttee == null) {</span>
+<span class="fc" id="L396">			editShape.queryLineConnector(ivertexCuttee, lineCuttee);</span>
+<span class="fc" id="L397">			segmentCuttee = lineCuttee;</span>
+		}
+
+<span class="fc" id="L400">		segmentCutter = editShape.getSegment(ivertexCutter);</span>
+<span class="pc bpc" id="L401" title="1 of 2 branches missed.">		if (segmentCutter == null) {</span>
+<span class="fc" id="L402">			editShape.queryLineConnector(ivertexCutter, lineCutter);</span>
+<span class="fc" id="L403">			segmentCutter = lineCutter;</span>
+		}
+
+<span class="fc" id="L406">		int count = segmentCuttee.intersect(segmentCutter, null, scalarsCuttee,</span>
+				scalarsCutter, 0.0);
+		// _ASSERT(count &gt; 0);
+		int icutEvent;
+
+		// If count == 2 (i.e. when they overlap), this this event would have
+		// been discovered by _CutteeStartCutterEndEvent at the previous index
+<span class="pc bpc" id="L413" title="1 of 2 branches missed.">		if (count &lt; 2) {</span>
+<span class="fc" id="L414">			cutEvent = new CutEvent(ivertexCuttee, ipartCuttee,</span>
+<span class="fc" id="L415">					scalarsCuttee[0], NumberUtils.NaN(), count, ivertexCutter,</span>
+<span class="fc" id="L416">					ipartCutter, scalarsCutter[0], NumberUtils.NaN());</span>
+<span class="fc" id="L417">			cutEvents.add(cutEvent);</span>
+<span class="fc" id="L418">			icutEvent = editShape.getUserIndex(ivertexCuttee, eventIndex);</span>
+
+<span class="fc bfc" id="L420" title="All 2 branches covered.">			if (icutEvent &lt; 0)</span>
+<span class="fc" id="L421">				editShape.setUserIndex(ivertexCuttee, eventIndex,</span>
+<span class="fc" id="L422">						cutEvents.size() - 1);</span>
+
+<span class="fc" id="L424">			return true;</span>
+		}
+
+<span class="nc" id="L427">		return false;</span>
+	}
+
+	private static boolean _cutteeStartCutterEndEvent(int eventIndex,
+			EditShape editShape, ArrayList&lt;CutEvent&gt; cutEvents,
+			int ipartCuttee, int ivertexCuttee, int ipartCutter,
+			int ivertexCutter, int ifirstVertexCuttee) {
+		Segment segmentCuttee;
+		Segment segmentCutter;
+<span class="fc" id="L436">		Line lineCuttee = new Line();</span>
+<span class="fc" id="L437">		Line lineCutter = new Line();</span>
+<span class="fc" id="L438">		double[] scalarsCuttee = new double[2];</span>
+<span class="fc" id="L439">		double[] scalarsCutter = new double[2];</span>
+
+		CutEvent cutEvent;
+
+<span class="fc" id="L443">		segmentCuttee = editShape.getSegment(ivertexCuttee);</span>
+<span class="pc bpc" id="L444" title="1 of 2 branches missed.">		if (segmentCuttee == null) {</span>
+<span class="fc" id="L445">			editShape.queryLineConnector(ivertexCuttee, lineCuttee);</span>
+<span class="fc" id="L446">			segmentCuttee = lineCuttee;</span>
+		}
+
+<span class="fc" id="L449">		segmentCutter = editShape.getSegment(ivertexCutter);</span>
+<span class="pc bpc" id="L450" title="1 of 2 branches missed.">		if (segmentCutter == null) {</span>
+<span class="fc" id="L451">			editShape.queryLineConnector(ivertexCutter, lineCutter);</span>
+<span class="fc" id="L452">			segmentCutter = lineCutter;</span>
+		}
+
+<span class="fc" id="L455">		int count = segmentCuttee.intersect(segmentCutter, null, scalarsCuttee,</span>
+				scalarsCutter, 0.0);
+		// _ASSERT(count &gt; 0);
+		int icutEvent;
+
+<span class="pc bpc" id="L460" title="1 of 2 branches missed.">		if (count == 2) {</span>
+<span class="nc" id="L461">			cutEvent = new CutEvent(ivertexCuttee, ipartCuttee,</span>
+					scalarsCuttee[0], scalarsCuttee[1], count, ivertexCutter,
+					ipartCutter, scalarsCutter[0], scalarsCutter[1]);
+<span class="nc" id="L464">			cutEvents.add(cutEvent);</span>
+<span class="nc" id="L465">			icutEvent = editShape.getUserIndex(ivertexCuttee, eventIndex);</span>
+
+<span class="nc bnc" id="L467" title="All 2 branches missed.">			if (icutEvent &lt; 0)</span>
+<span class="nc" id="L468">				editShape.setUserIndex(ivertexCuttee, eventIndex,</span>
+<span class="nc" id="L469">						cutEvents.size() - 1);</span>
+
+<span class="nc" id="L471">			return true;</span>
+		} else {
+<span class="fc" id="L473">			boolean bCutEvent = false;</span>
+
+<span class="pc bpc" id="L475" title="1 of 2 branches missed.">			if (ivertexCuttee == ifirstVertexCuttee) {</span>
+<span class="nc" id="L476">				cutEvent = new CutEvent(ivertexCuttee, ipartCuttee,</span>
+<span class="nc" id="L477">						scalarsCuttee[0], NumberUtils.NaN(), count,</span>
+						ivertexCutter, ipartCutter, scalarsCutter[0],
+<span class="nc" id="L479">						NumberUtils.NaN());</span>
+<span class="nc" id="L480">				cutEvents.add(cutEvent);</span>
+<span class="nc" id="L481">				icutEvent = editShape.getUserIndex(ivertexCuttee, eventIndex);</span>
+
+<span class="nc bnc" id="L483" title="All 2 branches missed.">				if (icutEvent &lt; 0)</span>
+<span class="nc" id="L484">					editShape.setUserIndex(ivertexCuttee, eventIndex,</span>
+<span class="nc" id="L485">							cutEvents.size() - 1);</span>
+
+<span class="nc" id="L487">				bCutEvent = true;</span>
+			}
+
+<span class="fc" id="L490">			return bCutEvent;</span>
+		}
+
+	}
+
+	private static boolean _cutteeStartCutterStartEvent(int eventIndex,
+			EditShape editShape, ArrayList&lt;CutEvent&gt; cutEvents,
+			int ipartCuttee, int ivertexCuttee, int ipartCutter,
+			int ivertexCutter, int ifirstVertexCuttee) {
+		Segment segmentCuttee;
+		Segment segmentCutter;
+<span class="fc" id="L501">		Line lineCuttee = new Line();</span>
+<span class="fc" id="L502">		Line lineCutter = new Line();</span>
+<span class="fc" id="L503">		double[] scalarsCuttee = new double[2];</span>
+<span class="fc" id="L504">		double[] scalarsCutter = new double[2];</span>
+
+		CutEvent cutEvent;
+
+<span class="fc" id="L508">		segmentCuttee = editShape.getSegment(ivertexCuttee);</span>
+<span class="pc bpc" id="L509" title="1 of 2 branches missed.">		if (segmentCuttee == null) {</span>
+<span class="fc" id="L510">			editShape.queryLineConnector(ivertexCuttee, lineCuttee);</span>
+<span class="fc" id="L511">			segmentCuttee = lineCuttee;</span>
+		}
+
+<span class="fc" id="L514">		segmentCutter = editShape.getSegment(ivertexCutter);</span>
+<span class="pc bpc" id="L515" title="1 of 2 branches missed.">		if (segmentCutter == null) {</span>
+<span class="fc" id="L516">			editShape.queryLineConnector(ivertexCutter, lineCutter);</span>
+<span class="fc" id="L517">			segmentCutter = lineCutter;</span>
+		}
+
+<span class="fc" id="L520">		int count = segmentCuttee.intersect(segmentCutter, null, scalarsCuttee,</span>
+				scalarsCutter, 0.0);
+		// _ASSERT(count &gt; 0);
+		int icutEvent;
+
+<span class="fc bfc" id="L525" title="All 2 branches covered.">		if (count == 2) {</span>
+<span class="fc" id="L526">			cutEvent = new CutEvent(ivertexCuttee, ipartCuttee,</span>
+					scalarsCuttee[0], scalarsCuttee[1], count, ivertexCutter,
+					ipartCutter, scalarsCutter[0], scalarsCutter[1]);
+<span class="fc" id="L529">			cutEvents.add(cutEvent);</span>
+<span class="fc" id="L530">			icutEvent = editShape.getUserIndex(ivertexCuttee, eventIndex);</span>
+
+<span class="pc bpc" id="L532" title="1 of 2 branches missed.">			if (icutEvent &lt; 0)</span>
+<span class="fc" id="L533">				editShape.setUserIndex(ivertexCuttee, eventIndex,</span>
+<span class="fc" id="L534">						cutEvents.size() - 1);</span>
+
+<span class="fc" id="L536">			return true;</span>
+		} else {
+<span class="fc" id="L538">			boolean bCutEvent = false;</span>
+
+<span class="pc bpc" id="L540" title="1 of 2 branches missed.">			if (ivertexCuttee == ifirstVertexCuttee) {</span>
+<span class="nc" id="L541">				cutEvent = new CutEvent(ivertexCuttee, ipartCuttee,</span>
+<span class="nc" id="L542">						scalarsCuttee[0], NumberUtils.NaN(), count,</span>
+						ivertexCutter, ipartCutter, scalarsCutter[0],
+<span class="nc" id="L544">						NumberUtils.NaN());</span>
+<span class="nc" id="L545">				cutEvents.add(cutEvent);</span>
+<span class="nc" id="L546">				icutEvent = editShape.getUserIndex(ivertexCuttee, eventIndex);</span>
+
+<span class="nc bnc" id="L548" title="All 2 branches missed.">				if (icutEvent &lt; 0)</span>
+<span class="nc" id="L549">					editShape.setUserIndex(ivertexCuttee, eventIndex,</span>
+<span class="nc" id="L550">							cutEvents.size() - 1);</span>
+
+<span class="nc" id="L552">				bCutEvent = true;</span>
+			}
+
+<span class="fc" id="L555">			return bCutEvent;</span>
+		}
+
+	}
+
+	static void _Cut(boolean bConsiderTouch, boolean bLocalCutsOnly,
+			ArrayList&lt;CutEvent&gt; cutEvents, EditShape shape,
+			ArrayList&lt;OperatorCutLocal.CutPair&gt; cutPairs,
+			AttributeStreamOfInt32 segmentCounts) {
+		OperatorCutLocal.CutPair cutPair;
+
+<span class="fc" id="L566">		Point2D[] tangents = new Point2D[4];</span>
+<span class="fc" id="L567">		tangents[0] = new Point2D();</span>
+<span class="fc" id="L568">		tangents[1] = new Point2D();</span>
+<span class="fc" id="L569">		tangents[2] = new Point2D();</span>
+<span class="fc" id="L570">		tangents[3] = new Point2D();</span>
+<span class="fc" id="L571">		Point2D tangent0 = new Point2D();</span>
+<span class="fc" id="L572">		Point2D tangent1 = new Point2D();</span>
+<span class="fc" id="L573">		Point2D tangent2 = new Point2D();</span>
+<span class="fc" id="L574">		Point2D tangent3 = new Point2D();</span>
+
+<span class="fc" id="L576">		SegmentBuffer segmentBufferCuttee = null;</span>
+<span class="pc bpc" id="L577" title="1 of 2 branches missed.">		if (cutPairs != null) {</span>
+<span class="fc" id="L578">			segmentBufferCuttee = new SegmentBuffer();</span>
+<span class="fc" id="L579">			segmentBufferCuttee.createLine();</span>
+		}
+
+<span class="fc" id="L582">		Segment segmentCuttee = null;</span>
+<span class="fc" id="L583">		int icutEvent = 0;</span>
+<span class="fc" id="L584">		MultiPath multipath = null;</span>
+
+<span class="fc" id="L586">		Line lineCuttee = new Line();</span>
+<span class="fc" id="L587">		Line lineCutter = new Line();</span>
+
+<span class="fc" id="L589">		int polyline = shape.getFirstGeometry();</span>
+<span class="fc bfc" id="L590" title="All 2 branches covered.">		for (int ipath = shape.getFirstPath(polyline); ipath != -1; ipath = shape</span>
+<span class="fc" id="L591">				.getNextPath(ipath)) {</span>
+			int cut;
+<span class="fc" id="L593">			int cutPrev = OperatorCutLocal.Side.Uncut;</span>
+<span class="fc" id="L594">			int ipartCuttee = -1;</span>
+<span class="fc" id="L595">			int ivertexCuttee = -1;</span>
+<span class="fc" id="L596">			double scalarCuttee = NumberUtils.NaN();</span>
+<span class="fc" id="L597">			int ipartCutteePrev = -1;</span>
+<span class="fc" id="L598">			int ivertexCutteePrev = -1;</span>
+<span class="fc" id="L599">			double scalarCutteePrev = NumberUtils.NaN();</span>
+<span class="fc" id="L600">			int ipartCutter = -1;</span>
+<span class="fc" id="L601">			int ivertexCutter = -1;</span>
+<span class="fc" id="L602">			double scalarCutter = NumberUtils.NaN();</span>
+<span class="fc" id="L603">			int ipartCutterPrev = -1;</span>
+<span class="fc" id="L604">			int ivertexCutterPrev = -1;</span>
+<span class="fc" id="L605">			double scalarCutterPrev = NumberUtils.NaN();</span>
+<span class="fc" id="L606">			boolean bNoCutYet = true; // Indicates whether a cut as occured for</span>
+										// the current part
+<span class="fc" id="L608">			boolean bCoincidentNotAdded = false; // Indicates whether the</span>
+													// current coincident
+													// multipath has been added
+													// to cutPairs
+<span class="fc" id="L612">			boolean bCurrentMultiPathNotAdded = true; // Indicates whether there</span>
+														// is a multipath not
+														// yet added to cutPairs
+														// (left, right, or
+														// undefined)
+<span class="fc" id="L617">			boolean bStartNewPath = true;</span>
+<span class="fc" id="L618">			boolean bCreateNewMultiPath = true;</span>
+<span class="fc" id="L619">			int segmentCount = 0;</span>
+
+<span class="fc" id="L621">			ipartCutteePrev = ipath;</span>
+<span class="fc" id="L622">			scalarCutteePrev = 0.0;</span>
+
+<span class="fc" id="L624">			for (int ivertex = shape.getFirstVertex(ipath), n = shape</span>
+<span class="fc bfc" id="L625" title="All 2 branches covered.">					.getPathSize(ipath), i = 0; i &lt; n; ivertex = shape</span>
+<span class="fc" id="L626">					.getNextVertex(ivertex), i++) {</span>
+<span class="fc" id="L627">				segmentCuttee = shape.getSegment(ivertex);</span>
+<span class="pc bpc" id="L628" title="1 of 2 branches missed.">				if (segmentCuttee == null) {</span>
+<span class="fc bfc" id="L629" title="All 2 branches covered.">					if (!shape.queryLineConnector(ivertex, lineCuttee))</span>
+<span class="fc" id="L630">						continue;</span>
+<span class="fc" id="L631">					segmentCuttee = lineCuttee;</span>
+				}
+
+<span class="fc bfc" id="L634" title="All 2 branches covered.">				if (ivertexCutteePrev == -1)</span>
+<span class="fc" id="L635">					ivertexCutteePrev = ivertex;</span>
+
+<span class="fc" id="L637">				double lastScalarCuttee = 0.0; // last scalar along the current</span>
+												// segment
+
+<span class="fc bfc" id="L640" title="All 2 branches covered.">				while (icutEvent &lt; cutEvents.size()</span>
+<span class="fc bfc" id="L641" title="All 2 branches covered.">						&amp;&amp; ivertex == cutEvents.get(icutEvent).m_ivertexCuttee) {</span>
+<span class="fc" id="L642">					ipartCuttee = cutEvents.get(icutEvent).m_ipartCuttee;</span>
+<span class="fc" id="L643">					ivertexCuttee = cutEvents.get(icutEvent).m_ivertexCuttee;</span>
+<span class="fc" id="L644">					scalarCuttee = cutEvents.get(icutEvent).m_scalarCuttee0;</span>
+<span class="fc" id="L645">					ipartCutter = cutEvents.get(icutEvent).m_ipartCutter;</span>
+<span class="fc" id="L646">					ivertexCutter = cutEvents.get(icutEvent).m_ivertexCutter;</span>
+<span class="fc" id="L647">					scalarCutter = cutEvents.get(icutEvent).m_scalarCutter0;</span>
+
+<span class="fc bfc" id="L649" title="All 2 branches covered.">					if (cutEvents.get(icutEvent).m_count == 2) {</span>
+						// We have an overlap
+
+<span class="fc bfc" id="L652" title="All 2 branches covered.">						if (!bCoincidentNotAdded) {</span>
+<span class="fc" id="L653">							ipartCutteePrev = ipartCuttee;</span>
+<span class="fc" id="L654">							ivertexCutteePrev = ivertexCuttee;</span>
+<span class="fc" id="L655">							scalarCutteePrev = scalarCuttee;</span>
+<span class="fc" id="L656">							ipartCutterPrev = ipartCutter;</span>
+<span class="fc" id="L657">							ivertexCutterPrev = ivertexCutter;</span>
+<span class="fc" id="L658">							scalarCutterPrev = scalarCutter;</span>
+<span class="fc" id="L659">							cutPrev = OperatorCutLocal.Side.Coincident;</span>
+
+							// Create new multipath
+<span class="pc bpc" id="L662" title="1 of 2 branches missed.">							if (cutPairs != null)</span>
+<span class="fc" id="L663">								multipath = new Polyline();</span>
+							else
+<span class="nc" id="L665">								segmentCount = 0;</span>
+
+<span class="fc" id="L667">							bCreateNewMultiPath = false;</span>
+<span class="fc" id="L668">							bStartNewPath = true;</span>
+						}
+
+<span class="fc" id="L671">						scalarCuttee = cutEvents.get(icutEvent).m_scalarCuttee1;</span>
+<span class="fc" id="L672">						scalarCutter = cutEvents.get(icutEvent).m_scalarCutter1;</span>
+
+<span class="pc bpc" id="L674" title="1 of 2 branches missed.">						if (cutPairs != null) {</span>
+<span class="fc" id="L675">							segmentCuttee.cut(lastScalarCuttee,</span>
+<span class="fc" id="L676">									cutEvents.get(icutEvent).m_scalarCuttee1,</span>
+									segmentBufferCuttee);
+<span class="fc" id="L678">							multipath.addSegment(segmentBufferCuttee.get(),</span>
+									bStartNewPath);
+						} else
+<span class="nc" id="L681">							segmentCount++;</span>
+
+<span class="fc" id="L683">						lastScalarCuttee = scalarCuttee;</span>
+
+<span class="fc" id="L685">						bCoincidentNotAdded = true;</span>
+<span class="fc" id="L686">						bNoCutYet = false;</span>
+<span class="fc" id="L687">						bStartNewPath = false;</span>
+
+<span class="pc bpc" id="L689" title="1 of 2 branches missed.">						if (icutEvent + 1 == cutEvents.size()</span>
+<span class="fc bfc" id="L690" title="All 2 branches covered.">								|| cutEvents.get(icutEvent + 1).m_count != 2</span>
+<span class="pc bpc" id="L691" title="1 of 2 branches missed.">								|| cutEvents.get(icutEvent + 1).m_ivertexCuttee == ivertexCuttee</span>
+<span class="nc bnc" id="L692" title="All 2 branches missed.">								&amp;&amp; cutEvents.get(icutEvent + 1).m_scalarCuttee0 != lastScalarCuttee) {</span>
+<span class="pc bpc" id="L693" title="1 of 2 branches missed.">							if (cutPairs != null) {</span>
+<span class="fc" id="L694">								cutPair = new OperatorCutLocal.CutPair(</span>
+										(Geometry) multipath,
+										OperatorCutLocal.Side.Coincident,
+										ipartCuttee, ivertexCuttee,
+										scalarCuttee, cutPrev, ipartCutteePrev,
+										ivertexCutteePrev, scalarCutteePrev,
+										ipartCutter, ivertexCutter,
+										scalarCutter, ipartCutterPrev,
+										ivertexCutterPrev, scalarCutterPrev);
+<span class="fc" id="L703">								cutPairs.add(cutPair);</span>
+							} else {
+<span class="nc" id="L705">								segmentCounts.add(segmentCount);</span>
+							}
+
+<span class="fc" id="L708">							ipartCutteePrev = ipartCuttee;</span>
+<span class="fc" id="L709">							ivertexCutteePrev = ivertexCuttee;</span>
+<span class="fc" id="L710">							scalarCutteePrev = scalarCuttee;</span>
+<span class="fc" id="L711">							ipartCutterPrev = ipartCutter;</span>
+<span class="fc" id="L712">							ivertexCutterPrev = ivertexCutter;</span>
+<span class="fc" id="L713">							scalarCutterPrev = scalarCutter;</span>
+<span class="fc" id="L714">							cutPrev = OperatorCutLocal.Side.Coincident;</span>
+
+<span class="fc" id="L716">							bNoCutYet = false;</span>
+<span class="fc" id="L717">							bCoincidentNotAdded = false;</span>
+<span class="fc" id="L718">							bCreateNewMultiPath = true;</span>
+<span class="fc" id="L719">							bStartNewPath = true;</span>
+						}
+
+<span class="fc" id="L722">						icutEvent++;</span>
+<span class="fc" id="L723">						continue;</span>
+					}
+
+<span class="fc" id="L726">					int ivertexCutteePlus = shape.getNextVertex(ivertexCuttee);</span>
+<span class="fc" id="L727">					int ivertexCutterPlus = shape.getNextVertex(ivertexCutter);</span>
+<span class="fc" id="L728">					int ivertexCutterMinus = shape.getPrevVertex(ivertexCutter);</span>
+
+<span class="fc bfc" id="L730" title="All 2 branches covered.">					if (icutEvent &lt; cutEvents.size() - 1</span>
+<span class="fc bfc" id="L731" title="All 2 branches covered.">							&amp;&amp; cutEvents.get(icutEvent + 1).m_ivertexCuttee == ivertexCutteePlus</span>
+<span class="fc bfc" id="L732" title="All 2 branches covered.">							&amp;&amp; cutEvents.get(icutEvent + 1).m_ivertexCutter == ivertexCutter</span>
+<span class="pc bpc" id="L733" title="1 of 2 branches missed.">							&amp;&amp; cutEvents.get(icutEvent + 1).m_count == 2) {</span>
+<span class="fc bfc" id="L734" title="All 2 branches covered.">						if (scalarCuttee != lastScalarCuttee) {</span>
+<span class="pc bpc" id="L735" title="1 of 2 branches missed.">							if (bCreateNewMultiPath) {</span>
+<span class="pc bpc" id="L736" title="1 of 2 branches missed.">								if (cutPairs != null)</span>
+<span class="fc" id="L737">									multipath = new Polyline();</span>
+								else
+<span class="nc" id="L739">									segmentCount = 0;</span>
+							}
+
+<span class="fc bfc" id="L742" title="All 2 branches covered.">							if (icutEvent &gt; 0</span>
+<span class="pc bpc" id="L743" title="1 of 2 branches missed.">									&amp;&amp; cutEvents.get(icutEvent - 1).m_ipartCuttee == ipartCuttee) {</span>
+<span class="pc bpc" id="L744" title="1 of 2 branches missed.">								if (cutPrev == OperatorCutLocal.Side.Right)</span>
+<span class="nc" id="L745">									cut = OperatorCutLocal.Side.Left;</span>
+<span class="fc bfc" id="L746" title="All 2 branches covered.">								else if (cutPrev == OperatorCutLocal.Side.Left)</span>
+<span class="fc" id="L747">									cut = OperatorCutLocal.Side.Right;</span>
+								else
+<span class="fc" id="L749">									cut = OperatorCutLocal.Side.Undefined;</span>
+							} else
+<span class="fc" id="L751">								cut = OperatorCutLocal.Side.Undefined;</span>
+
+<span class="pc bpc" id="L753" title="1 of 2 branches missed.">							if (cutPairs != null) {</span>
+<span class="fc" id="L754">								segmentCuttee.cut(lastScalarCuttee,</span>
+										scalarCuttee, segmentBufferCuttee);
+<span class="fc" id="L756">								multipath.addSegment(segmentBufferCuttee.get(),</span>
+										bStartNewPath);
+<span class="fc" id="L758">								cutPair = new OperatorCutLocal.CutPair(</span>
+										multipath, cut, ipartCuttee,
+										ivertexCuttee, scalarCuttee, cutPrev,
+										ipartCutteePrev, ivertexCutteePrev,
+										scalarCutteePrev, ipartCutter,
+										ivertexCutter, scalarCutter,
+										ipartCutterPrev, ivertexCutterPrev,
+										scalarCutterPrev);
+<span class="fc" id="L766">								cutPairs.add(cutPair);</span>
+							} else {
+<span class="nc" id="L768">								segmentCount++;</span>
+<span class="nc" id="L769">								segmentCounts.add(segmentCount);</span>
+							}
+
+<span class="fc" id="L772">							lastScalarCuttee = scalarCuttee;</span>
+
+<span class="fc" id="L774">							ipartCutteePrev = ipartCuttee;</span>
+<span class="fc" id="L775">							ivertexCutteePrev = ivertexCuttee;</span>
+<span class="fc" id="L776">							scalarCutteePrev = scalarCuttee;</span>
+<span class="fc" id="L777">							ipartCutterPrev = ipartCutter;</span>
+<span class="fc" id="L778">							ivertexCutterPrev = ivertexCutter;</span>
+<span class="fc" id="L779">							scalarCutterPrev = scalarCutter;</span>
+<span class="fc" id="L780">							cutPrev = cut;</span>
+
+<span class="fc" id="L782">							bCurrentMultiPathNotAdded = false;</span>
+<span class="fc" id="L783">							bNoCutYet = false;</span>
+<span class="fc" id="L784">							bCreateNewMultiPath = true;</span>
+<span class="fc" id="L785">							bStartNewPath = true;</span>
+						}
+
+<span class="fc" id="L788">						icutEvent++;</span>
+<span class="fc" id="L789">						continue;</span>
+					}
+
+<span class="fc" id="L792">					boolean bContinue = _cutterTangents(bConsiderTouch, shape,</span>
+							cutEvents, icutEvent, tangent0, tangent1);
+<span class="fc bfc" id="L794" title="All 2 branches covered.">					if (bContinue) {</span>
+<span class="fc" id="L795">						icutEvent++;</span>
+<span class="fc" id="L796">						continue;</span>
+					}
+
+<span class="fc" id="L799">					_cutteeTangents(shape, cutEvents, icutEvent, ipath,</span>
+							ivertex, tangent2, tangent3);
+
+<span class="fc" id="L802">					boolean bCut = false;</span>
+<span class="fc" id="L803">					boolean bTouch = false;</span>
+<span class="fc" id="L804">					boolean bCutRight = true;</span>
+
+<span class="pc bpc" id="L806" title="1 of 2 branches missed.">					if (!tangent0.isEqual(tangent2)</span>
+<span class="pc bpc" id="L807" title="1 of 2 branches missed.">							&amp;&amp; !tangent1.isEqual(tangent2)</span>
+<span class="pc bpc" id="L808" title="1 of 2 branches missed.">							&amp;&amp; !tangent0.isEqual(tangent3)</span>
+<span class="pc bpc" id="L809" title="1 of 2 branches missed.">							&amp;&amp; !tangent1.isEqual(tangent3)) {</span>
+<span class="fc" id="L810">						tangents[0].setCoords(tangent0);</span>
+<span class="fc" id="L811">						tangents[1].setCoords(tangent1);</span>
+<span class="fc" id="L812">						tangents[2].setCoords(tangent2);</span>
+<span class="fc" id="L813">						tangents[3].setCoords(tangent3);</span>
+
+<span class="fc" id="L815">						Arrays.sort(tangents, new Point2D.CompareVectors());</span>
+						// SORTARRAY(tangents, Point2D,
+						// Point2D::_CompareVectors);
+
+<span class="fc" id="L819">						Point2D value0 = (Point2D) tangents[0];</span>
+<span class="fc" id="L820">						Point2D value1 = (Point2D) tangents[1];</span>
+<span class="fc" id="L821">						Point2D value2 = (Point2D) tangents[2];</span>
+<span class="fc" id="L822">						Point2D value3 = (Point2D) tangents[3];</span>
+
+<span class="pc bpc" id="L824" title="1 of 2 branches missed.">						if (value0.isEqual(tangent0)) {</span>
+<span class="nc bnc" id="L825" title="All 2 branches missed.">							if (value1.isEqual(tangent1)) {</span>
+<span class="nc bnc" id="L826" title="All 2 branches missed.">								if (!bConsiderTouch)</span>
+<span class="nc" id="L827">									bCut = false;</span>
+								else {
+<span class="nc" id="L829">									bCut = true;</span>
+<span class="nc" id="L830">									bTouch = true;</span>
+<span class="nc" id="L831">									bCutRight = false;</span>
+								}
+<span class="nc bnc" id="L833" title="All 2 branches missed.">							} else if (value3.isEqual(tangent1)) {</span>
+<span class="nc bnc" id="L834" title="All 2 branches missed.">								if (!bConsiderTouch)</span>
+<span class="nc" id="L835">									bCut = false;</span>
+								else {
+<span class="nc" id="L837">									bCut = true;</span>
+<span class="nc" id="L838">									bTouch = true;</span>
+<span class="nc" id="L839">									bCutRight = true;</span>
+								}
+							} else {
+<span class="nc" id="L842">								bCut = true;</span>
+<span class="nc" id="L843">								bCutRight = value1.isEqual(tangent2);</span>
+							}
+<span class="fc bfc" id="L845" title="All 2 branches covered.">						} else if (value1.isEqual(tangent0)) {</span>
+<span class="pc bpc" id="L846" title="1 of 2 branches missed.">							if (value2.isEqual(tangent1)) {</span>
+<span class="nc bnc" id="L847" title="All 2 branches missed.">								if (!bConsiderTouch)</span>
+<span class="nc" id="L848">									bCut = false;</span>
+								else {
+<span class="nc" id="L850">									bCut = true;</span>
+<span class="nc" id="L851">									bTouch = true;</span>
+<span class="nc" id="L852">									bCutRight = false;</span>
+								}
+<span class="pc bpc" id="L854" title="1 of 2 branches missed.">							} else if (value0.isEqual(tangent1)) {</span>
+<span class="nc bnc" id="L855" title="All 2 branches missed.">								if (!bConsiderTouch)</span>
+<span class="nc" id="L856">									bCut = false;</span>
+								else {
+<span class="nc" id="L858">									bCut = true;</span>
+<span class="nc" id="L859">									bTouch = true;</span>
+<span class="nc" id="L860">									bCutRight = true;</span>
+								}
+							} else {
+<span class="fc" id="L863">								bCut = true;</span>
+<span class="fc" id="L864">								bCutRight = value2.isEqual(tangent2);</span>
+							}
+<span class="fc bfc" id="L866" title="All 2 branches covered.">						} else if (value2.isEqual(tangent0)) {</span>
+<span class="pc bpc" id="L867" title="1 of 2 branches missed.">							if (value3.isEqual(tangent1)) {</span>
+<span class="pc bpc" id="L868" title="1 of 2 branches missed.">								if (!bConsiderTouch)</span>
+<span class="nc" id="L869">									bCut = false;</span>
+								else {
+<span class="fc" id="L871">									bCut = true;</span>
+<span class="fc" id="L872">									bTouch = true;</span>
+<span class="fc" id="L873">									bCutRight = false;</span>
+								}
+<span class="nc bnc" id="L875" title="All 2 branches missed.">							} else if (value1.isEqual(tangent1)) {</span>
+<span class="nc bnc" id="L876" title="All 2 branches missed.">								if (!bConsiderTouch)</span>
+<span class="nc" id="L877">									bCut = false;</span>
+								else {
+<span class="nc" id="L879">									bCut = true;</span>
+<span class="nc" id="L880">									bTouch = true;</span>
+<span class="nc" id="L881">									bCutRight = true;</span>
+								}
+							} else {
+<span class="nc" id="L884">								bCut = true;</span>
+<span class="nc" id="L885">								bCutRight = value3.isEqual(tangent2);</span>
+							}
+						} else {
+<span class="pc bpc" id="L888" title="1 of 2 branches missed.">							if (value0.isEqual(tangent1)) {</span>
+<span class="nc bnc" id="L889" title="All 2 branches missed.">								if (!bConsiderTouch)</span>
+<span class="nc" id="L890">									bCut = false;</span>
+								else {
+<span class="nc" id="L892">									bCut = true;</span>
+<span class="nc" id="L893">									bTouch = true;</span>
+<span class="nc" id="L894">									bCutRight = false;</span>
+								}
+<span class="pc bpc" id="L896" title="1 of 2 branches missed.">							} else if (value2.isEqual(tangent1)) {</span>
+<span class="nc bnc" id="L897" title="All 2 branches missed.">								if (!bConsiderTouch)</span>
+<span class="nc" id="L898">									bCut = false;</span>
+								else {
+<span class="nc" id="L900">									bCut = true;</span>
+<span class="nc" id="L901">									bTouch = true;</span>
+<span class="nc" id="L902">									bCutRight = true;</span>
+								}
+							} else {
+<span class="fc" id="L905">								bCut = true;</span>
+<span class="fc" id="L906">								bCutRight = value0.isEqual(tangent2);</span>
+							}
+						}
+					}
+
+<span class="pc bpc" id="L911" title="1 of 2 branches missed.">					if (bCut) {</span>
+<span class="pc bpc" id="L912" title="1 of 2 branches missed.">						boolean bIsFirstSegmentInPath = (ivertex == ivertexCuttee);</span>
+
+<span class="pc bpc" id="L914" title="2 of 6 branches missed.">						if (scalarCuttee != lastScalarCuttee</span>
+								|| bIsFirstSegmentInPath
+								&amp;&amp; lastScalarCuttee == 0.0) {
+<span class="pc bpc" id="L917" title="1 of 2 branches missed.">							if (bCreateNewMultiPath) {</span>
+<span class="pc bpc" id="L918" title="1 of 2 branches missed.">								if (cutPairs != null)</span>
+<span class="fc" id="L919">									multipath = new Polyline();</span>
+								else
+<span class="nc" id="L921">									segmentCount = 0;</span>
+							}
+
+<span class="pc bpc" id="L924" title="1 of 2 branches missed.">							if (cutPairs != null) {</span>
+<span class="fc" id="L925">								segmentCuttee.cut(lastScalarCuttee,</span>
+										scalarCuttee, segmentBufferCuttee);
+<span class="fc" id="L927">								multipath.addSegment(segmentBufferCuttee.get(),</span>
+										bStartNewPath);
+							} else
+<span class="nc" id="L930">								segmentCount++;</span>
+						}
+
+<span class="fc bfc" id="L933" title="All 2 branches covered.">						if (bCutRight) {</span>
+<span class="pc bpc" id="L934" title="1 of 4 branches missed.">							if (cutPrev != OperatorCutLocal.Side.Right</span>
+									|| bLocalCutsOnly) {
+<span class="pc bpc" id="L936" title="3 of 8 branches missed.">								if (scalarCuttee != lastScalarCuttee</span>
+										|| bIsFirstSegmentInPath
+										&amp;&amp; lastScalarCuttee == 0.0
+										|| bLocalCutsOnly) {
+<span class="pc bpc" id="L940" title="1 of 2 branches missed.">									if (cutPairs != null) {</span>
+<span class="fc" id="L941">										cutPair = new OperatorCutLocal.CutPair(</span>
+												multipath,
+												OperatorCutLocal.Side.Right,
+												ipartCuttee, ivertexCuttee,
+												scalarCuttee, cutPrev,
+												ipartCutteePrev,
+												ivertexCutteePrev,
+												scalarCutteePrev, ipartCutter,
+												ivertexCutter, scalarCutter,
+												ipartCutterPrev,
+												ivertexCutterPrev,
+												scalarCutterPrev);
+<span class="fc" id="L953">										cutPairs.add(cutPair);</span>
+									} else {
+<span class="nc" id="L955">										segmentCounts.add(segmentCount);</span>
+									}
+								}
+
+<span class="pc bpc" id="L959" title="1 of 2 branches missed.">								if (!bTouch)</span>
+<span class="fc" id="L960">									cutPrev = OperatorCutLocal.Side.Right;</span>
+<span class="nc bnc" id="L961" title="All 2 branches missed.">								else if (icutEvent == cutEvents.size() - 2</span>
+<span class="nc bnc" id="L962" title="All 2 branches missed.">										|| cutEvents.get(icutEvent + 2).m_ipartCuttee != ipartCuttee)</span>
+<span class="nc" id="L963">									cutPrev = OperatorCutLocal.Side.Left;</span>
+							} else {
+<span class="pc bpc" id="L965" title="7 of 8 branches missed.">								if (scalarCuttee != lastScalarCuttee</span>
+										|| bIsFirstSegmentInPath
+										&amp;&amp; lastScalarCuttee == 0.0
+										|| bLocalCutsOnly) {
+<span class="pc bpc" id="L969" title="1 of 2 branches missed.">									if (cutPairs != null) {</span>
+<span class="fc" id="L970">										cutPair = new OperatorCutLocal.CutPair(</span>
+												multipath,
+												OperatorCutLocal.Side.Undefined,
+												ipartCuttee, ivertexCuttee,
+												scalarCuttee, cutPrev,
+												ipartCutteePrev,
+												ivertexCutteePrev,
+												scalarCutteePrev, ipartCutter,
+												ivertexCutter, scalarCutter,
+												ipartCutterPrev,
+												ivertexCutterPrev,
+												scalarCutterPrev);
+<span class="fc" id="L982">										cutPairs.add(cutPair);</span>
+									} else {
+<span class="nc" id="L984">										segmentCounts.add(segmentCount);</span>
+									}
+								}
+
+<span class="fc" id="L988">								cutPrev = OperatorCutLocal.Side.Right;</span>
+							}
+						} else {
+<span class="pc bpc" id="L991" title="1 of 4 branches missed.">							if (cutPrev != OperatorCutLocal.Side.Left</span>
+									|| bLocalCutsOnly) {
+<span class="pc bpc" id="L993" title="3 of 8 branches missed.">								if (scalarCuttee != lastScalarCuttee</span>
+										|| bIsFirstSegmentInPath
+										&amp;&amp; lastScalarCuttee == 0.0
+										|| bLocalCutsOnly) {
+<span class="pc bpc" id="L997" title="1 of 2 branches missed.">									if (cutPairs != null) {</span>
+<span class="fc" id="L998">										cutPair = new OperatorCutLocal.CutPair(</span>
+												multipath,
+												OperatorCutLocal.Side.Left,
+												ipartCuttee, ivertexCuttee,
+												scalarCuttee, cutPrev,
+												ipartCutteePrev,
+												ivertexCutteePrev,
+												scalarCutteePrev, ipartCutter,
+												ivertexCutter, scalarCutter,
+												ipartCutterPrev,
+												ivertexCutterPrev,
+												scalarCutterPrev);
+<span class="fc" id="L1010">										cutPairs.add(cutPair);</span>
+									} else {
+<span class="nc" id="L1012">										segmentCounts.add(segmentCount);</span>
+									}
+								}
+
+<span class="fc bfc" id="L1016" title="All 2 branches covered.">								if (!bTouch)</span>
+<span class="fc" id="L1017">									cutPrev = OperatorCutLocal.Side.Left;</span>
+<span class="pc bpc" id="L1018" title="1 of 2 branches missed.">								else if (icutEvent == cutEvents.size() - 2</span>
+<span class="pc bpc" id="L1019" title="1 of 2 branches missed.">										|| cutEvents.get(icutEvent + 2).m_ipartCuttee != ipartCuttee)</span>
+<span class="nc" id="L1020">									cutPrev = OperatorCutLocal.Side.Right;</span>
+							} else {
+<span class="pc bpc" id="L1022" title="7 of 8 branches missed.">								if (scalarCuttee != lastScalarCuttee</span>
+										|| bIsFirstSegmentInPath
+										&amp;&amp; lastScalarCuttee == 0.0
+										|| bLocalCutsOnly) {
+<span class="pc bpc" id="L1026" title="1 of 2 branches missed.">									if (cutPairs != null) {</span>
+<span class="fc" id="L1027">										cutPair = new OperatorCutLocal.CutPair(</span>
+												multipath,
+												OperatorCutLocal.Side.Undefined,
+												ipartCuttee, ivertexCuttee,
+												scalarCuttee, cutPrev,
+												ipartCutteePrev,
+												ivertexCutteePrev,
+												scalarCutteePrev, ipartCutter,
+												ivertexCutter, scalarCutter,
+												ipartCutterPrev,
+												ivertexCutterPrev,
+												scalarCutterPrev);
+<span class="fc" id="L1039">										cutPairs.add(cutPair);</span>
+									} else {
+<span class="nc" id="L1041">										segmentCounts.add(segmentCount);</span>
+									}
+								}
+
+<span class="fc" id="L1045">								cutPrev = OperatorCutLocal.Side.Left;</span>
+							}
+						}
+
+<span class="pc bpc" id="L1049" title="3 of 8 branches missed.">						if (scalarCuttee != lastScalarCuttee</span>
+								|| bIsFirstSegmentInPath
+								&amp;&amp; lastScalarCuttee == 0.0 || bLocalCutsOnly) {
+<span class="fc" id="L1052">							lastScalarCuttee = scalarCuttee;</span>
+
+<span class="fc" id="L1054">							ipartCutteePrev = ipartCuttee;</span>
+<span class="fc" id="L1055">							ivertexCutteePrev = ivertexCuttee;</span>
+<span class="fc" id="L1056">							scalarCutteePrev = scalarCuttee;</span>
+<span class="fc" id="L1057">							ipartCutterPrev = ipartCutter;</span>
+<span class="fc" id="L1058">							ivertexCutterPrev = ivertexCutter;</span>
+<span class="fc" id="L1059">							scalarCutterPrev = scalarCutter;</span>
+
+<span class="fc" id="L1061">							bCurrentMultiPathNotAdded = false;</span>
+<span class="fc" id="L1062">							bNoCutYet = false;</span>
+<span class="fc" id="L1063">							bCreateNewMultiPath = true;</span>
+<span class="fc" id="L1064">							bStartNewPath = true;</span>
+						}
+					}
+
+<span class="fc" id="L1068">					icutEvent++;</span>
+<span class="fc" id="L1069">				}</span>
+
+<span class="fc bfc" id="L1071" title="All 2 branches covered.">				if (lastScalarCuttee != 1.0) {</span>
+<span class="pc bpc" id="L1072" title="1 of 2 branches missed.">					if (bCreateNewMultiPath) {</span>
+<span class="pc bpc" id="L1073" title="1 of 2 branches missed.">						if (cutPairs != null)</span>
+<span class="fc" id="L1074">							multipath = new Polyline();</span>
+						else
+<span class="nc" id="L1076">							segmentCount = 0;</span>
+					}
+
+<span class="pc bpc" id="L1079" title="1 of 2 branches missed.">					if (cutPairs != null) {</span>
+<span class="fc" id="L1080">						segmentCuttee.cut(lastScalarCuttee, 1.0,</span>
+								segmentBufferCuttee);
+<span class="fc" id="L1082">						multipath.addSegment(segmentBufferCuttee.get(),</span>
+								bStartNewPath);
+					} else
+<span class="nc" id="L1085">						segmentCount++;</span>
+
+<span class="fc" id="L1087">					bCreateNewMultiPath = false;</span>
+<span class="fc" id="L1088">					bStartNewPath = false;</span>
+<span class="fc" id="L1089">					bCurrentMultiPathNotAdded = true;</span>
+				}
+			}
+
+<span class="fc bfc" id="L1093" title="All 2 branches covered.">			if (bCurrentMultiPathNotAdded) {</span>
+<span class="fc" id="L1094">				scalarCuttee = 1.0;</span>
+<span class="fc" id="L1095">				ivertexCuttee = shape.getLastVertex(ipath);</span>
+<span class="fc" id="L1096">				ivertexCuttee = shape.getPrevVertex(ivertexCuttee);</span>
+
+<span class="fc" id="L1098">				ipartCutter = -1;</span>
+<span class="fc" id="L1099">				ivertexCutter = -1;</span>
+<span class="fc" id="L1100">				scalarCutter = NumberUtils.NaN();</span>
+
+<span class="pc bpc" id="L1102" title="1 of 2 branches missed.">				if (bNoCutYet) {</span>
+<span class="nc bnc" id="L1103" title="All 2 branches missed.">					if (cutPairs != null) {</span>
+<span class="nc" id="L1104">						cutPair = new OperatorCutLocal.CutPair(multipath,</span>
+								OperatorCutLocal.Side.Uncut, ipartCuttee,
+								ivertexCuttee, scalarCuttee, cutPrev,
+								ipartCutteePrev, ivertexCutteePrev,
+								scalarCutteePrev, ipartCutter, ivertexCutter,
+								scalarCutter, ipartCutterPrev,
+								ivertexCutterPrev, scalarCutterPrev);
+<span class="nc" id="L1111">						cutPairs.add(cutPair);</span>
+					} else {
+<span class="nc" id="L1113">						segmentCounts.add(segmentCount);</span>
+					}
+				} else {
+<span class="pc bpc" id="L1116" title="1 of 2 branches missed.">					if (cutPrev == OperatorCutLocal.Side.Right)</span>
+<span class="fc" id="L1117">						cut = OperatorCutLocal.Side.Left;</span>
+<span class="nc bnc" id="L1118" title="All 2 branches missed.">					else if (cutPrev == OperatorCutLocal.Side.Left)</span>
+<span class="nc" id="L1119">						cut = OperatorCutLocal.Side.Right;</span>
+					else
+<span class="nc" id="L1121">						cut = OperatorCutLocal.Side.Undefined;</span>
+
+<span class="pc bpc" id="L1123" title="1 of 2 branches missed.">					if (cutPairs != null) {</span>
+<span class="fc" id="L1124">						cutPair = new OperatorCutLocal.CutPair(multipath, cut,</span>
+								ipartCuttee, ivertexCuttee, scalarCuttee,
+								cutPrev, ipartCutteePrev, ivertexCutteePrev,
+								scalarCutteePrev, ipartCutter, ivertexCutter,
+								scalarCutter, ipartCutterPrev,
+								ivertexCutterPrev, scalarCutterPrev);
+<span class="fc" id="L1130">						cutPairs.add(cutPair);</span>
+					} else {
+<span class="nc" id="L1132">						segmentCounts.add(segmentCount);</span>
+					}
+				}
+			}
+		}
+<span class="fc" id="L1137">	}</span>
+
+	static boolean _cutterTangents(boolean bConsiderTouch, EditShape shape,
+			ArrayList&lt;CutEvent&gt; cutEvents, int icutEvent, Point2D tangent0,
+			Point2D tangent1) {
+<span class="fc" id="L1142">		double scalarCutter = cutEvents.get(icutEvent).m_scalarCutter0;</span>
+
+<span class="fc bfc" id="L1144" title="All 2 branches covered.">		if (scalarCutter == 1.0)</span>
+<span class="fc" id="L1145">			return _cutterEndTangents(bConsiderTouch, shape, cutEvents,</span>
+					icutEvent, tangent0, tangent1);
+
+<span class="pc bpc" id="L1148" title="1 of 2 branches missed.">		if (scalarCutter == 0.0)</span>
+<span class="fc" id="L1149">			return _cutterStartTangents(bConsiderTouch, shape, cutEvents,</span>
+					icutEvent, tangent0, tangent1);
+
+<span class="nc" id="L1152">		throw GeometryException.GeometryInternalError();</span>
+	}
+
+	static boolean _cutterEndTangents(boolean bConsiderTouch, EditShape shape,
+			ArrayList&lt;CutEvent&gt; cutEvents, int icutEvent, Point2D tangent0,
+			Point2D tangent1) {
+<span class="fc" id="L1158">		Line lineCutter = new Line();</span>
+		Segment segmentCutter;
+
+<span class="fc" id="L1161">		int ivertexCuttee = cutEvents.get(icutEvent).m_ivertexCuttee;</span>
+<span class="fc" id="L1162">		int ipartCutter = cutEvents.get(icutEvent).m_ipartCutter;</span>
+<span class="fc" id="L1163">		int ivertexCutter = cutEvents.get(icutEvent).m_ivertexCutter;</span>
+
+<span class="fc" id="L1165">		int ivertexCutteePrev = -1;</span>
+<span class="fc" id="L1166">		int ipartCutterPrev = -1;</span>
+<span class="fc" id="L1167">		int ivertexCutterPrev = -1;</span>
+<span class="fc" id="L1168">		int countPrev = -1;</span>
+
+<span class="pc bpc" id="L1170" title="3 of 4 branches missed.">		if (!bConsiderTouch &amp;&amp; icutEvent &gt; 0) {</span>
+<span class="nc" id="L1171">			CutEvent cutEvent = cutEvents.get(icutEvent - 1);</span>
+<span class="nc" id="L1172">			ivertexCutteePrev = cutEvent.m_ivertexCuttee;</span>
+<span class="nc" id="L1173">			ipartCutterPrev = cutEvent.m_ipartCutter;</span>
+<span class="nc" id="L1174">			ivertexCutterPrev = cutEvent.m_ivertexCutter;</span>
+<span class="nc" id="L1175">			countPrev = cutEvent.m_count;</span>
+		}
+
+<span class="fc" id="L1178">		int ivertexCutteeNext = -1;</span>
+<span class="fc" id="L1179">		int ipartCutterNext = -1;</span>
+<span class="fc" id="L1180">		int ivertexCutterNext = -1;</span>
+<span class="fc" id="L1181">		int countNext = -1;</span>
+
+<span class="fc bfc" id="L1183" title="All 2 branches covered.">		if (icutEvent &lt; cutEvents.size() - 1) {</span>
+<span class="fc" id="L1184">			CutEvent cutEvent = cutEvents.get(icutEvent + 1);</span>
+<span class="fc" id="L1185">			ivertexCutteeNext = cutEvent.m_ivertexCuttee;</span>
+<span class="fc" id="L1186">			ipartCutterNext = cutEvent.m_ipartCutter;</span>
+<span class="fc" id="L1187">			ivertexCutterNext = cutEvent.m_ivertexCutter;</span>
+<span class="fc" id="L1188">			countNext = cutEvent.m_count;</span>
+		}
+
+<span class="fc" id="L1191">		int ivertexCutteePlus = shape.getNextVertex(ivertexCuttee);</span>
+<span class="fc" id="L1192">		int ivertexCutterPlus = shape.getNextVertex(ivertexCutter);</span>
+
+<span class="pc bpc" id="L1194" title="1 of 2 branches missed.">		if (!bConsiderTouch) {</span>
+<span class="nc bnc" id="L1195" title="All 10 branches missed.">			if ((icutEvent &gt; 0 &amp;&amp; ivertexCutteePrev == ivertexCuttee</span>
+					&amp;&amp; ipartCutterPrev == ipartCutter
+					&amp;&amp; ivertexCutterPrev == ivertexCutterPlus &amp;&amp; countPrev == 2)
+<span class="nc bnc" id="L1198" title="All 10 branches missed.">					|| (icutEvent &lt; cutEvents.size() - 1</span>
+							&amp;&amp; ivertexCutteeNext == ivertexCutteePlus
+							&amp;&amp; ipartCutterNext == ipartCutter
+							&amp;&amp; ivertexCutterNext == ivertexCutterPlus &amp;&amp; countNext == 2)) {
+<span class="nc" id="L1202">				segmentCutter = shape.getSegment(ivertexCutter);</span>
+<span class="nc bnc" id="L1203" title="All 2 branches missed.">				if (segmentCutter == null) {</span>
+<span class="nc" id="L1204">					shape.queryLineConnector(ivertexCutter, lineCutter);</span>
+<span class="nc" id="L1205">					segmentCutter = lineCutter;</span>
+				}
+
+<span class="nc" id="L1208">				tangent1.setCoords(segmentCutter._getTangent(1.0));</span>
+<span class="nc" id="L1209">				tangent0.negate(tangent1);</span>
+<span class="nc" id="L1210">				tangent1.normalize();</span>
+<span class="nc" id="L1211">				tangent0.normalize();</span>
+
+<span class="nc" id="L1213">				return false;</span>
+			}
+
+<span class="nc bnc" id="L1216" title="All 8 branches missed.">			if (icutEvent &lt; cutEvents.size() - 1</span>
+					&amp;&amp; ivertexCutteeNext == ivertexCuttee
+					&amp;&amp; ipartCutterNext == ipartCutter
+					&amp;&amp; ivertexCutterNext == ivertexCutterPlus) {
+<span class="nc" id="L1220">				segmentCutter = shape.getSegment(ivertexCutter);</span>
+<span class="nc bnc" id="L1221" title="All 2 branches missed.">				if (segmentCutter == null) {</span>
+<span class="nc" id="L1222">					shape.queryLineConnector(ivertexCutter, lineCutter);</span>
+<span class="nc" id="L1223">					segmentCutter = lineCutter;</span>
+				}
+
+<span class="nc" id="L1226">				tangent0.setCoords(segmentCutter._getTangent(1.0));</span>
+
+<span class="nc" id="L1228">				segmentCutter = shape.getSegment(ivertexCutterPlus);</span>
+<span class="nc bnc" id="L1229" title="All 2 branches missed.">				if (segmentCutter == null) {</span>
+<span class="nc" id="L1230">					shape.queryLineConnector(ivertexCutterPlus, lineCutter);</span>
+<span class="nc" id="L1231">					segmentCutter = lineCutter;</span>
+				}
+
+<span class="nc" id="L1234">				tangent1.setCoords(segmentCutter._getTangent(0.0));</span>
+<span class="nc" id="L1235">				tangent0.negate();</span>
+<span class="nc" id="L1236">				tangent1.normalize();</span>
+<span class="nc" id="L1237">				tangent0.normalize();</span>
+
+<span class="nc" id="L1239">				return false;</span>
+			}
+
+<span class="nc" id="L1242">			return true;</span>
+		}
+
+<span class="pc bpc" id="L1245" title="3 of 10 branches missed.">		if (icutEvent == cutEvents.size() - 1</span>
+				|| ivertexCutteeNext != ivertexCuttee
+				|| ipartCutterNext != ipartCutter
+				|| ivertexCutterNext != ivertexCutterPlus || countNext == 2) {
+<span class="fc" id="L1249">			segmentCutter = shape.getSegment(ivertexCutter);</span>
+<span class="pc bpc" id="L1250" title="1 of 2 branches missed.">			if (segmentCutter == null) {</span>
+<span class="fc" id="L1251">				shape.queryLineConnector(ivertexCutter, lineCutter);</span>
+<span class="fc" id="L1252">				segmentCutter = lineCutter;</span>
+			}
+
+<span class="fc" id="L1255">			tangent1.setCoords(segmentCutter._getTangent(1.0));</span>
+<span class="fc" id="L1256">			tangent0.negate(tangent1);</span>
+<span class="fc" id="L1257">			tangent1.normalize();</span>
+<span class="fc" id="L1258">			tangent0.normalize();</span>
+
+<span class="fc" id="L1260">			return false;</span>
+		}
+
+<span class="fc" id="L1263">		segmentCutter = shape.getSegment(ivertexCutter);</span>
+<span class="pc bpc" id="L1264" title="1 of 2 branches missed.">		if (segmentCutter == null) {</span>
+<span class="fc" id="L1265">			shape.queryLineConnector(ivertexCutter, lineCutter);</span>
+<span class="fc" id="L1266">			segmentCutter = lineCutter;</span>
+		}
+
+<span class="fc" id="L1269">		tangent0.setCoords(segmentCutter._getTangent(1.0));</span>
+
+<span class="fc" id="L1271">		segmentCutter = shape.getSegment(ivertexCutterPlus);</span>
+<span class="pc bpc" id="L1272" title="1 of 2 branches missed.">		if (segmentCutter == null) {</span>
+<span class="fc" id="L1273">			shape.queryLineConnector(ivertexCutterPlus, lineCutter);</span>
+<span class="fc" id="L1274">			segmentCutter = lineCutter;</span>
+		}
+
+<span class="fc" id="L1277">		tangent1.setCoords(segmentCutter._getTangent(0.0));</span>
+<span class="fc" id="L1278">		tangent0.negate();</span>
+<span class="fc" id="L1279">		tangent1.normalize();</span>
+<span class="fc" id="L1280">		tangent0.normalize();</span>
+
+<span class="fc" id="L1282">		return false;</span>
+	}
+
+	static boolean _cutterStartTangents(boolean bConsiderTouch,
+			EditShape shape, ArrayList&lt;CutEvent&gt; cutEvents, int icutEvent,
+			Point2D tangent0, Point2D tangent1) {
+<span class="fc" id="L1288">		Line lineCutter = new Line();</span>
+		Segment segmentCutter;
+
+<span class="fc" id="L1291">		int ivertexCuttee = cutEvents.get(icutEvent).m_ivertexCuttee;</span>
+<span class="fc" id="L1292">		int ipartCutter = cutEvents.get(icutEvent).m_ipartCutter;</span>
+<span class="fc" id="L1293">		int ivertexCutter = cutEvents.get(icutEvent).m_ivertexCutter;</span>
+
+<span class="fc" id="L1295">		int ivertexCutteeNext = -1;</span>
+<span class="fc" id="L1296">		int ipartCutterNext = -1;</span>
+<span class="fc" id="L1297">		int ivertexCutterNext = -1;</span>
+<span class="fc" id="L1298">		int countNext = -1;</span>
+
+<span class="pc bpc" id="L1300" title="3 of 4 branches missed.">		if (!bConsiderTouch &amp;&amp; icutEvent &lt; cutEvents.size() - 1) {</span>
+<span class="nc" id="L1301">			CutEvent cutEvent = cutEvents.get(icutEvent + 1);</span>
+<span class="nc" id="L1302">			ivertexCutteeNext = cutEvent.m_ivertexCuttee;</span>
+<span class="nc" id="L1303">			ipartCutterNext = cutEvent.m_ipartCutter;</span>
+<span class="nc" id="L1304">			ivertexCutterNext = cutEvent.m_ivertexCutter;</span>
+<span class="nc" id="L1305">			countNext = cutEvent.m_count;</span>
+		}
+
+<span class="fc" id="L1308">		int ivertexCutteePrev = -1;</span>
+<span class="fc" id="L1309">		int ipartCutterPrev = -1;</span>
+<span class="fc" id="L1310">		int ivertexCutterPrev = -1;</span>
+<span class="fc" id="L1311">		int countPrev = -1;</span>
+
+<span class="pc bpc" id="L1313" title="1 of 2 branches missed.">		if (icutEvent &gt; 0) {</span>
+<span class="fc" id="L1314">			CutEvent cutEvent = cutEvents.get(icutEvent - 1);</span>
+<span class="fc" id="L1315">			ivertexCutteePrev = cutEvent.m_ivertexCuttee;</span>
+<span class="fc" id="L1316">			ipartCutterPrev = cutEvent.m_ipartCutter;</span>
+<span class="fc" id="L1317">			ivertexCutterPrev = cutEvent.m_ivertexCutter;</span>
+<span class="fc" id="L1318">			countPrev = cutEvent.m_count;</span>
+		}
+
+<span class="fc" id="L1321">		int ivertexCutteePlus = shape.getNextVertex(ivertexCuttee);</span>
+<span class="fc" id="L1322">		int ivertexCutterMinus = shape.getPrevVertex(ivertexCutter);</span>
+
+<span class="pc bpc" id="L1324" title="1 of 2 branches missed.">		if (!bConsiderTouch) {</span>
+<span class="nc bnc" id="L1325" title="All 10 branches missed.">			if ((icutEvent &gt; 0 &amp;&amp; ivertexCutteePrev == ivertexCuttee</span>
+					&amp;&amp; ipartCutterPrev == ipartCutter
+					&amp;&amp; ivertexCutterPrev == ivertexCutterMinus &amp;&amp; countPrev == 2)
+<span class="nc bnc" id="L1328" title="All 10 branches missed.">					|| (icutEvent &lt; cutEvents.size() - 1</span>
+							&amp;&amp; ivertexCutteeNext == ivertexCutteePlus
+							&amp;&amp; ipartCutterNext == ipartCutter
+							&amp;&amp; ivertexCutterNext == ivertexCutterMinus &amp;&amp; countNext == 2)) {
+<span class="nc" id="L1332">				segmentCutter = shape.getSegment(ivertexCutter);</span>
+<span class="nc bnc" id="L1333" title="All 2 branches missed.">				if (segmentCutter == null) {</span>
+<span class="nc" id="L1334">					shape.queryLineConnector(ivertexCutter, lineCutter);</span>
+<span class="nc" id="L1335">					segmentCutter = lineCutter;</span>
+				}
+
+<span class="nc" id="L1338">				tangent1.setCoords(segmentCutter._getTangent(0.0));</span>
+<span class="nc" id="L1339">				tangent0.negate(tangent1);</span>
+<span class="nc" id="L1340">				tangent1.normalize();</span>
+<span class="nc" id="L1341">				tangent0.normalize();</span>
+
+<span class="nc" id="L1343">				return false;</span>
+			}
+
+<span class="nc" id="L1346">			return true;</span>
+		}
+
+<span class="pc bpc" id="L1349" title="2 of 10 branches missed.">		if (icutEvent == 0 || ivertexCutteePrev != ivertexCuttee</span>
+				|| ipartCutterPrev != ipartCutter
+				|| ivertexCutterPrev != ivertexCutterMinus || countPrev == 2) {
+<span class="fc" id="L1352">			segmentCutter = shape.getSegment(ivertexCutter);</span>
+<span class="pc bpc" id="L1353" title="1 of 2 branches missed.">			if (segmentCutter == null) {</span>
+<span class="fc" id="L1354">				shape.queryLineConnector(ivertexCutter, lineCutter);</span>
+<span class="fc" id="L1355">				segmentCutter = lineCutter;</span>
+			}
+
+<span class="fc" id="L1358">			tangent1.setCoords(segmentCutter._getTangent(0.0));</span>
+<span class="fc" id="L1359">			tangent0.negate(tangent1);</span>
+<span class="fc" id="L1360">			tangent1.normalize();</span>
+<span class="fc" id="L1361">			tangent0.normalize();</span>
+
+<span class="fc" id="L1363">			return false;</span>
+		}
+
+		// Already processed the event
+
+<span class="fc" id="L1368">		return true;</span>
+	}
+
+	static boolean _cutteeTangents(EditShape shape,
+			ArrayList&lt;CutEvent&gt; cutEvents, int icutEvent, int ipath,
+			int ivertex, Point2D tangent2, Point2D tangent3) {
+<span class="fc" id="L1374">		Line lineCuttee = new Line();</span>
+<span class="fc" id="L1375">		Segment segmentCuttee = shape.getSegment(ivertex);</span>
+<span class="pc bpc" id="L1376" title="1 of 2 branches missed.">		if (segmentCuttee == null) {</span>
+<span class="fc" id="L1377">			shape.queryLineConnector(ivertex, lineCuttee);</span>
+<span class="fc" id="L1378">			segmentCuttee = lineCuttee;</span>
+		}
+
+<span class="fc" id="L1381">		CutEvent cutEvent = cutEvents.get(icutEvent);</span>
+<span class="fc" id="L1382">		int ivertexCuttee = cutEvent.m_ivertexCuttee;</span>
+<span class="fc" id="L1383">		double scalarCuttee = cutEvent.m_scalarCuttee0;</span>
+
+<span class="fc" id="L1385">		int ivertexCutteePlus = shape.getNextVertex(ivertexCuttee);</span>
+
+<span class="pc bpc" id="L1387" title="1 of 2 branches missed.">		if (scalarCuttee == 1.0) {</span>
+<span class="fc" id="L1388">			tangent2.setCoords(segmentCuttee._getTangent(1.0));</span>
+
+<span class="pc bpc" id="L1390" title="1 of 2 branches missed.">			if (ivertexCutteePlus != -1</span>
+<span class="fc bfc" id="L1391" title="All 2 branches covered.">					&amp;&amp; ivertexCutteePlus != shape.getLastVertex(ipath)) {</span>
+<span class="fc" id="L1392">				segmentCuttee = shape.getSegment(ivertexCutteePlus);</span>
+<span class="pc bpc" id="L1393" title="1 of 2 branches missed.">				if (segmentCuttee == null) {</span>
+<span class="fc" id="L1394">					shape.queryLineConnector(ivertexCutteePlus, lineCuttee);</span>
+<span class="fc" id="L1395">					segmentCuttee = lineCuttee;</span>
+				}
+
+<span class="fc" id="L1398">				tangent3.setCoords(segmentCuttee._getTangent(0.0));</span>
+
+<span class="fc" id="L1400">				segmentCuttee = shape.getSegment(ivertexCuttee);</span>
+<span class="pc bpc" id="L1401" title="1 of 2 branches missed.">				if (segmentCuttee == null) {</span>
+<span class="fc" id="L1402">					shape.queryLineConnector(ivertexCuttee, lineCuttee);</span>
+<span class="fc" id="L1403">					segmentCuttee = lineCuttee;</span>
+				}
+			} else
+<span class="fc" id="L1406">				tangent3.setCoords(tangent2);</span>
+
+<span class="fc" id="L1408">			tangent2.negate();</span>
+
+<span class="fc" id="L1410">			tangent3.normalize();</span>
+<span class="fc" id="L1411">			tangent2.normalize();</span>
+
+<span class="fc" id="L1413">			return false;</span>
+		}
+
+<span class="nc bnc" id="L1416" title="All 2 branches missed.">		if (scalarCuttee == 0.0) {</span>
+<span class="nc" id="L1417">			tangent3.setCoords(segmentCuttee._getTangent(scalarCuttee));</span>
+<span class="nc" id="L1418">			tangent2.negate(tangent3);</span>
+<span class="nc" id="L1419">			tangent3.normalize();</span>
+<span class="nc" id="L1420">			tangent2.normalize();</span>
+
+<span class="nc" id="L1422">			return false;</span>
+		}
+
+<span class="nc" id="L1425">		throw GeometryException.GeometryInternalError();</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

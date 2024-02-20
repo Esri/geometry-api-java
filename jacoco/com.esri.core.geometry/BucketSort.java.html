@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BucketSort.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">BucketSort.java</span></div><h1>BucketSort.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+final class BucketSort {
+	AttributeStreamOfInt32 m_buckets;
+	AttributeStreamOfInt32 m_bucketed_indices;
+	double m_min_value;
+	double m_max_value;
+	double m_dy;
+
+<span class="fc" id="L33">	static int MAXBUCKETS = 65536;</span>
+
+<span class="fc" id="L35">	public BucketSort() {</span>
+<span class="fc" id="L36">		m_buckets = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L37">		m_bucketed_indices = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L38">		m_min_value = 1;</span>
+<span class="fc" id="L39">		m_max_value = -1;</span>
+<span class="fc" id="L40">		m_dy = NumberUtils.TheNaN;</span>
+<span class="fc" id="L41">	}</span>
+
+	/**
+	 * Executes sort on the Bucket_sort. The result is fed into the indices
+	 * array in the range between begin (inclusive) and end (exclusive). Uses
+	 * user supplied sorter to execute sort on each bucket. Users either supply
+	 * the sorter and use this method of Bucket_sort class, or use other methods
+	 * to form the buckets and take care of bucket sorting themselves.
+	 */
+	public void sort(AttributeStreamOfInt32 indices, int begin, int end,
+			ClassicSort sorter) {
+<span class="fc bfc" id="L52" title="All 2 branches covered.">		if (end - begin &lt; 32) {</span>
+<span class="fc" id="L53">			sorter.userSort(begin, end, indices);</span>
+<span class="fc" id="L54">			return;</span>
+		}
+<span class="fc" id="L56">		boolean b_fallback = true;</span>
+		try {
+<span class="fc" id="L58">			double miny = NumberUtils.positiveInf();</span>
+<span class="fc" id="L59">			double maxy = NumberUtils.negativeInf();</span>
+<span class="fc bfc" id="L60" title="All 2 branches covered.">			for (int i = begin; i &lt; end; i++) {</span>
+<span class="fc" id="L61">				double y = sorter.getValue(indices.get(i));</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">				if (y &lt; miny)</span>
+<span class="fc" id="L63">					miny = y;</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">				if (y &gt; maxy)</span>
+<span class="fc" id="L65">					maxy = y;</span>
+			}
+
+<span class="fc bfc" id="L68" title="All 2 branches covered.">			if (reset(end - begin, miny, maxy, end - begin)) {</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">				for (int i = begin; i &lt; end; i++) {</span>
+<span class="fc" id="L70">					int vertex = indices.get(i);</span>
+<span class="fc" id="L71">					double y = sorter.getValue(vertex);</span>
+<span class="fc" id="L72">					int bucket = getBucket(y);</span>
+<span class="fc" id="L73">					m_buckets.set(bucket, m_buckets.get(bucket) + 1);// counting</span>
+																		// values
+																		// in a
+																		// bucket.
+<span class="fc" id="L77">					m_bucketed_indices.write(i - begin, vertex);</span>
+				}
+
+				// Recalculate buckets to contain start positions of buckets.
+<span class="fc" id="L81">				int c = m_buckets.get(0);</span>
+<span class="fc" id="L82">				m_buckets.set(0, 0);</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">				for (int i = 1, n = m_buckets.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L84">					int b = m_buckets.get(i);</span>
+<span class="fc" id="L85">					m_buckets.set(i, c);</span>
+<span class="fc" id="L86">					c += b;</span>
+				}
+
+<span class="fc bfc" id="L89" title="All 2 branches covered.">				for (int i = begin; i &lt; end; i++) {</span>
+<span class="fc" id="L90">					int vertex = m_bucketed_indices.read(i - begin);</span>
+<span class="fc" id="L91">					double y = sorter.getValue(vertex);</span>
+<span class="fc" id="L92">					int bucket = getBucket(y);</span>
+<span class="fc" id="L93">					int bucket_index = m_buckets.get(bucket);</span>
+<span class="fc" id="L94">					indices.set(bucket_index + begin, vertex);</span>
+<span class="fc" id="L95">					m_buckets.set(bucket, bucket_index + 1);</span>
+				}
+
+<span class="fc" id="L98">				b_fallback = false;</span>
+			}
+<span class="nc" id="L100">		} catch (Exception e) {</span>
+<span class="nc" id="L101">			m_buckets.resize(0);</span>
+<span class="nc" id="L102">			m_bucketed_indices.resize(0);</span>
+<span class="fc" id="L103">		}</span>
+
+<span class="fc bfc" id="L105" title="All 2 branches covered.">		if (b_fallback) {</span>
+<span class="fc" id="L106">			sorter.userSort(begin, end, indices);</span>
+<span class="fc" id="L107">			return;</span>
+		}
+
+<span class="fc" id="L110">		int j = 0;</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">		for (int i = 0, n = m_buckets.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L112">			int j0 = j;</span>
+<span class="fc" id="L113">			j = m_buckets.get(i);</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">			if (j &gt; j0)</span>
+<span class="fc" id="L115">				sorter.userSort(begin + j0, begin + j, indices);</span>
+		}
+<span class="pc bpc" id="L117" title="1 of 2 branches missed.">		assert (j == end);</span>
+
+<span class="fc bfc" id="L119" title="All 2 branches covered.">		if (getBucketCount() &gt; 100) // some heuristics to preserve memory</span>
+		{
+<span class="fc" id="L121">			m_buckets.resize(0);</span>
+<span class="fc" id="L122">			m_bucketed_indices.resize(0);</span>
+		}
+<span class="fc" id="L124">	}</span>
+
+	/**
+	 * Clears and resets Bucket_sort to the new state, preparing for the
+	 * accumulation of new data.
+	 * 
+	 * @param bucket_count
+	 *            - the number of buckets. Usually equal to the number of
+	 *            elements to sort.
+	 * @param min_value
+	 *            - the minimum value of elements to sort.
+	 * @param max_value
+	 *            - the maximum value of elements to sort.
+	 * @param capacity
+	 *            - the number of elements to sort (-1 if not known). The
+	 *            bucket_count are usually equal.
+	 * @return Returns False, if the bucket sort cannot be used with the given
+	 *         parameters. The method also can throw out of memory exception. In
+	 *         the later case, one should fall back to the regular sort.
+	 */
+	private boolean reset(int bucket_count, double min_value, double max_value,
+			int capacity) {
+<span class="pc bpc" id="L146" title="1 of 4 branches missed.">		if (bucket_count &lt; 2 || max_value == min_value)</span>
+<span class="fc" id="L147">			return false;</span>
+
+<span class="fc" id="L149">		int bc = Math.min(MAXBUCKETS, bucket_count);</span>
+<span class="fc" id="L150">		m_buckets.reserve(bc);</span>
+<span class="fc" id="L151">		m_buckets.resize(bc);</span>
+<span class="fc" id="L152">		m_buckets.setRange(0, 0, m_buckets.size());</span>
+<span class="fc" id="L153">		m_min_value = min_value;</span>
+<span class="fc" id="L154">		m_max_value = max_value;</span>
+<span class="fc" id="L155">		m_bucketed_indices.resize(capacity);</span>
+
+<span class="fc" id="L157">		m_dy = (max_value - min_value) / (bc - 1);</span>
+<span class="fc" id="L158">		return true;</span>
+	}
+
+	/**
+	 * Adds new element to the bucket builder. The value must be between
+	 * min_value and max_value.
+	 * 
+	 * @param The
+	 *            value used for bucketing.
+	 * @param The
+	 *            index of the element to store in the buffer. Usually it is an
+	 *            index into some array, where the real elements are stored.
+	 */
+	private int getBucket(double value) {
+<span class="pc bpc" id="L172" title="2 of 4 branches missed.">		assert (value &gt;= m_min_value &amp;&amp; value &lt;= m_max_value);</span>
+<span class="fc" id="L173">		int bucket = (int) ((value - m_min_value) / m_dy);</span>
+<span class="fc" id="L174">		return bucket;</span>
+	}
+
+	/**
+	 * Returns the bucket count.
+	 */
+	private int getBucketCount() {
+<span class="fc" id="L181">		return m_buckets.size();</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

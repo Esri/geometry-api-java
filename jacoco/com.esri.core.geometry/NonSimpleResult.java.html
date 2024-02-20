@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NonSimpleResult.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">NonSimpleResult.java</span></div><h1>NonSimpleResult.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+/**
+ * The result of the IsSimpleXXX.
+ * 
+ *
+ */
+public class NonSimpleResult {
+<span class="fc" id="L32">	public enum Reason {</span>
+		/**
+		*This value is returned if the geometry &quot;knows&quot; through an internal state that it is non-simple.
+		*To make it determine the reason, use
+		*bForceTest == True.
+		*/		
+<span class="fc" id="L38">		NotDetermined,</span>
+		/**
+		 * non-simple, because the structure is bad (0 size path, for example).
+		 */
+<span class="fc" id="L42">		Structure, </span>
+		/**
+		 * Non-simple, because there are degenerate segments.
+		 */
+<span class="fc" id="L46">		DegenerateSegments,</span>
+		/**
+		 * Non-simple, because not clustered properly, that is there are non-coincident vertices closer than tolerance.
+		 */		
+<span class="fc" id="L50">		Clustering,</span>
+		/**
+		 * Non-simple, because not cracked properly (intersecting segments, overlaping segments)
+		 */		
+<span class="fc" id="L54">		Cracking,</span>
+		/**
+		 * Non-simple, because there are crossovers (self intersections that are not cracking case).
+		 */
+<span class="fc" id="L58">		CrossOver,</span>
+		/**
+		 * Non-simple, because holes or exteriors have wrong orientation.
+		 */
+<span class="fc" id="L62">		RingOrientation,</span>
+		/**
+		 *The geometry is simple, but not strong-simple, because exteriors
+		 *and holes are not in the correct order, and separation into sub polygons is not possible.
+		 *Geometry needs to be resimplified with the bForceTest = true to fix this.
+		 */		
+<span class="fc" id="L68">		RingOrder,</span>
+		/**
+		 * There is a self tangency or cross-over situation (strong simple, but not OGC simple)
+		 * Only OperatorSimplifyOGC returns this.
+		 */		
+<span class="fc" id="L73">		OGCPolylineSelfTangency,</span>
+		/**
+		 * There is a self tangency situation (strong simple, but not OGC simple)
+		 * Only OperatorSimplifyOGC returns this.
+		 */
+<span class="fc" id="L78">		OGCPolygonSelfTangency,</span>
+		/**
+		 * Touching interioir rings make a disconnected point set from polygon interior
+		 * (strong simple, but not OGC simple).
+		 * Only OperatorSimplifyOGC returns this.
+		 */
+<span class="fc" id="L84">		OGCDisconnectedInterior</span>
+	}
+
+	public Reason m_reason;
+	public int m_vertexIndex1;
+	public int m_vertexIndex2;
+
+<span class="fc" id="L91">	public NonSimpleResult() {</span>
+<span class="fc" id="L92">		m_reason = Reason.NotDetermined;</span>
+<span class="fc" id="L93">		m_vertexIndex1 = -1;</span>
+<span class="fc" id="L94">		m_vertexIndex2 = -1;</span>
+<span class="fc" id="L95">	}</span>
+
+	void Assign(NonSimpleResult src) {
+<span class="fc" id="L98">		m_reason = src.m_reason;</span>
+<span class="fc" id="L99">		m_vertexIndex1 = src.m_vertexIndex1;</span>
+<span class="fc" id="L100">		m_vertexIndex2 = src.m_vertexIndex2;</span>
+<span class="fc" id="L101">	}</span>
+
+<span class="fc" id="L103">	NonSimpleResult(Reason reason, int index1, int index2) {</span>
+<span class="fc" id="L104">		m_reason = reason;</span>
+<span class="fc" id="L105">		m_vertexIndex1 = index1;</span>
+<span class="fc" id="L106">		m_vertexIndex2 = index2;</span>
+<span class="fc" id="L107">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

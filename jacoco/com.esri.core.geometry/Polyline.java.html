@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Polyline.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Polyline.java</span></div><h1>Polyline.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2018 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+
+package com.esri.core.geometry;
+
+import java.io.Serializable;
+
+import static com.esri.core.geometry.SizeOf.SIZE_OF_POLYLINE;
+
+/**
+ * A polyline is a collection of one or many paths.
+ * 
+ */
+public class Polyline extends MultiPath implements Serializable {
+
+	private static final long serialVersionUID = 2L;// TODO:remove as we use
+													// writeReplace and
+													// GeometrySerializer
+
+	/**
+	 * Creates an empty polyline.
+	 */
+<span class="fc" id="L45">	public Polyline() {</span>
+<span class="fc" id="L46">		m_impl = new MultiPathImpl(false);</span>
+<span class="fc" id="L47">	}</span>
+
+<span class="fc" id="L49">	public Polyline(VertexDescription vd) {</span>
+<span class="fc" id="L50">		m_impl = new MultiPathImpl(false, vd);</span>
+<span class="fc" id="L51">	}</span>
+
+	/**
+	 * Creates a polyline with one line segment.
+	 */
+<span class="fc" id="L56">	public Polyline(Point start, Point end) {</span>
+<span class="fc" id="L57">		m_impl = new MultiPathImpl(false, start.getDescription());</span>
+<span class="fc" id="L58">		startPath(start);</span>
+<span class="fc" id="L59">		lineTo(end);</span>
+<span class="fc" id="L60">	}</span>
+
+	@Override
+	public Geometry createInstance() {
+<span class="fc" id="L64">		return new Polyline(getDescription());</span>
+	}
+
+	@Override
+	public int getDimension() {
+<span class="fc" id="L69">		return 1;</span>
+	}
+
+	@Override
+	public Geometry.Type getType() {
+<span class="fc" id="L74">		return Type.Polyline;</span>
+	}
+
+	@Override
+	public long estimateMemorySize() {
+<span class="fc" id="L79">		return SIZE_OF_POLYLINE + m_impl.estimateMemorySize();</span>
+	}
+
+	/**
+	 * Returns TRUE when this geometry has exactly same type, properties, and
+	 * coordinates as the other geometry.
+	 */
+	@Override
+	public boolean equals(Object other) {
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">		if (other == null)</span>
+<span class="nc" id="L89">			return false;</span>
+
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">		if (other == this)</span>
+<span class="nc" id="L92">			return true;</span>
+
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">		if (other.getClass() != getClass())</span>
+<span class="nc" id="L95">			return false;</span>
+
+<span class="fc" id="L97">		return m_impl.equals(((Polyline) other)._getImpl());</span>
+	}
+
+	/**
+	 * Returns the hash code for the polyline.
+	 */
+
+	@Override
+	public int hashCode() {
+<span class="fc" id="L106">		return m_impl.hashCode();</span>
+	}
+
+	@Override
+	public void addSegment(Segment segment, boolean bStartNewPath) {
+<span class="fc" id="L111">		m_impl.addSegment(segment, bStartNewPath);</span>
+<span class="fc" id="L112">	}</span>
+
+	public void interpolateAttributes(int from_path_index,
+			int from_point_index, int to_path_index, int to_point_index) {
+<span class="fc" id="L116">		m_impl.interpolateAttributes(from_path_index, from_point_index,</span>
+				to_path_index, to_point_index);
+<span class="fc" id="L118">	}</span>
+
+	public void interpolateAttributes(int semantics, int from_path_index,
+			int from_point_index, int to_path_index, int to_point_index) {
+<span class="fc" id="L122">		m_impl.interpolateAttributesForSemantics(semantics, from_path_index,</span>
+				from_point_index, to_path_index, to_point_index);
+<span class="fc" id="L124">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

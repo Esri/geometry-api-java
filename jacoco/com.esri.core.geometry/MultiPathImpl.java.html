@@ -1,0 +1,2627 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MultiPathImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">MultiPathImpl.java</span></div><h1>MultiPathImpl.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+
+package com.esri.core.geometry;
+
+import static com.esri.core.geometry.SizeOf.SIZE_OF_MULTI_PATH_IMPL;
+
+final class MultiPathImpl extends MultiVertexGeometryImpl {
+	protected boolean m_bPolygon;
+	protected Point m_moveToPoint;
+	protected double m_cachedLength2D;
+	protected double m_cachedArea2D;
+
+	protected AttributeStreamOfDbl m_cachedRingAreas2D;
+	protected boolean m_bPathStarted;
+
+	// Contains starting points of the parts. The size is getPartCount() + 1.
+	// First element is 0, last element is equal to the getPointCount().
+	protected AttributeStreamOfInt32 m_paths;
+	// same size as m_parts. Holds flags for each part (whether the part is
+	// closed, etc. See PathFlags)
+	protected AttributeStreamOfInt8 m_pathFlags;
+	// The segment flags. Size is getPointCount(). This is not a vertex
+	// attribute, because we may want to use indexed access later (via an index
+	// buffer).
+	// Can be NULL if the MultiPathImpl contains straight lines only.
+	protected AttributeStreamOfInt8 m_segmentFlags;
+	// An index into the m_segmentParams stream. Size is getPointCount(). Can be
+	// NULL if the MultiPathImpl contains straight lines only.
+	protected AttributeStreamOfInt32 m_segmentParamIndex;
+	protected AttributeStreamOfDbl m_segmentParams;
+	protected int m_curveParamwritePoint;
+	private int m_currentPathIndex;
+<span class="fc" id="L56">	private int m_fill_rule = Polygon.FillRule.enumFillRuleOddEven;</span>
+
+<span class="fc" id="L58">	static int[] _segmentParamSizes = { 0, 0, 6, 0, 8, 0 }; // None, Line,</span>
+															// Bezier, XXX, Arc,
+															// XXX;
+
+	@Override
+	public long estimateMemorySize()
+	{
+<span class="fc" id="L65">		long size = SIZE_OF_MULTI_PATH_IMPL +</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">			+ (m_envelope != null ? m_envelope.estimateMemorySize() : 0)</span>
+<span class="pc bpc" id="L67" title="1 of 2 branches missed.">			+ (m_moveToPoint != null ? m_moveToPoint.estimateMemorySize() : 0)</span>
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">			+ (m_cachedRingAreas2D != null ? m_cachedRingAreas2D.estimateMemorySize() : 0)</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">			+ (m_paths != null ? m_paths.estimateMemorySize() : 0)</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">			+ (m_pathFlags != null ? m_pathFlags.estimateMemorySize() : 0)</span>
+<span class="pc bpc" id="L71" title="1 of 2 branches missed.">			+ (m_segmentFlags != null ? m_segmentFlags.estimateMemorySize() : 0)</span>
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">			+ (m_segmentParamIndex != null ? m_segmentParamIndex.estimateMemorySize() : 0)</span>
+<span class="pc bpc" id="L73" title="1 of 2 branches missed.">			+ (m_segmentParams != null ? m_segmentParams.estimateMemorySize() : 0);</span>
+
+<span class="fc bfc" id="L75" title="All 2 branches covered.">		if (m_vertexAttributes != null) {</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">			for (int i = 0; i &lt; m_vertexAttributes.length; i++) {</span>
+<span class="fc" id="L77">				size += m_vertexAttributes[i].estimateMemorySize();</span>
+			}
+		}
+
+<span class="fc bfc" id="L81" title="All 2 branches covered.">		if (m_accelerators != null) {</span>
+<span class="fc" id="L82">			size += m_accelerators.estimateMemorySize();</span>
+		}
+
+<span class="fc" id="L85">		return size;</span>
+	}
+
+	public boolean hasNonLinearSegments() {
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">		return m_curveParamwritePoint &gt; 0;</span>
+	}
+
+	// / Cpp ///
+	// Reviewed vs. Native Jan 11, 2011
+<span class="fc" id="L94">	public MultiPathImpl(boolean bPolygon) {</span>
+<span class="fc" id="L95">		m_bPolygon = bPolygon;</span>
+
+<span class="fc" id="L97">		m_bPathStarted = false;</span>
+<span class="fc" id="L98">		m_curveParamwritePoint = 0;</span>
+<span class="fc" id="L99">		m_cachedLength2D = 0;</span>
+<span class="fc" id="L100">		m_cachedArea2D = 0;</span>
+<span class="fc" id="L101">		m_pointCount = 0;</span>
+<span class="fc" id="L102">		m_description = VertexDescriptionDesignerImpl.getDefaultDescriptor2D();</span>
+<span class="fc" id="L103">		m_cachedRingAreas2D = null;</span>
+<span class="fc" id="L104">		m_currentPathIndex = 0;</span>
+<span class="fc" id="L105">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+<span class="fc" id="L108">	public MultiPathImpl(boolean bPolygon, VertexDescription description) {</span>
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">		if (description == null)</span>
+<span class="nc" id="L110">			throw new IllegalArgumentException();</span>
+
+<span class="fc" id="L112">		m_bPolygon = bPolygon;</span>
+
+<span class="fc" id="L114">		m_bPathStarted = false;</span>
+<span class="fc" id="L115">		m_curveParamwritePoint = 0;</span>
+<span class="fc" id="L116">		m_cachedLength2D = 0;</span>
+<span class="fc" id="L117">		m_cachedArea2D = 0;</span>
+<span class="fc" id="L118">		m_pointCount = 0;</span>
+<span class="fc" id="L119">		m_description = description;</span>
+<span class="fc" id="L120">		m_cachedRingAreas2D = null;</span>
+<span class="fc" id="L121">		m_currentPathIndex = 0;</span>
+<span class="fc" id="L122">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	protected void _initPathStartPoint() {
+<span class="fc" id="L126">		_touch();</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">		if (m_moveToPoint == null)</span>
+<span class="fc" id="L128">			m_moveToPoint = new Point(m_description);</span>
+		else
+<span class="fc" id="L130">			m_moveToPoint.assignVertexDescription(m_description);</span>
+<span class="fc" id="L131">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	/**
+	 * Starts a new Path at the Point.
+	 */
+	public void startPath(double x, double y) {
+<span class="fc" id="L138">		Point2D endPoint = new Point2D();</span>
+<span class="fc" id="L139">		endPoint.x = x;</span>
+<span class="fc" id="L140">		endPoint.y = y;</span>
+<span class="fc" id="L141">		startPath(endPoint);</span>
+<span class="fc" id="L142">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	public void startPath(Point2D point) {
+<span class="fc" id="L146">		_initPathStartPoint();</span>
+<span class="fc" id="L147">		m_moveToPoint.setXY(point);</span>
+<span class="fc" id="L148">		m_bPathStarted = true;</span>
+<span class="fc" id="L149">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	public void startPath(Point3D point) {
+<span class="nc" id="L153">		_initPathStartPoint();</span>
+<span class="nc" id="L154">		m_moveToPoint.setXYZ(point);</span>
+<span class="nc" id="L155">		assignVertexDescription(m_moveToPoint.getDescription());</span>
+<span class="nc" id="L156">		m_bPathStarted = true;</span>
+<span class="nc" id="L157">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	public void startPath(Point point) {
+<span class="pc bpc" id="L161" title="1 of 2 branches missed.">		if (point.isEmpty())</span>
+<span class="nc" id="L162">			throw new IllegalArgumentException();// throw new</span>
+													// IllegalArgumentException();
+
+<span class="fc" id="L165">		mergeVertexDescription(point.getDescription());</span>
+<span class="fc" id="L166">		_initPathStartPoint();</span>
+<span class="fc" id="L167">		point.copyTo(m_moveToPoint);</span>
+
+		// TODO check MultiPathImpl.cpp comment
+		// &quot;//the description will be merged later&quot;
+		// assignVertexDescription(m_moveToPoint.getDescription());
+<span class="fc" id="L172">		m_bPathStarted = true;</span>
+<span class="fc" id="L173">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	protected void _beforeNewSegment(int resizeBy) {
+		// Called for each new segment being added.
+<span class="fc bfc" id="L178" title="All 2 branches covered.">		if (m_bPathStarted) {</span>
+<span class="fc" id="L179">			_initPathStartPoint();// make sure the m_movetoPoint exists and has</span>
+									// right vertex description
+
+			// The new path is started. Need to grow m_parts and m_pathFlags.
+<span class="fc bfc" id="L183" title="All 2 branches covered.">			if (m_paths == null) {</span>
+<span class="fc" id="L184">				m_paths = (AttributeStreamOfInt32) AttributeStreamBase</span>
+<span class="fc" id="L185">						.createIndexStream(2);</span>
+<span class="fc" id="L186">				m_paths.write(0, 0);</span>
+<span class="fc" id="L187">				m_pathFlags = (AttributeStreamOfInt8) AttributeStreamBase</span>
+<span class="fc" id="L188">						.createByteStream(2, (byte) 0);</span>
+			} else {
+				// _ASSERT(m_parts.size() &gt;= 2);
+<span class="fc" id="L191">				m_paths.resize(m_paths.size() + 1, 0);</span>
+<span class="fc" id="L192">				m_pathFlags.resize(m_pathFlags.size() + 1, 0);</span>
+			}
+
+<span class="fc bfc" id="L195" title="All 2 branches covered.">			if (m_bPolygon) {</span>
+				// Mark the path as closed
+<span class="fc" id="L197">				m_pathFlags.write(m_pathFlags.size() - 2,</span>
+						(byte) PathFlags.enumClosed);
+			}
+
+<span class="fc" id="L201">			resizeBy++; // +1 for the StartPath point.</span>
+		}
+
+<span class="fc" id="L204">		int oldcount = m_pointCount;</span>
+<span class="fc" id="L205">		m_paths.write(m_paths.size() - 1, m_pointCount + resizeBy); // The</span>
+																	// NotifyModified
+																	// will
+																	// update
+																	// the
+																	// m_pointCount
+																	// with this
+																	// value.
+<span class="fc" id="L213">		_resizeImpl(oldcount + resizeBy);</span>
+<span class="fc" id="L214">		m_pathFlags.write(m_paths.size() - 1, (byte) 0);</span>
+
+<span class="fc bfc" id="L216" title="All 2 branches covered.">		if (m_bPathStarted) {</span>
+<span class="fc" id="L217">			setPointByVal(oldcount, m_moveToPoint);// setPoint(oldcount,</span>
+													// m_moveToPoint); //finally
+													// set the start point to
+													// the geometry
+<span class="fc" id="L221">			m_bPathStarted = false;</span>
+		}
+<span class="fc" id="L223">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	protected void _finishLineTo() {
+<span class="fc" id="L227">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	/**
+	 * adds a Line Segment from the last Point to the given endPoint.
+	 */
+	public void lineTo(double x, double y) {
+<span class="fc" id="L234">		_beforeNewSegment(1);</span>
+<span class="fc" id="L235">		setXY(m_pointCount - 1, x, y);</span>
+<span class="fc" id="L236">		_finishLineTo();</span>
+		// Point2D endPoint = new Point2D();
+		// endPoint.x = x; endPoint.y = y;
+		// lineTo(endPoint);
+<span class="fc" id="L240">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	public void lineTo(Point2D endPoint) {
+<span class="fc" id="L244">		_beforeNewSegment(1);</span>
+<span class="fc" id="L245">		setXY(m_pointCount - 1, endPoint);</span>
+<span class="fc" id="L246">		_finishLineTo();</span>
+<span class="fc" id="L247">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	public void lineTo(Point3D endPoint) {
+<span class="nc" id="L251">		_beforeNewSegment(1);</span>
+<span class="nc" id="L252">		setXYZ(m_pointCount - 1, endPoint);</span>
+<span class="nc" id="L253">		_finishLineTo();</span>
+<span class="nc" id="L254">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	public void lineTo(Point endPoint) {
+<span class="fc" id="L258">		_beforeNewSegment(1);</span>
+<span class="fc" id="L259">		setPointByVal(m_pointCount - 1, endPoint);</span>
+<span class="fc" id="L260">		_finishLineTo();</span>
+<span class="fc" id="L261">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	protected void _initSegmentData(int sz) {
+<span class="nc bnc" id="L265" title="All 2 branches missed.">		if (m_segmentParamIndex == null) {</span>
+<span class="nc" id="L266">			m_segmentFlags = (AttributeStreamOfInt8) AttributeStreamBase</span>
+<span class="nc" id="L267">					.createByteStream(m_pointCount,</span>
+							(byte) SegmentFlags.enumLineSeg);
+<span class="nc" id="L269">			m_segmentParamIndex = (AttributeStreamOfInt32) AttributeStreamBase</span>
+<span class="nc" id="L270">					.createIndexStream(m_pointCount, -1);</span>
+		}
+
+<span class="nc" id="L273">		int size = m_curveParamwritePoint + sz;</span>
+<span class="nc bnc" id="L274" title="All 2 branches missed.">		if (m_segmentParams == null) {</span>
+<span class="nc" id="L275">			m_segmentParams = (AttributeStreamOfDbl) AttributeStreamBase</span>
+<span class="nc" id="L276">					.createAttributeStreamWithPersistence(</span>
+							VertexDescription.Persistence.enumDouble, size);
+		} else {
+<span class="nc" id="L279">			m_segmentParams.resize(size, 0);</span>
+		}
+<span class="nc" id="L281">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	protected void _finishBezierTo() {
+		// _ASSERT(m_segmentFlags != null);
+		// _ASSERT(m_segmentParamIndex != null);
+
+<span class="nc" id="L288">		m_segmentFlags.write(m_pointCount - 2,</span>
+				(byte) SegmentFlags.enumBezierSeg);
+<span class="nc" id="L290">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	/**
+	 * adds a Cubic Bezier Segment to the current Path. The Bezier Segment
+	 * connects the current last Point and the given endPoint.
+	 */
+	public void bezierTo(Point2D controlPoint1, Point2D controlPoint2,
+			Point2D endPoint) {
+<span class="nc" id="L299">		_beforeNewSegment(1);</span>
+<span class="nc" id="L300">		setXY(m_pointCount - 1, endPoint);</span>
+		double z;
+<span class="nc" id="L302">		_initSegmentData(6);</span>
+<span class="nc" id="L303">		m_pathFlags.setBits(m_pathFlags.size() - 1,</span>
+				(byte) PathFlags.enumHasNonlinearSegments);
+<span class="nc" id="L305">		m_segmentParamIndex.write(m_pointCount - 2, m_curveParamwritePoint);</span>
+<span class="nc" id="L306">		m_curveParamwritePoint += 6;</span>
+<span class="nc" id="L307">		int curveIndex = m_curveParamwritePoint;</span>
+<span class="nc" id="L308">		m_segmentParams.write(curveIndex, controlPoint1.x);</span>
+<span class="nc" id="L309">		m_segmentParams.write(curveIndex + 1, controlPoint1.y);</span>
+<span class="nc" id="L310">		z = 0;// TODO: calculate me.</span>
+<span class="nc" id="L311">		m_segmentParams.write(curveIndex + 2, z);</span>
+<span class="nc" id="L312">		m_segmentParams.write(curveIndex + 3, controlPoint2.x);</span>
+<span class="nc" id="L313">		m_segmentParams.write(curveIndex + 4, controlPoint2.y);</span>
+<span class="nc" id="L314">		z = 0;// TODO: calculate me.</span>
+<span class="nc" id="L315">		m_segmentParams.write(curveIndex + 5, z);</span>
+<span class="nc" id="L316">		_finishBezierTo();</span>
+<span class="nc" id="L317">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	public void openPath(int pathIndex) {
+<span class="nc" id="L321">		_touch();</span>
+<span class="nc bnc" id="L322" title="All 2 branches missed.">		if (m_bPolygon)</span>
+<span class="nc" id="L323">			throw GeometryException.GeometryInternalError();// do not call this</span>
+															// method on a
+															// polygon
+
+<span class="nc" id="L327">		int pathCount = getPathCount();</span>
+<span class="nc bnc" id="L328" title="All 2 branches missed.">		if (pathIndex &gt; getPathCount())</span>
+<span class="nc" id="L329">			throw new IllegalArgumentException();</span>
+
+<span class="nc bnc" id="L331" title="All 2 branches missed.">		if (m_pathFlags == null)</span>
+<span class="nc" id="L332">			throw GeometryException.GeometryInternalError();</span>
+
+<span class="nc" id="L334">		m_pathFlags.clearBits(pathIndex, (byte) PathFlags.enumClosed);</span>
+<span class="nc" id="L335">	}</span>
+
+	public void openPathAndDuplicateStartVertex(int pathIndex) {
+<span class="nc" id="L338">		_touch();</span>
+<span class="nc bnc" id="L339" title="All 2 branches missed.">		if (m_bPolygon)</span>
+<span class="nc" id="L340">			throw GeometryException.GeometryInternalError();// do not call this</span>
+															// method on a
+															// polygon
+
+<span class="nc" id="L344">		int pathCount = getPathCount();</span>
+<span class="nc bnc" id="L345" title="All 2 branches missed.">		if (pathIndex &gt; pathCount)</span>
+<span class="nc" id="L346">			throw GeometryException.GeometryInternalError();</span>
+
+<span class="nc bnc" id="L348" title="All 2 branches missed.">		if (!isClosedPath(pathIndex))</span>
+<span class="nc" id="L349">			return;// do not open if open</span>
+
+<span class="nc bnc" id="L351" title="All 2 branches missed.">		if (m_pathFlags == null)// if (!m_pathFlags)</span>
+<span class="nc" id="L352">			throw GeometryException.GeometryInternalError();</span>
+
+<span class="nc" id="L354">		int oldPointCount = m_pointCount;</span>
+<span class="nc" id="L355">		int pathIndexStart = getPathStart(pathIndex);</span>
+<span class="nc" id="L356">		int pathIndexEnd = getPathEnd(pathIndex);</span>
+<span class="nc" id="L357">		_resizeImpl(m_pointCount + 1); // resize does not write into m_paths</span>
+										// anymore!
+<span class="nc" id="L359">		_verifyAllStreams();</span>
+<span class="nc bnc" id="L360" title="All 2 branches missed.">		for (int iattr = 0, nattr = m_description.getAttributeCount(); iattr &lt; nattr; iattr++) {</span>
+<span class="nc bnc" id="L361" title="All 2 branches missed.">			if (m_vertexAttributes[iattr] != null)// if</span>
+													// (m_vertexAttributes[iattr])
+			{
+<span class="nc" id="L364">				int semantics = m_description._getSemanticsImpl(iattr);</span>
+<span class="nc" id="L365">				int comp = VertexDescription.getComponentCount(semantics);</span>
+<span class="nc" id="L366">				m_vertexAttributes[iattr].insertRange(comp * pathIndexEnd,</span>
+						m_vertexAttributes[iattr], comp * pathIndexStart, comp,
+						true, 1, comp * oldPointCount);
+			}
+		}
+
+<span class="nc bnc" id="L372" title="All 2 branches missed.">		for (int ipath = pathCount; ipath &gt; pathIndex; ipath--) {</span>
+<span class="nc" id="L373">			int iend = m_paths.read(ipath);</span>
+<span class="nc" id="L374">			m_paths.write(ipath, iend + 1);</span>
+		}
+
+<span class="nc" id="L377">		m_pathFlags.clearBits(pathIndex, (byte) PathFlags.enumClosed);</span>
+<span class="nc" id="L378">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	// Major Changes on 16th of January
+	public void openAllPathsAndDuplicateStartVertex() {
+<span class="nc" id="L383">		_touch();</span>
+<span class="nc bnc" id="L384" title="All 2 branches missed.">		if (m_bPolygon)</span>
+<span class="nc" id="L385">			throw GeometryException.GeometryInternalError();// do not call this</span>
+															// method on a
+															// polygon
+
+<span class="nc bnc" id="L389" title="All 2 branches missed.">		if (m_pathFlags == null)// if (!m_pathFlags)</span>
+<span class="nc" id="L390">			throw GeometryException.GeometryInternalError();</span>
+
+<span class="nc" id="L392">		_verifyAllStreams();</span>
+
+<span class="nc" id="L394">		int closedPathCount = 0;</span>
+<span class="nc" id="L395">		int pathCount = getPathCount();</span>
+<span class="nc bnc" id="L396" title="All 2 branches missed.">		for (int i = 0; i &lt; pathCount; i++) {</span>
+<span class="nc bnc" id="L397" title="All 2 branches missed.">			if (m_pathFlags.read(i) == (byte) PathFlags.enumClosed) {</span>
+<span class="nc" id="L398">				closedPathCount++;</span>
+			}
+		}
+
+<span class="nc bnc" id="L402" title="All 2 branches missed.">		for (int iattr = 0, nattr = m_description.getAttributeCount(); iattr &lt; nattr; iattr++) {</span>
+<span class="nc bnc" id="L403" title="All 2 branches missed.">			if (m_vertexAttributes[iattr] != null) {</span>
+<span class="nc" id="L404">				int semantics = m_description._getSemanticsImpl(iattr);// int</span>
+																		// semantics
+																		// =
+																		// m_description._getSemanticsImpl(iattr);
+<span class="nc" id="L408">				int comp = VertexDescription.getComponentCount(semantics);</span>
+<span class="nc" id="L409">				int newSize = comp * (m_pointCount + closedPathCount);</span>
+<span class="nc" id="L410">				m_vertexAttributes[iattr].resize(newSize);</span>
+
+<span class="nc" id="L412">				int offset = closedPathCount;</span>
+<span class="nc" id="L413">				int ipath = pathCount;</span>
+<span class="nc bnc" id="L414" title="All 2 branches missed.">				for (int i = m_pointCount - 1; i &gt;= 0; i--) {</span>
+<span class="nc bnc" id="L415" title="All 2 branches missed.">					if (i + 1 == m_paths.read(ipath)) {</span>
+<span class="nc" id="L416">						ipath--;</span>
+<span class="nc bnc" id="L417" title="All 2 branches missed.">						if (m_pathFlags.read(ipath) == (byte) PathFlags.enumClosed) {</span>
+<span class="nc" id="L418">							int istart = m_paths.read(ipath);</span>
+
+<span class="nc bnc" id="L420" title="All 2 branches missed.">							for (int c = 0; c &lt; comp; c++) {</span>
+<span class="nc" id="L421">								double v = m_vertexAttributes[iattr]</span>
+<span class="nc" id="L422">										.readAsDbl(comp * istart + c);</span>
+<span class="nc" id="L423">								m_vertexAttributes[iattr].writeAsDbl(comp</span>
+										* (offset + i) + c, v);
+							}
+
+<span class="nc bnc" id="L427" title="All 2 branches missed.">							if (--offset == 0)</span>
+<span class="nc" id="L428">								break;</span>
+						}
+					}
+
+<span class="nc bnc" id="L432" title="All 2 branches missed.">					for (int c = 0; c &lt; comp; c++) {</span>
+<span class="nc" id="L433">						double v = m_vertexAttributes[iattr].readAsDbl(comp * i</span>
+								+ c);
+<span class="nc" id="L435">						m_vertexAttributes[iattr].writeAsDbl(comp</span>
+								* (offset + i) + c, v);
+					}
+				}
+			}
+		}
+
+<span class="nc" id="L442">		int offset = closedPathCount;</span>
+<span class="nc bnc" id="L443" title="All 2 branches missed.">		for (int ipath = pathCount; ipath &gt; 0; ipath--) {</span>
+<span class="nc" id="L444">			int iend = m_paths.read(ipath);</span>
+<span class="nc" id="L445">			m_paths.write(ipath, iend + offset);</span>
+
+<span class="nc bnc" id="L447" title="All 2 branches missed.">			if (m_pathFlags.read(ipath - 1) == (byte) PathFlags.enumClosed) {</span>
+<span class="nc" id="L448">				m_pathFlags.clearBits(ipath - 1, (byte) PathFlags.enumClosed);</span>
+
+<span class="nc bnc" id="L450" title="All 2 branches missed.">				if (--offset == 0) {</span>
+<span class="nc" id="L451">					break;</span>
+				}
+			}
+		}
+
+<span class="nc" id="L456">		m_pointCount += closedPathCount;</span>
+<span class="nc" id="L457">	}</span>
+
+	void closePathWithLine(int path_index) {
+		// touch_();
+<span class="fc" id="L461">		throwIfEmpty();</span>
+
+<span class="fc" id="L463">		byte pf = m_pathFlags.read(path_index);</span>
+<span class="fc" id="L464">		m_pathFlags.write(path_index, (byte) (pf | PathFlags.enumClosed));</span>
+<span class="pc bpc" id="L465" title="1 of 2 branches missed.">		if (m_segmentFlags != null) {</span>
+<span class="nc" id="L466">			int vindex = getPathEnd(path_index) - 1;</span>
+<span class="nc" id="L467">			m_segmentFlags.write(vindex, (byte) SegmentFlags.enumLineSeg);</span>
+<span class="nc" id="L468">			m_segmentParamIndex.write(vindex, -1);</span>
+		}
+<span class="fc" id="L470">	}</span>
+
+	void closePathWithLine() {
+<span class="fc" id="L473">		throwIfEmpty();</span>
+<span class="fc" id="L474">		m_bPathStarted = false;</span>
+<span class="fc" id="L475">		closePathWithLine(getPathCount() - 1);</span>
+<span class="fc" id="L476">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	/**
+	 * Closes all open curves by adding an implicit line segment from the end
+	 * point to the start point.
+	 */
+	public void closeAllPaths() {
+<span class="fc" id="L484">		_touch();</span>
+<span class="pc bpc" id="L485" title="3 of 4 branches missed.">		if (m_bPolygon || isEmptyImpl())</span>
+<span class="fc" id="L486">			return;</span>
+
+<span class="nc" id="L488">		m_bPathStarted = false;</span>
+
+<span class="nc bnc" id="L490" title="All 2 branches missed.">		for (int ipath = 0, npart = m_paths.size() - 1; ipath &lt; npart; ipath++) {</span>
+<span class="nc bnc" id="L491" title="All 2 branches missed.">			if (isClosedPath(ipath))</span>
+<span class="nc" id="L492">				continue;</span>
+
+<span class="nc" id="L494">			byte pf = m_pathFlags.read(ipath);</span>
+<span class="nc" id="L495">			m_pathFlags.write(ipath, (byte) (pf | PathFlags.enumClosed));</span>
+			// if (m_segmentFlags)
+			// {
+			// m_segmentFlags.write(m_pointCount - 1,
+			// (byte)SegmentFlags.LineSeg));
+			// m_segmentParamIndex.write(m_pointCount - 1, -1);
+			// }
+		}
+<span class="nc" id="L503">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	/**
+	 * Returns the size of the segment data for the given segment type.
+	 * 
+	 * @param flag
+	 *            is one of the segment flags from the SegmentFlags enum.
+	 * @return the size of the segment params as the number of doubles.
+	 */
+	public static int getSegmentDataSize(byte flag) {
+<span class="nc" id="L514">		return _segmentParamSizes[flag];</span>
+	}
+
+	// Reviewed vs. Native Jan 11, 2011
+	/**
+	 * Closes last path of the MultiPathImpl with the Bezier Segment.
+	 * 
+	 * The start point of the Bezier is the last point of the path and the last
+	 * point of the bezier is the first point of the path.
+	 */
+	public void closePathWithBezier(Point2D controlPoint1, Point2D controlPoint2) {
+<span class="nc" id="L525">		_touch();</span>
+<span class="nc bnc" id="L526" title="All 2 branches missed.">		if (isEmptyImpl())</span>
+<span class="nc" id="L527">			throw new GeometryException(</span>
+					&quot;Invalid call. This operation cannot be performed on an empty geometry.&quot;);
+
+<span class="nc" id="L530">		m_bPathStarted = false;</span>
+
+<span class="nc" id="L532">		int pathIndex = m_paths.size() - 2;</span>
+<span class="nc" id="L533">		byte pf = m_pathFlags.read(pathIndex);</span>
+<span class="nc" id="L534">		m_pathFlags</span>
+<span class="nc" id="L535">				.write(pathIndex,</span>
+						(byte) (pf | PathFlags.enumClosed | PathFlags.enumHasNonlinearSegments));
+<span class="nc" id="L537">		_initSegmentData(6);</span>
+
+<span class="nc" id="L539">		byte oldType = m_segmentFlags</span>
+<span class="nc" id="L540">				.read((byte) ((m_pointCount - 1) &amp; SegmentFlags.enumSegmentMask));</span>
+<span class="nc" id="L541">		m_segmentFlags.write(m_pointCount - 1,</span>
+				(byte) (SegmentFlags.enumBezierSeg));
+
+<span class="nc" id="L544">		int curveIndex = m_curveParamwritePoint;</span>
+<span class="nc bnc" id="L545" title="All 2 branches missed.">		if (getSegmentDataSize(oldType) &lt; getSegmentDataSize((byte) SegmentFlags.enumBezierSeg)) {</span>
+<span class="nc" id="L546">			m_segmentParamIndex.write(m_pointCount - 1, m_curveParamwritePoint);</span>
+<span class="nc" id="L547">			m_curveParamwritePoint += 6;</span>
+		} else {
+			// there was a closing bezier curve or an arc here. We can reuse the
+			// storage.
+<span class="nc" id="L551">			curveIndex = m_segmentParamIndex.read(m_pointCount - 1);</span>
+		}
+
+		double z;
+<span class="nc" id="L555">		m_segmentParams.write(curveIndex, controlPoint1.x);</span>
+<span class="nc" id="L556">		m_segmentParams.write(curveIndex + 1, controlPoint1.y);</span>
+<span class="nc" id="L557">		z = 0;// TODO: calculate me.</span>
+<span class="nc" id="L558">		m_segmentParams.write(curveIndex + 2, z);</span>
+
+<span class="nc" id="L560">		m_segmentParams.write(curveIndex + 3, controlPoint2.x);</span>
+<span class="nc" id="L561">		m_segmentParams.write(curveIndex + 4, controlPoint2.y);</span>
+<span class="nc" id="L562">		z = 0;// TODO: calculate me.</span>
+<span class="nc" id="L563">		m_segmentParams.write(curveIndex + 5, z);</span>
+<span class="nc" id="L564">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	/**
+	 * Returns True if the given path is closed (represents a Ring).
+	 */
+	public boolean isClosedPath(int ipath) {
+		// Should we make a function called _UpdateClosedPathFlags and call it
+		// here?
+<span class="fc bfc" id="L573" title="All 2 branches covered.">		return ((byte) (m_pathFlags.read(ipath) &amp; PathFlags.enumClosed)) != 0;</span>
+	}
+
+	public boolean isClosedPathInXYPlane(int path_index) {
+<span class="pc bpc" id="L577" title="1 of 2 branches missed.">		if (isClosedPath(path_index))</span>
+<span class="nc" id="L578">			return true;</span>
+<span class="fc" id="L579">		int istart = getPathStart(path_index);</span>
+<span class="fc" id="L580">		int iend = getPathEnd(path_index) - 1;</span>
+<span class="pc bpc" id="L581" title="1 of 2 branches missed.">		if (istart &gt; iend)</span>
+<span class="nc" id="L582">			return false;</span>
+<span class="fc" id="L583">		Point2D ptS = getXY(istart);</span>
+<span class="fc" id="L584">		Point2D ptE = getXY(iend);</span>
+<span class="fc" id="L585">		return ptS.isEqual(ptE);</span>
+	}
+
+	// Reviewed vs. Native Jan 11, 2011
+	/**
+	 * Returns True if the given path might have non-linear segments.
+	 */
+	public boolean hasNonLinearSegments(int ipath) {
+		// Should we make a function called _UpdateHasNonLinearSegmentsFlags and
+		// call it here?
+<span class="pc bpc" id="L595" title="1 of 2 branches missed.">		return (m_pathFlags.read(ipath) &amp; PathFlags.enumHasNonlinearSegments) != 0;</span>
+	}
+
+	// Reviewed vs. Native Jan 11, 2011
+	public void addSegment(Segment segment, boolean bStartNewPath) {
+<span class="fc" id="L600">		mergeVertexDescription(segment.getDescription());</span>
+<span class="pc bpc" id="L601" title="1 of 2 branches missed.">		if (segment.getType() == Type.Line) {</span>
+<span class="fc" id="L602">			Point point = new Point();</span>
+<span class="pc bpc" id="L603" title="1 of 4 branches missed.">			if (bStartNewPath || isEmpty()) {</span>
+<span class="fc" id="L604">				segment.queryStart(point);</span>
+<span class="fc" id="L605">				startPath(point);</span>
+			}
+
+<span class="fc" id="L608">			segment.queryEnd(point);</span>
+<span class="fc" id="L609">			lineTo(point);</span>
+<span class="fc" id="L610">		} else {</span>
+<span class="nc" id="L611">			throw GeometryException.GeometryInternalError();</span>
+		}
+<span class="fc" id="L613">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	/**
+	 * adds a rectangular closed Path to the MultiPathImpl.
+	 * 
+	 * @param envSrc
+	 *            is the source rectangle.
+	 * @param bReverse
+	 *            Creates reversed path.
+	 */
+	public void addEnvelope(Envelope2D envSrc, boolean bReverse) {
+<span class="fc bfc" id="L625" title="All 2 branches covered.">		boolean bWasEmpty = m_pointCount == 0;</span>
+
+<span class="fc" id="L627">		startPath(envSrc.xmin, envSrc.ymin);</span>
+<span class="fc bfc" id="L628" title="All 2 branches covered.">		if (bReverse) {</span>
+<span class="fc" id="L629">			lineTo(envSrc.xmax, envSrc.ymin);</span>
+<span class="fc" id="L630">			lineTo(envSrc.xmax, envSrc.ymax);</span>
+<span class="fc" id="L631">			lineTo(envSrc.xmin, envSrc.ymax);</span>
+		} else {
+<span class="fc" id="L633">			lineTo(envSrc.xmin, envSrc.ymax);</span>
+<span class="fc" id="L634">			lineTo(envSrc.xmax, envSrc.ymax);</span>
+<span class="fc" id="L635">			lineTo(envSrc.xmax, envSrc.ymin);</span>
+		}
+
+<span class="fc" id="L638">		closePathWithLine();</span>
+<span class="fc" id="L639">		m_bPathStarted = false;</span>
+
+<span class="fc bfc" id="L641" title="All 4 branches covered.">		if (bWasEmpty &amp;&amp; !bReverse) {</span>
+<span class="fc" id="L642">			_setDirtyFlag(DirtyFlags.DirtyIsEnvelope, false);// now we no(sic?)</span>
+																// the polypath
+																// is envelope
+		}
+<span class="fc" id="L646">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	/**
+	 * adds a rectangular closed Path to the MultiPathImpl.
+	 * 
+	 * @param envSrc
+	 *            is the source rectangle.
+	 * @param bReverse
+	 *            Creates reversed path.
+	 */
+	public void addEnvelope(Envelope envSrc, boolean bReverse) {
+<span class="pc bpc" id="L658" title="1 of 2 branches missed.">		if (envSrc.isEmpty())</span>
+<span class="nc" id="L659">			return;</span>
+
+<span class="fc bfc" id="L661" title="All 2 branches covered.">		boolean bWasEmpty = m_pointCount == 0;</span>
+<span class="fc" id="L662">		Point pt = new Point(m_description);// getDescription());</span>
+<span class="fc bfc" id="L663" title="All 2 branches covered.">		for (int i = 0, n = 4; i &lt; n; i++) {</span>
+<span class="fc bfc" id="L664" title="All 2 branches covered.">			int j = bReverse ? n - i - 1 : i;</span>
+
+<span class="fc" id="L666">			envSrc.queryCornerByVal(j, pt);</span>
+<span class="fc bfc" id="L667" title="All 2 branches covered.">			if (i == 0)</span>
+<span class="fc" id="L668">				startPath(pt);</span>
+			else
+<span class="fc" id="L670">				lineTo(pt);</span>
+		}
+
+<span class="fc" id="L673">		closePathWithLine();</span>
+<span class="fc" id="L674">		m_bPathStarted = false;</span>
+
+<span class="fc bfc" id="L676" title="All 4 branches covered.">		if (bWasEmpty &amp;&amp; !bReverse)</span>
+<span class="fc" id="L677">			_setDirtyFlag(DirtyFlags.DirtyIsEnvelope, false);// now we know the</span>
+																// polypath is
+																// envelope
+<span class="fc" id="L680">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	public void add(MultiPathImpl src, boolean bReversePaths) {
+<span class="fc bfc" id="L684" title="All 2 branches covered.">		for (int i = 0; i &lt; src.getPathCount(); i++)</span>
+<span class="fc bfc" id="L685" title="All 2 branches covered.">			addPath(src, i, !bReversePaths);</span>
+<span class="fc" id="L686">	}</span>
+
+	public void addPath(MultiPathImpl src, int srcPathIndex, boolean bForward) {
+<span class="fc" id="L689">		insertPath(-1, src, srcPathIndex, bForward);</span>
+<span class="fc" id="L690">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011 Significant changes to last for loop
+	public void addPath(Point2D[] _points, int count, boolean bForward) {
+<span class="fc" id="L694">		insertPath(-1, _points, 0, count, bForward);</span>
+<span class="fc" id="L695">	}</span>
+
+	public void addSegmentsFromPath(MultiPathImpl src, int src_path_index,
+			int src_segment_from, int src_segment_count,
+			boolean b_start_new_path) {
+<span class="pc bpc" id="L700" title="1 of 4 branches missed.">		if (!b_start_new_path &amp;&amp; getPathCount() == 0)</span>
+<span class="nc" id="L701">			b_start_new_path = true;</span>
+
+<span class="pc bpc" id="L703" title="1 of 2 branches missed.">		if (src_path_index &lt; 0)</span>
+<span class="nc" id="L704">			src_path_index = src.getPathCount() - 1;</span>
+
+<span class="pc bpc" id="L706" title="3 of 6 branches missed.">		if (src_path_index &gt;= src.getPathCount() || src_segment_from &lt; 0</span>
+				|| src_segment_count &lt; 0
+<span class="pc bpc" id="L708" title="1 of 2 branches missed.">				|| src_segment_count &gt; src.getSegmentCount(src_path_index))</span>
+<span class="nc" id="L709">			throw new GeometryException(&quot;index out of bounds&quot;);</span>
+
+<span class="pc bpc" id="L711" title="1 of 2 branches missed.">		if (src_segment_count == 0)</span>
+<span class="nc" id="L712">			return;</span>
+
+<span class="pc bpc" id="L714" title="1 of 2 branches missed.">		boolean bIncludesClosingSegment = src.isClosedPath(src_path_index)</span>
+				&amp;&amp; src_segment_from + src_segment_count == src
+<span class="pc bnc" id="L716" title="All 2 branches missed.">						.getSegmentCount(src_path_index);</span>
+
+<span class="pc bpc" id="L718" title="3 of 4 branches missed.">		if (bIncludesClosingSegment &amp;&amp; src_segment_count == 1)</span>
+<span class="nc" id="L719">			return;// cannot add a closing segment alone.</span>
+
+<span class="fc" id="L721">		m_bPathStarted = false;</span>
+
+<span class="fc" id="L723">		mergeVertexDescription(src.getDescription());</span>
+<span class="fc" id="L724">		int src_point_count = src_segment_count;</span>
+<span class="fc" id="L725">		int srcFromPoint = src.getPathStart(src_path_index) + src_segment_from</span>
+				+ 1;
+<span class="fc bfc" id="L727" title="All 2 branches covered.">		if (b_start_new_path)// adding a new path.</span>
+		{
+<span class="fc" id="L729">			src_point_count++;// add start point.</span>
+<span class="fc" id="L730">			srcFromPoint--;</span>
+		}
+
+<span class="pc bpc" id="L733" title="1 of 2 branches missed.">		if (bIncludesClosingSegment) {</span>
+<span class="nc" id="L734">			src_point_count--;</span>
+		}
+
+<span class="fc" id="L737">		int oldPointCount = m_pointCount;</span>
+<span class="fc" id="L738">		_resizeImpl(m_pointCount + src_point_count);</span>
+<span class="fc" id="L739">		_verifyAllStreams();</span>
+
+<span class="fc bfc" id="L741" title="All 2 branches covered.">		if (b_start_new_path) {</span>
+<span class="pc bpc" id="L742" title="1 of 2 branches missed.">			if (src_point_count == 0)</span>
+<span class="nc" id="L743">				return;// happens when adding a single closing segment to the</span>
+						// new path
+
+<span class="fc" id="L746">			m_paths.add(m_pointCount);</span>
+
+<span class="fc" id="L748">			byte flags = src.m_pathFlags.read(src_path_index);</span>
+<span class="fc" id="L749">			flags &amp;= ~(byte) PathFlags.enumCalcMask;// remove calculated flags</span>
+
+<span class="pc bpc" id="L751" title="1 of 2 branches missed.">			if (m_bPolygon)</span>
+<span class="nc" id="L752">				flags |= (byte) PathFlags.enumClosed;</span>
+
+<span class="fc" id="L754">			m_pathFlags.write(m_pathFlags.size() - 1, flags);</span>
+<span class="fc" id="L755">			m_pathFlags.add((byte) 0);</span>
+<span class="fc" id="L756">		} else {</span>
+<span class="fc" id="L757">			m_paths.write(m_pathFlags.size() - 1, m_pointCount);</span>
+		}
+
+		// Index_type absoluteIndex = pathStart + before_point_index;
+
+<span class="fc bfc" id="L762" title="All 2 branches covered.">		for (int iattr = 0, nattr = m_description.getAttributeCount(); iattr &lt; nattr; iattr++) {</span>
+<span class="fc" id="L763">			int semantics = m_description.getSemantics(iattr);</span>
+<span class="fc" id="L764">			int comp = VertexDescription.getComponentCount(semantics);</span>
+
+<span class="fc" id="L766">			int isrcAttr = src.m_description.getAttributeIndex(semantics);</span>
+<span class="pc bpc" id="L767" title="2 of 4 branches missed.">			if (isrcAttr &lt; 0 || src.m_vertexAttributes[isrcAttr] == null) {// The</span>
+																			// source
+																			// does
+																			// not
+																			// have
+																			// the
+																			// attribute.
+																			// insert
+																			// default
+																			// value
+<span class="nc" id="L777">				double v = VertexDescription.getDefaultValue(semantics);</span>
+<span class="nc" id="L778">				m_vertexAttributes[iattr].insertRange(comp * oldPointCount, v,</span>
+						src_point_count * comp, comp * oldPointCount);
+<span class="nc" id="L780">				continue;</span>
+			}
+
+			// add vertices to the given stream
+<span class="fc" id="L784">			boolean b_forward = true;</span>
+<span class="fc" id="L785">			m_vertexAttributes[iattr].insertRange(comp * oldPointCount,</span>
+					src.m_vertexAttributes[isrcAttr], comp * srcFromPoint,
+					src_point_count * comp, b_forward, comp, comp
+							* oldPointCount);
+		}
+
+<span class="pc bpc" id="L791" title="1 of 2 branches missed.">		if (hasNonLinearSegments()) {</span>
+			// TODO: implement me. For example as a while loop over all curves.
+			// Replace, calling ReplaceSegment
+<span class="nc" id="L794">			throw GeometryException.GeometryInternalError();</span>
+			// m_segment_flags-&gt;write_range((get_path_start(path_index) +
+			// before_point_index + src_point_count), (oldPointCount -
+			// get_path_start(path_index) - before_point_index),
+			// m_segment_flags, (get_path_start(path_index) +
+			// before_point_index), true, 1);
+			// m_segment_param_index-&gt;write_range((get_path_start(path_index) +
+			// before_point_index + src_point_count), (oldPointCount -
+			// get_path_start(path_index) - before_point_index),
+			// m_segment_param_index, (get_path_start(path_index) +
+			// before_point_index), true, 1);
+			// for (Index_type i = get_path_start(path_index) +
+			// before_point_index, n = get_path_start(path_index) +
+			// before_point_index + src_point_count; i &lt; n; i++)
+			// {
+			// m_segment_flags-&gt;write(i, (int8_t)enum_value1(Segment_flags,
+			// enum_line_seg));
+			// m_segment_param_index-&gt;write(i, -1);
+			// }
+		}
+
+<span class="pc bpc" id="L815" title="1 of 2 branches missed.">		if (src.hasNonLinearSegments(src_path_index)) {</span>
+			// TODO: implement me. For example as a while loop over all curves.
+			// Replace, calling ReplaceSegment
+<span class="nc" id="L818">			throw GeometryException.GeometryInternalError();</span>
+		}
+
+<span class="fc" id="L821">		notifyModified(DirtyFlags.DirtyCoordinates);</span>
+<span class="fc" id="L822">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	public void reverseAllPaths() {
+<span class="fc bfc" id="L826" title="All 2 branches covered.">		for (int i = 0, n = getPathCount(); i &lt; n; i++) {</span>
+<span class="fc" id="L827">			reversePath(i);</span>
+		}
+<span class="fc" id="L829">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	public void reversePath(int pathIndex) {
+<span class="fc" id="L833">		_verifyAllStreams();</span>
+<span class="fc" id="L834">		int pathCount = getPathCount();</span>
+<span class="pc bpc" id="L835" title="1 of 2 branches missed.">		if (pathIndex &gt;= pathCount)</span>
+<span class="nc" id="L836">			throw new IllegalArgumentException();</span>
+
+<span class="fc" id="L838">		int reversedPathStart = getPathStart(pathIndex);</span>
+<span class="fc" id="L839">		int reversedPathSize = getPathSize(pathIndex);</span>
+<span class="pc bpc" id="L840" title="1 of 2 branches missed.">		int offset = isClosedPath(pathIndex) ? 1 : 0;</span>
+
+		// TODO: a bug for the non linear segments here.
+		// There could be an issue here if someone explicity closes the path
+		// with the same start/end point.
+<span class="fc bfc" id="L845" title="All 2 branches covered.">		for (int iattr = 0, nattr = m_description.getAttributeCount(); iattr &lt; nattr; iattr++) {</span>
+<span class="pc bpc" id="L846" title="1 of 2 branches missed.">			if (m_vertexAttributes[iattr] != null) {</span>
+<span class="fc" id="L847">				int semantics = m_description._getSemanticsImpl(iattr);</span>
+<span class="fc" id="L848">				int comp = VertexDescription.getComponentCount(semantics);</span>
+<span class="fc" id="L849">				m_vertexAttributes[iattr].reverseRange(comp</span>
+						* (reversedPathStart + offset), comp
+						* (reversedPathSize - offset), comp);
+			}
+		}
+
+<span class="fc" id="L855">		notifyModified(DirtyFlags.DirtyCoordinates);</span>
+<span class="fc" id="L856">	}</span>
+
+	// Reviewed vs. Native Jan 11, 2011
+	// TODO: Nonlinearsegments
+	public void removePath(int pathIndex) {
+<span class="fc" id="L861">		_verifyAllStreams();</span>
+<span class="fc" id="L862">		int pathCount = getPathCount();</span>
+
+<span class="pc bpc" id="L864" title="1 of 2 branches missed.">		if (pathIndex &lt; 0)</span>
+<span class="nc" id="L865">			pathIndex = pathCount - 1;</span>
+
+<span class="pc bpc" id="L867" title="1 of 2 branches missed.">		if (pathIndex &gt;= pathCount)</span>
+<span class="nc" id="L868">			throw new IllegalArgumentException();</span>
+
+<span class="fc" id="L870">		boolean bDirtyRingAreas2D = _hasDirtyFlag(DirtyFlags.DirtyRingAreas2D);</span>
+
+<span class="fc" id="L872">		int removedPathStart = getPathStart(pathIndex);</span>
+<span class="fc" id="L873">		int removedPathSize = getPathSize(pathIndex);</span>
+
+		// Remove the attribute values for the path
+<span class="fc bfc" id="L876" title="All 2 branches covered.">		for (int iattr = 0, nattr = m_description.getAttributeCount(); iattr &lt; nattr; iattr++) {</span>
+<span class="pc bpc" id="L877" title="1 of 2 branches missed.">			if (m_vertexAttributes[iattr] != null) {</span>
+<span class="fc" id="L878">				int semantics = m_description._getSemanticsImpl(iattr);</span>
+<span class="fc" id="L879">				int comp = VertexDescription.getComponentCount(semantics);</span>
+<span class="fc" id="L880">				m_vertexAttributes[iattr].eraseRange(comp * removedPathStart,</span>
+						comp * removedPathSize, comp * m_pointCount);
+			}
+		}
+
+		// Change the start of each path after the removed path
+<span class="fc bfc" id="L886" title="All 2 branches covered.">		for (int i = pathIndex + 1; i &lt;= pathCount; i++) {</span>
+<span class="fc" id="L887">			int istart = m_paths.read(i);</span>
+<span class="fc" id="L888">			m_paths.write(i - 1, istart - removedPathSize);</span>
+		}
+
+<span class="pc bpc" id="L891" title="1 of 2 branches missed.">		if (m_pathFlags == null) {</span>
+<span class="nc bnc" id="L892" title="All 2 branches missed.">			for (int i = pathIndex + 1; i &lt;= pathCount; i++) {</span>
+<span class="nc" id="L893">				byte flags = m_pathFlags.read(i);</span>
+<span class="nc" id="L894">				m_pathFlags.write(i - 1, flags);</span>
+			}
+		}
+
+<span class="fc" id="L898">		m_paths.resize(pathCount);</span>
+<span class="fc" id="L899">		m_pathFlags.resize(pathCount);</span>
+<span class="fc" id="L900">		m_pointCount -= removedPathSize;</span>
+<span class="fc" id="L901">		m_reservedPointCount -= removedPathSize;</span>
+
+<span class="fc" id="L903">		notifyModified(DirtyFlags.DirtyCoordinates);</span>
+<span class="fc" id="L904">	}</span>
+
+	// TODO: Nonlinearsegments
+	public void insertPath(int pathIndex, MultiPathImpl src, int srcPathIndex,
+			boolean bForward) {
+<span class="pc bpc" id="L909" title="1 of 2 branches missed.">		if (src == this)</span>
+<span class="nc" id="L910">			throw new IllegalArgumentException();</span>
+
+<span class="pc bpc" id="L912" title="1 of 2 branches missed.">		if (srcPathIndex &gt;= src.getPathCount())</span>
+<span class="nc" id="L913">			throw new IllegalArgumentException();</span>
+
+<span class="fc" id="L915">		int oldPathCount = getPathCount();</span>
+<span class="pc bpc" id="L916" title="1 of 2 branches missed.">		if (pathIndex &gt; oldPathCount)</span>
+<span class="nc" id="L917">			throw new IllegalArgumentException();</span>
+
+<span class="fc bfc" id="L919" title="All 2 branches covered.">		if (pathIndex &lt; 0)</span>
+<span class="fc" id="L920">			pathIndex = oldPathCount;</span>
+
+<span class="pc bpc" id="L922" title="1 of 2 branches missed.">		if (srcPathIndex &lt; 0)</span>
+<span class="nc" id="L923">			srcPathIndex = src.getPathCount() - 1;</span>
+
+<span class="fc" id="L925">		m_bPathStarted = false;</span>
+
+<span class="fc" id="L927">		mergeVertexDescription(src.m_description);// merge attributes from the</span>
+													// source
+
+<span class="fc" id="L930">		src._verifyAllStreams();// the source need to be correct.</span>
+
+<span class="fc" id="L932">		int srcPathIndexStart = src.getPathStart(srcPathIndex);</span>
+<span class="fc" id="L933">		int srcPathSize = src.getPathSize(srcPathIndex);</span>
+<span class="fc" id="L934">		int oldPointCount = m_pointCount;</span>
+<span class="fc bfc" id="L935" title="All 4 branches covered.">		int offset = src.isClosedPath(srcPathIndex) &amp;&amp; !bForward ? 1 : 0;</span>
+
+<span class="fc" id="L937">		_resizeImpl(m_pointCount + srcPathSize);</span>
+<span class="fc" id="L938">		_verifyAllStreams();</span>
+<span class="fc bfc" id="L939" title="All 2 branches covered.">		int pathIndexStart = pathIndex &lt; oldPathCount ? getPathStart(pathIndex)</span>
+<span class="fc" id="L940">				: oldPointCount;</span>
+
+		// Copy all attribute values.
+<span class="fc bfc" id="L943" title="All 2 branches covered.">		for (int iattr = 0, nattr = m_description.getAttributeCount(); iattr &lt; nattr; iattr++) {</span>
+<span class="fc" id="L944">			int semantics = m_description._getSemanticsImpl(iattr);</span>
+<span class="fc" id="L945">			int isrcAttr = src.m_description.getAttributeIndex(semantics);</span>
+
+<span class="fc" id="L947">			int comp = VertexDescription.getComponentCount(semantics);</span>
+
+<span class="pc bpc" id="L949" title="2 of 4 branches missed.">			if (isrcAttr &gt;= 0 &amp;&amp; src.m_vertexAttributes[isrcAttr] != null) {</span>
+<span class="fc bfc" id="L950" title="All 2 branches covered.">				if (offset != 0)</span>
+<span class="fc" id="L951">					m_vertexAttributes[iattr].insertRange(</span>
+							pathIndexStart * comp,
+							src.m_vertexAttributes[isrcAttr], comp
+									* srcPathIndexStart, comp, true, comp, comp
+									* oldPointCount);
+<span class="fc" id="L956">				m_vertexAttributes[iattr].insertRange((pathIndexStart + offset)</span>
+						* comp, src.m_vertexAttributes[isrcAttr], comp
+						* (srcPathIndexStart + offset), comp
+						* (srcPathSize - offset), bForward, comp, comp
+						* (oldPointCount + offset));
+			} else {
+				// Need to make room for the attributes, so we copy default
+				// values in
+
+<span class="nc" id="L965">				double v = VertexDescription.getDefaultValue(semantics);</span>
+<span class="nc" id="L966">				m_vertexAttributes[iattr].insertRange(pathIndexStart * comp, v,</span>
+						comp * srcPathSize, comp * oldPointCount);
+			}
+		}
+
+<span class="fc" id="L971">		int newPointCount = oldPointCount + srcPathSize;</span>
+<span class="fc" id="L972">		m_paths.add(newPointCount);</span>
+
+<span class="fc bfc" id="L974" title="All 2 branches covered.">		for (int ipath = oldPathCount; ipath &gt;= pathIndex + 1; ipath--) {</span>
+<span class="fc" id="L975">			int iend = m_paths.read(ipath - 1);</span>
+<span class="fc" id="L976">			m_paths.write(ipath, iend + srcPathSize);</span>
+		}
+
+		// ========================== todo: NonLinearSegments =================
+<span class="pc bpc" id="L980" title="1 of 2 branches missed.">		if (src.hasNonLinearSegments(srcPathIndex)) {</span>
+
+		}
+
+<span class="fc" id="L984">		m_pathFlags.add((byte) 0);</span>
+
+		// _ASSERT(m_pathFlags.size() == m_paths.size());
+
+<span class="fc bfc" id="L988" title="All 2 branches covered.">		for (int ipath = oldPathCount - 1; ipath &gt;= pathIndex + 1; ipath--) {</span>
+<span class="fc" id="L989">			byte flags = m_pathFlags.read(ipath);</span>
+<span class="fc" id="L990">			flags &amp;= ~(byte) PathFlags.enumCalcMask;// remove calculated flags</span>
+<span class="fc" id="L991">			m_pathFlags.write(ipath + 1, flags);</span>
+		}
+
+<span class="fc" id="L994">		AttributeStreamOfInt8 srcPathFlags = src.getPathFlagsStreamRef();</span>
+<span class="fc" id="L995">		byte flags = srcPathFlags.read(srcPathIndex);</span>
+<span class="fc" id="L996">		flags &amp;= ~(byte) PathFlags.enumCalcMask;// remove calculated flags</span>
+
+<span class="fc bfc" id="L998" title="All 2 branches covered.">		if (m_bPolygon)</span>
+<span class="fc" id="L999">			flags |= (byte) PathFlags.enumClosed;</span>
+
+<span class="fc" id="L1001">		m_pathFlags.write(pathIndex, flags);</span>
+<span class="fc" id="L1002">	}</span>
+
+	public void insertPath(int pathIndex, Point2D[] points, int pointsOffset,
+			int count, boolean bForward) {
+<span class="fc" id="L1006">		int oldPathCount = getPathCount();</span>
+<span class="pc bpc" id="L1007" title="1 of 2 branches missed.">		if (pathIndex &gt; oldPathCount)</span>
+<span class="nc" id="L1008">			throw new IllegalArgumentException();</span>
+
+<span class="pc bpc" id="L1010" title="1 of 2 branches missed.">		if (pathIndex &lt; 0)</span>
+<span class="fc" id="L1011">			pathIndex = oldPathCount;</span>
+
+<span class="fc" id="L1013">		m_bPathStarted = false;</span>
+
+<span class="fc" id="L1015">		int oldPointCount = m_pointCount;</span>
+
+		// Copy all attribute values.
+<span class="pc bpc" id="L1018" title="1 of 2 branches missed.">		if (points != null) {</span>
+<span class="nc" id="L1019">			_resizeImpl(m_pointCount + count);</span>
+<span class="nc" id="L1020">			_verifyAllStreams();</span>
+
+<span class="nc bnc" id="L1022" title="All 2 branches missed.">			int pathStart = pathIndex &lt; oldPathCount ? getPathStart(pathIndex)</span>
+<span class="nc" id="L1023">					: oldPointCount;</span>
+
+<span class="nc bnc" id="L1025" title="All 2 branches missed.">			for (int iattr = 0, nattr = m_description.getAttributeCount(); iattr &lt; nattr; iattr++) {</span>
+<span class="nc" id="L1026">				int semantics = m_description._getSemanticsImpl(iattr);</span>
+
+<span class="nc bnc" id="L1028" title="All 2 branches missed.">				if (semantics == VertexDescription.Semantics.POSITION) {</span>
+					// copy range to make place for new vertices
+<span class="nc" id="L1030">					m_vertexAttributes[iattr].writeRange(</span>
+							2 * (pathStart + count),
+							2 * (oldPointCount - pathIndex),
+							m_vertexAttributes[iattr], 2 * pathStart, true, 2);
+
+<span class="nc" id="L1035">					AttributeStreamOfDbl position = (AttributeStreamOfDbl) (AttributeStreamBase) getAttributeStreamRef(semantics);</span>
+
+<span class="nc" id="L1037">					int j = pathStart;</span>
+<span class="nc bnc" id="L1038" title="All 2 branches missed.">					for (int i = 0; i &lt; count; i++, j++) {</span>
+<span class="nc bnc" id="L1039" title="All 2 branches missed.">						int index = (bForward ? pointsOffset + i : pointsOffset</span>
+<span class="nc" id="L1040">								+ count - i - 1);</span>
+<span class="nc" id="L1041">						position.write(2 * j, points[index].x);</span>
+<span class="nc" id="L1042">						position.write(2 * j + 1, points[index].y);</span>
+					}
+<span class="nc" id="L1044">				} else {</span>
+					// Need to make room for the attributes, so we copy default
+					// values in
+
+<span class="nc" id="L1048">					int comp = VertexDescription.getComponentCount(semantics);</span>
+<span class="nc" id="L1049">					double v = VertexDescription.getDefaultValue(semantics);</span>
+<span class="nc" id="L1050">					m_vertexAttributes[iattr].insertRange(pathStart * comp, v,</span>
+							comp * count, comp * oldPointCount);
+				}
+			}
+<span class="nc" id="L1054">		} else {</span>
+<span class="fc" id="L1055">			_verifyAllStreams();</span>
+		}
+
+<span class="fc" id="L1058">		m_paths.add(m_pointCount);</span>
+
+<span class="pc bpc" id="L1060" title="1 of 2 branches missed.">		for (int ipath = oldPathCount; ipath &gt;= pathIndex + 1; ipath--) {</span>
+<span class="nc" id="L1061">			int iend = m_paths.read(ipath - 1);</span>
+<span class="nc" id="L1062">			m_paths.write(ipath, iend + count);</span>
+		}
+
+<span class="fc" id="L1065">		m_pathFlags.add((byte) 0);</span>
+
+		// _ASSERT(m_pathFlags.size() == m_paths.size());
+
+<span class="pc bpc" id="L1069" title="1 of 2 branches missed.">		for (int ipath = oldPathCount - 1; ipath &gt;= pathIndex + 1; ipath--) {</span>
+<span class="nc" id="L1070">			byte flags = m_pathFlags.read(ipath);</span>
+<span class="nc" id="L1071">			flags &amp;= ~(byte) PathFlags.enumCalcMask;// remove calculated flags</span>
+<span class="nc" id="L1072">			m_pathFlags.write(ipath + 1, flags);</span>
+		}
+
+<span class="fc bfc" id="L1075" title="All 2 branches covered.">		if (m_bPolygon)</span>
+<span class="fc" id="L1076">			m_pathFlags.write(pathIndex, (byte) PathFlags.enumClosed);</span>
+<span class="fc" id="L1077">	}</span>
+
+	public void insertPoints(int pathIndex, int beforePointIndex,
+			MultiPathImpl src, int srcPathIndex, int srcPointIndexFrom,
+			int srcPointCount, boolean bForward) {
+<span class="pc bpc" id="L1082" title="1 of 2 branches missed.">		if (pathIndex &lt; 0)</span>
+<span class="nc" id="L1083">			pathIndex = getPathCount();</span>
+
+<span class="pc bpc" id="L1085" title="1 of 2 branches missed.">		if (srcPathIndex &lt; 0)</span>
+<span class="nc" id="L1086">			srcPathIndex = src.getPathCount() - 1;</span>
+
+<span class="pc bpc" id="L1088" title="2 of 4 branches missed.">		if (pathIndex &gt; getPathCount() || beforePointIndex &gt;= 0</span>
+<span class="pc bpc" id="L1089" title="1 of 2 branches missed.">				&amp;&amp; beforePointIndex &gt; getPathSize(pathIndex)</span>
+<span class="pc bpc" id="L1090" title="1 of 2 branches missed.">				|| srcPathIndex &gt;= src.getPathCount()</span>
+<span class="pc bpc" id="L1091" title="1 of 2 branches missed.">				|| srcPointCount &gt; src.getPathSize(srcPathIndex))</span>
+<span class="nc" id="L1092">			throw new GeometryException(&quot;index out of bounds&quot;);</span>
+
+<span class="pc bpc" id="L1094" title="1 of 2 branches missed.">		if (srcPointCount == 0)</span>
+<span class="nc" id="L1095">			return;</span>
+
+<span class="fc" id="L1097">		mergeVertexDescription(src.m_description);</span>
+
+<span class="pc bpc" id="L1099" title="1 of 2 branches missed.">		if (pathIndex == getPathCount())// adding a new path.</span>
+		{
+<span class="nc" id="L1101">			m_paths.add(m_pointCount);</span>
+
+<span class="nc" id="L1103">			byte flags = src.m_pathFlags.read(srcPathIndex);</span>
+<span class="nc" id="L1104">			flags &amp;= ~(byte) PathFlags.enumCalcMask;// remove calculated flags</span>
+
+<span class="nc bnc" id="L1106" title="All 2 branches missed.">			if (!m_bPolygon)</span>
+<span class="nc" id="L1107">				m_pathFlags.add(flags);</span>
+			else
+<span class="nc" id="L1109">				m_pathFlags.add((byte) (flags | PathFlags.enumClosed));</span>
+		}
+
+<span class="pc bpc" id="L1112" title="1 of 2 branches missed.">		if (beforePointIndex &lt; 0)</span>
+<span class="nc" id="L1113">			beforePointIndex = getPathSize(pathIndex);</span>
+
+<span class="fc" id="L1115">		int oldPointCount = m_pointCount;</span>
+<span class="fc" id="L1116">		_resizeImpl(m_pointCount + srcPointCount);</span>
+<span class="fc" id="L1117">		_verifyAllStreams();</span>
+<span class="fc" id="L1118">		src._verifyAllStreams();</span>
+
+<span class="fc" id="L1120">		int pathStart = getPathStart(pathIndex);</span>
+<span class="fc" id="L1121">		int absoluteIndex = pathStart + beforePointIndex;</span>
+
+<span class="pc bpc" id="L1123" title="1 of 2 branches missed.">		if (srcPointCount &lt; 0)</span>
+<span class="nc" id="L1124">			srcPointCount = src.getPathSize(srcPathIndex);</span>
+
+<span class="fc" id="L1126">		int srcPathStart = src.getPathStart(srcPathIndex);</span>
+<span class="fc" id="L1127">		int srcAbsoluteIndex = srcPathStart + srcPointCount;</span>
+
+<span class="fc bfc" id="L1129" title="All 2 branches covered.">		for (int iattr = 0, nattr = m_description.getAttributeCount(); iattr &lt; nattr; iattr++) {</span>
+<span class="fc" id="L1130">			int semantics = m_description._getSemanticsImpl(iattr);</span>
+<span class="fc" id="L1131">			int comp = VertexDescription.getComponentCount(semantics);</span>
+
+<span class="fc" id="L1133">			int isrcAttr = src.m_description.getAttributeIndex(semantics);</span>
+<span class="pc bpc" id="L1134" title="2 of 4 branches missed.">			if (isrcAttr &lt; 0 || src.m_vertexAttributes[isrcAttr] == null) // The</span>
+																			// source
+																			// does
+																			// not
+																			// have
+																			// the
+																			// attribute.
+			{
+<span class="nc" id="L1142">				double v = VertexDescription.getDefaultValue(semantics);</span>
+<span class="nc" id="L1143">				m_vertexAttributes[iattr].insertRange(comp * absoluteIndex, v,</span>
+						srcAbsoluteIndex * comp, comp * oldPointCount);
+<span class="nc" id="L1145">				continue;</span>
+			}
+
+			// add vertices to the given stream
+<span class="fc" id="L1149">			m_vertexAttributes[iattr].insertRange(comp</span>
+					* (pathStart + beforePointIndex),
+					src.m_vertexAttributes[isrcAttr], comp
+							* (srcPathStart + srcPointIndexFrom), srcPointCount
+							* comp, bForward, comp, comp * oldPointCount);
+		}
+
+<span class="pc bpc" id="L1156" title="1 of 2 branches missed.">		if (hasNonLinearSegments()) {// TODO: probably a bug here when a new</span>
+										// path is added.
+<span class="nc" id="L1158">			m_segmentFlags.writeRange((getPathStart(pathIndex)</span>
+					+ beforePointIndex + srcPointCount), (oldPointCount
+<span class="nc" id="L1160">					- getPathStart(pathIndex) - beforePointIndex),</span>
+					m_segmentFlags,
+<span class="nc" id="L1162">					(getPathStart(pathIndex) + beforePointIndex), true, 1);</span>
+<span class="nc" id="L1163">			m_segmentParamIndex.writeRange((getPathStart(pathIndex)</span>
+					+ beforePointIndex + srcPointCount), (oldPointCount
+<span class="nc" id="L1165">					- getPathStart(pathIndex) - beforePointIndex),</span>
+					m_segmentParamIndex,
+<span class="nc" id="L1167">					(getPathStart(pathIndex) + beforePointIndex), true, 1);</span>
+<span class="nc" id="L1168">			for (int i = getPathStart(pathIndex) + beforePointIndex, n = getPathStart(pathIndex)</span>
+<span class="nc bnc" id="L1169" title="All 2 branches missed.">					+ beforePointIndex + srcPointCount; i &lt; n; i++) {</span>
+<span class="nc" id="L1170">				m_segmentFlags.write(i, (byte) SegmentFlags.enumLineSeg);</span>
+<span class="nc" id="L1171">				m_segmentParamIndex.write(i, -1);</span>
+			}
+		}
+
+<span class="pc bpc" id="L1175" title="1 of 2 branches missed.">		if (src.hasNonLinearSegments(srcPathIndex)) {</span>
+			// TODO: implement me. For example as a while loop over all curves.
+			// Replace, calling ReplaceSegment
+<span class="nc" id="L1178">			throw GeometryException.GeometryInternalError();</span>
+		}
+
+<span class="fc bfc" id="L1181" title="All 2 branches covered.">		for (int ipath = pathIndex + 1, npaths = getPathCount(); ipath &lt;= npaths; ipath++) {</span>
+<span class="fc" id="L1182">			int num = m_paths.read(ipath);</span>
+<span class="fc" id="L1183">			m_paths.write(ipath, num + srcPointCount);</span>
+		}
+<span class="fc" id="L1185">	}</span>
+
+	public void insertPoints(int pathIndex, int beforePointIndex,
+			Point2D[] src, int srcPointIndexFrom, int srcPointCount,
+			boolean bForward) {
+<span class="nc bnc" id="L1190" title="All 2 branches missed.">		if (pathIndex &lt; 0)</span>
+<span class="nc" id="L1191">			pathIndex = getPathCount();</span>
+
+<span class="nc bnc" id="L1193" title="All 2 branches missed.">		if (pathIndex &gt; getPathCount()</span>
+<span class="nc bnc" id="L1194" title="All 6 branches missed.">				|| beforePointIndex &gt; getPathSize(pathIndex)</span>
+				|| srcPointIndexFrom &lt; 0 || srcPointCount &gt; src.length)
+<span class="nc" id="L1196">			throw new GeometryException(&quot;index out of bounds&quot;);</span>
+
+<span class="nc bnc" id="L1198" title="All 2 branches missed.">		if (srcPointCount == 0)</span>
+<span class="nc" id="L1199">			return;</span>
+
+<span class="nc bnc" id="L1201" title="All 2 branches missed.">		if (pathIndex == getPathCount())// adding a new path.</span>
+		{
+<span class="nc" id="L1203">			m_paths.add(m_pointCount);</span>
+
+<span class="nc bnc" id="L1205" title="All 2 branches missed.">			if (!m_bPolygon)</span>
+<span class="nc" id="L1206">				m_pathFlags.add((byte) 0);</span>
+			else
+<span class="nc" id="L1208">				m_pathFlags.add((byte) PathFlags.enumClosed);</span>
+		}
+
+<span class="nc bnc" id="L1211" title="All 2 branches missed.">		if (beforePointIndex &lt; 0)</span>
+<span class="nc" id="L1212">			beforePointIndex = getPathSize(pathIndex);</span>
+
+<span class="nc" id="L1214">		_verifyAllStreams();</span>
+<span class="nc" id="L1215">		int oldPointCount = m_pointCount;</span>
+<span class="nc" id="L1216">		_resizeImpl(m_pointCount + srcPointCount);</span>
+<span class="nc" id="L1217">		_verifyAllStreams();</span>
+<span class="nc bnc" id="L1218" title="All 2 branches missed.">		for (int iattr = 0, nattr = m_description.getAttributeCount(); iattr &lt; nattr; iattr++) {</span>
+<span class="nc" id="L1219">			int semantics = m_description._getSemanticsImpl(iattr);</span>
+<span class="nc" id="L1220">			int comp = VertexDescription.getComponentCount(semantics);</span>
+			// copy range to make place for new vertices
+<span class="nc" id="L1222">			m_vertexAttributes[iattr]</span>
+<span class="nc" id="L1223">					.writeRange(</span>
+							comp
+<span class="nc" id="L1225">									* (getPathStart(pathIndex)</span>
+											+ beforePointIndex + srcPointCount),
+<span class="nc" id="L1227">							(oldPointCount - getPathStart(pathIndex) - beforePointIndex)</span>
+									* comp,
+							m_vertexAttributes[iattr],
+<span class="nc" id="L1230">							comp * (getPathStart(pathIndex) + beforePointIndex),</span>
+							true, comp);
+
+<span class="nc bnc" id="L1233" title="All 2 branches missed.">			if (iattr == 0) {</span>
+				// add vertices to the given stream
+<span class="nc" id="L1235">				((AttributeStreamOfDbl) (AttributeStreamBase) m_vertexAttributes[iattr])</span>
+<span class="nc" id="L1236">						.writeRange(comp</span>
+<span class="nc" id="L1237">								* (getPathStart(pathIndex) + beforePointIndex),</span>
+								srcPointCount, src, srcPointIndexFrom, bForward);
+			} else {
+<span class="nc" id="L1240">				double v = VertexDescription.getDefaultValue(semantics);</span>
+<span class="nc" id="L1241">				m_vertexAttributes[iattr].setRange(v,</span>
+<span class="nc" id="L1242">						(getPathStart(pathIndex) + beforePointIndex) * comp,</span>
+						srcPointCount * comp);
+			}
+		}
+
+<span class="nc bnc" id="L1247" title="All 2 branches missed.">		if (hasNonLinearSegments()) {</span>
+<span class="nc" id="L1248">			m_segmentFlags.writeRange((getPathStart(pathIndex)</span>
+					+ beforePointIndex + srcPointCount), (oldPointCount
+<span class="nc" id="L1250">					- getPathStart(pathIndex) - beforePointIndex),</span>
+					m_segmentFlags,
+<span class="nc" id="L1252">					(getPathStart(pathIndex) + beforePointIndex), true, 1);</span>
+<span class="nc" id="L1253">			m_segmentParamIndex.writeRange((getPathStart(pathIndex)</span>
+					+ beforePointIndex + srcPointCount), (oldPointCount
+<span class="nc" id="L1255">					- getPathStart(pathIndex) - beforePointIndex),</span>
+					m_segmentParamIndex,
+<span class="nc" id="L1257">					(getPathStart(pathIndex) + beforePointIndex), true, 1);</span>
+<span class="nc" id="L1258">			m_segmentFlags.setRange((byte) SegmentFlags.enumLineSeg,</span>
+<span class="nc" id="L1259">					getPathStart(pathIndex) + beforePointIndex, srcPointCount);</span>
+<span class="nc" id="L1260">			m_segmentParamIndex.setRange(-1, getPathStart(pathIndex)</span>
+					+ beforePointIndex, srcPointCount);
+		}
+
+<span class="nc bnc" id="L1264" title="All 2 branches missed.">		for (int ipath = pathIndex + 1, npaths = getPathCount(); ipath &lt;= npaths; ipath++) {</span>
+<span class="nc" id="L1265">			m_paths.write(ipath, m_paths.read(ipath) + srcPointCount);</span>
+		}
+<span class="nc" id="L1267">	}</span>
+
+	public void insertPoint(int pathIndex, int beforePointIndex, Point2D pt) {
+<span class="fc" id="L1270">		int pathCount = getPathCount();</span>
+
+<span class="pc bpc" id="L1272" title="1 of 2 branches missed.">		if (pathIndex &lt; 0)</span>
+<span class="nc" id="L1273">			pathIndex = getPathCount();</span>
+
+<span class="pc bpc" id="L1275" title="2 of 4 branches missed.">		if (pathIndex &gt;= pathCount || beforePointIndex &gt; getPathSize(pathIndex))</span>
+<span class="nc" id="L1276">			throw new GeometryException(&quot;index out of bounds&quot;);</span>
+
+<span class="pc bpc" id="L1278" title="1 of 2 branches missed.">		if (pathIndex == getPathCount())// adding a new path.</span>
+		{
+<span class="nc" id="L1280">			m_paths.add(m_pointCount);</span>
+
+<span class="nc bnc" id="L1282" title="All 2 branches missed.">			if (!m_bPolygon)</span>
+<span class="nc" id="L1283">				m_pathFlags.add((byte) 0);</span>
+			else
+<span class="nc" id="L1285">				m_pathFlags.add((byte) PathFlags.enumClosed);</span>
+		}
+
+<span class="pc bpc" id="L1288" title="1 of 2 branches missed.">		if (beforePointIndex &lt; 0)</span>
+<span class="fc" id="L1289">			beforePointIndex = getPathSize(pathIndex);</span>
+
+<span class="fc" id="L1291">		int oldPointCount = m_pointCount;</span>
+<span class="fc" id="L1292">		_resizeImpl(m_pointCount + 1);</span>
+<span class="fc" id="L1293">		_verifyAllStreams();</span>
+
+<span class="fc" id="L1295">		int pathStart = getPathStart(pathIndex);</span>
+
+<span class="fc" id="L1297">		((AttributeStreamOfDbl) (AttributeStreamBase) m_vertexAttributes[0])</span>
+<span class="fc" id="L1298">				.insert(2 * (pathStart + beforePointIndex), pt,</span>
+						2 * oldPointCount);
+
+<span class="pc bpc" id="L1301" title="1 of 2 branches missed.">		for (int iattr = 1, nattr = m_description.getAttributeCount(); iattr &lt; nattr; iattr++) {</span>
+<span class="nc" id="L1302">			int semantics = m_description._getSemanticsImpl(iattr);</span>
+<span class="nc" id="L1303">			int comp = VertexDescription.getComponentCount(semantics);</span>
+
+			// Need to make room for the attribute, so we copy a default value
+			// in
+<span class="nc" id="L1307">			double v = VertexDescription.getDefaultValue(semantics);</span>
+<span class="nc" id="L1308">			m_vertexAttributes[iattr].insertRange(comp</span>
+					* (pathStart + beforePointIndex), v, comp, comp
+					* oldPointCount);
+		}
+
+<span class="fc bfc" id="L1313" title="All 2 branches covered.">		for (int ipath = pathIndex + 1, npaths = pathCount; ipath &lt;= npaths; ipath++) {</span>
+<span class="fc" id="L1314">			m_paths.write(ipath, m_paths.read(ipath) + 1);</span>
+		}
+<span class="fc" id="L1316">	}</span>
+
+	public void insertPoint(int pathIndex, int beforePointIndex, Point pt) {
+<span class="fc" id="L1319">		int pathCount = getPathCount();</span>
+
+<span class="pc bpc" id="L1321" title="1 of 2 branches missed.">		if (pathIndex &lt; 0)</span>
+<span class="nc" id="L1322">			pathIndex = getPathCount();</span>
+
+<span class="pc bpc" id="L1324" title="2 of 4 branches missed.">		if (pathIndex &gt;= pathCount || beforePointIndex &gt; getPathSize(pathIndex))</span>
+<span class="nc" id="L1325">			throw new GeometryException(&quot;index out of bounds&quot;);</span>
+
+<span class="pc bpc" id="L1327" title="1 of 2 branches missed.">		if (pathIndex == getPathCount())// adding a new path.</span>
+		{
+<span class="nc" id="L1329">			m_paths.add(m_pointCount);</span>
+
+<span class="nc bnc" id="L1331" title="All 2 branches missed.">			if (!m_bPolygon)</span>
+<span class="nc" id="L1332">				m_pathFlags.add((byte) 0);</span>
+			else
+<span class="nc" id="L1334">				m_pathFlags.add((byte) PathFlags.enumClosed);</span>
+		}
+
+<span class="fc bfc" id="L1337" title="All 2 branches covered.">		if (beforePointIndex &lt; 0)</span>
+<span class="fc" id="L1338">			beforePointIndex = getPathSize(pathIndex);</span>
+
+<span class="fc" id="L1340">		mergeVertexDescription(pt.getDescription());</span>
+<span class="fc" id="L1341">		int oldPointCount = m_pointCount;</span>
+<span class="fc" id="L1342">		_resizeImpl(m_pointCount + 1);</span>
+<span class="fc" id="L1343">		_verifyAllStreams();</span>
+
+<span class="fc" id="L1345">		int pathStart = getPathStart(pathIndex);</span>
+
+<span class="fc bfc" id="L1347" title="All 2 branches covered.">		for (int iattr = 0, nattr = m_description.getAttributeCount(); iattr &lt; nattr; iattr++) {</span>
+<span class="fc" id="L1348">			int semantics = m_description._getSemanticsImpl(iattr);</span>
+<span class="fc" id="L1349">			int comp = VertexDescription.getComponentCount(semantics);</span>
+
+<span class="pc bpc" id="L1351" title="1 of 2 branches missed.">			if (pt.hasAttribute(semantics)) {</span>
+<span class="fc" id="L1352">				m_vertexAttributes[iattr].insertAttributes(comp</span>
+						* (pathStart + beforePointIndex), pt, semantics, comp
+						* oldPointCount);
+			} else {
+				// Need to make room for the attribute, so we copy a default
+				// value in
+<span class="nc" id="L1358">				double v = VertexDescription.getDefaultValue(semantics);</span>
+<span class="nc" id="L1359">				m_vertexAttributes[iattr].insertRange(comp</span>
+						* (pathStart + beforePointIndex), v, comp, comp
+						* oldPointCount);
+			}
+		}
+
+<span class="fc bfc" id="L1365" title="All 2 branches covered.">		for (int ipath = pathIndex + 1, npaths = pathCount; ipath &lt;= npaths; ipath++) {</span>
+<span class="fc" id="L1366">			m_paths.write(ipath, m_paths.read(ipath) + 1);</span>
+		}
+
+<span class="fc" id="L1369">		notifyModified(DirtyFlags.DirtyCoordinates);</span>
+<span class="fc" id="L1370">	}</span>
+
+	public void removePoint(int pathIndex, int pointIndex) {
+<span class="fc" id="L1373">		int pathCount = getPathCount();</span>
+
+<span class="pc bpc" id="L1375" title="1 of 2 branches missed.">		if (pathIndex &lt; 0)</span>
+<span class="nc" id="L1376">			pathIndex = pathCount - 1;</span>
+
+<span class="pc bpc" id="L1378" title="2 of 4 branches missed.">		if (pathIndex &gt;= pathCount || pointIndex &gt;= getPathSize(pathIndex))</span>
+<span class="nc" id="L1379">			throw new GeometryException(&quot;index out of bounds&quot;);</span>
+
+<span class="fc" id="L1381">		_verifyAllStreams();</span>
+
+<span class="fc" id="L1383">		int pathStart = getPathStart(pathIndex);</span>
+
+<span class="pc bpc" id="L1385" title="1 of 2 branches missed.">		if (pointIndex &lt; 0)</span>
+<span class="nc" id="L1386">			pointIndex = getPathSize(pathIndex) - 1;</span>
+
+<span class="fc" id="L1388">		int absoluteIndex = pathStart + pointIndex;</span>
+
+		// Remove the attribute values for the path
+<span class="fc bfc" id="L1391" title="All 2 branches covered.">		for (int iattr = 0, nattr = m_description.getAttributeCount(); iattr &lt; nattr; iattr++) {</span>
+<span class="pc bpc" id="L1392" title="1 of 2 branches missed.">			if (m_vertexAttributes[iattr] != null) {</span>
+<span class="fc" id="L1393">				int semantics = m_description._getSemanticsImpl(iattr);</span>
+<span class="fc" id="L1394">				int comp = VertexDescription.getComponentCount(semantics);</span>
+<span class="fc" id="L1395">				m_vertexAttributes[iattr].eraseRange(comp * absoluteIndex,</span>
+						comp, comp * m_pointCount);
+			}
+		}
+
+<span class="fc bfc" id="L1400" title="All 2 branches covered.">		for (int ipath = pathCount; ipath &gt;= pathIndex + 1; ipath--) {</span>
+<span class="fc" id="L1401">			int iend = m_paths.read(ipath);</span>
+<span class="fc" id="L1402">			m_paths.write(ipath, iend - 1);</span>
+		}
+
+<span class="fc" id="L1405">		m_pointCount--;</span>
+<span class="fc" id="L1406">		m_reservedPointCount--;</span>
+<span class="fc" id="L1407">		notifyModified(DirtyFlags.DirtyCoordinates);</span>
+<span class="fc" id="L1408">	}</span>
+
+	public double calculatePathLength2D(int pathIndex) /* const */
+	{
+<span class="nc" id="L1412">		SegmentIteratorImpl segIter = querySegmentIteratorAtVertex(getPathStart(pathIndex));</span>
+
+<span class="nc" id="L1414">		MathUtils.KahanSummator len = new MathUtils.KahanSummator(0);</span>
+<span class="nc bnc" id="L1415" title="All 2 branches missed.">		while (segIter.hasNextSegment()) {</span>
+<span class="nc" id="L1416">			len.add(segIter.nextSegment().calculateLength2D());</span>
+		}
+
+<span class="nc" id="L1419">		return len.getResult();</span>
+	}
+
+	double calculateSubLength2D(int from_path_index, int from_point_index,
+			int to_path_index, int to_point_index) {
+<span class="fc" id="L1424">		int absolute_from_index = getPathStart(from_path_index)</span>
+				+ from_point_index;
+<span class="fc" id="L1426">		int absolute_to_index = getPathStart(to_path_index) + to_point_index;</span>
+
+<span class="pc bpc" id="L1428" title="2 of 4 branches missed.">		if (absolute_to_index &lt; absolute_from_index || absolute_from_index &lt; 0</span>
+<span class="pc bpc" id="L1429" title="1 of 2 branches missed.">				|| absolute_to_index &gt; getPointCount() - 1)</span>
+<span class="nc" id="L1430">			throw new IllegalArgumentException();</span>
+
+<span class="fc" id="L1432">		SegmentIteratorImpl seg_iter = querySegmentIterator();</span>
+
+<span class="fc" id="L1434">		double sub_length = 0.0;</span>
+
+<span class="fc" id="L1436">		seg_iter.resetToVertex(absolute_from_index);</span>
+
+		do {
+<span class="fc bfc" id="L1439" title="All 2 branches covered.">			while (seg_iter.hasNextSegment()) {</span>
+<span class="fc" id="L1440">				Segment segment = seg_iter.nextSegment();</span>
+
+<span class="fc bfc" id="L1442" title="All 2 branches covered.">				if (seg_iter.getStartPointIndex() == absolute_to_index)</span>
+<span class="fc" id="L1443">					break;</span>
+
+<span class="fc" id="L1445">				double segment_length = segment.calculateLength2D();</span>
+<span class="fc" id="L1446">				sub_length += segment_length;</span>
+<span class="fc" id="L1447">			}</span>
+
+<span class="fc bfc" id="L1449" title="All 2 branches covered.">			if (seg_iter.getStartPointIndex() == absolute_to_index)</span>
+<span class="fc" id="L1450">				break;</span>
+
+<span class="fc bfc" id="L1452" title="All 2 branches covered.">		} while (seg_iter.nextPath());</span>
+
+<span class="fc" id="L1454">		return sub_length;</span>
+	}
+
+	double calculateSubLength2D(int path_index, int from_point_index,
+			int to_point_index) {
+<span class="fc" id="L1459">		int absolute_from_index = getPathStart(path_index) + from_point_index;</span>
+<span class="fc" id="L1460">		int absolute_to_index = getPathStart(path_index) + to_point_index;</span>
+
+<span class="pc bpc" id="L1462" title="2 of 4 branches missed.">		if (absolute_from_index &lt; 0 || absolute_to_index &gt; getPointCount() - 1)</span>
+<span class="nc" id="L1463">			throw new IllegalArgumentException();</span>
+
+<span class="fc" id="L1465">		SegmentIteratorImpl seg_iter = querySegmentIterator();</span>
+
+<span class="fc bfc" id="L1467" title="All 2 branches covered.">		if (absolute_from_index &gt; absolute_to_index) {</span>
+<span class="pc bpc" id="L1468" title="1 of 2 branches missed.">			if (!isClosedPath(path_index))</span>
+<span class="nc" id="L1469">				throw new IllegalArgumentException(</span>
+						&quot;cannot iterate across an open path&quot;);
+
+<span class="fc" id="L1472">			seg_iter.setCirculator(true);</span>
+		}
+
+<span class="fc" id="L1475">		double prev_length = 0.0;</span>
+<span class="fc" id="L1476">		double sub_length = 0.0;</span>
+
+<span class="fc" id="L1478">		seg_iter.resetToVertex(absolute_from_index);</span>
+
+		do {
+<span class="pc bpc" id="L1481" title="1 of 2 branches missed.">			assert (seg_iter.hasNextSegment());</span>
+<span class="fc" id="L1482">			sub_length += prev_length;</span>
+<span class="fc" id="L1483">			Segment segment = seg_iter.nextSegment();</span>
+<span class="fc" id="L1484">			prev_length = segment.calculateLength2D();</span>
+
+<span class="fc bfc" id="L1486" title="All 2 branches covered.">		} while (seg_iter.getStartPointIndex() != absolute_to_index);</span>
+
+<span class="fc" id="L1488">		return sub_length;</span>
+	}
+
+	@Override
+	public Geometry getBoundary() {
+<span class="fc" id="L1493">		return Boundary.calculate(this, null);</span>
+	}
+
+	// TODO: Add code fore interpolation type (none and angular)
+	void interpolateAttributes(int from_path_index, int from_point_index,
+			int to_path_index, int to_point_index) {
+<span class="fc bfc" id="L1499" title="All 2 branches covered.">		for (int ipath = from_path_index; ipath &lt; to_path_index - 1; ipath++) {</span>
+<span class="pc bpc" id="L1500" title="1 of 2 branches missed.">			if (isClosedPath(ipath))</span>
+<span class="nc" id="L1501">				throw new IllegalArgumentException(</span>
+						&quot;cannot interpolate across closed paths&quot;);
+		}
+
+<span class="fc" id="L1505">		int nattr = m_description.getAttributeCount();</span>
+
+<span class="pc bpc" id="L1507" title="1 of 2 branches missed.">		if (nattr == 1)</span>
+<span class="nc" id="L1508">			return; // only has position</span>
+
+<span class="fc" id="L1510">		double sub_length = calculateSubLength2D(from_path_index,</span>
+				from_point_index, to_path_index, to_point_index);
+
+<span class="pc bpc" id="L1513" title="1 of 2 branches missed.">		if (sub_length == 0.0)</span>
+<span class="nc" id="L1514">			return;</span>
+
+<span class="fc bfc" id="L1516" title="All 2 branches covered.">		for (int iattr = 1; iattr &lt; nattr; iattr++) {</span>
+<span class="fc" id="L1517">			int semantics = m_description.getSemantics(iattr);</span>
+
+<span class="fc" id="L1519">			int interpolation = VertexDescription.getInterpolation(semantics);</span>
+<span class="pc bpc" id="L1520" title="1 of 2 branches missed.">			if (interpolation == VertexDescription.Interpolation.ANGULAR)</span>
+<span class="nc" id="L1521">				continue;</span>
+
+<span class="fc" id="L1523">			int components = VertexDescription.getComponentCount(semantics);</span>
+
+<span class="fc bfc" id="L1525" title="All 2 branches covered.">			for (int ordinate = 0; ordinate &lt; components; ordinate++)</span>
+<span class="fc" id="L1526">				interpolateAttributes_(semantics, from_path_index,</span>
+						from_point_index, to_path_index, to_point_index,
+						sub_length, ordinate);
+		}
+<span class="fc" id="L1530">	}</span>
+
+	// TODO: Add code for interpolation type (none and angular)
+	void interpolateAttributesForSemantics(int semantics, int from_path_index,
+			int from_point_index, int to_path_index, int to_point_index) {
+<span class="pc bpc" id="L1535" title="1 of 2 branches missed.">		if (semantics == VertexDescription.Semantics.POSITION)</span>
+<span class="nc" id="L1536">			return;</span>
+
+<span class="pc bpc" id="L1538" title="1 of 2 branches missed.">		if (!hasAttribute(semantics))</span>
+<span class="nc" id="L1539">			throw new IllegalArgumentException(</span>
+					&quot;does not have the given attribute&quot;);
+
+<span class="fc" id="L1542">		int interpolation = VertexDescription.getInterpolation(semantics);</span>
+<span class="pc bpc" id="L1543" title="1 of 2 branches missed.">		if (interpolation == VertexDescription.Interpolation.ANGULAR)</span>
+<span class="nc" id="L1544">			throw new IllegalArgumentException(</span>
+					&quot;not implemented for the given semantics&quot;);
+
+<span class="fc bfc" id="L1547" title="All 2 branches covered.">		for (int ipath = from_path_index; ipath &lt; to_path_index - 1; ipath++) {</span>
+<span class="pc bpc" id="L1548" title="1 of 2 branches missed.">			if (isClosedPath(ipath))</span>
+<span class="nc" id="L1549">				throw new IllegalArgumentException(</span>
+						&quot;cannot interpolate across closed paths&quot;);
+		}
+
+<span class="fc" id="L1553">		double sub_length = calculateSubLength2D(from_path_index,</span>
+				from_point_index, to_path_index, to_point_index);
+
+<span class="fc bfc" id="L1556" title="All 2 branches covered.">		if (sub_length == 0.0)</span>
+<span class="fc" id="L1557">			return;</span>
+
+<span class="fc" id="L1559">		int components = VertexDescription.getComponentCount(semantics);</span>
+
+<span class="fc bfc" id="L1561" title="All 2 branches covered.">		for (int ordinate = 0; ordinate &lt; components; ordinate++)</span>
+<span class="fc" id="L1562">			interpolateAttributes_(semantics, from_path_index,</span>
+					from_point_index, to_path_index, to_point_index,
+					sub_length, ordinate);
+<span class="fc" id="L1565">	}</span>
+
+	void interpolateAttributes(int path_index, int from_point_index,
+			int to_point_index) {
+<span class="fc" id="L1569">		int nattr = m_description.getAttributeCount();</span>
+
+<span class="pc bpc" id="L1571" title="1 of 2 branches missed.">		if (nattr == 1)</span>
+<span class="nc" id="L1572">			return; // only has position</span>
+
+<span class="fc" id="L1574">		double sub_length = calculateSubLength2D(path_index, from_point_index,</span>
+				to_point_index);
+
+<span class="pc bpc" id="L1577" title="1 of 2 branches missed.">		if (sub_length == 0.0)</span>
+<span class="nc" id="L1578">			return;</span>
+
+<span class="fc bfc" id="L1580" title="All 2 branches covered.">		for (int iattr = 1; iattr &lt; nattr; iattr++) {</span>
+<span class="fc" id="L1581">			int semantics = m_description.getSemantics(iattr);</span>
+
+<span class="fc" id="L1583">			int interpolation = VertexDescription.getInterpolation(semantics);</span>
+<span class="pc bpc" id="L1584" title="1 of 2 branches missed.">			if (interpolation == VertexDescription.Interpolation.ANGULAR)</span>
+<span class="nc" id="L1585">				continue;</span>
+
+<span class="fc" id="L1587">			int components = VertexDescription.getComponentCount(semantics);</span>
+
+<span class="fc bfc" id="L1589" title="All 2 branches covered.">			for (int ordinate = 0; ordinate &lt; components; ordinate++)</span>
+<span class="fc" id="L1590">				interpolateAttributes_(semantics, path_index, from_point_index,</span>
+						to_point_index, sub_length, ordinate);
+		}
+<span class="fc" id="L1593">	}</span>
+
+	void interpolateAttributesForSemantics(int semantics, int path_index,
+			int from_point_index, int to_point_index) {
+<span class="pc bpc" id="L1597" title="1 of 2 branches missed.">		if (semantics == VertexDescription.Semantics.POSITION)</span>
+<span class="nc" id="L1598">			return;</span>
+
+<span class="pc bpc" id="L1600" title="1 of 2 branches missed.">		if (!hasAttribute(semantics))</span>
+<span class="nc" id="L1601">			throw new IllegalArgumentException(</span>
+					&quot;does not have the given attribute&quot;);
+
+<span class="fc" id="L1604">		int interpolation = VertexDescription.getInterpolation(semantics);</span>
+<span class="pc bpc" id="L1605" title="1 of 2 branches missed.">		if (interpolation == VertexDescription.Interpolation.ANGULAR)</span>
+<span class="nc" id="L1606">			throw new IllegalArgumentException(</span>
+					&quot;not implemented for the given semantics&quot;);
+
+<span class="fc" id="L1609">		double sub_length = calculateSubLength2D(path_index, from_point_index,</span>
+				to_point_index);
+
+<span class="pc bpc" id="L1612" title="1 of 2 branches missed.">		if (sub_length == 0.0)</span>
+<span class="nc" id="L1613">			return;</span>
+
+<span class="fc" id="L1615">		int components = VertexDescription.getComponentCount(semantics);</span>
+
+<span class="fc bfc" id="L1617" title="All 2 branches covered.">		for (int ordinate = 0; ordinate &lt; components; ordinate++)</span>
+<span class="fc" id="L1618">			interpolateAttributes_(semantics, path_index, from_point_index,</span>
+					to_point_index, sub_length, ordinate);
+<span class="fc" id="L1620">	}</span>
+
+	// TODO: Add code fore interpolation type (none and angular)
+	void interpolateAttributes_(int semantics, int from_path_index,
+			int from_point_index, int to_path_index, int to_point_index,
+			double sub_length, int ordinate) {
+<span class="fc" id="L1626">		SegmentIteratorImpl seg_iter = querySegmentIterator();</span>
+
+<span class="fc" id="L1628">		int absolute_from_index = getPathStart(from_path_index)</span>
+				+ from_point_index;
+<span class="fc" id="L1630">		int absolute_to_index = getPathStart(to_path_index) + to_point_index;</span>
+
+<span class="fc" id="L1632">		double from_attribute = getAttributeAsDbl(semantics,</span>
+				absolute_from_index, ordinate);
+<span class="fc" id="L1634">		double to_attribute = getAttributeAsDbl(semantics, absolute_to_index,</span>
+				ordinate);
+<span class="fc" id="L1636">		double interpolated_attribute = from_attribute;</span>
+<span class="fc" id="L1637">		double cumulative_length = 0.0;</span>
+
+<span class="fc" id="L1639">		seg_iter.resetToVertex(absolute_from_index);</span>
+
+		do {
+<span class="fc bfc" id="L1642" title="All 2 branches covered.">			if (seg_iter.hasNextSegment()) {</span>
+<span class="fc" id="L1643">				seg_iter.nextSegment();</span>
+
+<span class="fc bfc" id="L1645" title="All 2 branches covered.">				if (seg_iter.getStartPointIndex() == absolute_to_index)</span>
+<span class="fc" id="L1646">					return;</span>
+
+<span class="fc" id="L1648">				setAttribute(semantics, seg_iter.getStartPointIndex(),</span>
+						ordinate, interpolated_attribute);
+
+<span class="fc" id="L1651">				seg_iter.previousSegment();</span>
+
+				do {
+<span class="fc" id="L1654">					Segment segment = seg_iter.nextSegment();</span>
+
+<span class="fc bfc" id="L1656" title="All 2 branches covered.">					if (seg_iter.getEndPointIndex() == absolute_to_index)</span>
+<span class="fc" id="L1657">						return;</span>
+
+<span class="fc" id="L1659">					double segment_length = segment.calculateLength2D();</span>
+<span class="fc" id="L1660">					cumulative_length += segment_length;</span>
+<span class="fc" id="L1661">					double t = cumulative_length / sub_length;</span>
+<span class="fc" id="L1662">					interpolated_attribute = MathUtils.lerp(from_attribute,  to_attribute, t);</span>
+
+<span class="pc bpc" id="L1664" title="1 of 2 branches missed.">					if (!seg_iter.isClosingSegment())</span>
+<span class="fc" id="L1665">						setAttribute(semantics, seg_iter.getEndPointIndex(),</span>
+								ordinate, interpolated_attribute);
+
+<span class="fc bfc" id="L1668" title="All 2 branches covered.">				} while (seg_iter.hasNextSegment());</span>
+			}
+
+<span class="pc bpc" id="L1671" title="1 of 2 branches missed.">		} while (seg_iter.nextPath());</span>
+<span class="nc" id="L1672">	}</span>
+
+	void interpolateAttributes_(int semantics, int path_index,
+			int from_point_index, int to_point_index, double sub_length,
+			int ordinate) {
+<span class="pc bpc" id="L1677" title="1 of 2 branches missed.">		assert (m_bPolygon);</span>
+<span class="fc" id="L1678">		SegmentIteratorImpl seg_iter = querySegmentIterator();</span>
+
+<span class="fc" id="L1680">		int absolute_from_index = getPathStart(path_index) + from_point_index;</span>
+<span class="fc" id="L1681">		int absolute_to_index = getPathStart(path_index) + to_point_index;</span>
+
+<span class="pc bpc" id="L1683" title="1 of 2 branches missed.">		if (absolute_to_index == absolute_from_index)</span>
+<span class="nc" id="L1684">			return;</span>
+
+<span class="fc" id="L1686">		double from_attribute = getAttributeAsDbl(semantics,</span>
+				absolute_from_index, ordinate);
+<span class="fc" id="L1688">		double to_attribute = getAttributeAsDbl(semantics, absolute_to_index,</span>
+				ordinate);
+<span class="fc" id="L1690">		double cumulative_length = 0.0;</span>
+
+<span class="fc" id="L1692">		seg_iter.resetToVertex(absolute_from_index);</span>
+<span class="fc" id="L1693">		seg_iter.setCirculator(true);</span>
+
+<span class="fc" id="L1695">		double prev_interpolated_attribute = from_attribute;</span>
+
+		do {
+<span class="fc" id="L1698">			Segment segment = seg_iter.nextSegment();</span>
+<span class="fc" id="L1699">			setAttribute(semantics, seg_iter.getStartPointIndex(), ordinate,</span>
+					prev_interpolated_attribute);
+
+<span class="fc" id="L1702">			double segment_length = segment.calculateLength2D();</span>
+<span class="fc" id="L1703">			cumulative_length += segment_length;</span>
+<span class="fc" id="L1704">			double t = cumulative_length / sub_length;</span>
+<span class="fc" id="L1705">			prev_interpolated_attribute = MathUtils.lerp(from_attribute, to_attribute, t);</span>
+
+<span class="fc bfc" id="L1707" title="All 2 branches covered.">		} while (seg_iter.getEndPointIndex() != absolute_to_index);</span>
+<span class="fc" id="L1708">	}</span>
+
+	@Override
+	public void setEmpty() {
+<span class="fc" id="L1712">		m_curveParamwritePoint = 0;</span>
+<span class="fc" id="L1713">		m_bPathStarted = false;</span>
+<span class="fc" id="L1714">		m_paths = null;</span>
+<span class="fc" id="L1715">		m_pathFlags = null;</span>
+<span class="fc" id="L1716">		m_segmentParamIndex = null;</span>
+<span class="fc" id="L1717">		m_segmentFlags = null;</span>
+<span class="fc" id="L1718">		m_segmentParams = null;</span>
+<span class="fc" id="L1719">		_setEmptyImpl();</span>
+<span class="fc" id="L1720">	}</span>
+
+	@Override
+	public void applyTransformation(Transformation2D transform) {
+<span class="fc" id="L1724">		applyTransformation(transform, -1);</span>
+<span class="fc" id="L1725">	}</span>
+
+	public void applyTransformation(Transformation2D transform, int pathIndex) {
+<span class="pc bpc" id="L1728" title="1 of 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L1729">			return;</span>
+
+<span class="fc bfc" id="L1731" title="All 2 branches covered.">		if (transform.isIdentity())</span>
+<span class="fc" id="L1732">			return;</span>
+
+<span class="fc" id="L1734">		_verifyAllStreams();</span>
+<span class="fc" id="L1735">		AttributeStreamOfDbl points = (AttributeStreamOfDbl) m_vertexAttributes[0];</span>
+<span class="fc" id="L1736">		Point2D ptStart = new Point2D();</span>
+<span class="fc" id="L1737">		Point2D ptControl = new Point2D();</span>
+
+		boolean bHasNonLinear;
+		int fistIdx;
+		int lastIdx;
+<span class="fc bfc" id="L1742" title="All 2 branches covered.">		if (pathIndex &lt; 0) {</span>
+<span class="fc" id="L1743">			bHasNonLinear = hasNonLinearSegments();</span>
+<span class="fc" id="L1744">			fistIdx = 0;</span>
+<span class="fc" id="L1745">			lastIdx = m_pointCount;</span>
+		} else {
+<span class="fc" id="L1747">			bHasNonLinear = hasNonLinearSegments(pathIndex);</span>
+<span class="fc" id="L1748">			fistIdx = getPathStart(pathIndex);</span>
+<span class="fc" id="L1749">			lastIdx = getPathEnd(pathIndex);</span>
+		}
+
+<span class="fc bfc" id="L1752" title="All 2 branches covered.">		for (int ipoint = fistIdx; ipoint &lt; lastIdx; ipoint++) {</span>
+<span class="fc" id="L1753">			ptStart.x = points.read(ipoint * 2);</span>
+<span class="fc" id="L1754">			ptStart.y = points.read(ipoint * 2 + 1);</span>
+
+<span class="pc bpc" id="L1756" title="1 of 2 branches missed.">			if (bHasNonLinear) {</span>
+<span class="nc" id="L1757">				int segIndex = m_segmentParamIndex.read(ipoint);</span>
+<span class="nc bnc" id="L1758" title="All 2 branches missed.">				if (segIndex &gt;= 0) {</span>
+<span class="nc" id="L1759">					int segmentType = (int) m_segmentFlags.read(ipoint);</span>
+<span class="nc" id="L1760">					int type = segmentType &amp; SegmentFlags.enumSegmentMask;</span>
+<span class="nc bnc" id="L1761" title="All 3 branches missed.">					switch (type) {</span>
+					case SegmentFlags.enumBezierSeg: {
+<span class="nc" id="L1763">						ptControl.x = m_segmentParams.read(segIndex);</span>
+<span class="nc" id="L1764">						ptControl.y = m_segmentParams.read(segIndex + 1);</span>
+<span class="nc" id="L1765">						transform.transform(ptControl, ptControl);</span>
+<span class="nc" id="L1766">						m_segmentParams.write(segIndex, ptControl.x);</span>
+<span class="nc" id="L1767">						m_segmentParams.write(segIndex + 1, ptControl.y);</span>
+
+<span class="nc" id="L1769">						ptControl.x = m_segmentParams.read(segIndex + 3);</span>
+<span class="nc" id="L1770">						ptControl.y = m_segmentParams.read(segIndex + 4);</span>
+<span class="nc" id="L1771">						transform.transform(ptControl, ptControl);</span>
+<span class="nc" id="L1772">						m_segmentParams.write(segIndex + 3, ptControl.x);</span>
+<span class="nc" id="L1773">						m_segmentParams.write(segIndex + 4, ptControl.y);</span>
+					}
+<span class="nc" id="L1775">						break;</span>
+					case SegmentFlags.enumArcSeg:
+<span class="nc" id="L1777">						throw GeometryException.GeometryInternalError();</span>
+
+					}
+				}
+			}
+
+<span class="fc" id="L1783">			transform.transform(ptStart, ptStart);</span>
+<span class="fc" id="L1784">			points.write(ipoint * 2, ptStart.x);</span>
+<span class="fc" id="L1785">			points.write(ipoint * 2 + 1, ptStart.y);</span>
+		}
+
+<span class="fc" id="L1788">		notifyModified(DirtyFlags.DirtyCoordinates);</span>
+		// REFACTOR: reset the exact envelope only and transform the loose
+		// envelope
+<span class="fc" id="L1791">	}</span>
+
+	@Override
+	public void applyTransformation(Transformation3D transform) {
+<span class="nc bnc" id="L1795" title="All 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L1796">			return;</span>
+
+<span class="nc" id="L1798">		addAttribute(VertexDescription.Semantics.Z);</span>
+<span class="nc" id="L1799">		_verifyAllStreams();</span>
+<span class="nc" id="L1800">		AttributeStreamOfDbl points = (AttributeStreamOfDbl) m_vertexAttributes[0];</span>
+<span class="nc" id="L1801">		AttributeStreamOfDbl zs = (AttributeStreamOfDbl) m_vertexAttributes[1];</span>
+<span class="nc" id="L1802">		Point3D ptStart = new Point3D();</span>
+<span class="nc" id="L1803">		Point3D ptControl = new Point3D();</span>
+<span class="nc" id="L1804">		boolean bHasNonLinear = hasNonLinearSegments();</span>
+<span class="nc bnc" id="L1805" title="All 2 branches missed.">		for (int ipoint = 0; ipoint &lt; m_pointCount; ipoint++) {</span>
+<span class="nc" id="L1806">			ptStart.x = points.read(ipoint * 2);</span>
+<span class="nc" id="L1807">			ptStart.y = points.read(ipoint * 2 + 1);</span>
+<span class="nc" id="L1808">			ptStart.z = zs.read(ipoint);</span>
+
+<span class="nc bnc" id="L1810" title="All 2 branches missed.">			if (bHasNonLinear) {</span>
+<span class="nc" id="L1811">				int segIndex = m_segmentParamIndex.read(ipoint);</span>
+<span class="nc bnc" id="L1812" title="All 2 branches missed.">				if (segIndex &gt;= 0) {</span>
+<span class="nc" id="L1813">					int segmentType = (int) m_segmentFlags.read(ipoint);</span>
+<span class="nc" id="L1814">					int type = segmentType &amp; (int) SegmentFlags.enumSegmentMask;</span>
+<span class="nc bnc" id="L1815" title="All 3 branches missed.">					switch (type) {</span>
+					case SegmentFlags.enumBezierSeg: {
+<span class="nc" id="L1817">						ptControl.x = m_segmentParams.read(segIndex);</span>
+<span class="nc" id="L1818">						ptControl.y = m_segmentParams.read(segIndex + 1);</span>
+<span class="nc" id="L1819">						ptControl.z = m_segmentParams.read(segIndex + 2);</span>
+<span class="nc" id="L1820">						ptControl = transform.transform(ptControl);</span>
+<span class="nc" id="L1821">						m_segmentParams.write(segIndex, ptControl.x);</span>
+<span class="nc" id="L1822">						m_segmentParams.write(segIndex + 1, ptControl.y);</span>
+<span class="nc" id="L1823">						m_segmentParams.write(segIndex + 1, ptControl.z);</span>
+
+<span class="nc" id="L1825">						ptControl.x = m_segmentParams.read(segIndex + 3);</span>
+<span class="nc" id="L1826">						ptControl.y = m_segmentParams.read(segIndex + 4);</span>
+<span class="nc" id="L1827">						ptControl.z = m_segmentParams.read(segIndex + 5);</span>
+<span class="nc" id="L1828">						ptControl = transform.transform(ptControl);</span>
+<span class="nc" id="L1829">						m_segmentParams.write(segIndex + 3, ptControl.x);</span>
+<span class="nc" id="L1830">						m_segmentParams.write(segIndex + 4, ptControl.y);</span>
+<span class="nc" id="L1831">						m_segmentParams.write(segIndex + 5, ptControl.z);</span>
+					}
+<span class="nc" id="L1833">						break;</span>
+					case SegmentFlags.enumArcSeg:
+<span class="nc" id="L1835">						throw GeometryException.GeometryInternalError();</span>
+
+					}
+				}
+			}
+
+<span class="nc" id="L1841">			ptStart = transform.transform(ptStart);</span>
+<span class="nc" id="L1842">			points.write(ipoint * 2, ptStart.x);</span>
+<span class="nc" id="L1843">			points.write(ipoint * 2 + 1, ptStart.y);</span>
+<span class="nc" id="L1844">			zs.write(ipoint, ptStart.z);</span>
+		}
+
+		// REFACTOR: reset the exact envelope only and transform the loose
+		// envelope
+
+<span class="nc" id="L1850">		notifyModified(DirtyFlags.DirtyCoordinates);</span>
+<span class="nc" id="L1851">	}</span>
+
+	@Override
+	protected void _verifyStreamsImpl() {
+<span class="fc bfc" id="L1855" title="All 2 branches covered.">		if (m_paths == null) {</span>
+<span class="fc" id="L1856">			m_paths = (AttributeStreamOfInt32) AttributeStreamBase</span>
+<span class="fc" id="L1857">					.createIndexStream(1, 0);</span>
+<span class="fc" id="L1858">			m_pathFlags = (AttributeStreamOfInt8) AttributeStreamBase</span>
+<span class="fc" id="L1859">					.createByteStream(1, (byte) 0);</span>
+		}
+
+<span class="pc bpc" id="L1862" title="1 of 2 branches missed.">		if (m_segmentFlags != null) {</span>
+<span class="nc" id="L1863">			m_segmentFlags.resize(m_reservedPointCount,</span>
+					(byte) SegmentFlags.enumLineSeg);
+<span class="nc" id="L1865">			m_segmentParamIndex.resize(m_reservedPointCount, -1);</span>
+		}
+<span class="fc" id="L1867">	}</span>
+
+	@Override
+	void _copyToImpl(MultiVertexGeometryImpl dst) {
+<span class="fc" id="L1871">		MultiPathImpl dstPoly = (MultiPathImpl) dst;</span>
+<span class="fc" id="L1872">		dstPoly.m_bPathStarted = false;</span>
+<span class="fc" id="L1873">		dstPoly.m_curveParamwritePoint = m_curveParamwritePoint;</span>
+<span class="fc" id="L1874">		dstPoly.m_fill_rule = m_fill_rule;</span>
+		
+<span class="pc bpc" id="L1876" title="1 of 2 branches missed.">		if (m_paths != null)</span>
+<span class="fc" id="L1877">			dstPoly.m_paths = new AttributeStreamOfInt32(m_paths);</span>
+		else
+<span class="nc" id="L1879">			dstPoly.m_paths = null;</span>
+
+<span class="pc bpc" id="L1881" title="1 of 2 branches missed.">		if (m_pathFlags != null)</span>
+<span class="fc" id="L1882">			dstPoly.m_pathFlags = new AttributeStreamOfInt8(m_pathFlags);</span>
+		else
+<span class="nc" id="L1884">			dstPoly.m_pathFlags = null;</span>
+
+<span class="pc bpc" id="L1886" title="1 of 2 branches missed.">		if (m_segmentParamIndex != null)</span>
+<span class="nc" id="L1887">			dstPoly.m_segmentParamIndex = new AttributeStreamOfInt32(</span>
+					m_segmentParamIndex);
+		else
+<span class="fc" id="L1890">			dstPoly.m_segmentParamIndex = null;</span>
+
+<span class="pc bpc" id="L1892" title="1 of 2 branches missed.">		if (m_segmentFlags != null)</span>
+<span class="nc" id="L1893">			dstPoly.m_segmentFlags = new AttributeStreamOfInt8(m_segmentFlags);</span>
+		else
+<span class="fc" id="L1895">			dstPoly.m_segmentFlags = null;</span>
+
+<span class="pc bpc" id="L1897" title="1 of 2 branches missed.">		if (m_segmentParams != null)</span>
+<span class="nc" id="L1898">			dstPoly.m_segmentParams = new AttributeStreamOfDbl(m_segmentParams);</span>
+		else
+<span class="fc" id="L1900">			dstPoly.m_segmentParams = null;</span>
+
+<span class="fc" id="L1902">		dstPoly.m_cachedLength2D = m_cachedLength2D;</span>
+<span class="fc" id="L1903">		dstPoly.m_cachedArea2D = m_cachedArea2D;</span>
+
+<span class="fc bfc" id="L1905" title="All 2 branches covered.">		if (!_hasDirtyFlag(DirtyFlags.DirtyRingAreas2D)) {</span>
+<span class="fc" id="L1906">			dstPoly.m_cachedRingAreas2D = (AttributeStreamOfDbl) m_cachedRingAreas2D;</span>
+		} else
+<span class="fc" id="L1908">			dstPoly.m_cachedRingAreas2D = null;</span>
+
+<span class="fc" id="L1910">	}</span>
+
+	@Override
+	public double calculateLength2D() {
+<span class="fc bfc" id="L1914" title="All 2 branches covered.">		if (!_hasDirtyFlag(DirtyFlags.DirtyLength2D)) {</span>
+<span class="fc" id="L1915">			return m_cachedLength2D;</span>
+		}
+
+<span class="fc" id="L1918">		SegmentIteratorImpl segIter = querySegmentIterator();</span>
+<span class="fc" id="L1919">		MathUtils.KahanSummator len = new MathUtils.KahanSummator(0);</span>
+<span class="fc bfc" id="L1920" title="All 2 branches covered.">		while (segIter.nextPath()) {</span>
+<span class="fc bfc" id="L1921" title="All 2 branches covered.">			while (segIter.hasNextSegment()) {</span>
+<span class="fc" id="L1922">				len.add(segIter.nextSegment().calculateLength2D());</span>
+			}
+		}
+
+<span class="fc" id="L1926">		m_cachedLength2D = len.getResult();</span>
+<span class="fc" id="L1927">		_setDirtyFlag(DirtyFlags.DirtyLength2D, false);</span>
+
+<span class="fc" id="L1929">		return len.getResult();</span>
+	}
+
+	@Override
+	public boolean equals(Object other) {
+<span class="pc bpc" id="L1934" title="1 of 2 branches missed.">		if (other == this)</span>
+<span class="nc" id="L1935">			return true;</span>
+
+<span class="pc bpc" id="L1937" title="1 of 2 branches missed.">		if (!(other instanceof MultiPathImpl))</span>
+<span class="nc" id="L1938">			return false;</span>
+
+<span class="fc bfc" id="L1940" title="All 2 branches covered.">		if (!super.equals(other))</span>
+<span class="fc" id="L1941">			return false;</span>
+
+<span class="fc" id="L1943">		MultiPathImpl otherMultiPath = (MultiPathImpl) other;</span>
+
+<span class="fc" id="L1945">		int pathCount = getPathCount();</span>
+<span class="fc" id="L1946">		int pathCountOther = otherMultiPath.getPathCount();</span>
+
+<span class="pc bpc" id="L1948" title="1 of 2 branches missed.">		if (pathCount != pathCountOther)</span>
+<span class="nc" id="L1949">			return false;</span>
+
+<span class="pc bpc" id="L1951" title="1 of 4 branches missed.">		if (pathCount &gt; 0 &amp;&amp; m_paths != null</span>
+<span class="pc bpc" id="L1952" title="1 of 2 branches missed.">				&amp;&amp; !m_paths.equals(otherMultiPath.m_paths, 0, pathCount + 1))</span>
+<span class="nc" id="L1953">			return false;</span>
+
+<span class="pc bpc" id="L1955" title="1 of 2 branches missed.">		if (m_fill_rule != otherMultiPath.m_fill_rule)</span>
+<span class="nc" id="L1956">			return false;</span>
+
+		{
+			// Note: OGC flags do not participate in the equals operation by
+			// design.
+			// Because for the polygon pathFlags will have all enum_closed set,
+			// we do not need to compare this stream. Only for polyline.
+			// Polyline does not have OGC flags set.
+<span class="fc bfc" id="L1964" title="All 2 branches covered.">			if (!m_bPolygon) {</span>
+<span class="fc bfc" id="L1965" title="All 2 branches covered.">				if (m_pathFlags != null</span>
+<span class="pc bpc" id="L1966" title="1 of 2 branches missed.">						&amp;&amp; !m_pathFlags.equals(otherMultiPath.m_pathFlags, 0,</span>
+								pathCount))
+<span class="nc" id="L1968">					return false;</span>
+			}
+		}
+	      
+<span class="fc" id="L1972">		return super.equals(other);</span>
+	}
+
+	/**
+	 * Returns a SegmentIterator that set to a specific vertex of the
+	 * MultiPathImpl. The call to NextSegment will return the segment that
+	 * starts at the vertex. Call to PreviousSegment will return the segment
+	 * that starts at the previous vertex.
+	 */
+	public SegmentIteratorImpl querySegmentIteratorAtVertex(int startVertexIndex) {
+<span class="nc bnc" id="L1982" title="All 4 branches missed.">		if (startVertexIndex &lt; 0 || startVertexIndex &gt;= getPointCount())</span>
+<span class="nc" id="L1983">			throw new IndexOutOfBoundsException();</span>
+
+<span class="nc" id="L1985">		SegmentIteratorImpl iter = new SegmentIteratorImpl(this,</span>
+				startVertexIndex);
+<span class="nc" id="L1987">		return iter;</span>
+	}
+
+	// void QuerySegmentIterator(int fromVertex, SegmentIterator iterator);
+	public SegmentIteratorImpl querySegmentIterator() {
+<span class="fc" id="L1992">		return new SegmentIteratorImpl(this);</span>
+	}
+
+	@Override
+	public void _updateXYImpl(boolean bExact) {
+<span class="fc" id="L1997">		super._updateXYImpl(bExact);</span>
+<span class="fc" id="L1998">		boolean bHasCurves = hasNonLinearSegments();</span>
+<span class="pc bpc" id="L1999" title="1 of 2 branches missed.">		if (bHasCurves) {</span>
+<span class="nc" id="L2000">			SegmentIteratorImpl segIter = querySegmentIterator();</span>
+<span class="nc bnc" id="L2001" title="All 2 branches missed.">			while (segIter.nextPath()) {</span>
+<span class="nc bnc" id="L2002" title="All 2 branches missed.">				while (segIter.hasNextSegment()) {</span>
+<span class="nc" id="L2003">					Segment curve = segIter.nextCurve();</span>
+<span class="nc bnc" id="L2004" title="All 2 branches missed.">					if (curve != null) {</span>
+<span class="nc" id="L2005">						Envelope2D env2D = new Envelope2D();</span>
+<span class="nc" id="L2006">						curve.queryEnvelope2D(env2D);</span>
+<span class="nc" id="L2007">						m_envelope.merge(env2D);</span>
+					} else
+						break;
+<span class="nc" id="L2010">				}</span>
+			}
+		}
+<span class="fc" id="L2013">	}</span>
+
+	@Override
+	void calculateEnvelope2D(Envelope2D env, boolean bExact) {
+<span class="nc" id="L2017">		super.calculateEnvelope2D(env, bExact);</span>
+<span class="nc" id="L2018">		boolean bHasCurves = hasNonLinearSegments();</span>
+<span class="nc bnc" id="L2019" title="All 2 branches missed.">		if (bHasCurves) {</span>
+<span class="nc" id="L2020">			SegmentIteratorImpl segIter = querySegmentIterator();</span>
+<span class="nc bnc" id="L2021" title="All 2 branches missed.">			while (segIter.nextPath()) {</span>
+<span class="nc bnc" id="L2022" title="All 2 branches missed.">				while (segIter.hasNextSegment()) {</span>
+<span class="nc" id="L2023">					Segment curve = segIter.nextCurve();</span>
+<span class="nc bnc" id="L2024" title="All 2 branches missed.">					if (curve != null) {</span>
+<span class="nc" id="L2025">						Envelope2D env2D = new Envelope2D();</span>
+<span class="nc" id="L2026">						curve.queryEnvelope2D(env2D);</span>
+<span class="nc" id="L2027">						env.merge(env2D);</span>
+					} else
+						break;
+<span class="nc" id="L2030">				}</span>
+			}
+		}
+<span class="nc" id="L2033">	}</span>
+
+	@Override
+	public void _notifyModifiedAllImpl() {
+<span class="pc bpc" id="L2037" title="1 of 4 branches missed.">		if (m_paths == null || m_paths.size() == 0)// if (m_paths == null ||</span>
+													// !m_paths.size())
+<span class="fc" id="L2039">			m_pointCount = 0;</span>
+		else
+<span class="fc" id="L2041">			m_pointCount = m_paths.read(m_paths.size() - 1);</span>
+<span class="fc" id="L2042">	}</span>
+
+	@Override
+	public double calculateArea2D() {
+<span class="fc bfc" id="L2046" title="All 2 branches covered.">		if (!m_bPolygon)</span>
+<span class="fc" id="L2047">			return 0.0;</span>
+
+<span class="fc" id="L2049">		_updateRingAreas2D();</span>
+
+<span class="fc" id="L2051">		return m_cachedArea2D;</span>
+	}
+
+	/**
+	 * Returns True if the ring is an exterior ring. Valid only for simple
+	 * polygons.
+	 */
+	public boolean isExteriorRing(int ringIndex) {
+<span class="pc bpc" id="L2059" title="1 of 2 branches missed.">		if (!m_bPolygon)</span>
+<span class="nc" id="L2060">			return false;</span>
+
+<span class="fc bfc" id="L2062" title="All 2 branches covered.">		if (!_hasDirtyFlag(DirtyFlags.DirtyOGCFlags))</span>
+<span class="fc bfc" id="L2063" title="All 2 branches covered.">			return (m_pathFlags.read(ringIndex) &amp; (byte) PathFlags.enumOGCStartPolygon) != 0;</span>
+
+<span class="fc" id="L2065">		_updateRingAreas2D();</span>
+<span class="fc bfc" id="L2066" title="All 2 branches covered.">		return m_cachedRingAreas2D.read(ringIndex) &gt; 0;</span>
+		// Should we make a function called _UpdateHasNonLinearSegmentsFlags and
+		// call it here?
+	}
+
+	public double calculateRingArea2D(int pathIndex) {
+<span class="pc bpc" id="L2072" title="1 of 2 branches missed.">		if (!m_bPolygon)</span>
+<span class="nc" id="L2073">			return 0.0;</span>
+
+<span class="fc" id="L2075">		_updateRingAreas2D();</span>
+
+<span class="fc" id="L2077">		return m_cachedRingAreas2D.read(pathIndex);</span>
+	}
+
+	public void _updateRingAreas2D() {
+<span class="fc bfc" id="L2081" title="All 2 branches covered.">		if (_hasDirtyFlag(DirtyFlags.DirtyRingAreas2D)) {</span>
+<span class="fc" id="L2082">			int pathCount = getPathCount();</span>
+
+<span class="fc bfc" id="L2084" title="All 2 branches covered.">			if (m_cachedRingAreas2D == null)</span>
+<span class="fc" id="L2085">				m_cachedRingAreas2D = new AttributeStreamOfDbl(pathCount);</span>
+<span class="fc bfc" id="L2086" title="All 2 branches covered.">			else if (m_cachedRingAreas2D.size() != pathCount)</span>
+<span class="fc" id="L2087">				m_cachedRingAreas2D.resize(pathCount);</span>
+
+<span class="fc" id="L2089">			MathUtils.KahanSummator totalArea = new MathUtils.KahanSummator(0);</span>
+<span class="fc" id="L2090">			MathUtils.KahanSummator pathArea = new MathUtils.KahanSummator(0);</span>
+<span class="fc" id="L2091">			Point2D pt = new Point2D();</span>
+<span class="fc" id="L2092">			int ipath = 0;</span>
+<span class="fc" id="L2093">			SegmentIteratorImpl segIter = querySegmentIterator();</span>
+<span class="fc bfc" id="L2094" title="All 2 branches covered.">			while (segIter.nextPath()) {</span>
+<span class="fc" id="L2095">				pathArea.reset();</span>
+<span class="fc" id="L2096">				getXY(getPathStart(segIter.getPathIndex()), pt);// get the area</span>
+																// calculation
+																// origin to be
+																// the origin of
+																// the ring.
+<span class="fc bfc" id="L2101" title="All 2 branches covered.">				while (segIter.hasNextSegment()) {</span>
+<span class="fc" id="L2102">					pathArea.add(segIter.nextSegment()._calculateArea2DHelper(</span>
+							pt.x, pt.y));
+				}
+
+<span class="fc" id="L2106">				totalArea.add(pathArea.getResult());</span>
+
+<span class="fc" id="L2108">				int i = ipath++;</span>
+<span class="fc" id="L2109">				m_cachedRingAreas2D.write(i, pathArea.getResult());</span>
+<span class="fc" id="L2110">			}</span>
+
+<span class="fc" id="L2112">			m_cachedArea2D = totalArea.getResult();</span>
+<span class="fc" id="L2113">			_setDirtyFlag(DirtyFlags.DirtyRingAreas2D, false);</span>
+		}
+<span class="fc" id="L2115">	}</span>
+
+	int getOGCPolygonCount() {
+<span class="pc bpc" id="L2118" title="1 of 2 branches missed.">		if (!m_bPolygon)</span>
+<span class="nc" id="L2119">			return 0;</span>
+
+<span class="fc" id="L2121">		_updateOGCFlags();</span>
+
+<span class="fc" id="L2123">		int polygonCount = 0;</span>
+<span class="fc" id="L2124">		int partCount = getPathCount();</span>
+<span class="fc bfc" id="L2125" title="All 2 branches covered.">		for (int ipart = 0; ipart &lt; partCount; ipart++) {</span>
+<span class="fc bfc" id="L2126" title="All 2 branches covered.">			if (((int) m_pathFlags.read(ipart) &amp; (int) PathFlags.enumOGCStartPolygon) != 0)</span>
+<span class="fc" id="L2127">				polygonCount++;</span>
+		}
+
+<span class="fc" id="L2130">		return polygonCount;</span>
+	}
+
+	protected void _updateOGCFlags() {
+<span class="fc bfc" id="L2134" title="All 2 branches covered.">		if (_hasDirtyFlag(DirtyFlags.DirtyOGCFlags)) {</span>
+<span class="fc" id="L2135">			_updateRingAreas2D();</span>
+<span class="fc" id="L2136">			_updateOGCFlagsHelper();</span>
+<span class="fc" id="L2137">			_setDirtyFlag(DirtyFlags.DirtyOGCFlags, false);</span>
+		}
+<span class="fc" id="L2139">	}</span>
+	
+	private void _updateOGCFlagsHelper() {
+<span class="fc" id="L2142">		int pathCount = getPathCount();</span>
+<span class="pc bpc" id="L2143" title="2 of 6 branches missed.">		if (pathCount &gt; 0 &amp;&amp; (m_pathFlags == null || m_pathFlags.size() &lt; pathCount))</span>
+<span class="nc" id="L2144">			m_pathFlags = (AttributeStreamOfInt8) AttributeStreamBase.createByteStream(pathCount + 1);</span>
+
+		// firstSign is the sign of first ring.
+		// a first ring with non zero area defines the
+		// value. First zero area rings are written out as enumOGCStartPolygon.
+<span class="fc" id="L2149">		int firstSign = 0;</span>
+<span class="fc bfc" id="L2150" title="All 2 branches covered.">		for (int ipath = 0; ipath &lt; pathCount; ipath++) {</span>
+<span class="fc" id="L2151">			double area = m_cachedRingAreas2D.read(ipath);</span>
+<span class="fc bfc" id="L2152" title="All 2 branches covered.">			if (firstSign == 0) {</span>
+				// if the first ring is inverted we assume that the
+				// whole polygon is inverted.
+<span class="fc" id="L2155">				firstSign = MathUtils.sign(area);</span>
+			}
+
+<span class="fc bfc" id="L2158" title="All 4 branches covered.">			if (area * firstSign &gt; 0.0 || firstSign == 0)</span>
+<span class="fc" id="L2159">				m_pathFlags.setBits(ipath, (byte) PathFlags.enumOGCStartPolygon);</span>
+			else
+<span class="fc" id="L2161">				m_pathFlags.clearBits(ipath, (byte) PathFlags.enumOGCStartPolygon);</span>
+		}
+<span class="fc" id="L2163">	}</span>
+
+	public int getPathIndexFromPointIndex(int pointIndex) {
+<span class="fc" id="L2166">		int positionHint = m_currentPathIndex;// in case of multithreading</span>
+												// thiswould simply produce an
+												// invalid value
+<span class="fc" id="L2169">		int pathCount = getPathCount();</span>
+
+		// Try using the hint position first to get the path index.
+<span class="pc bpc" id="L2172" title="1 of 4 branches missed.">		if (positionHint &gt;= 0 &amp;&amp; positionHint &lt; pathCount) {</span>
+<span class="fc bfc" id="L2173" title="All 2 branches covered.">			if (pointIndex &lt; getPathEnd(positionHint)) {</span>
+<span class="fc bfc" id="L2174" title="All 2 branches covered.">				if (pointIndex &gt;= getPathStart(positionHint))</span>
+<span class="fc" id="L2175">					return positionHint;</span>
+<span class="fc" id="L2176">				positionHint--;</span>
+			} else {
+<span class="fc" id="L2178">				positionHint++;</span>
+			}
+
+<span class="pc bpc" id="L2181" title="2 of 4 branches missed.">			if (positionHint &gt;= 0 &amp;&amp; positionHint &lt; pathCount) {</span>
+<span class="fc bfc" id="L2182" title="All 2 branches covered.">				if (pointIndex &gt;= getPathStart(positionHint)</span>
+<span class="fc bfc" id="L2183" title="All 2 branches covered.">						&amp;&amp; pointIndex &lt; getPathEnd(positionHint)) {</span>
+<span class="fc" id="L2184">					m_currentPathIndex = positionHint;</span>
+<span class="fc" id="L2185">					return positionHint;</span>
+				}
+			}
+		}
+
+<span class="fc bfc" id="L2190" title="All 2 branches covered.">		if (pathCount &lt; 5) {// TODO: time the performance to choose when to use</span>
+							// linear search.
+<span class="pc bpc" id="L2192" title="1 of 2 branches missed.">			for (int i = 0; i &lt; pathCount; i++) {</span>
+<span class="fc bfc" id="L2193" title="All 2 branches covered.">				if (pointIndex &lt; getPathEnd(i)) {</span>
+<span class="fc" id="L2194">					m_currentPathIndex = i;</span>
+<span class="fc" id="L2195">					return i;</span>
+				}
+			}
+<span class="nc" id="L2198">			throw new GeometryException(&quot;corrupted geometry&quot;);</span>
+		}
+
+		// Do binary search:
+<span class="fc" id="L2202">		int minPathIndex = 0;</span>
+<span class="fc" id="L2203">		int maxPathIndex = pathCount - 1;</span>
+<span class="fc bfc" id="L2204" title="All 2 branches covered.">		while (maxPathIndex &gt; minPathIndex) {</span>
+<span class="fc" id="L2205">			int mid = minPathIndex + ((maxPathIndex - minPathIndex) &gt;&gt; 1);</span>
+<span class="fc" id="L2206">			int pathStart = getPathStart(mid);</span>
+<span class="fc bfc" id="L2207" title="All 2 branches covered.">			if (pointIndex &lt; pathStart)</span>
+<span class="fc" id="L2208">				maxPathIndex = mid - 1;</span>
+			else {
+<span class="fc" id="L2210">				int pathEnd = getPathEnd(mid);</span>
+<span class="fc bfc" id="L2211" title="All 2 branches covered.">				if (pointIndex &gt;= pathEnd)</span>
+<span class="fc" id="L2212">					minPathIndex = mid + 1;</span>
+				else {
+<span class="fc" id="L2214">					m_currentPathIndex = mid;</span>
+<span class="fc" id="L2215">					return mid;</span>
+				}
+			}
+<span class="fc" id="L2218">		}</span>
+
+<span class="fc" id="L2220">		m_currentPathIndex = minPathIndex;</span>
+<span class="fc" id="L2221">		return minPathIndex;</span>
+	}
+
+	int getHighestPointIndex(int path_index) {
+<span class="pc bpc" id="L2225" title="2 of 4 branches missed.">		assert (path_index &gt;= 0 &amp;&amp; path_index &lt; getPathCount());</span>
+
+<span class="fc" id="L2227">		AttributeStreamOfDbl position = (AttributeStreamOfDbl) (getAttributeStreamRef(VertexDescription.Semantics.POSITION));</span>
+<span class="fc" id="L2228">		AttributeStreamOfInt32 paths = (AttributeStreamOfInt32) (getPathStreamRef());</span>
+
+<span class="fc" id="L2230">		int path_end = getPathEnd(path_index);</span>
+<span class="fc" id="L2231">		int path_start = getPathStart(path_index);</span>
+<span class="fc" id="L2232">		int max_index = -1;</span>
+<span class="fc" id="L2233">		Point2D max_point = new Point2D(), pt = new Point2D();</span>
+<span class="fc" id="L2234">		max_point.y = NumberUtils.negativeInf();</span>
+<span class="fc" id="L2235">		max_point.x = NumberUtils.negativeInf();</span>
+
+<span class="fc bfc" id="L2237" title="All 2 branches covered.">		for (int i = path_start + 0; i &lt; path_end; i++) {</span>
+<span class="fc" id="L2238">			position.read(2 * i, pt);</span>
+<span class="fc bfc" id="L2239" title="All 2 branches covered.">			if (max_point.compare(pt) == -1) {</span>
+<span class="fc" id="L2240">				max_index = i;</span>
+<span class="fc" id="L2241">				max_point.setCoords(pt);</span>
+			}
+		}
+
+<span class="fc" id="L2245">		return max_index;</span>
+	}
+
+	/**
+	 * Returns total segment count in the MultiPathImpl.
+	 */
+	public int getSegmentCount() {
+<span class="fc" id="L2252">		int segCount = getPointCount();</span>
+<span class="fc bfc" id="L2253" title="All 2 branches covered.">		if (!m_bPolygon) {</span>
+<span class="fc" id="L2254">			segCount -= getPathCount();</span>
+<span class="fc bfc" id="L2255" title="All 2 branches covered.">			for (int i = 0, n = getPathCount(); i &lt; n; i++)</span>
+<span class="pc bpc" id="L2256" title="1 of 2 branches missed.">				if (isClosedPath(i))</span>
+<span class="nc" id="L2257">					segCount++;</span>
+		}
+
+<span class="fc" id="L2260">		return segCount;</span>
+	}
+
+	public int getSegmentCount(int path_index) {
+<span class="fc" id="L2264">		int segCount = getPathSize(path_index);</span>
+<span class="pc bpc" id="L2265" title="1 of 2 branches missed.">		if (!isClosedPath(path_index))</span>
+<span class="fc" id="L2266">			segCount--;</span>
+<span class="fc" id="L2267">		return segCount;</span>
+	}
+
+	// HEADER defintions
+	@Override
+	public Geometry createInstance() {
+<span class="nc" id="L2273">		return new MultiPathImpl(m_bPolygon, getDescription());</span>
+	}
+
+	@Override
+	public int getDimension() {
+<span class="nc bnc" id="L2278" title="All 2 branches missed.">		return m_bPolygon ? 2 : 1;</span>
+	}
+
+	@Override
+	public Geometry.Type getType() {
+<span class="fc bfc" id="L2283" title="All 2 branches covered.">		return m_bPolygon ? Type.Polygon : Type.Polyline;</span>
+	}
+
+	/**
+	 * Returns True if the class is envelope. THis is not an exact method. Only
+	 * addEnvelope makes this true.
+	 */
+	public boolean isEnvelope() {
+<span class="nc bnc" id="L2291" title="All 2 branches missed.">		return !_hasDirtyFlag(DirtyFlags.DirtyIsEnvelope);</span>
+	}
+
+	/**
+	 * Returns a reference to the AttributeStream of MultiPathImpl parts
+	 * (Paths).
+	 * 
+	 * For the non empty MultiPathImpl, that stream contains start points of the
+	 * MultiPathImpl curves. In addition, the last element is the total point
+	 * count. The number of vertices in a given part is parts[i + 1] - parts[i].
+	 */
+	public AttributeStreamOfInt32 getPathStreamRef() {
+<span class="fc" id="L2303">		throwIfEmpty();</span>
+<span class="fc" id="L2304">		return m_paths;</span>
+	}
+
+	/**
+	 * sets a reference to an AttributeStream of MultiPathImpl paths (Paths).
+	 */
+	public void setPathStreamRef(AttributeStreamOfInt32 paths) {
+<span class="fc" id="L2311">		m_paths = paths;</span>
+<span class="fc" id="L2312">		notifyModified(DirtyFlags.DirtyAll);</span>
+<span class="fc" id="L2313">	}</span>
+
+	/**
+	 * Returns a reference to the AttributeStream of Segment flags (SegmentFlags
+	 * flags). Can be NULL when no non-linear segments are present.
+	 * 
+	 * Segment flags indicate what kind of segment originates (starts) on the
+	 * given point. The last vertices of open Path parts has enumNone flag.
+	 */
+	public AttributeStreamOfInt8 getSegmentFlagsStreamRef() {
+<span class="fc" id="L2323">		throwIfEmpty();</span>
+<span class="fc" id="L2324">		return m_segmentFlags;</span>
+	}
+
+	/**
+	 * Returns a reference to the AttributeStream of Path flags (PathFlags
+	 * flags).
+	 * 
+	 * Each start point of a path has a flag set to indicate if the Path is open
+	 * or closed.
+	 */
+	public AttributeStreamOfInt8 getPathFlagsStreamRef() {
+<span class="fc" id="L2335">		throwIfEmpty();</span>
+<span class="fc" id="L2336">		return m_pathFlags;</span>
+	}
+
+	/**
+	 * sets a reference to an AttributeStream of Path flags (PathFlags flags).
+	 */
+	public void setPathFlagsStreamRef(AttributeStreamOfInt8 pathFlags) {
+<span class="fc" id="L2343">		m_pathFlags = pathFlags;</span>
+<span class="fc" id="L2344">		notifyModified(DirtyFlags.DirtyAll);</span>
+<span class="fc" id="L2345">	}</span>
+
+	public AttributeStreamOfInt32 getSegmentIndexStreamRef() {
+<span class="nc" id="L2348">		throwIfEmpty();</span>
+<span class="nc" id="L2349">		return m_segmentParamIndex;</span>
+	}
+
+	public AttributeStreamOfDbl getSegmentDataStreamRef() {
+<span class="nc" id="L2353">		throwIfEmpty();</span>
+<span class="nc" id="L2354">		return m_segmentParams;</span>
+	}
+
+	public int getPathCount() {
+<span class="fc bfc" id="L2358" title="All 2 branches covered.">		return (m_paths != null) ? m_paths.size() - 1 : 0;</span>
+	}
+
+	public int getPathEnd(int partIndex) {
+<span class="fc" id="L2362">		return m_paths.read(partIndex + 1);</span>
+	}
+
+	public int getPathSize(int partIndex) {
+<span class="fc" id="L2366">		return m_paths.read(partIndex + 1) - m_paths.read(partIndex);</span>
+	}
+
+	public int getPathStart(int partIndex) {
+<span class="fc" id="L2370">		return m_paths.read(partIndex);</span>
+	}
+
+	@Override
+	public Object _getImpl() {
+<span class="fc" id="L2375">		return this;</span>
+	}
+
+	public void setDirtyOGCFlags(boolean bYesNo) {
+<span class="fc" id="L2379">		_setDirtyFlag(DirtyFlags.DirtyOGCFlags, bYesNo);</span>
+<span class="fc" id="L2380">	}</span>
+
+	public boolean hasDirtyOGCStartFlags() {
+<span class="nc" id="L2383">		return _hasDirtyFlag(DirtyFlags.DirtyOGCFlags);</span>
+	}
+
+	public void setDirtyRingAreas2D(boolean bYesNo) {
+<span class="nc" id="L2387">		_setDirtyFlag(DirtyFlags.DirtyRingAreas2D, bYesNo);</span>
+<span class="nc" id="L2388">	}</span>
+
+	public boolean hasDirtyRingAreas2D() {
+<span class="nc" id="L2391">		return _hasDirtyFlag(DirtyFlags.DirtyRingAreas2D);</span>
+	}
+
+	public void setRingAreasStreamRef(AttributeStreamOfDbl ringAreas) {
+<span class="nc" id="L2395">		m_cachedRingAreas2D = ringAreas;</span>
+<span class="nc" id="L2396">		_setDirtyFlag(DirtyFlags.DirtyRingAreas2D, false);</span>
+<span class="nc" id="L2397">	}</span>
+
+	// HEADER defintions
+
+	// // TODO check this against current implementation in native
+	// public void notifyModified(int flags)
+	// {
+	// if(flags == DirtyFlags.DirtyAll)
+	// {
+	// m_reservedPointCount = -1;
+	// _notifyModifiedAllImpl();
+	// }
+	// m_flagsMask |= flags;
+	// _clearAccelerators();
+	//
+	//
+	// // ROHIT's implementation
+	// // if (m_paths == null || 0 == m_paths.size())
+	// // m_pointCount = 0;
+	// // else
+	// // m_pointCount = m_paths.read(m_paths.size() - 1);
+	// //
+	// // super.notifyModified(flags);
+	// }
+
+	@Override
+	public boolean _buildRasterizedGeometryAccelerator(double toleranceXY,
+			GeometryAccelerationDegree accelDegree) {
+<span class="fc bfc" id="L2425" title="All 2 branches covered.">		if (m_accelerators == null)// (!m_accelerators)</span>
+		{
+<span class="fc" id="L2427">			m_accelerators = new GeometryAccelerators();</span>
+		}
+
+<span class="fc" id="L2430">		int rasterSize = RasterizedGeometry2D</span>
+<span class="fc" id="L2431">				.rasterSizeFromAccelerationDegree(accelDegree);</span>
+<span class="fc" id="L2432">		RasterizedGeometry2D rgeom = m_accelerators.getRasterizedGeometry();</span>
+<span class="fc bfc" id="L2433" title="All 2 branches covered.">		if (rgeom != null) {</span>
+<span class="pc bpc" id="L2434" title="1 of 2 branches missed.">			if (rgeom.getToleranceXY() &lt; toleranceXY</span>
+<span class="pc bpc" id="L2435" title="1 of 2 branches missed.">					|| rasterSize &gt; rgeom.getRasterSize()) {</span>
+<span class="fc" id="L2436">				m_accelerators._setRasterizedGeometry(null);</span>
+			} else
+<span class="nc" id="L2438">				return true;</span>
+		}
+
+<span class="fc" id="L2441">		rgeom = RasterizedGeometry2D.create(this, toleranceXY, rasterSize);</span>
+<span class="fc" id="L2442">		m_accelerators._setRasterizedGeometry(rgeom);</span>
+		//rgeom.dbgSaveToBitmap(&quot;c:/temp/ddd.bmp&quot;);
+<span class="fc" id="L2444">		return true;</span>
+	}
+
+	@Override
+	public int hashCode() {
+<span class="fc" id="L2449">		int hashCode = super.hashCode();</span>
+
+<span class="pc bpc" id="L2451" title="1 of 2 branches missed.">		if (!isEmptyImpl()) {</span>
+<span class="nc" id="L2452">			int pathCount = getPathCount();</span>
+
+<span class="nc bnc" id="L2454" title="All 2 branches missed.">			if (m_paths != null)</span>
+<span class="nc" id="L2455">				m_paths.calculateHashImpl(hashCode, 0, pathCount + 1);</span>
+
+<span class="nc bnc" id="L2457" title="All 2 branches missed.">			if (m_pathFlags != null)</span>
+<span class="nc" id="L2458">				m_pathFlags.calculateHashImpl(hashCode, 0, pathCount);</span>
+		}
+
+<span class="fc" id="L2461">		return hashCode;</span>
+	}
+
+	public byte getSegmentFlags(int ivertex) {
+<span class="nc bnc" id="L2465" title="All 2 branches missed.">		if (m_segmentFlags != null)</span>
+<span class="nc" id="L2466">			return m_segmentFlags.read(ivertex);</span>
+		else
+<span class="nc" id="L2468">			return (byte) SegmentFlags.enumLineSeg;</span>
+	}
+
+	public void getSegment(int startVertexIndex, SegmentBuffer segBuffer,
+			boolean bStripAttributes) {
+<span class="nc" id="L2473">		int ipath = getPathIndexFromPointIndex(startVertexIndex);</span>
+<span class="nc bnc" id="L2474" title="All 4 branches missed.">		if (startVertexIndex == getPathEnd(ipath) - 1 &amp;&amp; !isClosedPath(ipath))</span>
+<span class="nc" id="L2475">			throw new GeometryException(&quot;index out of bounds&quot;);</span>
+
+<span class="nc" id="L2477">		_verifyAllStreams();</span>
+<span class="nc" id="L2478">		AttributeStreamOfInt8 segFlagStream = getSegmentFlagsStreamRef();</span>
+<span class="nc" id="L2479">		int segFlag = SegmentFlags.enumLineSeg;</span>
+<span class="nc bnc" id="L2480" title="All 2 branches missed.">		if (segFlagStream != null)</span>
+<span class="nc" id="L2481">			segFlag = segFlagStream.read(startVertexIndex)</span>
+					&amp; SegmentFlags.enumSegmentMask;
+
+<span class="nc bnc" id="L2484" title="All 4 branches missed.">		switch (segFlag) {</span>
+		case SegmentFlags.enumLineSeg:
+<span class="nc" id="L2486">			segBuffer.createLine();</span>
+<span class="nc" id="L2487">			break;</span>
+		case SegmentFlags.enumBezierSeg:
+<span class="nc" id="L2489">			throw GeometryException.GeometryInternalError();</span>
+		case SegmentFlags.enumArcSeg:
+<span class="nc" id="L2491">			throw GeometryException.GeometryInternalError();</span>
+		default:
+<span class="nc" id="L2493">			throw GeometryException.GeometryInternalError();</span>
+		}
+
+<span class="nc" id="L2496">		Segment currentSegment = segBuffer.get();</span>
+<span class="nc bnc" id="L2497" title="All 2 branches missed.">		if (!bStripAttributes)</span>
+<span class="nc" id="L2498">			currentSegment.assignVertexDescription(m_description);</span>
+		else
+<span class="nc" id="L2500">			currentSegment</span>
+<span class="nc" id="L2501">					.assignVertexDescription(VertexDescriptionDesignerImpl</span>
+<span class="nc" id="L2502">							.getDefaultDescriptor2D());</span>
+
+		int endVertexIndex;
+<span class="nc bnc" id="L2505" title="All 4 branches missed.">		if (startVertexIndex == getPathEnd(ipath) - 1 &amp;&amp; isClosedPath(ipath)) {</span>
+<span class="nc" id="L2506">			endVertexIndex = getPathStart(ipath);</span>
+		} else
+<span class="nc" id="L2508">			endVertexIndex = startVertexIndex + 1;</span>
+
+<span class="nc" id="L2510">		Point2D pt = new Point2D();</span>
+<span class="nc" id="L2511">		getXY(startVertexIndex, pt);</span>
+<span class="nc" id="L2512">		currentSegment.setStartXY(pt);</span>
+<span class="nc" id="L2513">		getXY(endVertexIndex, pt);</span>
+<span class="nc" id="L2514">		currentSegment.setEndXY(pt);</span>
+
+<span class="nc bnc" id="L2516" title="All 2 branches missed.">		if (!bStripAttributes) {</span>
+<span class="nc bnc" id="L2517" title="All 2 branches missed.">			for (int i = 1, nattr = m_description.getAttributeCount(); i &lt; nattr; i++) {</span>
+<span class="nc" id="L2518">				int semantics = m_description._getSemanticsImpl(i);</span>
+<span class="nc" id="L2519">				int ncomp = VertexDescription.getComponentCount(semantics);</span>
+<span class="nc bnc" id="L2520" title="All 2 branches missed.">				for (int ord = 0; ord &lt; ncomp; ord++) {</span>
+<span class="nc" id="L2521">					double vs = getAttributeAsDbl(semantics, startVertexIndex,</span>
+							ord);
+<span class="nc" id="L2523">					currentSegment.setStartAttribute(semantics, ord, vs);</span>
+<span class="nc" id="L2524">					double ve = getAttributeAsDbl(semantics, endVertexIndex,</span>
+							ord);
+<span class="nc" id="L2526">					currentSegment.setEndAttribute(semantics, ord, ve);</span>
+				}
+			}
+		}
+<span class="nc" id="L2530">	}</span>
+
+	void queryPathEnvelope2D(int path_index, Envelope2D envelope) {
+<span class="pc bpc" id="L2533" title="1 of 2 branches missed.">		if (path_index &gt;= getPathCount())</span>
+<span class="nc" id="L2534">			throw new IllegalArgumentException();</span>
+
+<span class="pc bpc" id="L2536" title="1 of 2 branches missed.">		if (isEmpty()) {</span>
+<span class="nc" id="L2537">			envelope.setEmpty();</span>
+<span class="nc" id="L2538">			return;</span>
+		}
+
+<span class="pc bpc" id="L2541" title="1 of 2 branches missed.">		if (hasNonLinearSegments(path_index)) {</span>
+<span class="nc" id="L2542">			throw new GeometryException(&quot;not implemented&quot;);</span>
+		} else {
+<span class="fc" id="L2544">			AttributeStreamOfDbl stream = (AttributeStreamOfDbl) getAttributeStreamRef(VertexDescription.Semantics.POSITION);</span>
+<span class="fc" id="L2545">			Point2D pt = new Point2D();</span>
+<span class="fc" id="L2546">			Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L2547">			env.setEmpty();</span>
+<span class="fc bfc" id="L2548" title="All 2 branches covered.">			for (int i = getPathStart(path_index), iend = getPathEnd(path_index); i &lt; iend; i++) {</span>
+<span class="fc" id="L2549">				stream.read(2 * i, pt);</span>
+<span class="fc" id="L2550">				env.merge(pt);</span>
+			}
+<span class="fc" id="L2552">			envelope.setCoords(env);</span>
+		}
+<span class="fc" id="L2554">	}</span>
+
+	public void queryLoosePathEnvelope2D(int path_index, Envelope2D envelope) {
+<span class="nc bnc" id="L2557" title="All 2 branches missed.">		if (path_index &gt;= getPathCount())</span>
+<span class="nc" id="L2558">			throw new IllegalArgumentException();</span>
+
+<span class="nc bnc" id="L2560" title="All 2 branches missed.">		if (isEmpty()) {</span>
+<span class="nc" id="L2561">			envelope.setEmpty();</span>
+<span class="nc" id="L2562">			return;</span>
+		}
+
+<span class="nc bnc" id="L2565" title="All 2 branches missed.">		if (hasNonLinearSegments(path_index)) {</span>
+<span class="nc" id="L2566">			throw new GeometryException(&quot;not implemented&quot;);</span>
+		} else {
+<span class="nc" id="L2568">			AttributeStreamOfDbl stream = (AttributeStreamOfDbl) getAttributeStreamRef(VertexDescription.Semantics.POSITION);</span>
+<span class="nc" id="L2569">			Point2D pt = new Point2D();</span>
+<span class="nc" id="L2570">			Envelope2D env = new Envelope2D();</span>
+<span class="nc" id="L2571">			env.setEmpty();</span>
+<span class="nc bnc" id="L2572" title="All 2 branches missed.">			for (int i = getPathStart(path_index), iend = getPathEnd(path_index); i &lt; iend; i++) {</span>
+<span class="nc" id="L2573">				stream.read(2 * i, pt);</span>
+<span class="nc" id="L2574">				env.merge(pt);</span>
+			}
+<span class="nc" id="L2576">			envelope.setCoords(env);</span>
+		}
+<span class="nc" id="L2578">	}</span>
+	
+	@Override
+	public boolean _buildQuadTreeAccelerator(GeometryAccelerationDegree d) {
+<span class="pc bpc" id="L2582" title="1 of 2 branches missed.">		if (m_accelerators == null)// (!m_accelerators)</span>
+		{
+<span class="nc" id="L2584">			m_accelerators = new GeometryAccelerators();</span>
+		}
+
+<span class="pc bpc" id="L2587" title="2 of 4 branches missed.">		if (d == GeometryAccelerationDegree.enumMild || getPointCount() &lt; 16)</span>
+<span class="nc" id="L2588">			return false;</span>
+
+<span class="fc" id="L2590">		QuadTreeImpl quad_tree_impl = InternalUtils.buildQuadTree(this);</span>
+<span class="fc" id="L2591">		m_accelerators._setQuadTree(quad_tree_impl);</span>
+
+<span class="fc" id="L2593">		return true;</span>
+	}
+
+	boolean _buildQuadTreeForPathsAccelerator(GeometryAccelerationDegree degree) {
+<span class="pc bpc" id="L2597" title="1 of 2 branches missed.">		if (m_accelerators == null) {</span>
+<span class="nc" id="L2598">			m_accelerators = new GeometryAccelerators();</span>
+		}
+
+		// TODO: when less than two envelopes - no need to this.
+
+<span class="pc bpc" id="L2603" title="1 of 2 branches missed.">		if (m_accelerators.getQuadTreeForPaths() != null)</span>
+<span class="nc" id="L2604">			return true;</span>
+
+<span class="fc" id="L2606">		m_accelerators._setQuadTreeForPaths(null);</span>
+<span class="fc" id="L2607">		QuadTreeImpl quad_tree_impl = InternalUtils.buildQuadTreeForPaths(this);</span>
+<span class="fc" id="L2608">		m_accelerators._setQuadTreeForPaths(quad_tree_impl);</span>
+
+<span class="fc" id="L2610">		return true;</span>
+	}
+
+	void setFillRule(int rule) {
+<span class="pc bpc" id="L2614" title="1 of 2 branches missed.">		assert (m_bPolygon);</span>
+<span class="fc" id="L2615">		m_fill_rule = rule;</span>
+<span class="fc" id="L2616">	}</span>
+
+	int getFillRule() {
+<span class="fc" id="L2619">		return m_fill_rule;</span>
+	}
+
+	void clearDirtyOGCFlags() { 
+<span class="fc" id="L2623">		_setDirtyFlag(DirtyFlags.DirtyOGCFlags, false);</span>
+<span class="fc" id="L2624">	}</span>
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
