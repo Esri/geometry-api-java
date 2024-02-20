@@ -184,7 +184,7 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
       boolean skip_coordinates,
       int recursion
     ) throws JsonGeometryException {
-      BranchCover bCover = BranchCover.getInstance();
+      BranchCover bCover = BranchCover.getInstance3();
       bCover.setLength(48);
 
       OperatorImportFromGeoJsonHelper geo_json_helper = this;
