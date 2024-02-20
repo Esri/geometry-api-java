@@ -65,7 +65,7 @@ class OperatorImportFromESRIShapeCursor extends GeometryCursor {
 	private Geometry importFromESRIShape(ByteBuffer shapeBuffer) {
 		ByteOrder initialOrder = shapeBuffer.order();
 		shapeBuffer.order(ByteOrder.LITTLE_ENDIAN);
-		BranchCover bCover = BranchCover.getInstance();
+		BranchCover bCover = BranchCover.getInstance4();
 		bCover.setLength(35);
 
 		try {
