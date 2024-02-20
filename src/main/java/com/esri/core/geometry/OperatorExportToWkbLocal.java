@@ -1016,6 +1016,10 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 
 	private static int exportEnvelopeToWKB(int exportFlags, Envelope envelope,
 			ByteBuffer wkbBuffer) {
+		BranchCover bCover = BranchCover.getInstance();
+		bCover.setLength(52); //will change
+
+		
 		boolean bExportZs = envelope
 				.hasAttribute(VertexDescription.Semantics.Z)
 				&& (exportFlags & WkbExportFlags.wkbExportStripZs) == 0;
@@ -1032,8 +1036,8 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 		// get size for buffer
 		int size = 0;
 		if ((exportFlags & WkbExportFlags.wkbExportMultiPolygon) != 0
-				|| partCount == 0)
-			size += 1 /* byte order */+ 4 /* wkbType */+ 4 /* numPolygons */;
+				|| partCount == 0) 
+			size += 1 /* byte order */+ 4 /* wkbType */+ 4 /* numPolygons */; bCover.add(0);
 
 		size += partCount
 				* (1 /* byte order */+ 4 /* wkbType */+ 4/* numRings */)
@@ -1042,19 +1046,29 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 																		 * coordinates
 																		 */);
 
-		if (bExportZs)
-			size += (point_count * 8 /* zs */);
+		if (bExportZs){
+			bCover.add(1);
+			size += (point_count * 8 /* zs */);}
+		else{
+			bCover.add(2);}
 		if (bExportMs)
-			size += (point_count * 8 /* ms */);
-
+			{bCover.add(3);
+			size += (point_count * 8 /* ms */);}
+		else
+			{bCover.add(4);}
 		if (size >= NumberUtils.intMax())
-			throw new GeometryException("invalid call");
-
+			{bCover.add(5);
+			throw new GeometryException("invalid call");}
+		else
+			{bCover.add(6);}
 		if (wkbBuffer == null)
-			return size;
+			{bCover.add(7);
+			return size;}
 		else if (wkbBuffer.capacity() < size)
-			throw new GeometryException("buffer is too small");
-
+			{bCover.add(8);
+			throw new GeometryException("buffer is too small");}
+		else
+			{bCover.add(9);}
 		int offset = 0;
 
 		byte byteOrder = (byte) (wkbBuffer.order() == ByteOrder.LITTLE_ENDIAN ? WkbByteOrder.wkbNDR
@@ -1063,9 +1077,11 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 		// Determine the wkb type
 		int type;
 		if (!bExportZs && !bExportMs) {
+			bCover.add(10);
 			type = WkbGeometryType.wkbPolygon;
 
 			if ((exportFlags & WkbExportFlags.wkbExportMultiPolygon) != 0) {
+				bCover.add(11);
 				wkbBuffer.put(offset, byteOrder);
 				offset += 1;
 				wkbBuffer.putInt(offset, WkbGeometryType.wkbMultiPolygon);
@@ -1073,6 +1089,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 				wkbBuffer.putInt(offset, (int) partCount);
 				offset += 4;
 			} else if (partCount == 0) {
+				bCover.add(12);
 				wkbBuffer.put(offset, byteOrder);
 				offset += 1;
 				wkbBuffer.putInt(offset, WkbGeometryType.wkbPolygon);
@@ -1080,10 +1097,15 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 				wkbBuffer.putInt(offset, 0);
 				offset += 4;
 			}
+			else {
+				bCover.add(13);
+			}
 		} else if (bExportZs && !bExportMs) {
+			bCover.add(14);
 			type = WkbGeometryType.wkbPolygonZ;
 
 			if ((exportFlags & WkbExportFlags.wkbExportPolygon) != 0) {
+				bCover.add(15);
 				wkbBuffer.put(offset, byteOrder);
 				offset += 1;
 				wkbBuffer.putInt(offset, WkbGeometryType.wkbMultiPolygonZ);
@@ -1091,6 +1113,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 				wkbBuffer.putInt(offset, partCount);
 				offset += 4;
 			} else if (partCount == 0) {
+				bCover.add(16);
 				wkbBuffer.put(offset, byteOrder);
 				offset += 1;
 				wkbBuffer.putInt(offset, WkbGeometryType.wkbPolygonZ);
@@ -1098,10 +1121,15 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 				wkbBuffer.putInt(offset, 0);
 				offset += 4;
 			}
+			else {
+				bCover.add(17);
+			}
 		} else if (bExportMs && !bExportZs) {
+			bCover.add(18);
 			type = WkbGeometryType.wkbPolygonM;
 
 			if ((exportFlags & WkbExportFlags.wkbExportMultiPolygon) != 0) {
+				bCover.add(19);
 				wkbBuffer.put(offset, byteOrder);
 				offset += 1;
 				wkbBuffer.putInt(offset, WkbGeometryType.wkbMultiPolygonM);
@@ -1109,6 +1137,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 				wkbBuffer.putInt(offset, partCount);
 				offset += 4;
 			} else if (partCount == 0) {
+				bCover.add(20);
 				wkbBuffer.put(offset, byteOrder);
 				offset += 1;
 				wkbBuffer.putInt(offset, WkbGeometryType.wkbPolygonM);
@@ -1116,10 +1145,15 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 				wkbBuffer.putInt(offset, 0);
 				offset += 4;
 			}
+			else {
+				bCover.add(21);
+			}
 		} else {
+			bCover.add(22);
 			type = WkbGeometryType.wkbPolygonZM;
 
 			if ((exportFlags & WkbExportFlags.wkbExportMultiPolygon) != 0) {
+				bCover.add(23);
 				wkbBuffer.put(offset, byteOrder);
 				offset += 1;
 				wkbBuffer.putInt(offset, WkbGeometryType.wkbMultiPolygonZM);
@@ -1127,6 +1161,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 				wkbBuffer.putInt(offset, partCount);
 				offset += 4;
 			} else if (partCount == 0) {
+				bCover.add(24);
 				wkbBuffer.put(offset, byteOrder);
 				offset += 1;
 				wkbBuffer.putInt(offset, WkbGeometryType.wkbPolygonZM);
@@ -1134,10 +1169,17 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 				wkbBuffer.putInt(offset, 0);
 				offset += 4;
 			}
+			else {
+				bCover.add(25);
+			}
 		}
 
 		if (partCount == 0)
-			return offset;
+			{bCover.add(26);
+			return offset;}
+		else {
+			bCover.add(51);
+		}
 
 		// write byte order
 		wkbBuffer.put(offset, byteOrder);
@@ -1160,27 +1202,42 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 
 		Envelope1D z_interval = null;
 		if (bExportZs)
+			{bCover.add(27);
 			z_interval = envelope.queryInterval(VertexDescription.Semantics.Z,
-					0);
+					0);}
+		else {
+			bCover.add(28);
+		}
 
 		Envelope1D mInterval = null;
 		if (bExportMs)
+			{bCover.add(29);
 			mInterval = envelope
-					.queryInterval(VertexDescription.Semantics.M, 0);
-
+					.queryInterval(VertexDescription.Semantics.M, 0);}
+		else {
+			bCover.add(30);
+		}
 		wkbBuffer.putDouble(offset, env.xmin);
 		offset += 8;
 		wkbBuffer.putDouble(offset, env.ymin);
 		offset += 8;
 
 		if (bExportZs) {
+			bCover.add(31);
 			wkbBuffer.putDouble(offset, z_interval.vmin);
 			offset += 8;
 		}
+		else {
+			bCover.add(32);
+		}
 
 		if (bExportMs) {
+			bCover.add(33);
 			wkbBuffer.putDouble(offset, mInterval.vmin);
 			offset += 8;
+		}
+		else {
+			bCover.add(34);
 		}
 
 		wkbBuffer.putDouble(offset, env.xmax);
@@ -1189,13 +1246,21 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 		offset += 8;
 
 		if (bExportZs) {
+			bCover.add(35);
 			wkbBuffer.putDouble(offset, z_interval.vmax);
 			offset += 8;
 		}
+		else {
+			bCover.add(36);
+		}
 
 		if (bExportMs) {
+			bCover.add(37);
 			wkbBuffer.putDouble(offset, mInterval.vmax);
 			offset += 8;
+		}
+		else {
+			bCover.add(38);
 		}
 
 		wkbBuffer.putDouble(offset, env.xmax);
@@ -1204,13 +1269,21 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 		offset += 8;
 
 		if (bExportZs) {
+			bCover.add(39);
 			wkbBuffer.putDouble(offset, z_interval.vmin);
 			offset += 8;
 		}
+		else {
+			bCover.add(40);
+		}
 
 		if (bExportMs) {
+			bCover.add(41);
 			wkbBuffer.putDouble(offset, mInterval.vmin);
 			offset += 8;
+		}
+		else {
+			bCover.add(42);
 		}
 
 		wkbBuffer.putDouble(offset, env.xmin);
@@ -1219,13 +1292,21 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 		offset += 8;
 
 		if (bExportZs) {
+			bCover.add(43);
 			wkbBuffer.putDouble(offset, z_interval.vmax);
 			offset += 8;
 		}
+		else {
+			bCover.add(44);
+		}
 
 		if (bExportMs) {
+			bCover.add(45);
 			wkbBuffer.putDouble(offset, mInterval.vmax);
 			offset += 8;
+		}
+		else {
+			bCover.add(46);
 		}
 
 		wkbBuffer.putDouble(offset, env.xmin);
@@ -1234,13 +1315,21 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 		offset += 8;
 
 		if (bExportZs) {
+			bCover.add(47);
 			wkbBuffer.putDouble(offset, z_interval.vmin);
 			offset += 8;
 		}
+		else {
+			bCover.add(48);
+		}
 
 		if (bExportMs) {
+			bCover.add(49);
 			wkbBuffer.putDouble(offset, mInterval.vmin);
 			offset += 8;
+		}
+		else {
+			bCover.add(50);
 		}
 
 		return offset;
