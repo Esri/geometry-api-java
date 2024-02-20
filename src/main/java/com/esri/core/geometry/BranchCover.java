@@ -39,6 +39,27 @@ public class BranchCover {
         return str +  "\n\nBranch Coverage: " + (int)coverage + "/" + ica.length + " |  " + ratio*100 +"%\n" ;
     } 
 
+    public String resultsAsString(){
+        StringBuilder builder = new StringBuilder();
+        for(boolean b : ica){
+            builder.append(" ").append(b);
+        }
+        return builder.append("\n").toString();
+    }
+
+    public boolean saveResults(){
+        File file = new File(name +".bc");
+        try{
+            FileOutputStream outputStream = new FileOutputStream(file, true);
+            outputStream.write(resultsAsString().getBytes());
+            outputStream.close();
+        }catch(Exception e){
+            return false;
+        }
+        return false;
+
+    }
+
     
 }
 
