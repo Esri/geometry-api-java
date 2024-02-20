@@ -60,7 +60,63 @@ public class BranchCover {
 
     }
 
-    
+    public static String resultsFromName(String name){
+        String results;
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(name + ".bc"));
+            
+            String line = reader.readLine();
+            String[] strings = line.split(" ");
+            int length = strings.length;
+            boolean[] branches = new boolean[length];
+            while(line != null){
+                strings = line.split(" ");
+                for(int i = 0; i < length; i++){
+                    branches[i] = branches[i] || Boolean.parseBoolean(strings[i]);
+                }
+
+                line = reader.readLine();
+                
+            }
+
+            StringBuilder resultsBuilder = new StringBuilder("Results : \n");
+            int count = 0;
+            for(int i = 0; i < length; i++){
+                if(branches[i]) count++;
+                resultsBuilder.append(i).append(" : ").append(branches[i]).append("\n");
+            }
+
+            resultsBuilder.append("Coverage : ")
+                .append(count)
+                .append(" / ")
+                .append(length)
+                .append(", ")
+                .append(((float)count*100)/length)
+                .append(" %");
+            
+            
+            reader.close();
+
+            results = resultsBuilder.toString();
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "ERROR";
+        }
+        
+        return results;
+    }
+
+    public static void resultFileFromName(String name){
+        File file = new File(name +".log");
+        try{
+            FileOutputStream outputStream = new FileOutputStream(file);
+            outputStream.write(resultsFromName(name).getBytes());
+            outputStream.close();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
 }
 
 
