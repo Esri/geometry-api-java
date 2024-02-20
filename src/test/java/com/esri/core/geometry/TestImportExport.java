@@ -39,6 +39,8 @@ public class TestImportExport extends TestCase {
 
 	@Override
 	protected void tearDown() throws Exception {
+		BranchCover bCover = BranchCover.getInstance();
+		System.out.print(bCover.toString());
 		super.tearDown();
 	}
 
