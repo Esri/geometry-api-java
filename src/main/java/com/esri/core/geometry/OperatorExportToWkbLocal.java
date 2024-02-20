@@ -1016,7 +1016,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 
 	private static int exportEnvelopeToWKB(int exportFlags, Envelope envelope,
 			ByteBuffer wkbBuffer) {
-		BranchCover bCover = BranchCover.getInstance();
+		BranchCover bCover = BranchCover.getInstance2();
 		bCover.setLength(52); //will change
 
 		
