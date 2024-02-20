@@ -57,16 +57,108 @@ public class TestGeoDist extends TestCase {
     
     /**
      * Tests if points are perfectly antipodal and on opposite poles
+     * p_dist.val == 1.0, p_az12 & p_az21 == null
      */
     @Test
     public void testIfPointsArePerfectlyAntipodalOppositePoles1(){
         //setup
-        PeDouble p_dist = new PeDouble(1.0), p_az12 = new PeDouble(1.0), p_az21 = new PeDouble(1.0);
+        PeDouble p_dist = new PeDouble(1.0), p_az12 = null, p_az21 = null;
         double a = 0, e2 = 0, lam1 = 0, phi1 = -1.57079632679489661923132, lam2 = 0,  phi2 = 1.57079632679489661923132;
         
         //test
         GeoDist.geodesic_distance_ngs(a, e2, lam1, phi1, lam2, phi2, p_dist, p_az12, p_az21);
-        assertEquals(p_dist.val, 0);
+        assertEquals(p_dist.val, 0.0);
+        assertEquals(p_az12, null);
+        assertEquals(p_az21, null);
+        
+    }
+    /**
+     * Tests if points are perfectly antipodal and on opposite poles
+     * p_dist == null, p_az12.val == 1.0
+     * phi1 < 0.0
+     */
+    @Test
+    public void testIfPointsArePerfectlyAntipodalOppositePoles2(){
+        //setup
+        PeDouble p_dist = null, p_az12 = new PeDouble(1.0), p_az21 = new PeDouble(1.0);
+        double a = 0, e2 = 0, lam1 = 0, phi1 = -1.57079632679489661923132, lam2 = 0,  phi2 = 1.57079632679489661923132;
+        
+        //test
+        GeoDist.geodesic_distance_ngs(a, e2, lam1, phi1, lam2, phi2, p_dist, p_az12, p_az21);
+        assertEquals(p_az12.val, 0.0);
+        assertEquals(p_az21.val, 3.141592653589793);
+        assertEquals(p_dist, null);
+        
+    }
+    /**
+     * Tests if points are perfectly antipodal and opposite poles
+     * p_dist == null, p_az12.val == 1.0
+     * phi1 > 0.0
+     */
+    @Test
+    public void testIfPointsArePerfectlyAntipodalOtherAntipodal3(){
+        //setup
+        PeDouble p_dist = null, p_az12 = new PeDouble(1.0), p_az21 = new PeDouble(1.0);
+        double a = 0, e2 = 0, lam1 = 0, phi1 = 1.57079632679489661923132, lam2 = 0,  phi2 = -1.57079632679489661923132;
+        
+        //test
+        GeoDist.geodesic_distance_ngs(a, e2, lam1, phi1, lam2, phi2, p_dist, p_az12, p_az21);
+        assertEquals(p_az12.val, 3.141592653589793);
+        assertEquals(p_az21.val, 0.0);
+        assertEquals(p_dist, null);
+        
+    }
+    /**
+     * Tests if points are perfectly antipodal and on not poles
+     * p_dist.val == 1.0, p_az12 & p_az21 == null
+     */
+    @Test
+    public void testIfPointsArePerfectlyAntipodalOtherAntipodal1(){
+        //setup
+        PeDouble p_dist = new PeDouble(1.0), p_az12 = null, p_az21 = null;
+        double a = 0, e2 = 0, lam1 = 0, phi1 = -1.57079632679489661923132, lam2 = 0,  phi2 = 1.57079632679489661923132;
+        
+        //test
+        GeoDist.geodesic_distance_ngs(a, e2, lam1, phi1, lam2, phi2, p_dist, p_az12, p_az21);
+        assertEquals(p_dist.val, 0.0);
+        assertEquals(p_az12, null);
+        assertEquals(p_az21, null);
+        
+    }
+    /**
+     * Tests if points are perfectly antipodal and on not poles
+     * p_dist == null, p_az12.val == 1.0
+     * phi1 < 0.0
+     */
+    @Test
+    public void testIfPointsArePerfectlyAntipodalOtherAntipodal2(){
+        //setup
+        PeDouble p_dist = null, p_az12 = new PeDouble(1.0), p_az21 = new PeDouble(1.0);
+        double a = 0, e2 = 0, lam1 = 0, phi1 = -1.57079632679489661923132, lam2 = 0,  phi2 = 1.57079632679489661923132;
+        
+        //test
+        GeoDist.geodesic_distance_ngs(a, e2, lam1, phi1, lam2, phi2, p_dist, p_az12, p_az21);
+        assertEquals(p_az12.val, 0.0);
+        assertEquals(p_az21.val, 3.141592653589793);
+        assertEquals(p_dist, null);
+        
+    }
+    /**
+     * Tests if points are perfectly antipodal and on not poles
+     * p_dist == null, p_az12.val == 1.0
+     * phi1 > 0.0
+     */
+    @Test
+    public void testIfPointsArePerfectlyAntipodalOppositePoles3(){
+        //setup
+        PeDouble p_dist = null, p_az12 = new PeDouble(1.0), p_az21 = new PeDouble(1.0);
+        double a = 0, e2 = 0, lam1 = 0, phi1 = 1.57079632679489661923132, lam2 = 0,  phi2 = -1.57079632679489661923132;
+        
+        //test
+        GeoDist.geodesic_distance_ngs(a, e2, lam1, phi1, lam2, phi2, p_dist, p_az12, p_az21);
+        assertEquals(p_az12.val, 3.141592653589793);
+        assertEquals(p_az21.val, 0.0);
+        assertEquals(p_dist, null);
         
     }
 }
