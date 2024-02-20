@@ -34,7 +34,7 @@ Choice of functions:
 
 ### Results
 
-1. 111
+1. 107
 2. 
 3.
 4.
