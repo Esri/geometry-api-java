@@ -28,3 +28,65 @@ Branch 0	: 1 & Branch 1	: 0 & Branch 2	: 1 & Branch 3	: 1 & Branch 4	: 1 & Branc
 results
 
 0:1 & 1:0 & 2:1 & 3:1 & 4:1 & 5:1 & 6:1 & 7:1 & 8:0 & 9:1 & 10:1 & 11:1 & 12:1 & 13:0 & 14:1 & 15:1 & 16:0 & 17:1 & 18:1 & 19:0 & 20:1 & 21:0 & 22:1 & 23:1 & 24:1 & 25:1 & 26:1 & 27:0 & 28:1 & 29:0 & 30:1 & 31:1 & 32:1 & 33:1 & 34:1 & 35:1 & 36:1 & 37:1 & 38:1 & 39:1 & 40:1 & 41:1 & 42:1 & 43:0 & 44:0 & 45:1 & 46:1 & 47:1 & 48:1 & 49:1 & 50:1 & 51:1 & 52:1 & 53:0 & 54:1 & 55:0 & 56:1 & 57:0 & 58:1 & 59:1
+
+
+Branch 0	: 1
+Branch 1	: 0
+Branch 2	: 1
+Branch 3	: 1
+Branch 4	: 1
+Branch 5	: 1
+Branch 6	: 1
+Branch 7	: 1
+Branch 8	: 0
+Branch 9	: 1
+Branch 10	: 1
+Branch 11	: 1
+Branch 12	: 1
+Branch 13	: 0
+Branch 14	: 1
+Branch 15	: 1
+Branch 16	: 0
+Branch 17	: 1
+Branch 18	: 1
+Branch 19	: 0
+Branch 20	: 1
+Branch 21	: 0
+Branch 22	: 1
+Branch 23	: 1
+Branch 24	: 1
+Branch 25	: 1
+Branch 26	: 1
+Branch 27	: 1
+Branch 28	: 1
+Branch 29	: 0
+Branch 30	: 1
+Branch 31	: 1
+Branch 32	: 1
+Branch 33	: 1
+Branch 34	: 1
+Branch 35	: 1
+Branch 36	: 1
+Branch 37	: 1
+Branch 38	: 1
+Branch 39	: 1
+Branch 40	: 1
+Branch 41	: 1
+Branch 42	: 1
+Branch 43	: 0
+Branch 44	: 0
+Branch 45	: 1
+Branch 46	: 1
+Branch 47	: 1
+Branch 48	: 1
+Branch 49	: 1
+Branch 50	: 1
+Branch 51	: 1
+Branch 52	: 1
+Branch 53	: 0
+Branch 54	: 1
+Branch 55	: 0
+Branch 56	: 1
+Branch 57	: 0
+Branch 58	: 1
+Branch 59	: 1
