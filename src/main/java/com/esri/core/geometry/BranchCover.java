@@ -6,7 +6,17 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 
-
+/**
+ * This class allows to do branch covering measurement more easily
+ * Guide on how to use this class :
+ * (1) At the begining of your function, create an instance of this class and specify the number of branches
+ *      and a unique id for this function (function name would work).
+ * (2) Add a "branchCover.add(branchId)" for each new branch (if, else, for ...)
+ * (3) Before each exit point, add a "branchCover.saveResults()" so the result from each execution is being saved
+ * (4) You can now run all the tests of the project
+ * (5) Then add a line with your unique id in ResultPrinter and run its main function. You'll find the results in
+ *      "yourUniqueId.log"
+ */
 public class BranchCover {
     
     private boolean[] ica;
