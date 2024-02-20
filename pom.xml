@@ -249,6 +249,24 @@
 					<autoReleaseAfterClose>true</autoReleaseAfterClose>
 				</configuration>
 			</plugin>
+			 <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>3.0.0</version> <!-- Or the version you want to use -->
+            <executions>
+                <execution>
+                    <id>run-CoverageSummary</id>
+                    <phase>test</phase> <!-- Run after tests -->
+                    <goals>
+                        <goal>java</goal>
+                    </goals>
+                    <configuration>
+                        <mainClass>com.coverage.CoverageSummary</mainClass>
+                        <!-- Additional configuration if needed -->
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
 		</plugins>
 	</build>
 </project>
