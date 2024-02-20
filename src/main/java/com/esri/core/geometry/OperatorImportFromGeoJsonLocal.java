@@ -133,6 +133,10 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
 				Geometry.Type type, JsonReader json_iterator,
 				ProgressTracker progress_tracker, boolean skip_coordinates,
 				int recursion) throws JsonGeometryException {
+
+			BranchCover bCover = BranchCover.getInstance();
+			bCover.setLength(32);
+
 			OperatorImportFromGeoJsonHelper geo_json_helper = this;
 			boolean b_type_found = false;
 			boolean b_coordinates_found = false;
@@ -151,44 +155,79 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
 
 			while ((current_token = json_iterator.nextToken()) != JsonReader.Token.END_OBJECT) {
 				field_name = json_iterator.currentString();
+				bCover.add(0);
 
 				if (field_name.equals("type")) {
+					bCover.add(1);
 					if (b_type_found) {
+						bCover.add(2);
 						throw new JsonGeometryException("parsing error");
+					}else {
+						bCover.add(3);
 					}
 
 					b_type_found = true;
 					current_token = json_iterator.nextToken();
 
 					if (current_token != JsonReader.Token.VALUE_STRING) {
+						bCover.add(4);
 						throw new JsonGeometryException("parsing error");
+					}else {
+						bCover.add(5);
 					}
 
 					String s = json_iterator.currentString();
 					try {
 						geo_json_type = GeoJsonType.valueOf(s);
+						bCover.add(6);
+
 					} catch (Exception ex) {
+						bCover.add(7);
 						throw new JsonGeometryException(s);
 					}
 					
 					if (geo_json_type == GeoJsonType.GeometryCollection) {
-						if (type != Geometry.Type.Unknown)
+						bCover.add(8);
+						if (type != Geometry.Type.Unknown){
+							bCover.add(9);
 							throw new JsonGeometryException("parsing error");
+						}else {
+						bCover.add(10);
+
+						}
 						
 						b_geometry_collection = true;
+					}else {
+						bCover.add(11);
+						
 					}
 				} else if (field_name.equals("geometries"))	{
 					b_geometries_found = true;
-					if (type != Geometry.Type.Unknown)
+					bCover.add(12);
+					if (type != Geometry.Type.Unknown){
+						bCover.add(13);
+						
 						throw new JsonGeometryException("parsing error");
+					}else {
+						bCover.add(14);
+
+					}
 					
 					if (recursion > 10) {
+						bCover.add(15);
+
 						throw new JsonGeometryException("deep geojson");
+					}else {
+						bCover.add(16);
+
 					}
 					
 					if (skip_coordinates) {
+						bCover.add(17);
+
 						json_iterator.skipChildren();
 					} else {
+						bCover.add(18);
 						current_token = json_iterator.nextToken();
 	
 						ms.m_ogcStructure = new OGCStructure();
@@ -197,8 +236,12 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
 								0);
 	
 						if (current_token == JsonReader.Token.START_ARRAY) {
+							bCover.add(19);
+
 							current_token = json_iterator.nextToken();
 							while (current_token != JsonReader.Token.END_ARRAY) {
+								bCover.add(20);
+
 								MapOGCStructure child = importFromGeoJson(
 										importFlags
 												| GeoJsonImportFlags.geoJsonImportSkipCRS,
@@ -212,48 +255,86 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
 							}
 						}
 						else if (current_token != JsonReader.Token.VALUE_NULL) {
+							bCover.add(21);
+
 							throw new JsonGeometryException("parsing error");
+						}else {
+							bCover.add(22);
+
 						}
 					}
 				} else if (field_name.equals("coordinates")) {
+					bCover.add(23);
 					
 					if (b_coordinates_found) {
+						bCover.add(24);
+
 						throw new JsonGeometryException("parsing error");
+					}else {
+						bCover.add(25);
+
 					}
 
 					b_coordinates_found = true;
 					current_token = json_iterator.nextToken();
 
 					if (skip_coordinates) {
+						bCover.add(26);
+
 						json_iterator.skipChildren();
 					} else {// According to the spec, the value of the
 							// coordinates must be an array. However, I do an
 							// extra check for null too.
+						bCover.add(27);
+
 						if (current_token != JsonReader.Token.VALUE_NULL) {
+							bCover.add(28);
+
 							if (current_token != JsonReader.Token.START_ARRAY) {
+								bCover.add(29);
+
 								throw new JsonGeometryException("parsing error");
+							}else {
+								bCover.add(30);
+
 							}
 
 							geo_json_helper.import_coordinates_(json_iterator,
 									progress_tracker);
+						}else {
+							bCover.add(31);
 						}
 					}
 				} else if (field_name.equals("crs")) {
+					bCover.add(32);
 					if (b_crs_found || b_crsURN_found) {
+						bCover.add(33);
 						throw new JsonGeometryException("parsing error");
-					}
+					}else {
+						bCover.add(34);
 
+					}
 					b_crs_found = true;
 					current_token = json_iterator.nextToken();
 
-					if ((importFlags & GeoJsonImportFlags.geoJsonImportSkipCRS) == 0)
+					if ((importFlags & GeoJsonImportFlags.geoJsonImportSkipCRS) == 0){
 						spatial_reference = importSpatialReferenceFromCrs(
 								json_iterator, progress_tracker);
-					else
+								bCover.add(35);
+
+					}
+					else{
 						json_iterator.skipChildren();
+						bCover.add(36);
+					}
 				} else if (field_name.equals("crsURN")) {
+					bCover.add(37);
 					if (b_crs_found || b_crsURN_found) {
+						bCover.add(38);
 						throw new JsonGeometryException("parsing error");
+					}else {
+						bCover.add(39);
+
 					}
 
 					b_crsURN_found = true;
@@ -262,6 +343,7 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
 					spatial_reference = importSpatialReferenceFromCrsUrn_(
 							json_iterator, progress_tracker);
 				} else {
+					bCover.add(40);
 					json_iterator.nextToken();
 					json_iterator.skipChildren();
 				}
@@ -270,33 +352,54 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
 			// According to the spec, a GeoJSON object must have both a type and
 			// a coordinates array
 			if (!b_type_found || (!b_geometry_collection && !b_coordinates_found && !skip_coordinates)) {
+				bCover.add(41);
+
 				throw new JsonGeometryException("parsing error");
+			}else {
+				bCover.add(42);
+
 			}
 			
 			if ((!b_geometry_collection && b_geometries_found) || (b_geometry_collection && !b_geometries_found)) {
+				bCover.add(43);
+
 				throw new JsonGeometryException("parsing error");//found "geometries" but did not see "GeometryCollection"
+			}else {
+				bCover.add(44);
+
 			}
+			
 				
 
 			if (!skip_coordinates && !b_geometry_collection) {
+				bCover.add(45);
+
 				geometry = geo_json_helper.createGeometry_(geo_json_type,
 						type.value());
 
 				ms.m_ogcStructure = new OGCStructure();
 				ms.m_ogcStructure.m_type = m_ogcType;
 				ms.m_ogcStructure.m_geometry = geometry;
+			}else {
+				bCover.add(46);
+
 			}
 
 			if (!b_crs_found
 					&& !b_crsURN_found
 					&& ((importFlags & GeoJsonImportFlags.geoJsonImportSkipCRS) == 0)
 					&& ((importFlags & GeoJsonImportFlags.geoJsonImportNoWGS84Default) == 0)) {
+						bCover.add(47);
+
 				spatial_reference = SpatialReference.create(4326); // the spec
 																	// gives a
 																	// default
 																	// of 4326
 																	// if no crs
 																	// is given
+			}else {
+				bCover.add(48);
+
 			}
 
 			ms.m_spatialReference = spatial_reference;
