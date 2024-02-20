@@ -1,0 +1,2168 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TopologicalOperations.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">TopologicalOperations.java</span></div><h1>TopologicalOperations.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+import com.esri.core.geometry.AttributeStreamOfInt32.IntComparator;
+import com.esri.core.geometry.Geometry.GeometryType;
+import com.esri.core.geometry.MultiVertexGeometryImpl.GeometryXSimple;
+
+import java.util.ArrayList;
+
+<span class="fc" id="L32">final class TopologicalOperations {</span>
+<span class="fc" id="L33">	TopoGraph m_topo_graph = null;</span>
+<span class="fc" id="L34">	Point2D m_dummy_pt_1 = new Point2D();</span>
+<span class="fc" id="L35">	Point2D m_dummy_pt_2 = new Point2D();</span>
+	int m_from_edge_for_polylines;
+<span class="fc" id="L37">	boolean m_mask_lookup[] = null;</span>
+<span class="fc" id="L38">	boolean m_bOGCOutput = false;</span>
+
+	boolean isGoodParentage(int parentage) {
+<span class="fc bfc" id="L41" title="All 2 branches covered.">		return parentage &lt; m_mask_lookup.length ? m_mask_lookup[parentage]</span>
+<span class="fc" id="L42">				: false;</span>
+	}
+
+	void cut(int sideIndex, int cuttee, int cutter,
+			AttributeStreamOfInt32 cutHandles) {
+<span class="fc" id="L47">		int gtCuttee = m_topo_graph.getShape().getGeometryType(cuttee);</span>
+<span class="fc" id="L48">		int gtCutter = m_topo_graph.getShape().getGeometryType(cutter);</span>
+<span class="fc" id="L49">		int dimCuttee = Geometry.getDimensionFromType(gtCuttee);</span>
+<span class="fc" id="L50">		int dimCutter = Geometry.getDimensionFromType(gtCutter);</span>
+
+<span class="pc bpc" id="L52" title="2 of 4 branches missed.">		if (dimCuttee == 2 &amp;&amp; dimCutter == 1) {</span>
+<span class="fc" id="L53">			cutPolygonPolyline_(sideIndex, cuttee, cutter, cutHandles);</span>
+<span class="fc" id="L54">			return;</span>
+		}
+
+<span class="nc" id="L57">		throw GeometryException.GeometryInternalError();</span>
+	}
+
+	static final class CompareCuts extends IntComparator {
+		private EditShape m_editShape;
+
+<span class="fc" id="L63">		public CompareCuts(EditShape editShape) {</span>
+<span class="fc" id="L64">			m_editShape = editShape;</span>
+<span class="fc" id="L65">		}</span>
+
+		@Override
+		public int compare(int c1, int c2) {
+<span class="fc" id="L69">			int path1 = m_editShape.getFirstPath(c1);</span>
+<span class="fc" id="L70">			double area1 = m_editShape.getRingArea(path1);</span>
+<span class="fc" id="L71">			int path2 = m_editShape.getFirstPath(c2);</span>
+<span class="fc" id="L72">			double area2 = m_editShape.getRingArea(path2);</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">			if (area1 &lt; area2)</span>
+<span class="fc" id="L74">				return -1;</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">			if (area1 == area2)</span>
+<span class="fc" id="L76">				return 0;</span>
+<span class="fc" id="L77">			return 1;</span>
+		}
+	}
+
+<span class="fc" id="L81">	public TopologicalOperations() {</span>
+<span class="fc" id="L82">		m_from_edge_for_polylines = -1;</span>
+<span class="fc" id="L83">	}</span>
+
+	void setEditShape(EditShape shape, ProgressTracker progressTracker) {
+<span class="fc bfc" id="L86" title="All 2 branches covered.">		if (m_topo_graph == null)</span>
+<span class="fc" id="L87">			m_topo_graph = new TopoGraph();</span>
+<span class="fc" id="L88">		m_topo_graph.setEditShape(shape, progressTracker);</span>
+<span class="fc" id="L89">	}</span>
+
+	void setEditShapeCrackAndCluster(EditShape shape, double tolerance,
+			ProgressTracker progressTracker) {
+<span class="fc" id="L93">		CrackAndCluster.execute(shape, tolerance, progressTracker, true);</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">		for (int geometry = shape.getFirstGeometry(); geometry != -1; geometry = shape</span>
+<span class="fc" id="L95">				.getNextGeometry(geometry)) {</span>
+<span class="fc" id="L96">			if (shape.getGeometryType(geometry) == Geometry.Type.Polygon</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">					.value())</span>
+<span class="fc" id="L98">				Simplificator.execute(shape, geometry, -1, m_bOGCOutput, progressTracker);</span>
+		}
+		
+<span class="fc" id="L101">		setEditShape(shape, progressTracker);</span>
+<span class="fc" id="L102">	}</span>
+
+	private void collectPolygonPathsPreservingFrom_(int geometryFrom,
+			int newGeometry, int visitedEdges, int visitedClusters,
+			int geometry_dominant) {
+		// This function tries to create polygon paths using the paths that were
+		// in the input shape.
+		// This way we preserve original shape as much as possible.
+<span class="fc" id="L110">		EditShape shape = m_topo_graph.getShape();</span>
+<span class="fc" id="L111">		if (shape.getGeometryType(geometryFrom) != Geometry.Type.Polygon</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">				.value())</span>
+<span class="fc" id="L113">			return;</span>
+
+<span class="fc bfc" id="L115" title="All 2 branches covered.">		for (int path = shape.getFirstPath(geometryFrom); path != -1; path = shape</span>
+<span class="fc" id="L116">				.getNextPath(path)) {</span>
+<span class="fc" id="L117">			int first_vertex = shape.getFirstVertex(path);</span>
+<span class="fc" id="L118">			int firstCluster = m_topo_graph.getClusterFromVertex(first_vertex);</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">			assert (firstCluster != -1);</span>
+<span class="fc" id="L120">			int secondVertex = shape.getNextVertex(first_vertex);</span>
+<span class="fc" id="L121">			int secondCluster = m_topo_graph.getClusterFromVertex(secondVertex);</span>
+<span class="pc bpc" id="L122" title="1 of 2 branches missed.">			assert (secondCluster != -1);</span>
+
+<span class="fc" id="L124">			int firstHalfEdge = m_topo_graph</span>
+<span class="fc" id="L125">					.getHalfEdgeFromVertex(first_vertex);</span>
+
+<span class="fc bfc" id="L127" title="All 2 branches covered.">			if (firstHalfEdge == -1)</span>
+<span class="fc" id="L128">				continue;// Usually there will be a half-edge that starts at</span>
+							// first_vertex and goes to secondVertex, but it
+							// could happen that this half edge has been
+							// removed.
+
+<span class="pc bpc" id="L133" title="1 of 2 branches missed.">			assert (m_topo_graph.getHalfEdgeTo(firstHalfEdge) == secondCluster &amp;&amp; m_topo_graph</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">					.getHalfEdgeOrigin(firstHalfEdge) == firstCluster);</span>
+
+<span class="fc" id="L136">			int visited = m_topo_graph.getHalfEdgeUserIndex(firstHalfEdge,</span>
+					visitedEdges);
+<span class="fc bfc" id="L138" title="All 4 branches covered.">			if (visited == 1 || visited == 2)</span>
+<span class="fc" id="L139">				continue;</span>
+
+<span class="fc" id="L141">			int parentage = m_topo_graph</span>
+<span class="fc" id="L142">					.getHalfEdgeFaceParentage(firstHalfEdge);</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">			if (!isGoodParentage(parentage)) {</span>
+<span class="fc" id="L144">				m_topo_graph.setHalfEdgeUserIndex(firstHalfEdge, visitedEdges,</span>
+						2);
+<span class="fc" id="L146">				continue;</span>
+			}
+
+<span class="fc" id="L149">			m_topo_graph.setHalfEdgeUserIndex(firstHalfEdge, visitedEdges, 1);</span>
+
+<span class="fc" id="L151">			int newPath = shape.insertPath(newGeometry, -1);// add new path at</span>
+															// the end
+<span class="fc" id="L153">			int half_edge = firstHalfEdge;</span>
+<span class="fc" id="L154">			int vertex = first_vertex;</span>
+<span class="fc" id="L155">			int cluster = m_topo_graph.getClusterFromVertex(vertex);</span>
+<span class="fc" id="L156">			int dir = 1;</span>
+			//Walk the chain of half edges, preferably selecting vertices that belong to the
+			//polygon path we have started from.
+			do {
+<span class="fc" id="L160">				int vertex_dominant = getVertexByID_(vertex, geometry_dominant);</span>
+<span class="fc" id="L161">				shape.addVertex(newPath, vertex_dominant);</span>
+<span class="pc bpc" id="L162" title="1 of 2 branches missed.">				if (visitedClusters != -1)</span>
+<span class="nc" id="L163">					m_topo_graph.setClusterUserIndex(cluster, visitedClusters,</span>
+							1);
+
+<span class="fc" id="L166">				m_topo_graph.setHalfEdgeUserIndex(half_edge, visitedEdges, 1);</span>
+<span class="fc" id="L167">				half_edge = m_topo_graph.getHalfEdgeNext(half_edge);</span>
+				int v;
+				int cv;
+				do {// move in a loop through coincident vertices (probably
+					// vertical segments).
+<span class="pc bpc" id="L172" title="1 of 2 branches missed.">					v = dir == 1 ? shape.getNextVertex(vertex) : shape</span>
+<span class="pc" id="L173">							.getPrevVertex(vertex);// if we came to the polyline</span>
+													// tail, the next may return
+													// -1.
+<span class="pc bpc" id="L176" title="1 of 2 branches missed.">					cv = v != -1 ? m_topo_graph.getClusterFromVertex(v) : -1;</span>
+<span class="pc bpc" id="L177" title="1 of 2 branches missed.">				} while (cv == cluster);</span>
+
+<span class="fc" id="L179">				int originCluster = m_topo_graph.getHalfEdgeOrigin(half_edge);</span>
+<span class="fc bfc" id="L180" title="All 2 branches covered.">				if (originCluster != cv) {</span>
+					// try going opposite way
+					do {// move in a loop through coincident vertices (probably
+						// vertical segments).
+<span class="pc bpc" id="L184" title="1 of 2 branches missed.">						v = dir == 1 ? shape.getPrevVertex(vertex) : shape</span>
+<span class="pc" id="L185">								.getNextVertex(vertex);// if we came to the</span>
+														// polyline tail, the
+														// next may return -1.
+<span class="pc bpc" id="L188" title="1 of 2 branches missed.">						cv = v != -1 ? m_topo_graph.getClusterFromVertex(v)</span>
+<span class="pc" id="L189">								: -1;</span>
+<span class="pc bpc" id="L190" title="1 of 2 branches missed.">					} while (cv == cluster);</span>
+
+<span class="pc bpc" id="L192" title="1 of 2 branches missed.">					if (originCluster != cv) {// pick any vertex.</span>
+<span class="fc" id="L193">						cv = originCluster;</span>
+<span class="fc" id="L194">						int iterator = m_topo_graph</span>
+<span class="fc" id="L195">								.getClusterVertexIterator(cv);</span>
+<span class="fc" id="L196">						v = m_topo_graph.getVertexFromVertexIterator(iterator);</span>
+<span class="fc" id="L197">					} else {</span>
+<span class="nc" id="L198">						dir = -dir;// remember direction we were going for</span>
+									// performance
+					}
+				}
+<span class="fc" id="L202">				cluster = cv;</span>
+<span class="fc" id="L203">				vertex = v;</span>
+<span class="fc bfc" id="L204" title="All 2 branches covered.">			} while (half_edge != firstHalfEdge);</span>
+
+<span class="fc" id="L206">			shape.setClosedPath(newPath, true);</span>
+		}
+<span class="fc" id="L208">	}</span>
+
+	// processes Topo_graph and removes edges that border faces with good
+	// parentage
+	// If bAllowBrokenFaces is True the function will break face structure for
+	// dissolved faces. Only face parentage will be uasable.
+	void dissolveCommonEdges_() {
+<span class="fc" id="L215">		int visitedEdges = m_topo_graph.createUserIndexForHalfEdges();</span>
+<span class="fc" id="L216">		AttributeStreamOfInt32 edgesToDelete = new AttributeStreamOfInt32(0);</span>
+		// Now extract paths that
+<span class="fc bfc" id="L218" title="All 2 branches covered.">		for (int cluster = m_topo_graph.getFirstCluster(); cluster != -1; cluster = m_topo_graph</span>
+<span class="fc" id="L219">				.getNextCluster(cluster)) {</span>
+<span class="fc" id="L220">			int firstHalfEdge = m_topo_graph.getClusterHalfEdge(cluster);</span>
+<span class="fc" id="L221">			int half_edge = firstHalfEdge;</span>
+<span class="pc bpc" id="L222" title="1 of 2 branches missed.">			if (firstHalfEdge == -1)</span>
+<span class="nc" id="L223">				continue;</span>
+
+			do {
+<span class="fc" id="L226">				int visited = m_topo_graph.getHalfEdgeUserIndex(half_edge,</span>
+						visitedEdges);
+<span class="fc bfc" id="L228" title="All 2 branches covered.">				if (visited != 1) {</span>
+<span class="fc" id="L229">					int halfEdgeTwin = m_topo_graph.getHalfEdgeTwin(half_edge);</span>
+<span class="fc" id="L230">					m_topo_graph.setHalfEdgeUserIndex(halfEdgeTwin,</span>
+							visitedEdges, 1);
+<span class="fc" id="L232">					m_topo_graph.setHalfEdgeUserIndex(half_edge, visitedEdges,</span>
+							1);
+<span class="fc" id="L234">					int parentage = m_topo_graph</span>
+<span class="fc" id="L235">							.getHalfEdgeFaceParentage(half_edge);</span>
+<span class="fc bfc" id="L236" title="All 2 branches covered.">					if (isGoodParentage(parentage)) {</span>
+<span class="fc" id="L237">						int twinParentage = m_topo_graph</span>
+<span class="fc" id="L238">								.getHalfEdgeFaceParentage(halfEdgeTwin);</span>
+<span class="fc bfc" id="L239" title="All 2 branches covered.">						if (isGoodParentage(twinParentage)) {</span>
+							// This half_edge pair is a border between two faces
+							// that share the parentage or it is a dangling edge
+<span class="fc" id="L242">							edgesToDelete.add(half_edge);// remember for</span>
+															// subsequent delete
+						}
+					}
+				}
+
+<span class="fc" id="L248">				half_edge = m_topo_graph.getHalfEdgeNext(m_topo_graph</span>
+<span class="fc" id="L249">						.getHalfEdgeTwin(half_edge));</span>
+<span class="fc bfc" id="L250" title="All 2 branches covered.">			} while (half_edge != firstHalfEdge);</span>
+		}
+
+<span class="fc" id="L253">		m_topo_graph.deleteUserIndexForHalfEdges(visitedEdges);</span>
+<span class="fc" id="L254">		m_topo_graph.deleteEdgesBreakFaces_(edgesToDelete);</span>
+<span class="fc" id="L255">	}</span>
+
+	int getVertexByID_(int vertex, int geometry_id) {
+<span class="fc bfc" id="L258" title="All 2 branches covered.">		if (geometry_id == -1)</span>
+<span class="fc" id="L259">			return vertex;</span>
+
+<span class="fc" id="L261">		return getVertexByIDImpl_(vertex, geometry_id);</span>
+	}
+
+	int getVertexByIDImpl_(int vertex, int geometry_id) {
+<span class="fc" id="L265">		EditShape shape = m_topo_graph.getShape();</span>
+		int v;
+		int geometry;
+<span class="fc" id="L268">		int vertex_iterator = m_topo_graph</span>
+<span class="fc" id="L269">				.getClusterVertexIterator(m_topo_graph</span>
+<span class="fc" id="L270">						.getClusterFromVertex(vertex));</span>
+
+		do {
+<span class="fc" id="L273">			v = m_topo_graph.getVertexFromVertexIterator(vertex_iterator);</span>
+<span class="fc" id="L274">			geometry = shape.getGeometryFromPath(shape.getPathFromVertex(v));</span>
+
+<span class="fc bfc" id="L276" title="All 2 branches covered.">			if (geometry == geometry_id)</span>
+<span class="fc" id="L277">				return v;</span>
+
+<span class="fc" id="L279">			vertex_iterator = m_topo_graph</span>
+<span class="fc" id="L280">					.incrementVertexIterator(vertex_iterator);</span>
+<span class="pc bpc" id="L281" title="1 of 2 branches missed.">		} while (vertex_iterator != -1);</span>
+
+<span class="nc" id="L283">		return vertex;</span>
+	}
+
+	private int topoOperationPolygonPolygon_(int geometry_a, int geometry_b,
+			int geometry_dominant) {
+<span class="fc" id="L288">		dissolveCommonEdges_();// faces are partially broken after this call.</span>
+								// See help to this call.
+
+<span class="fc" id="L291">		EditShape shape = m_topo_graph.getShape();</span>
+<span class="fc" id="L292">		int newGeometry = shape.createGeometry(Geometry.Type.Polygon);</span>
+<span class="fc" id="L293">		int visitedEdges = m_topo_graph.createUserIndexForHalfEdges();</span>
+
+<span class="fc" id="L295">		topoOperationPolygonPolygonHelper_(geometry_a, geometry_b, newGeometry,</span>
+				geometry_dominant, visitedEdges, -1);
+
+<span class="fc" id="L298">		m_topo_graph.deleteUserIndexForHalfEdges(visitedEdges);</span>
+<span class="fc" id="L299">		Simplificator.execute(shape, newGeometry,</span>
+				MultiVertexGeometryImpl.GeometryXSimple.Weak, m_bOGCOutput, null);
+<span class="fc" id="L301">		return newGeometry;</span>
+	}
+
+	private void topoOperationPolygonPolygonHelper_(int geometry_a,
+			int geometry_b, int newGeometryPolygon, int geometry_dominant,
+			int visitedEdges, int visitedClusters) {
+<span class="fc" id="L307">		collectPolygonPathsPreservingFrom_(geometry_a, newGeometryPolygon,</span>
+				visitedEdges, visitedClusters, geometry_dominant);
+<span class="fc bfc" id="L309" title="All 2 branches covered.">		if (geometry_b != -1)</span>
+<span class="fc" id="L310">			collectPolygonPathsPreservingFrom_(geometry_b, newGeometryPolygon,</span>
+					visitedEdges, visitedClusters, geometry_dominant);
+
+<span class="fc" id="L313">		EditShape shape = m_topo_graph.getShape();</span>
+		// Now extract polygon paths that has not been extracted on the previous
+		// step.
+<span class="fc bfc" id="L316" title="All 2 branches covered.">		for (int cluster = m_topo_graph.getFirstCluster(); cluster != -1; cluster = m_topo_graph</span>
+<span class="fc" id="L317">				.getNextCluster(cluster)) {</span>
+<span class="fc" id="L318">			int firstHalfEdge = m_topo_graph.getClusterHalfEdge(cluster);</span>
+<span class="fc bfc" id="L319" title="All 2 branches covered.">			if (firstHalfEdge == -1)</span>
+<span class="fc" id="L320">				continue;</span>
+
+<span class="fc" id="L322">			int half_edge = firstHalfEdge;</span>
+			do {
+<span class="fc" id="L324">				int visited = m_topo_graph.getHalfEdgeUserIndex(half_edge,</span>
+						visitedEdges);
+<span class="fc bfc" id="L326" title="All 4 branches covered.">				if (visited != 1 &amp;&amp; visited != 2) {</span>
+<span class="fc" id="L327">					int parentage = m_topo_graph</span>
+<span class="fc" id="L328">							.getHalfEdgeFaceParentage(half_edge);</span>
+<span class="fc bfc" id="L329" title="All 2 branches covered.">					if (isGoodParentage(parentage)) {// Extract face.</span>
+<span class="fc" id="L330">						int newPath = shape.insertPath(newGeometryPolygon, -1);// add</span>
+																				// new
+																				// path
+																				// at
+																				// the
+																				// end
+<span class="fc" id="L336">						int faceHalfEdge = half_edge;</span>
+						do {
+<span class="fc" id="L338">							int viter = m_topo_graph</span>
+<span class="fc" id="L339">									.getHalfEdgeVertexIterator(faceHalfEdge);</span>
+							int v;
+<span class="fc bfc" id="L341" title="All 2 branches covered.">							if (viter != -1) {</span>
+<span class="fc" id="L342">								v = m_topo_graph</span>
+<span class="fc" id="L343">										.getVertexFromVertexIterator(viter);</span>
+							} else {
+<span class="fc" id="L345">								int viter1 = m_topo_graph</span>
+<span class="fc" id="L346">										.getHalfEdgeVertexIterator(m_topo_graph</span>
+<span class="fc" id="L347">												.getHalfEdgeTwin(faceHalfEdge));</span>
+<span class="pc bpc" id="L348" title="1 of 2 branches missed.">								assert (viter1 != -1);</span>
+<span class="fc" id="L349">								v = m_topo_graph</span>
+<span class="fc" id="L350">										.getVertexFromVertexIterator(viter1);</span>
+<span class="fc" id="L351">								v = m_topo_graph.getShape().getNextVertex(v);</span>
+							}
+
+<span class="pc bpc" id="L354" title="1 of 2 branches missed.">							assert (v != -1);</span>
+<span class="fc" id="L355">							int vertex_dominant = getVertexByID_(v,</span>
+									geometry_dominant);
+<span class="fc" id="L357">							shape.addVertex(newPath, vertex_dominant);</span>
+<span class="pc bpc" id="L358" title="1 of 2 branches missed.">							assert (isGoodParentage(m_topo_graph</span>
+<span class="fc" id="L359">									.getHalfEdgeFaceParentage(faceHalfEdge)));</span>
+<span class="fc" id="L360">							m_topo_graph.setHalfEdgeUserIndex(faceHalfEdge,</span>
+									visitedEdges, 1);//
+
+<span class="fc bfc" id="L363" title="All 2 branches covered.">							if (visitedClusters != -1) {</span>
+<span class="fc" id="L364">								int c = m_topo_graph</span>
+<span class="fc" id="L365">										.getClusterFromVertex(vertex_dominant);</span>
+<span class="fc" id="L366">								m_topo_graph.setClusterUserIndex(c,</span>
+										visitedClusters, 1);
+							}
+
+<span class="fc" id="L370">							faceHalfEdge = m_topo_graph</span>
+<span class="fc" id="L371">									.getHalfEdgeNext(faceHalfEdge);</span>
+<span class="fc bfc" id="L372" title="All 2 branches covered.">						} while (faceHalfEdge != half_edge);</span>
+
+<span class="fc" id="L374">						shape.setClosedPath(newPath, true);</span>
+<span class="fc" id="L375">					} else {</span>
+						// cannot extract a face
+<span class="fc" id="L377">						m_topo_graph.setHalfEdgeUserIndex(half_edge,</span>
+								visitedEdges, 2);
+					}
+
+				}
+
+<span class="fc" id="L383">				half_edge = m_topo_graph.getHalfEdgeNext(m_topo_graph</span>
+<span class="fc" id="L384">						.getHalfEdgeTwin(half_edge));</span>
+<span class="fc bfc" id="L385" title="All 2 branches covered.">			} while (half_edge != firstHalfEdge);</span>
+		}
+<span class="fc" id="L387">	}</span>
+
+	int[] topoOperationPolygonPolygonEx_(int geometry_a, int geometry_b,
+			int geometry_dominant) {
+<span class="fc" id="L391">		EditShape shape = m_topo_graph.getShape();</span>
+<span class="fc" id="L392">		int newGeometryPolygon = shape.createGeometry(Geometry.Type.Polygon);</span>
+<span class="fc" id="L393">		int newGeometryPolyline = shape.createGeometry(Geometry.Type.Polyline);</span>
+<span class="fc" id="L394">		int newGeometryMultipoint = shape</span>
+<span class="fc" id="L395">				.createGeometry(Geometry.Type.MultiPoint);</span>
+
+<span class="fc" id="L397">		dissolveCommonEdges_();// faces are partially broken after this call.</span>
+								// See help to this call.
+
+<span class="fc" id="L400">		int multipointPath = -1;</span>
+<span class="fc" id="L401">		int visitedEdges = m_topo_graph.createUserIndexForHalfEdges();</span>
+<span class="fc" id="L402">		int visitedClusters = m_topo_graph.createUserIndexForClusters();</span>
+
+<span class="fc" id="L404">		topoOperationPolygonPolygonHelper_(geometry_a, geometry_b,</span>
+				newGeometryPolygon, geometry_dominant, visitedEdges,
+				visitedClusters);
+
+<span class="fc bfc" id="L408" title="All 2 branches covered.">		for (int cluster = m_topo_graph.getFirstCluster(); cluster != -1; cluster = m_topo_graph</span>
+<span class="fc" id="L409">				.getNextCluster(cluster)) {</span>
+<span class="fc" id="L410">			int firstHalfEdge = m_topo_graph.getClusterHalfEdge(cluster);</span>
+<span class="pc bpc" id="L411" title="1 of 2 branches missed.">			if (firstHalfEdge == -1)</span>
+<span class="nc" id="L412">				continue;</span>
+
+<span class="fc" id="L414">			int half_edge = firstHalfEdge;</span>
+			do {
+<span class="fc" id="L416">				int visited1 = m_topo_graph.getHalfEdgeUserIndex(half_edge,</span>
+						visitedEdges);
+<span class="fc" id="L418">				int visited2 = m_topo_graph.getHalfEdgeUserIndex(</span>
+<span class="fc" id="L419">						m_topo_graph.getHalfEdgeTwin(half_edge), visitedEdges);</span>
+<span class="fc" id="L420">				int visited = visited1 | visited2;</span>
+<span class="fc bfc" id="L421" title="All 2 branches covered.">				if (visited == 2) {</span>
+<span class="fc" id="L422">					int parentage = m_topo_graph</span>
+<span class="fc" id="L423">							.getHalfEdgeParentage(half_edge);</span>
+<span class="fc bfc" id="L424" title="All 2 branches covered.">					if (isGoodParentage(parentage)) {// Extract face.</span>
+<span class="fc" id="L425">						int newPath = shape.insertPath(newGeometryPolyline, -1);// add</span>
+																				// new
+																				// path
+																				// at
+																				// the
+																				// end
+<span class="fc" id="L431">						int polyHalfEdge = half_edge;</span>
+<span class="fc" id="L432">						int vert = selectVertex_(cluster, shape);</span>
+<span class="pc bpc" id="L433" title="1 of 2 branches missed.">						assert (vert != -1);</span>
+<span class="fc" id="L434">						int vertex_dominant = getVertexByID_(vert,</span>
+								geometry_dominant);
+<span class="fc" id="L436">						shape.addVertex(newPath, vertex_dominant);</span>
+<span class="fc" id="L437">						m_topo_graph.setClusterUserIndex(cluster,</span>
+								visitedClusters, 1);
+
+						do {
+<span class="fc" id="L441">							int clusterTo = m_topo_graph</span>
+<span class="fc" id="L442">									.getHalfEdgeTo(polyHalfEdge);</span>
+<span class="fc" id="L443">							int vert1 = selectVertex_(clusterTo, shape);</span>
+<span class="pc bpc" id="L444" title="1 of 2 branches missed.">							assert (vert1 != -1);</span>
+<span class="fc" id="L445">							int vertex_dominant1 = getVertexByID_(vert1,</span>
+									geometry_dominant);
+<span class="fc" id="L447">							shape.addVertex(newPath, vertex_dominant1);</span>
+<span class="fc" id="L448">							m_topo_graph.setHalfEdgeUserIndex(polyHalfEdge,</span>
+									visitedEdges, 1);//
+<span class="fc" id="L450">							m_topo_graph.setHalfEdgeUserIndex(</span>
+<span class="fc" id="L451">									m_topo_graph.getHalfEdgeTwin(polyHalfEdge),</span>
+									visitedEdges, 1);//
+<span class="fc" id="L453">							m_topo_graph.setClusterUserIndex(clusterTo,</span>
+									visitedClusters, 1);
+
+<span class="fc" id="L456">							polyHalfEdge = m_topo_graph</span>
+<span class="fc" id="L457">									.getHalfEdgeNext(polyHalfEdge);</span>
+<span class="fc" id="L458">							visited1 = m_topo_graph.getHalfEdgeUserIndex(</span>
+									polyHalfEdge, visitedEdges);
+<span class="fc" id="L460">							visited2 = m_topo_graph.getHalfEdgeUserIndex(</span>
+<span class="fc" id="L461">									m_topo_graph.getHalfEdgeTwin(polyHalfEdge),</span>
+									visitedEdges);
+<span class="fc" id="L463">							visited = visited1 | visited2;</span>
+<span class="pc bpc" id="L464" title="1 of 2 branches missed.">							if (visited != 2)</span>
+<span class="nc" id="L465">								break;</span>
+
+<span class="fc" id="L467">							parentage = m_topo_graph</span>
+<span class="fc" id="L468">									.getHalfEdgeParentage(polyHalfEdge);</span>
+<span class="fc bfc" id="L469" title="All 2 branches covered.">							if (!isGoodParentage(parentage)) {</span>
+<span class="fc" id="L470">								m_topo_graph.setHalfEdgeUserIndex(polyHalfEdge,</span>
+										visitedEdges, 1);
+<span class="fc" id="L472">								m_topo_graph.setHalfEdgeUserIndex(m_topo_graph</span>
+<span class="fc" id="L473">										.getHalfEdgeTwin(polyHalfEdge),</span>
+										visitedEdges, 1);
+<span class="fc" id="L475">								break;</span>
+							}
+
+<span class="pc bpc" id="L478" title="1 of 2 branches missed.">						} while (polyHalfEdge != half_edge);</span>
+
+<span class="fc" id="L480">					} else {</span>
+<span class="fc" id="L481">						m_topo_graph.setHalfEdgeUserIndex(half_edge,</span>
+								visitedEdges, 1);
+<span class="fc" id="L483">						m_topo_graph.setHalfEdgeUserIndex(</span>
+<span class="fc" id="L484">								m_topo_graph.getHalfEdgeTwin(half_edge),</span>
+								visitedEdges, 1);
+					}
+				}
+
+<span class="fc" id="L489">				half_edge = m_topo_graph.getHalfEdgeNext(m_topo_graph</span>
+<span class="fc" id="L490">						.getHalfEdgeTwin(half_edge));</span>
+<span class="fc bfc" id="L491" title="All 2 branches covered.">			} while (half_edge != firstHalfEdge);</span>
+		}
+
+<span class="fc bfc" id="L494" title="All 2 branches covered.">		for (int cluster = m_topo_graph.getFirstCluster(); cluster != -1; cluster = m_topo_graph</span>
+<span class="fc" id="L495">				.getNextCluster(cluster)) {</span>
+<span class="fc" id="L496">			int visited = m_topo_graph.getClusterUserIndex(cluster,</span>
+					visitedClusters);
+<span class="fc bfc" id="L498" title="All 2 branches covered.">			if (visited == 1)</span>
+<span class="fc" id="L499">				continue;</span>
+
+<span class="fc" id="L501">			int parentage = m_topo_graph.getClusterParentage(cluster);</span>
+<span class="fc bfc" id="L502" title="All 2 branches covered.">			if (isGoodParentage(parentage)) {</span>
+<span class="pc bpc" id="L503" title="1 of 2 branches missed.">				if (multipointPath == -1)</span>
+<span class="fc" id="L504">					multipointPath = shape</span>
+<span class="fc" id="L505">							.insertPath(newGeometryMultipoint, -1);</span>
+<span class="fc" id="L506">				int viter = m_topo_graph.getClusterVertexIterator(cluster);</span>
+				int v;
+<span class="pc bpc" id="L508" title="1 of 2 branches missed.">				if (viter != -1) {</span>
+<span class="fc" id="L509">					v = m_topo_graph.getVertexFromVertexIterator(viter);</span>
+<span class="fc" id="L510">					int vertex_dominant = getVertexByID_(v, geometry_dominant);</span>
+<span class="fc" id="L511">					shape.addVertex(multipointPath, vertex_dominant);</span>
+				}
+			}
+		}
+
+<span class="fc" id="L516">		m_topo_graph.deleteUserIndexForClusters(visitedClusters);</span>
+<span class="fc" id="L517">		m_topo_graph.deleteUserIndexForHalfEdges(visitedEdges);</span>
+<span class="fc" id="L518">		Simplificator.execute(shape, newGeometryPolygon,</span>
+				MultiVertexGeometryImpl.GeometryXSimple.Weak, m_bOGCOutput, null);
+<span class="fc" id="L520">		int[] result = new int[3];// always returns size 3 result.</span>
+
+<span class="fc" id="L522">		result[0] = newGeometryMultipoint;</span>
+<span class="fc" id="L523">		result[1] = newGeometryPolyline;</span>
+<span class="fc" id="L524">		result[2] = newGeometryPolygon;</span>
+<span class="fc" id="L525">		return result;</span>
+	}
+
+	int selectVertex_(int cluster, EditShape shape) {
+<span class="fc" id="L529">		int vert = -1;</span>
+<span class="fc bfc" id="L530" title="All 2 branches covered.">		for (int iterator = m_topo_graph.getClusterVertexIterator(cluster); iterator != -1; iterator = m_topo_graph</span>
+<span class="fc" id="L531">				.incrementVertexIterator(iterator)) {</span>
+<span class="fc" id="L532">			int vertex = m_topo_graph.getVertexFromVertexIterator(iterator);</span>
+<span class="fc bfc" id="L533" title="All 2 branches covered.">			if (vert == -1)</span>
+<span class="fc" id="L534">				vert = vertex;</span>
+<span class="fc" id="L535">			int geometry = shape.getGeometryFromPath(shape</span>
+<span class="fc" id="L536">					.getPathFromVertex(vertex));</span>
+<span class="fc" id="L537">			int geomID = m_topo_graph.getGeometryID(geometry);</span>
+<span class="fc bfc" id="L538" title="All 2 branches covered.">			if (isGoodParentage(geomID)) {</span>
+<span class="fc" id="L539">				vert = vertex;</span>
+<span class="fc" id="L540">				break;</span>
+			}
+		}
+
+<span class="fc" id="L544">		return vert;</span>
+	}
+
+	private double prevailingDirection_(EditShape shape, int half_edge) {
+<span class="fc" id="L548">		int cluster = m_topo_graph.getHalfEdgeOrigin(half_edge);</span>
+<span class="fc" id="L549">		int clusterTo = m_topo_graph.getHalfEdgeTo(half_edge);</span>
+<span class="fc" id="L550">		int signTotal = 0;</span>
+<span class="fc" id="L551">		int signCorrect = 0;</span>
+<span class="fc bfc" id="L552" title="All 2 branches covered.">		for (int iterator = m_topo_graph.getClusterVertexIterator(cluster); iterator != -1; iterator = m_topo_graph</span>
+<span class="fc" id="L553">				.incrementVertexIterator(iterator)) {</span>
+<span class="fc" id="L554">			int vertex = m_topo_graph.getVertexFromVertexIterator(iterator);</span>
+<span class="fc" id="L555">			int path = shape.getPathFromVertex(vertex);</span>
+<span class="fc" id="L556">			int geometry = shape.getGeometryFromPath(path);</span>
+<span class="fc" id="L557">			int geomID = m_topo_graph.getGeometryID(geometry);</span>
+<span class="fc" id="L558">			int nextVert = shape.getNextVertex(vertex);</span>
+<span class="fc" id="L559">			int prevVert = shape.getPrevVertex(vertex);</span>
+
+<span class="fc" id="L561">			int firstVert = shape.getFirstVertex(path);</span>
+<span class="fc bfc" id="L562" title="All 2 branches covered.">			if (firstVert == vertex) {// remember the first half edge of the</span>
+										// path. We use it to produce correct
+										// startpath for closed polyline loops
+<span class="fc" id="L565">				m_from_edge_for_polylines = half_edge;</span>
+			}
+
+<span class="fc bfc" id="L568" title="All 2 branches covered.">			if (nextVert != -1</span>
+<span class="fc bfc" id="L569" title="All 2 branches covered.">					&amp;&amp; m_topo_graph.getClusterFromVertex(nextVert) == clusterTo) {</span>
+<span class="fc" id="L570">				signTotal++;</span>
+<span class="fc bfc" id="L571" title="All 2 branches covered.">				if (isGoodParentage(geomID)) {</span>
+<span class="pc bpc" id="L572" title="1 of 2 branches missed.">					if (firstVert == nextVert) {// remember the first vertex of</span>
+												// the path. We use it to
+												// produce correct startpath for
+												// closed polyline loops
+<span class="nc" id="L576">						m_from_edge_for_polylines = m_topo_graph</span>
+<span class="nc" id="L577">								.getHalfEdgeNext(half_edge);</span>
+					}
+
+					// update the sign
+<span class="fc" id="L581">					signCorrect++;</span>
+				}
+<span class="pc bpc" id="L583" title="1 of 2 branches missed.">			} else if (prevVert != -1</span>
+<span class="fc bfc" id="L584" title="All 2 branches covered.">					&amp;&amp; m_topo_graph.getClusterFromVertex(prevVert) == clusterTo) {</span>
+<span class="fc" id="L585">				signTotal--;</span>
+<span class="fc bfc" id="L586" title="All 2 branches covered.">				if (isGoodParentage(geomID)) {</span>
+<span class="fc bfc" id="L587" title="All 2 branches covered.">					if (firstVert == prevVert) {// remember the first vertex of</span>
+												// the path. We use it to
+												// produce correct startpath for
+												// closed polyline loops
+<span class="fc" id="L591">						m_from_edge_for_polylines = m_topo_graph</span>
+<span class="fc" id="L592">								.getHalfEdgeNext(half_edge);</span>
+					}
+
+					// update the sign
+<span class="fc" id="L596">					signCorrect--;</span>
+				}
+			}
+		}
+
+<span class="fc" id="L601">		m_topo_graph.getXY(cluster, m_dummy_pt_1);</span>
+<span class="fc" id="L602">		m_topo_graph.getXY(clusterTo, m_dummy_pt_2);</span>
+<span class="fc" id="L603">		double len = Point2D.distance(m_dummy_pt_1, m_dummy_pt_2);</span>
+<span class="fc bfc" id="L604" title="All 2 branches covered.">		return (signCorrect != 0 ? signCorrect : signTotal) * len;</span>
+	}
+
+	int getCombinedHalfEdgeParentage_(int e) {
+<span class="fc" id="L608">		return m_topo_graph.getHalfEdgeParentage(e)</span>
+<span class="fc" id="L609">				| m_topo_graph.getHalfEdgeFaceParentage(e)</span>
+<span class="fc" id="L610">				| m_topo_graph.getHalfEdgeFaceParentage(m_topo_graph</span>
+<span class="fc" id="L611">						.getHalfEdgeTwin(e));</span>
+	}
+
+	int tryMoveThroughCrossroadBackwards_(int half_edge) {
+<span class="fc" id="L615">		int e = m_topo_graph.getHalfEdgeTwin(m_topo_graph</span>
+<span class="fc" id="L616">				.getHalfEdgePrev(half_edge));</span>
+<span class="fc" id="L617">		int goodEdge = -1;</span>
+<span class="fc bfc" id="L618" title="All 2 branches covered.">		while (e != half_edge) {</span>
+<span class="fc" id="L619">			int parentage = getCombinedHalfEdgeParentage_(e);</span>
+<span class="fc bfc" id="L620" title="All 2 branches covered.">			if (isGoodParentage(parentage)) {</span>
+<span class="fc bfc" id="L621" title="All 2 branches covered.">				if (goodEdge != -1)</span>
+<span class="fc" id="L622">					return -1;</span>
+				
+<span class="fc" id="L624">				goodEdge = e;</span>
+			}
+
+<span class="fc" id="L627">			e = m_topo_graph.getHalfEdgeTwin(m_topo_graph.getHalfEdgePrev(e));</span>
+<span class="fc" id="L628">		}</span>
+
+<span class="fc bfc" id="L630" title="All 2 branches covered.">		return goodEdge != -1 ? m_topo_graph.getHalfEdgeTwin(goodEdge) : -1;</span>
+	}
+
+	int tryMoveThroughCrossroadForward_(int half_edge) {
+<span class="fc" id="L634">		int e = m_topo_graph.getHalfEdgeTwin(m_topo_graph</span>
+<span class="fc" id="L635">				.getHalfEdgeNext(half_edge));</span>
+<span class="fc" id="L636">		int goodEdge = -1;</span>
+<span class="fc bfc" id="L637" title="All 2 branches covered.">		while (e != half_edge) {</span>
+<span class="fc" id="L638">			int parentage = getCombinedHalfEdgeParentage_(e);</span>
+<span class="fc bfc" id="L639" title="All 2 branches covered.">			if (isGoodParentage(parentage)) {</span>
+<span class="fc bfc" id="L640" title="All 2 branches covered.">				if (goodEdge != -1)</span>
+<span class="fc" id="L641">					return -1;// more than one way to move through the</span>
+								// intersection
+<span class="fc" id="L643">				goodEdge = e;</span>
+			}
+
+<span class="fc" id="L646">			e = m_topo_graph.getHalfEdgeTwin(m_topo_graph.getHalfEdgeNext(e));</span>
+<span class="fc" id="L647">		}</span>
+
+<span class="fc bfc" id="L649" title="All 2 branches covered.">		return goodEdge != -1 ? m_topo_graph.getHalfEdgeTwin(goodEdge) : -1;</span>
+	}
+
+	private void restorePolylineParts_(int first_edge, int newGeometry,
+			int visitedEdges, int visitedClusters, int geometry_dominant) {
+<span class="pc bpc" id="L654" title="1 of 2 branches missed.">		assert (isGoodParentage(getCombinedHalfEdgeParentage_(first_edge)));</span>
+<span class="fc" id="L655">		EditShape shape = m_topo_graph.getShape();</span>
+<span class="fc" id="L656">		int half_edge = first_edge;</span>
+<span class="fc" id="L657">		int halfEdgeTwin = m_topo_graph.getHalfEdgeTwin(half_edge);</span>
+<span class="fc" id="L658">		m_topo_graph.setHalfEdgeUserIndex(half_edge, visitedEdges, 1);</span>
+<span class="fc" id="L659">		m_topo_graph.setHalfEdgeUserIndex(halfEdgeTwin, visitedEdges, 1);</span>
+<span class="fc" id="L660">		double prevailingLength = prevailingDirection_(shape, half_edge);// prevailing</span>
+																			// direction
+																			// is
+																			// used
+																			// to
+																			// figure
+																			// out
+																			// the
+																			// polyline
+																			// direction.
+		// Prevailing length is the sum of the length of vectors that constitute
+		// the polyline.
+		// Vector length is positive, if the halfedge direction coincides with
+		// the direction of the original geometry
+		// and negative otherwise.
+
+<span class="fc" id="L676">		m_from_edge_for_polylines = -1;</span>
+<span class="fc" id="L677">		int fromEdge = half_edge;</span>
+<span class="fc" id="L678">		int toEdge = -1;</span>
+<span class="fc" id="L679">		boolean b_found_impassable_crossroad = false;</span>
+<span class="fc" id="L680">		int edgeCount = 1;</span>
+		while (true) {
+<span class="fc" id="L682">			int halfEdgePrev = m_topo_graph.getHalfEdgePrev(half_edge);</span>
+<span class="fc bfc" id="L683" title="All 2 branches covered.">			if (halfEdgePrev == halfEdgeTwin)</span>
+<span class="fc" id="L684">				break;// the end of a polyline</span>
+			
+<span class="fc" id="L686">			int halfEdgeTwinNext = m_topo_graph.getHalfEdgeNext(halfEdgeTwin);</span>
+<span class="fc bfc" id="L687" title="All 2 branches covered.">			if (m_topo_graph.getHalfEdgeTwin(halfEdgePrev) != halfEdgeTwinNext) {</span>
+				// Crossroads is here. We can move through the crossroad only if
+				// there is only a single way to pass through.
+				//When doing planar_simplify we'll never go through the crossroad.
+<span class="fc" id="L691">				half_edge = tryMoveThroughCrossroadBackwards_(half_edge);</span>
+<span class="fc bfc" id="L692" title="All 2 branches covered.">				if (half_edge == -1)</span>
+<span class="fc" id="L693">					break;</span>
+				else {
+<span class="fc" id="L695">					b_found_impassable_crossroad = true;</span>
+<span class="fc" id="L696">					halfEdgeTwin = m_topo_graph.getHalfEdgeTwin(half_edge);</span>
+				}
+			} else {
+<span class="fc" id="L699">				half_edge = halfEdgePrev;</span>
+<span class="fc" id="L700">				halfEdgeTwin = halfEdgeTwinNext;</span>
+			}
+
+<span class="pc bpc" id="L703" title="1 of 2 branches missed.">			if (half_edge == first_edge) {// we are in a loop. No need to search</span>
+											// for the toEdge. Just remember the
+											// toEdge and skip the next while
+											// loop.
+<span class="nc" id="L707">				toEdge = first_edge;</span>
+<span class="nc" id="L708">				break;</span>
+			}
+<span class="fc" id="L710">			int parentage = getCombinedHalfEdgeParentage_(half_edge);</span>
+<span class="fc bfc" id="L711" title="All 2 branches covered.">			if (!isGoodParentage(parentage))</span>
+<span class="fc" id="L712">				break;</span>
+
+<span class="fc" id="L714">			m_topo_graph.setHalfEdgeUserIndex(half_edge, visitedEdges, 1);</span>
+<span class="fc" id="L715">			m_topo_graph.setHalfEdgeUserIndex(halfEdgeTwin, visitedEdges, 1);</span>
+<span class="fc" id="L716">			fromEdge = half_edge;</span>
+<span class="fc" id="L717">			prevailingLength += prevailingDirection_(shape, half_edge);</span>
+<span class="fc" id="L718">			edgeCount++;</span>
+<span class="fc" id="L719">		}</span>
+
+<span class="pc bpc" id="L721" title="1 of 2 branches missed.">		if (toEdge == -1) {</span>
+<span class="fc" id="L722">			half_edge = first_edge;</span>
+<span class="fc" id="L723">			halfEdgeTwin = m_topo_graph.getHalfEdgeTwin(half_edge);</span>
+<span class="fc" id="L724">			toEdge = half_edge;</span>
+			while (true) {
+<span class="fc" id="L726">				int halfEdgeNext = m_topo_graph.getHalfEdgeNext(half_edge);</span>
+<span class="fc bfc" id="L727" title="All 2 branches covered.">				if (halfEdgeNext == halfEdgeTwin)</span>
+<span class="fc" id="L728">					break;</span>
+				
+<span class="fc" id="L730">				int halfEdgeTwinPrev = m_topo_graph</span>
+<span class="fc" id="L731">						.getHalfEdgePrev(halfEdgeTwin);</span>
+<span class="fc bfc" id="L732" title="All 2 branches covered.">				if (m_topo_graph.getHalfEdgeTwin(halfEdgeNext) != halfEdgeTwinPrev) {</span>
+					// Crossroads is here. We can move through the crossroad
+					// only if there is only a single way to pass through.
+<span class="fc" id="L735">					half_edge = tryMoveThroughCrossroadForward_(half_edge);</span>
+<span class="fc bfc" id="L736" title="All 2 branches covered.">					if (half_edge == -1) {</span>
+<span class="fc" id="L737">						b_found_impassable_crossroad = true;</span>
+<span class="fc" id="L738">						break;</span>
+					}
+					else
+<span class="fc" id="L741">						halfEdgeTwin = m_topo_graph.getHalfEdgeTwin(half_edge);</span>
+				} else {
+<span class="fc" id="L743">					half_edge = halfEdgeNext;</span>
+<span class="fc" id="L744">					halfEdgeTwin = halfEdgeTwinPrev;</span>
+				}
+
+<span class="fc" id="L747">				int parentage = getCombinedHalfEdgeParentage_(half_edge);</span>
+<span class="fc bfc" id="L748" title="All 2 branches covered.">				if (!isGoodParentage(parentage))</span>
+<span class="fc" id="L749">					break;</span>
+
+<span class="fc" id="L751">				m_topo_graph.setHalfEdgeUserIndex(half_edge, visitedEdges, 1);</span>
+<span class="fc" id="L752">				m_topo_graph</span>
+<span class="fc" id="L753">						.setHalfEdgeUserIndex(halfEdgeTwin, visitedEdges, 1);</span>
+<span class="fc" id="L754">				toEdge = half_edge;</span>
+<span class="fc" id="L755">				prevailingLength += prevailingDirection_(shape, half_edge);</span>
+<span class="fc" id="L756">				edgeCount++;</span>
+<span class="fc" id="L757">			}</span>
+		} else {
+			// toEdge has been found in the first while loop. This happens when
+			// we go around a face.
+			// Closed loops need special processing as we do not know where the
+			// polyline started or ended.
+
+<span class="nc bnc" id="L764" title="All 2 branches missed.">			if (m_from_edge_for_polylines != -1) {</span>
+<span class="nc" id="L765">				fromEdge = m_from_edge_for_polylines;</span>
+<span class="nc" id="L766">				toEdge = m_topo_graph</span>
+<span class="nc" id="L767">						.getHalfEdgePrev(m_from_edge_for_polylines);// try</span>
+																	// simply
+																	// getting
+																	// prev
+<span class="nc" id="L771">				int fromEdgeTwin = m_topo_graph.getHalfEdgeTwin(fromEdge);</span>
+<span class="nc" id="L772">				int fromEdgeTwinNext = m_topo_graph</span>
+<span class="nc" id="L773">						.getHalfEdgeNext(fromEdgeTwin);</span>
+<span class="nc bnc" id="L774" title="All 2 branches missed.">				if (m_topo_graph.getHalfEdgeTwin(toEdge) != fromEdgeTwinNext) {</span>
+					// Crossroads is here. Pass through the crossroad.
+<span class="nc" id="L776">					toEdge = tryMoveThroughCrossroadBackwards_(fromEdge);</span>
+<span class="nc bnc" id="L777" title="All 2 branches missed.">					if (toEdge == -1)</span>
+<span class="nc" id="L778">						throw GeometryException.GeometryInternalError();// what?</span>
+				}
+
+<span class="nc bnc" id="L781" title="All 2 branches missed.">				assert (isGoodParentage(getCombinedHalfEdgeParentage_(m_from_edge_for_polylines)));</span>
+<span class="nc bnc" id="L782" title="All 2 branches missed.">				assert (isGoodParentage(getCombinedHalfEdgeParentage_(toEdge)));</span>
+			}
+		}
+
+<span class="fc bfc" id="L786" title="All 2 branches covered.">		boolean dir = prevailingLength &gt;= 0;</span>
+<span class="fc bfc" id="L787" title="All 2 branches covered.">		if (!dir) {</span>
+<span class="fc" id="L788">			int e = toEdge;</span>
+<span class="fc" id="L789">			toEdge = fromEdge;</span>
+<span class="fc" id="L790">			fromEdge = e;</span>
+<span class="fc" id="L791">			toEdge = m_topo_graph.getHalfEdgeTwin(toEdge);// switch to twin so</span>
+															// that we can use
+															// next instead of
+															// Prev
+<span class="pc bpc" id="L795" title="1 of 2 branches missed.">			assert (isGoodParentage(getCombinedHalfEdgeParentage_(toEdge)));</span>
+<span class="fc" id="L796">			fromEdge = m_topo_graph.getHalfEdgeTwin(fromEdge);</span>
+<span class="pc bpc" id="L797" title="1 of 2 branches missed.">			assert (isGoodParentage(getCombinedHalfEdgeParentage_(fromEdge)));</span>
+		}
+		
+<span class="fc" id="L800">		int newPath = shape.insertPath(newGeometry, -1);// add new path at the</span>
+														// end
+<span class="fc" id="L802">		half_edge = fromEdge;</span>
+<span class="fc" id="L803">		int cluster = m_topo_graph.getHalfEdgeOrigin(fromEdge);</span>
+<span class="fc" id="L804">		int clusterLast = m_topo_graph.getHalfEdgeTo(toEdge);</span>
+<span class="fc bfc" id="L805" title="All 2 branches covered.">		boolean b_closed = clusterLast == cluster;</span>
+		// The linestrings can touch at boundary points only, while closed path
+		// has no boundary, therefore no other path can touch it.
+		// Therefore, if a closed path touches another path, we need to split
+		// the closed path in two to make the result OGC simple.
+<span class="pc bpc" id="L810" title="1 of 4 branches missed.">		boolean b_closed_linestring_touches_other_linestring = b_closed</span>
+				&amp;&amp; b_found_impassable_crossroad;
+		
+<span class="fc" id="L813">		int vert = selectVertex_(cluster, shape);</span>
+<span class="pc bpc" id="L814" title="1 of 2 branches missed.">		assert(vert != -1);</span>
+<span class="fc" id="L815">		int vertex_dominant = getVertexByID_(vert, geometry_dominant);</span>
+<span class="fc" id="L816">		shape.addVertex(newPath, vertex_dominant);</span>
+
+<span class="fc bfc" id="L818" title="All 2 branches covered.">		if (visitedClusters != -1) {</span>
+<span class="fc" id="L819">			m_topo_graph.setClusterUserIndex(cluster, visitedClusters, 1);</span>
+		}
+
+<span class="fc" id="L822">		int counter = 0;</span>
+<span class="fc bfc" id="L823" title="All 2 branches covered.">		int splitAt = b_closed_linestring_touches_other_linestring ? (edgeCount + 1) / 2 : -1;</span>
+		while (true) {
+<span class="fc" id="L825">			int clusterTo = m_topo_graph.getHalfEdgeTo(half_edge);</span>
+<span class="fc" id="L826">			int vert_1 = selectVertex_(clusterTo, shape);</span>
+<span class="fc" id="L827">			vertex_dominant = getVertexByID_(vert_1, geometry_dominant);</span>
+<span class="fc" id="L828">			shape.addVertex(newPath, vertex_dominant);</span>
+<span class="fc" id="L829">			counter++;</span>
+<span class="fc bfc" id="L830" title="All 2 branches covered.">			if (visitedClusters != -1) {</span>
+<span class="fc" id="L831">				m_topo_graph.setClusterUserIndex(clusterTo, visitedClusters, 1);</span>
+			}
+
+<span class="fc bfc" id="L834" title="All 4 branches covered.">			if (b_closed_linestring_touches_other_linestring</span>
+					&amp;&amp; counter == splitAt) {
+<span class="fc" id="L836">				newPath = shape.insertPath(newGeometry, -1);// add new path at</span>
+															// the end
+<span class="fc" id="L838">				shape.addVertex(newPath, vertex_dominant);</span>
+			}
+			
+<span class="pc bpc" id="L841" title="1 of 2 branches missed.">			assert (isGoodParentage(getCombinedHalfEdgeParentage_(half_edge)));</span>
+<span class="fc bfc" id="L842" title="All 2 branches covered.">			if (half_edge == toEdge)</span>
+<span class="fc" id="L843">				break;</span>
+			
+<span class="fc" id="L845">			int halfEdgeNext = m_topo_graph.getHalfEdgeNext(half_edge);</span>
+<span class="fc" id="L846">			if (m_topo_graph.getHalfEdgePrev(m_topo_graph</span>
+<span class="fc" id="L847">					.getHalfEdgeTwin(half_edge)) != m_topo_graph</span>
+<span class="fc bfc" id="L848" title="All 2 branches covered.">					.getHalfEdgeTwin(halfEdgeNext)) {// crossroads.</span>
+<span class="fc" id="L849">				half_edge = tryMoveThroughCrossroadForward_(half_edge);</span>
+<span class="pc bpc" id="L850" title="1 of 2 branches missed.">				if (half_edge == -1)</span>
+<span class="nc" id="L851">					throw GeometryException.GeometryInternalError();// a bug. This</span>
+																	// shoulf
+																	// never
+																	// happen
+			} else
+<span class="fc" id="L856">				half_edge = halfEdgeNext;</span>
+<span class="fc" id="L857">		}</span>
+<span class="fc" id="L858">	}</span>
+
+	private int topoOperationPolylinePolylineOrPolygon_(int geometry_dominant) {
+<span class="fc" id="L861">		EditShape shape = m_topo_graph.getShape();</span>
+<span class="fc" id="L862">		int newGeometry = shape.createGeometry(Geometry.Type.Polyline);</span>
+<span class="fc" id="L863">		int visitedEdges = m_topo_graph.createUserIndexForHalfEdges();</span>
+
+<span class="fc bfc" id="L865" title="All 2 branches covered.">		for (int cluster = m_topo_graph.getFirstCluster(); cluster != -1; cluster = m_topo_graph</span>
+<span class="fc" id="L866">				.getNextCluster(cluster)) {</span>
+<span class="fc" id="L867">			int firstClusterHalfEdge = m_topo_graph.getClusterHalfEdge(cluster);</span>
+<span class="fc" id="L868">			int clusterHalfEdge = firstClusterHalfEdge;</span>
+			do {
+<span class="fc" id="L870">				int visited = m_topo_graph.getHalfEdgeUserIndex(</span>
+						clusterHalfEdge, visitedEdges);
+<span class="fc bfc" id="L872" title="All 2 branches covered.">				if (visited != 1) {</span>
+<span class="fc" id="L873">					int parentage = getCombinedHalfEdgeParentage_(clusterHalfEdge);</span>
+<span class="fc bfc" id="L874" title="All 2 branches covered.">					if (isGoodParentage(parentage)) {</span>
+<span class="fc" id="L875">						restorePolylineParts_(clusterHalfEdge, newGeometry,</span>
+								visitedEdges, -1, geometry_dominant);
+					} else {
+						//
+					}
+				}
+
+<span class="fc" id="L882">				clusterHalfEdge = m_topo_graph.getHalfEdgeNext(m_topo_graph</span>
+<span class="fc" id="L883">						.getHalfEdgeTwin(clusterHalfEdge));</span>
+<span class="fc bfc" id="L884" title="All 2 branches covered.">			} while (clusterHalfEdge != firstClusterHalfEdge);</span>
+		}
+
+<span class="fc" id="L887">		m_topo_graph.deleteUserIndexForHalfEdges(visitedEdges);</span>
+<span class="fc" id="L888">		return newGeometry;</span>
+	}
+
+	int[] topoOperationPolylinePolylineOrPolygonEx_(int geometry_dominant) {
+<span class="fc" id="L892">		EditShape shape = m_topo_graph.getShape();</span>
+<span class="fc" id="L893">		int newPolyline = shape.createGeometry(Geometry.Type.Polyline);</span>
+<span class="fc" id="L894">		int newMultipoint = shape.createGeometry(Geometry.Type.MultiPoint);</span>
+<span class="fc" id="L895">		int visitedEdges = m_topo_graph.createUserIndexForHalfEdges();</span>
+<span class="fc" id="L896">		int visitedClusters = m_topo_graph.createUserIndexForClusters();</span>
+<span class="fc" id="L897">		int multipointPath = -1;</span>
+<span class="fc bfc" id="L898" title="All 2 branches covered.">		for (int cluster = m_topo_graph.getFirstCluster(); cluster != -1; cluster = m_topo_graph</span>
+<span class="fc" id="L899">				.getNextCluster(cluster)) {</span>
+<span class="fc" id="L900">			int firstClusterHalfEdge = m_topo_graph.getClusterHalfEdge(cluster);</span>
+<span class="fc" id="L901">			int clusterHalfEdge = firstClusterHalfEdge;</span>
+			do {
+<span class="fc" id="L903">				int visited = m_topo_graph.getHalfEdgeUserIndex(</span>
+						clusterHalfEdge, visitedEdges);
+<span class="fc bfc" id="L905" title="All 2 branches covered.">				if (visited != 1) {</span>
+<span class="fc" id="L906">					int parentage = getCombinedHalfEdgeParentage_(clusterHalfEdge);</span>
+<span class="fc bfc" id="L907" title="All 2 branches covered.">					if (isGoodParentage(parentage)) {</span>
+<span class="fc" id="L908">						restorePolylineParts_(clusterHalfEdge, newPolyline,</span>
+								visitedEdges, visitedClusters,
+								geometry_dominant);
+					} else {
+						//
+					}
+				}
+
+<span class="fc" id="L916">				clusterHalfEdge = m_topo_graph.getHalfEdgeNext(m_topo_graph</span>
+<span class="fc" id="L917">						.getHalfEdgeTwin(clusterHalfEdge));</span>
+<span class="fc bfc" id="L918" title="All 2 branches covered.">			} while (clusterHalfEdge != firstClusterHalfEdge);</span>
+		}
+
+<span class="fc bfc" id="L921" title="All 2 branches covered.">		for (int cluster = m_topo_graph.getFirstCluster(); cluster != -1; cluster = m_topo_graph</span>
+<span class="fc" id="L922">				.getNextCluster(cluster)) {</span>
+<span class="fc" id="L923">			int visited = m_topo_graph.getClusterUserIndex(cluster,</span>
+					visitedClusters);
+<span class="fc bfc" id="L925" title="All 2 branches covered.">			if (visited != 1) {</span>
+<span class="fc" id="L926">				int parentage = m_topo_graph.getClusterParentage(cluster);</span>
+<span class="fc bfc" id="L927" title="All 2 branches covered.">				if (isGoodParentage(parentage)) {</span>
+<span class="pc bpc" id="L928" title="1 of 2 branches missed.">					if (multipointPath == -1)</span>
+<span class="fc" id="L929">						multipointPath = shape.insertPath(newMultipoint, -1);</span>
+
+<span class="fc" id="L931">					int viter = m_topo_graph.getClusterVertexIterator(cluster);</span>
+					int v;
+<span class="pc bpc" id="L933" title="1 of 2 branches missed.">					if (viter != -1) {</span>
+<span class="fc" id="L934">						v = m_topo_graph.getVertexFromVertexIterator(viter);</span>
+<span class="fc" id="L935">						int vertex_dominant = getVertexByID_(v,</span>
+								geometry_dominant);
+<span class="fc" id="L937">						shape.addVertex(multipointPath, vertex_dominant);</span>
+					}
+				} else {
+					//
+				}
+			}
+		}
+
+<span class="fc" id="L945">		m_topo_graph.deleteUserIndexForHalfEdges(visitedEdges);</span>
+<span class="fc" id="L946">		m_topo_graph.deleteUserIndexForClusters(visitedClusters);</span>
+<span class="fc" id="L947">		int[] result = new int[2];</span>
+<span class="fc" id="L948">		result[0] = newMultipoint;</span>
+<span class="fc" id="L949">		result[1] = newPolyline;</span>
+<span class="fc" id="L950">		return result;</span>
+	}
+
+	private int topoOperationMultiPoint_() {
+<span class="fc" id="L954">		EditShape shape = m_topo_graph.getShape();</span>
+<span class="fc" id="L955">		int newGeometry = shape.createGeometry(Geometry.Type.MultiPoint);</span>
+<span class="fc" id="L956">		int newPath = shape.insertPath(newGeometry, -1);// add new path at the</span>
+														// end
+
+		// Now extract paths that
+<span class="fc bfc" id="L960" title="All 2 branches covered.">		for (int cluster = m_topo_graph.getFirstCluster(); cluster != -1; cluster = m_topo_graph</span>
+<span class="fc" id="L961">				.getNextCluster(cluster)) {</span>
+<span class="fc" id="L962">			int parentage = m_topo_graph.getClusterParentage(cluster);</span>
+<span class="fc bfc" id="L963" title="All 2 branches covered.">			if (isGoodParentage(parentage)) {</span>
+<span class="fc" id="L964">				int vert = -1;</span>
+<span class="fc" id="L965">				for (int iterator = m_topo_graph</span>
+<span class="fc bfc" id="L966" title="All 2 branches covered.">						.getClusterVertexIterator(cluster); iterator != -1; iterator = m_topo_graph</span>
+<span class="fc" id="L967">						.incrementVertexIterator(iterator)) {</span>
+<span class="fc" id="L968">					int vertex = m_topo_graph</span>
+<span class="fc" id="L969">							.getVertexFromVertexIterator(iterator);</span>
+<span class="fc bfc" id="L970" title="All 2 branches covered.">					if (vert == -1)</span>
+<span class="fc" id="L971">						vert = vertex;</span>
+<span class="fc" id="L972">					int geometry = shape.getGeometryFromPath(shape</span>
+<span class="fc" id="L973">							.getPathFromVertex(vertex));</span>
+<span class="fc" id="L974">					int geomID = m_topo_graph.getGeometryID(geometry);</span>
+<span class="fc bfc" id="L975" title="All 2 branches covered.">					if (isGoodParentage(geomID)) {</span>
+<span class="fc" id="L976">						vert = vertex;</span>
+<span class="fc" id="L977">						break;</span>
+					}
+				}
+<span class="pc bpc" id="L980" title="1 of 2 branches missed.">				assert (vert != -1);</span>
+<span class="fc" id="L981">				shape.addVertex(newPath, vert);</span>
+			}
+		}
+
+<span class="fc" id="L985">		return newGeometry;</span>
+	}
+
+	void initMaskLookupArray_(int len) {
+<span class="fc" id="L989">		m_mask_lookup = new boolean[len];</span>
+<span class="fc bfc" id="L990" title="All 2 branches covered.">		for (int i = 0; i &lt; len; i++) {</span>
+<span class="fc" id="L991">			m_mask_lookup[i] = false;</span>
+		}
+<span class="fc" id="L993">	}</span>
+
+	static MultiPoint processMultiPointIntersectOrDiff_(MultiPoint multi_point,
+			Geometry intersector, double tolerance, boolean bClipIn) {
+<span class="fc" id="L997">		MultiPoint multi_point_out = ((MultiPoint) multi_point.createInstance());</span>
+<span class="fc" id="L998">		Point2D[] input_points = new Point2D[1000];</span>
+<span class="fc" id="L999">		PolygonUtils.PiPResult[] test_results = new PolygonUtils.PiPResult[1000];</span>
+<span class="fc" id="L1000">		int npoints = multi_point.getPointCount();</span>
+<span class="fc" id="L1001">		boolean bFirstOut = true;</span>
+<span class="fc bfc" id="L1002" title="All 2 branches covered.">		boolean bArea = (intersector.getDimension() == 2);</span>
+<span class="pc bpc" id="L1003" title="1 of 4 branches missed.">		if (intersector.getDimension() != 1 &amp;&amp; intersector.getDimension() != 2)</span>
+<span class="nc" id="L1004">			throw GeometryException.GeometryInternalError();</span>
+
+<span class="fc bfc" id="L1006" title="All 2 branches covered.">		for (int ipoints = 0; ipoints &lt; npoints;) {</span>
+<span class="fc" id="L1007">			int num = multi_point.queryCoordinates(input_points, 1000, ipoints,</span>
+					-1) - ipoints;
+
+<span class="fc bfc" id="L1010" title="All 2 branches covered.">			if (bArea)</span>
+<span class="fc" id="L1011">				PolygonUtils.testPointsInArea2D(intersector, input_points,</span>
+						(int) num, tolerance, test_results);
+			else
+<span class="fc" id="L1014">				PolygonUtils.testPointsOnLine2D(intersector, input_points,</span>
+						(int) num, tolerance, test_results);
+<span class="fc" id="L1016">			int i0 = 0;</span>
+<span class="fc bfc" id="L1017" title="All 2 branches covered.">			for (int i = 0; i &lt; num; i++) {</span>
+<span class="fc bfc" id="L1018" title="All 2 branches covered.">				boolean bTest = test_results[i] == PolygonUtils.PiPResult.PiPOutside;</span>
+<span class="pc bpc" id="L1019" title="1 of 2 branches missed.">				if (!bClipIn)</span>
+<span class="nc bnc" id="L1020" title="All 2 branches missed.">					bTest = !bTest;</span>
+
+<span class="fc bfc" id="L1022" title="All 2 branches covered.">				if (bTest) {</span>
+<span class="fc bfc" id="L1023" title="All 2 branches covered.">					if (bFirstOut) {</span>
+<span class="fc" id="L1024">						bFirstOut = false;</span>
+<span class="fc" id="L1025">						multi_point_out.add(multi_point, 0, ipoints);</span>
+					}
+
+<span class="fc bfc" id="L1028" title="All 2 branches covered.">					if (i0 != i)</span>
+<span class="fc" id="L1029">						multi_point_out.add(multi_point, ipoints + i0, ipoints</span>
+								+ i);
+
+<span class="fc" id="L1032">					i0 = i + 1;</span>
+				}
+			}
+
+<span class="pc bpc" id="L1036" title="1 of 4 branches missed.">			if (!bFirstOut &amp;&amp; i0 != num)</span>
+<span class="nc" id="L1037">				multi_point_out.add(multi_point, ipoints + i0, ipoints + num);</span>
+
+<span class="fc" id="L1039">			ipoints += num;</span>
+<span class="fc" id="L1040">		}</span>
+
+<span class="fc bfc" id="L1042" title="All 2 branches covered.">		if (bFirstOut)</span>
+<span class="fc" id="L1043">			return multi_point;</span>
+
+<span class="fc" id="L1045">		return multi_point_out;</span>
+	}
+
+	static MultiPoint intersection(MultiPoint multi_point, Geometry multi_path,
+			double tolerance) {
+<span class="fc" id="L1050">		return processMultiPointIntersectOrDiff_(multi_point, multi_path,</span>
+				tolerance, true);
+	}
+
+	static MultiPoint difference(MultiPoint multi_point, Geometry multi_path,
+			double tolerance) {
+<span class="nc" id="L1056">		return processMultiPointIntersectOrDiff_(multi_point, multi_path,</span>
+				tolerance, false);
+	}
+
+	static Point processPointIntersectOrDiff_(Point point,
+			Geometry intersector, double tolerance, boolean bClipIn) {
+<span class="pc bpc" id="L1062" title="1 of 2 branches missed.">		if (point.isEmpty())</span>
+<span class="nc" id="L1063">			return ((Point) point.createInstance());</span>
+<span class="pc bpc" id="L1064" title="1 of 2 branches missed.">		if (intersector.isEmpty()) {</span>
+<span class="nc bnc" id="L1065" title="All 2 branches missed.">			return bClipIn ? ((Point) point.createInstance()) : null;</span>
+		}
+
+<span class="fc" id="L1068">		Point2D[] input_points = new Point2D[1];</span>
+<span class="fc" id="L1069">		PolygonUtils.PiPResult[] test_results = new PolygonUtils.PiPResult[1];</span>
+<span class="fc bfc" id="L1070" title="All 2 branches covered.">		boolean bArea = intersector.getDimension() == 2;</span>
+<span class="pc bpc" id="L1071" title="1 of 4 branches missed.">		if (intersector.getDimension() != 1 &amp;&amp; intersector.getDimension() != 2)</span>
+<span class="nc" id="L1072">			throw GeometryException.GeometryInternalError();</span>
+<span class="fc" id="L1073">		input_points[0] = point.getXY();</span>
+<span class="fc bfc" id="L1074" title="All 2 branches covered.">		if (bArea)</span>
+<span class="fc" id="L1075">			PolygonUtils.testPointsInArea2D(intersector, input_points, 1,</span>
+					tolerance, test_results);
+		else
+<span class="fc" id="L1078">			PolygonUtils.testPointsOnLine2D(intersector, input_points, 1,</span>
+					tolerance, test_results);
+
+<span class="fc bfc" id="L1081" title="All 2 branches covered.">		boolean bTest = test_results[0] == PolygonUtils.PiPResult.PiPOutside;</span>
+<span class="pc bpc" id="L1082" title="1 of 2 branches missed.">		if (!bClipIn)</span>
+<span class="nc bnc" id="L1083" title="All 2 branches missed.">			bTest = !bTest;</span>
+
+<span class="fc bfc" id="L1085" title="All 2 branches covered.">		if (!bTest)</span>
+<span class="fc" id="L1086">			return point;</span>
+		else
+<span class="fc" id="L1088">			return ((Point) point.createInstance());</span>
+	}
+
+	static Point intersection(Point point, Geometry geom, double tolerance) {
+<span class="fc" id="L1092">		return processPointIntersectOrDiff_(point, geom, tolerance, true);</span>
+	}
+
+	static Point difference(Point point, Geometry geom, double tolerance) {
+<span class="nc" id="L1096">		return processPointIntersectOrDiff_(point, geom, tolerance, false);</span>
+	}
+
+	static Point intersection(Point point, Point point2, double tolerance) {
+<span class="nc bnc" id="L1100" title="All 4 branches missed.">		if (point.isEmpty() || point2.isEmpty())</span>
+<span class="nc" id="L1101">			return (Point) point.createInstance();</span>
+
+<span class="nc bnc" id="L1103" title="All 2 branches missed.">		if (CrackAndCluster.non_empty_points_need_to_cluster(tolerance, point,</span>
+				point2)) {
+<span class="nc" id="L1105">			return CrackAndCluster.cluster_non_empty_points(point, point2, 1,</span>
+					1, 1, 1);
+		}
+
+<span class="nc" id="L1109">		return (Point) point.createInstance();</span>
+	}
+
+	static Point difference(Point point, Point point2, double tolerance) {
+<span class="nc bnc" id="L1113" title="All 2 branches missed.">		if (point.isEmpty())</span>
+<span class="nc" id="L1114">			return (Point) point.createInstance();</span>
+<span class="nc bnc" id="L1115" title="All 2 branches missed.">		if (point2.isEmpty())</span>
+<span class="nc" id="L1116">			return point;</span>
+
+<span class="nc bnc" id="L1118" title="All 2 branches missed.">		if (CrackAndCluster.non_empty_points_need_to_cluster(tolerance, point,</span>
+				point2)) {
+<span class="nc" id="L1120">			return (Point) point.createInstance();</span>
+		}
+
+<span class="nc" id="L1123">		return point;</span>
+	}
+
+	MultiVertexGeometry planarSimplifyImpl_(MultiVertexGeometry input_geom,
+			double tolerance, boolean b_use_winding_rule_for_polygons,
+			boolean dirty_result, ProgressTracker progress_tracker) {
+<span class="pc bpc" id="L1129" title="1 of 2 branches missed.">		if (input_geom.isEmpty())</span>
+<span class="nc" id="L1130">			return input_geom;</span>
+
+<span class="fc" id="L1132">		EditShape shape = new EditShape();</span>
+<span class="fc" id="L1133">		int geom = shape.addGeometry(input_geom);</span>
+<span class="fc" id="L1134">		return planarSimplify(shape, geom, tolerance,</span>
+				b_use_winding_rule_for_polygons, dirty_result, progress_tracker);
+	}
+
+	MultiVertexGeometry planarSimplify(EditShape shape, int geom,
+			double tolerance, boolean b_use_winding_rule_for_polygons,
+			boolean dirty_result, ProgressTracker progress_tracker) {
+		// This method will produce a polygon from a polyline when
+		// b_use_winding_rule_for_polygons is true. This is used by buffer.
+<span class="fc" id="L1143">		m_topo_graph = new TopoGraph();</span>
+		try
+		{
+<span class="fc bfc" id="L1146" title="All 2 branches covered.">			if (dirty_result</span>
+<span class="fc" id="L1147">					&amp;&amp; shape.getGeometryType(geom) != Geometry.Type.MultiPoint</span>
+<span class="fc bfc" id="L1148" title="All 2 branches covered.">							.value()) {</span>
+<span class="fc" id="L1149">				PlaneSweepCrackerHelper plane_sweeper = new PlaneSweepCrackerHelper();</span>
+<span class="fc" id="L1150">				plane_sweeper.sweepVertical(shape, tolerance);</span>
+<span class="fc bfc" id="L1151" title="All 2 branches covered.">				if (plane_sweeper.hadCompications())// shame. The one pass</span>
+													// planesweep had some
+													// complications. Need to do
+													// full crack and cluster.
+				{
+<span class="fc" id="L1156">					CrackAndCluster.execute(shape, tolerance, progress_tracker, true);</span>
+<span class="fc" id="L1157">					dirty_result = false;</span>
+				} else {
+<span class="fc" id="L1159">					m_topo_graph.check_dirty_planesweep(tolerance);</span>
+				}
+<span class="fc" id="L1161">			} else {</span>
+<span class="fc" id="L1162">				CrackAndCluster.execute(shape, tolerance, progress_tracker, true);</span>
+<span class="fc" id="L1163">				dirty_result = false;</span>
+			}
+			
+<span class="fc bfc" id="L1166" title="All 2 branches covered.">			if (!b_use_winding_rule_for_polygons</span>
+<span class="fc" id="L1167">					|| shape.getGeometryType(geom) == Geometry.Type.MultiPoint</span>
+<span class="pc bpc" id="L1168" title="1 of 2 branches missed.">							.value())</span>
+<span class="fc" id="L1169">				m_topo_graph.setAndSimplifyEditShapeAlternate(shape, geom, progress_tracker);</span>
+			else
+<span class="fc" id="L1171">				m_topo_graph.setAndSimplifyEditShapeWinding(shape, geom, progress_tracker);</span>
+	
+<span class="fc bfc" id="L1173" title="All 2 branches covered.">			if (m_topo_graph.dirty_check_failed()) {</span>
+				// we ran the sweep_vertical() before and it produced some
+				// issues that where detected by topo graph only.
+<span class="pc bpc" id="L1176" title="1 of 2 branches missed.">				assert (dirty_result);</span>
+<span class="fc" id="L1177">				m_topo_graph.removeShape();</span>
+<span class="fc" id="L1178">				m_topo_graph = null;</span>
+				// that's at most two level recursion
+<span class="fc" id="L1180">				return planarSimplify(shape, geom, tolerance,</span>
+						b_use_winding_rule_for_polygons, false,
+						progress_tracker);
+			} else {
+				//can proceed
+			}
+			
+<span class="fc" id="L1187">			m_topo_graph.check_dirty_planesweep(NumberUtils.TheNaN);</span>
+			
+<span class="fc" id="L1189">			int ID_a = m_topo_graph.getGeometryID(geom);</span>
+<span class="fc" id="L1190">			initMaskLookupArray_((ID_a) + 1);</span>
+<span class="fc" id="L1191">			m_mask_lookup[ID_a] = true; // Works only when there is a single</span>
+										// geometry in the edit shape.
+			// To make it work when many geometries are present, this need to be
+			// modified.
+	
+<span class="fc bfc" id="L1196" title="All 4 branches covered.">			if (shape.getGeometryType(geom) == Geometry.Type.Polygon.value()</span>
+					|| (b_use_winding_rule_for_polygons &amp;&amp; shape
+<span class="fc" id="L1198">							.getGeometryType(geom) != Geometry.Type.MultiPoint</span>
+<span class="pc bpc" id="L1199" title="1 of 2 branches missed.">							.value())) {</span>
+				// geom can be a polygon or a polyline.
+				// It can be a polyline only when the winding rule is true.
+<span class="fc" id="L1202">				shape.setFillRule(geom,  Polygon.FillRule.enumFillRuleOddEven);</span>
+<span class="fc" id="L1203">				int resGeom = topoOperationPolygonPolygon_(geom, -1, -1);</span>
+	
+<span class="fc" id="L1205">				Polygon polygon = (Polygon) shape.getGeometry(resGeom);</span>
+<span class="fc" id="L1206">				polygon.setFillRule(Polygon.FillRule.enumFillRuleOddEven);//standardize the fill rule.</span>
+<span class="fc bfc" id="L1207" title="All 2 branches covered.">				if (!dirty_result) {</span>
+<span class="fc" id="L1208">					((MultiVertexGeometryImpl) polygon._getImpl()).setIsSimple(</span>
+							GeometryXSimple.Strong, tolerance, false);
+<span class="fc" id="L1210">					((MultiPathImpl) polygon._getImpl())._updateOGCFlags();</span>
+				} else
+<span class="fc" id="L1212">					((MultiVertexGeometryImpl) polygon._getImpl()).setIsSimple(</span>
+							GeometryXSimple.Weak, 0.0, false);// dirty result means
+																// simple but with 0
+																// tolerance.
+	
+<span class="fc" id="L1217">				return polygon;</span>
+<span class="fc" id="L1218">			} else if (shape.getGeometryType(geom) == Geometry.Type.Polyline</span>
+<span class="fc bfc" id="L1219" title="All 2 branches covered.">					.value()) {</span>
+<span class="fc" id="L1220">				int resGeom = topoOperationPolylinePolylineOrPolygon_(-1);</span>
+	
+<span class="fc" id="L1222">				Polyline polyline = (Polyline) shape.getGeometry(resGeom);</span>
+<span class="fc bfc" id="L1223" title="All 2 branches covered.">				if (!dirty_result)</span>
+<span class="fc" id="L1224">					((MultiVertexGeometryImpl) polyline._getImpl()).setIsSimple(</span>
+							GeometryXSimple.Strong, tolerance, false);
+	
+<span class="fc" id="L1227">				return polyline;</span>
+<span class="fc" id="L1228">			} else if (shape.getGeometryType(geom) == Geometry.Type.MultiPoint</span>
+<span class="pc bpc" id="L1229" title="1 of 2 branches missed.">					.value()) {</span>
+<span class="fc" id="L1230">				int resGeom = topoOperationMultiPoint_();</span>
+	
+<span class="fc" id="L1232">				MultiPoint mp = (MultiPoint) shape.getGeometry(resGeom);</span>
+<span class="pc bpc" id="L1233" title="1 of 2 branches missed.">				if (!dirty_result)</span>
+<span class="fc" id="L1234">					((MultiVertexGeometryImpl) mp._getImpl()).setIsSimple(</span>
+							GeometryXSimple.Strong, tolerance, false);
+	
+<span class="fc" id="L1237">				return mp;</span>
+			} else {
+<span class="nc" id="L1239">				throw GeometryException.GeometryInternalError();</span>
+			}
+		}
+		finally {
+<span class="fc" id="L1243">			m_topo_graph.removeShape();</span>
+		}
+	}
+
+	// static
+	static MultiVertexGeometry planarSimplify(MultiVertexGeometry input_geom,
+			double tolerance, boolean use_winding_rule_for_polygons,
+			boolean dirty_result, ProgressTracker progress_tracker) {
+<span class="fc" id="L1251">		TopologicalOperations topoOps = new TopologicalOperations();</span>
+<span class="fc" id="L1252">		return topoOps.planarSimplifyImpl_(input_geom, tolerance,</span>
+				use_winding_rule_for_polygons, dirty_result, progress_tracker);
+	}
+
+    boolean planarSimplifyNoCrackingAndCluster(boolean OGCoutput, EditShape shape, int geom, ProgressTracker progress_tracker)
+    {
+<span class="nc" id="L1258">      m_bOGCOutput = OGCoutput;</span>
+<span class="nc" id="L1259">      m_topo_graph = new TopoGraph();</span>
+<span class="nc" id="L1260">      int rule = shape.getFillRule(geom);</span>
+<span class="nc" id="L1261">      int gt = shape.getGeometryType(geom);</span>
+<span class="nc bnc" id="L1262" title="All 4 branches missed.">      if (rule != Polygon.FillRule.enumFillRuleWinding || gt == GeometryType.MultiPoint)</span>
+<span class="nc" id="L1263">        m_topo_graph.setAndSimplifyEditShapeAlternate(shape, geom, progress_tracker);</span>
+      else
+<span class="nc" id="L1265">        m_topo_graph.setAndSimplifyEditShapeWinding(shape, geom, progress_tracker);</span>
+
+<span class="nc bnc" id="L1267" title="All 2 branches missed.">      if (m_topo_graph.dirty_check_failed())</span>
+<span class="nc" id="L1268">        return false;</span>
+
+<span class="nc" id="L1270">      m_topo_graph.check_dirty_planesweep(NumberUtils.TheNaN);</span>
+
+<span class="nc" id="L1272">      int ID_a = m_topo_graph.getGeometryID(geom);</span>
+<span class="nc" id="L1273">      initMaskLookupArray_((ID_a)+1);</span>
+<span class="nc" id="L1274">      m_mask_lookup[ID_a] = true; //Works only when there is a single geometry in the edit shape.</span>
+      //To make it work when many geometries are present, this need to be modified.
+
+<span class="nc bnc" id="L1277" title="All 6 branches missed.">      if (shape.getGeometryType(geom) == GeometryType.Polygon || (rule == Polygon.FillRule.enumFillRuleWinding &amp;&amp; shape.getGeometryType(geom) != GeometryType.MultiPoint))</span>
+      {
+        //geom can be a polygon or a polyline.
+        //It can be a polyline only when the winding rule is true.
+<span class="nc" id="L1281">        shape.setFillRule(geom, Polygon.FillRule.enumFillRuleOddEven);</span>
+<span class="nc" id="L1282">        int resGeom = topoOperationPolygonPolygon_(geom, -1, -1);</span>
+<span class="nc" id="L1283">        shape.swapGeometry(resGeom, geom);</span>
+<span class="nc" id="L1284">        shape.removeGeometry(resGeom);</span>
+<span class="nc" id="L1285">      }</span>
+<span class="nc bnc" id="L1286" title="All 2 branches missed.">      else if (shape.getGeometryType(geom) == GeometryType.Polyline)</span>
+      {
+<span class="nc" id="L1288">        int resGeom = topoOperationPolylinePolylineOrPolygon_(-1);</span>
+<span class="nc" id="L1289">        shape.swapGeometry(resGeom, geom);</span>
+<span class="nc" id="L1290">        shape.removeGeometry(resGeom);</span>
+<span class="nc" id="L1291">      }</span>
+<span class="nc bnc" id="L1292" title="All 2 branches missed.">      else if (shape.getGeometryType(geom) == GeometryType.MultiPoint)</span>
+      {
+<span class="nc" id="L1294">        int resGeom = topoOperationMultiPoint_();</span>
+<span class="nc" id="L1295">        shape.swapGeometry(resGeom, geom);</span>
+<span class="nc" id="L1296">        shape.removeGeometry(resGeom);</span>
+<span class="nc" id="L1297">      }</span>
+      else
+      {
+<span class="nc" id="L1300">        throw new GeometryException(&quot;internal error&quot;);</span>
+      }
+      
+<span class="nc" id="L1303">      return true;</span>
+    }
+	
+	
+    static MultiVertexGeometry simplifyOGC(MultiVertexGeometry input_geom, double tolerance, boolean dirty_result, ProgressTracker progress_tracker)
+    {
+<span class="fc" id="L1309">      TopologicalOperations topoOps = new TopologicalOperations();</span>
+<span class="fc" id="L1310">      topoOps.m_bOGCOutput = true;</span>
+<span class="fc" id="L1311">      return topoOps.planarSimplifyImpl_(input_geom, tolerance, false, dirty_result, progress_tracker);</span>
+    }
+	
+	public int difference(int geometry_a, int geometry_b) {
+<span class="fc" id="L1315">		int gtA = m_topo_graph.getShape().getGeometryType(geometry_a);</span>
+<span class="fc" id="L1316">		int gtB = m_topo_graph.getShape().getGeometryType(geometry_b);</span>
+<span class="fc" id="L1317">		int dim_a = Geometry.getDimensionFromType(gtA);</span>
+<span class="fc" id="L1318">		int dim_b = Geometry.getDimensionFromType(gtB);</span>
+<span class="pc bpc" id="L1319" title="1 of 2 branches missed.">		if (dim_a &gt; dim_b) {</span>
+<span class="nc" id="L1320">			return geometry_a;</span>
+		}
+
+<span class="fc" id="L1323">		int ID_a = m_topo_graph.getGeometryID(geometry_a);</span>
+<span class="fc" id="L1324">		int ID_b = m_topo_graph.getGeometryID(geometry_b);</span>
+<span class="fc" id="L1325">		initMaskLookupArray_((ID_a | ID_b) + 1);</span>
+<span class="fc" id="L1326">		m_mask_lookup[m_topo_graph.getGeometryID(geometry_a)] = true;</span>
+
+<span class="pc bpc" id="L1328" title="1 of 4 branches missed.">		if (dim_a == 2 &amp;&amp; dim_b == 2)</span>
+<span class="fc" id="L1329">			return topoOperationPolygonPolygon_(geometry_a, geometry_b, -1);</span>
+<span class="fc bfc" id="L1330" title="All 4 branches covered.">		if (dim_a == 1 &amp;&amp; dim_b == 2)</span>
+<span class="fc" id="L1331">			return topoOperationPolylinePolylineOrPolygon_(-1);</span>
+<span class="pc bpc" id="L1332" title="1 of 4 branches missed.">		if (dim_a == 1 &amp;&amp; dim_b == 1)</span>
+<span class="fc" id="L1333">			return topoOperationPolylinePolylineOrPolygon_(-1);</span>
+<span class="pc bpc" id="L1334" title="1 of 2 branches missed.">		if (dim_a == 0)</span>
+<span class="fc" id="L1335">			return topoOperationMultiPoint_();</span>
+
+<span class="nc" id="L1337">		throw GeometryException.GeometryInternalError();</span>
+	}
+
+	int dissolve(int geometry_a, int geometry_b) {
+<span class="nc" id="L1341">		int gtA = m_topo_graph.getShape().getGeometryType(geometry_a);</span>
+<span class="nc" id="L1342">		int gtB = m_topo_graph.getShape().getGeometryType(geometry_b);</span>
+<span class="nc" id="L1343">		int dim_a = Geometry.getDimensionFromType(gtA);</span>
+<span class="nc" id="L1344">		int dim_b = Geometry.getDimensionFromType(gtB);</span>
+<span class="nc bnc" id="L1345" title="All 2 branches missed.">		if (dim_a &gt; dim_b) {</span>
+<span class="nc" id="L1346">			return geometry_a;</span>
+		}
+
+<span class="nc bnc" id="L1349" title="All 2 branches missed.">		if (dim_a &lt; dim_b) {</span>
+<span class="nc" id="L1350">			return geometry_b;</span>
+		}
+
+<span class="nc" id="L1353">		int ID_a = m_topo_graph.getGeometryID(geometry_a);</span>
+<span class="nc" id="L1354">		int ID_b = m_topo_graph.getGeometryID(geometry_b);</span>
+<span class="nc" id="L1355">		initMaskLookupArray_(((ID_a | ID_b) + 1));</span>
+
+<span class="nc" id="L1357">		m_mask_lookup[m_topo_graph.getGeometryID(geometry_a)] = true;</span>
+<span class="nc" id="L1358">		m_mask_lookup[m_topo_graph.getGeometryID(geometry_b)] = true;</span>
+<span class="nc" id="L1359">		m_mask_lookup[m_topo_graph.getGeometryID(geometry_a)</span>
+<span class="nc" id="L1360">				| m_topo_graph.getGeometryID(geometry_b)] = true;</span>
+
+<span class="nc bnc" id="L1362" title="All 4 branches missed.">		if (dim_a == 2 &amp;&amp; dim_b == 2)</span>
+<span class="nc" id="L1363">			return topoOperationPolygonPolygon_(geometry_a, geometry_b, -1);</span>
+<span class="nc bnc" id="L1364" title="All 4 branches missed.">		if (dim_a == 1 &amp;&amp; dim_b == 1)</span>
+<span class="nc" id="L1365">			return topoOperationPolylinePolylineOrPolygon_(-1);</span>
+<span class="nc bnc" id="L1366" title="All 4 branches missed.">		if (dim_a == 0 &amp;&amp; dim_b == 0)</span>
+<span class="nc" id="L1367">			return topoOperationMultiPoint_();</span>
+
+<span class="nc" id="L1369">		throw GeometryException.GeometryInternalError();</span>
+	}
+
+	public int intersection(int geometry_a, int geometry_b) {
+<span class="fc" id="L1373">		int gtA = m_topo_graph.getShape().getGeometryType(geometry_a);</span>
+<span class="fc" id="L1374">		int gtB = m_topo_graph.getShape().getGeometryType(geometry_b);</span>
+<span class="fc" id="L1375">		int dim_a = Geometry.getDimensionFromType(gtA);</span>
+<span class="fc" id="L1376">		int dim_b = Geometry.getDimensionFromType(gtB);</span>
+
+<span class="fc" id="L1378">		int ID_a = m_topo_graph.getGeometryID(geometry_a);</span>
+<span class="fc" id="L1379">		int ID_b = m_topo_graph.getGeometryID(geometry_b);</span>
+<span class="fc" id="L1380">		initMaskLookupArray_(((ID_a | ID_b) + 1));</span>
+
+<span class="fc" id="L1382">		m_mask_lookup[m_topo_graph.getGeometryID(geometry_a)</span>
+<span class="fc" id="L1383">				| m_topo_graph.getGeometryID(geometry_b)] = true;</span>
+
+<span class="fc" id="L1385">		int geometry_dominant = -1;</span>
+<span class="fc" id="L1386">		boolean b_vertex_dominance = (m_topo_graph.getShape()</span>
+<span class="fc bfc" id="L1387" title="All 2 branches covered.">				.getVertexDescription().getAttributeCount() &gt; 1);</span>
+<span class="fc bfc" id="L1388" title="All 2 branches covered.">		if (b_vertex_dominance)</span>
+<span class="fc" id="L1389">			geometry_dominant = geometry_a;</span>
+
+<span class="fc bfc" id="L1391" title="All 4 branches covered.">		if (dim_a == 2 &amp;&amp; dim_b == 2)// intersect two polygons</span>
+<span class="fc" id="L1392">			return topoOperationPolygonPolygon_(geometry_a, geometry_b,</span>
+					geometry_dominant);
+<span class="pc bpc" id="L1394" title="2 of 8 branches missed.">		if ((dim_a == 1 &amp;&amp; dim_b &gt; 0) || (dim_b == 1 &amp;&amp; dim_a &gt; 0))// intersect</span>
+																	// polyline
+																	// with
+																	// polyline
+																	// or
+																	// polygon
+<span class="fc" id="L1400">			return topoOperationPolylinePolylineOrPolygon_(geometry_dominant);</span>
+<span class="pc bpc" id="L1401" title="3 of 4 branches missed.">		if (dim_a == 0 || dim_b == 0)// intersect a multipoint with something</span>
+										// else
+<span class="fc" id="L1403">			return topoOperationMultiPoint_();</span>
+
+<span class="nc" id="L1405">		throw GeometryException.GeometryInternalError();</span>
+	}
+
+	int[] intersectionEx(int geometry_a, int geometry_b) {
+<span class="fc" id="L1409">		int gtA = m_topo_graph.getShape().getGeometryType(geometry_a);</span>
+<span class="fc" id="L1410">		int gtB = m_topo_graph.getShape().getGeometryType(geometry_b);</span>
+<span class="fc" id="L1411">		int dim_a = Geometry.getDimensionFromType(gtA);</span>
+<span class="fc" id="L1412">		int dim_b = Geometry.getDimensionFromType(gtB);</span>
+
+<span class="fc" id="L1414">		int ID_a = m_topo_graph.getGeometryID(geometry_a);</span>
+<span class="fc" id="L1415">		int ID_b = m_topo_graph.getGeometryID(geometry_b);</span>
+<span class="fc" id="L1416">		initMaskLookupArray_(((ID_a | ID_b) + 1));</span>
+
+<span class="fc" id="L1418">		m_mask_lookup[m_topo_graph.getGeometryID(geometry_a)</span>
+<span class="fc" id="L1419">				| m_topo_graph.getGeometryID(geometry_b)] = true;</span>
+
+<span class="fc" id="L1421">		int geometry_dominant = -1;</span>
+<span class="fc" id="L1422">		boolean b_vertex_dominance = (m_topo_graph.getShape()</span>
+<span class="pc bpc" id="L1423" title="1 of 2 branches missed.">				.getVertexDescription().getAttributeCount() &gt; 1);</span>
+<span class="pc bpc" id="L1424" title="1 of 2 branches missed.">		if (b_vertex_dominance)</span>
+<span class="nc" id="L1425">			geometry_dominant = geometry_a;</span>
+
+<span class="fc bfc" id="L1427" title="All 4 branches covered.">		if (dim_a == 2 &amp;&amp; dim_b == 2)// intersect two polygons</span>
+<span class="fc" id="L1428">			return topoOperationPolygonPolygonEx_(geometry_a, geometry_b,</span>
+					geometry_dominant);
+<span class="pc bpc" id="L1430" title="2 of 8 branches missed.">		if ((dim_a == 1 &amp;&amp; dim_b &gt; 0) || (dim_b == 1 &amp;&amp; dim_a &gt; 0))// intersect</span>
+																	// polyline
+																	// with
+																	// polyline
+																	// or
+																	// polygon
+<span class="fc" id="L1436">			return topoOperationPolylinePolylineOrPolygonEx_(geometry_dominant);</span>
+<span class="pc bpc" id="L1437" title="3 of 4 branches missed.">		if (dim_a == 0 || dim_b == 0)// intersect a multipoint with something</span>
+										// else
+		{
+<span class="fc" id="L1440">			int[] res = new int[1];</span>
+<span class="fc" id="L1441">			res[0] = topoOperationMultiPoint_();</span>
+<span class="fc" id="L1442">			return res;</span>
+		}
+
+<span class="nc" id="L1445">		throw GeometryException.GeometryInternalError();</span>
+	}
+
+	public int symmetricDifference(int geometry_a, int geometry_b) {
+<span class="fc" id="L1449">		int gtA = m_topo_graph.getShape().getGeometryType(geometry_a);</span>
+<span class="fc" id="L1450">		int gtB = m_topo_graph.getShape().getGeometryType(geometry_b);</span>
+<span class="fc" id="L1451">		int dim_a = Geometry.getDimensionFromType(gtA);</span>
+<span class="fc" id="L1452">		int dim_b = Geometry.getDimensionFromType(gtB);</span>
+
+<span class="fc" id="L1454">		int ID_a = m_topo_graph.getGeometryID(geometry_a);</span>
+<span class="fc" id="L1455">		int ID_b = m_topo_graph.getGeometryID(geometry_b);</span>
+<span class="fc" id="L1456">		initMaskLookupArray_((ID_a | ID_b) + 1);</span>
+
+<span class="fc" id="L1458">		m_mask_lookup[m_topo_graph.getGeometryID(geometry_a)] = true;</span>
+<span class="fc" id="L1459">		m_mask_lookup[m_topo_graph.getGeometryID(geometry_b)] = true;</span>
+
+<span class="pc bpc" id="L1461" title="2 of 4 branches missed.">		if (dim_a == 2 &amp;&amp; dim_b == 2)</span>
+<span class="fc" id="L1462">			return topoOperationPolygonPolygon_(geometry_a, geometry_b, -1);</span>
+<span class="nc bnc" id="L1463" title="All 4 branches missed.">		if (dim_a == 1 &amp;&amp; dim_b == 1)</span>
+<span class="nc" id="L1464">			return topoOperationPolylinePolylineOrPolygon_(-1);</span>
+<span class="nc bnc" id="L1465" title="All 4 branches missed.">		if (dim_a == 0 &amp;&amp; dim_b == 0)</span>
+<span class="nc" id="L1466">			return topoOperationMultiPoint_();</span>
+
+<span class="nc" id="L1468">		throw GeometryException.GeometryInternalError();</span>
+	}
+
+	int extractShape(int geometry_in) {
+<span class="nc" id="L1472">		int gtA = m_topo_graph.getShape().getGeometryType(geometry_in);</span>
+<span class="nc" id="L1473">		int dim_a = Geometry.getDimensionFromType(gtA);</span>
+
+<span class="nc" id="L1475">		int ID_a = m_topo_graph.getGeometryID(geometry_in);</span>
+<span class="nc" id="L1476">		initMaskLookupArray_((ID_a) + 1);</span>
+<span class="nc" id="L1477">		m_mask_lookup[m_topo_graph.getGeometryID(geometry_in)] = true; // Works</span>
+																		// only
+																		// when
+																		// there
+																		// is a
+																		// single
+																		// geometry
+																		// in
+																		// the
+																		// edit
+																		// shape.
+		// To make it work when many geometries are present, this need to be
+		// modified.
+
+<span class="nc bnc" id="L1491" title="All 2 branches missed.">		if (dim_a == 2)</span>
+<span class="nc" id="L1492">			return topoOperationPolygonPolygon_(geometry_in, -1, -1);</span>
+<span class="nc bnc" id="L1493" title="All 2 branches missed.">		if (dim_a == 1)</span>
+<span class="nc" id="L1494">			return topoOperationPolylinePolylineOrPolygon_(-1);</span>
+<span class="nc bnc" id="L1495" title="All 2 branches missed.">		if (dim_a == 0)</span>
+<span class="nc" id="L1496">			return topoOperationMultiPoint_();</span>
+
+<span class="nc" id="L1498">		throw GeometryException.GeometryInternalError();</span>
+	}
+
+	static Geometry normalizeInputGeometry_(Geometry geom) {
+<span class="fc" id="L1502">		Geometry.Type gt = geom.getType();</span>
+<span class="fc bfc" id="L1503" title="All 2 branches covered.">		if (gt == Geometry.Type.Envelope) {</span>
+<span class="fc" id="L1504">			Polygon poly = new Polygon(geom.getDescription());</span>
+<span class="pc bpc" id="L1505" title="1 of 2 branches missed.">			if (!geom.isEmpty())</span>
+<span class="fc" id="L1506">				poly.addEnvelope((Envelope) geom, false);</span>
+<span class="fc" id="L1507">			return poly;</span>
+		}
+<span class="fc bfc" id="L1509" title="All 2 branches covered.">		if (gt == Geometry.Type.Point) {</span>
+<span class="fc" id="L1510">			MultiPoint poly = new MultiPoint(geom.getDescription());</span>
+<span class="pc bpc" id="L1511" title="1 of 2 branches missed.">			if (!geom.isEmpty())</span>
+<span class="fc" id="L1512">				poly.add((Point) geom);</span>
+<span class="fc" id="L1513">			return poly;</span>
+		}
+<span class="pc bpc" id="L1515" title="1 of 2 branches missed.">		if (gt == Geometry.Type.Line) {</span>
+<span class="nc" id="L1516">			Polyline poly = new Polyline(geom.getDescription());</span>
+<span class="nc bnc" id="L1517" title="All 2 branches missed.">			if (!geom.isEmpty())</span>
+<span class="nc" id="L1518">				poly.addSegment((Segment) geom, true);</span>
+<span class="nc" id="L1519">			return poly;</span>
+		}
+
+<span class="fc" id="L1522">		return geom;</span>
+	}
+
+	static Geometry normalizeResult_(Geometry geomRes, Geometry geom_a,
+			Geometry dummy, char op) {
+		// assert(strchr(&quot;-&amp;^|&quot;,op) != NULL);
+<span class="fc" id="L1528">		Geometry.Type gtRes = geomRes.getType();</span>
+<span class="pc bpc" id="L1529" title="1 of 2 branches missed.">		if (gtRes == Geometry.Type.Envelope) {</span>
+<span class="nc" id="L1530">			Polygon poly = new Polygon(geomRes.getDescription());</span>
+<span class="nc bnc" id="L1531" title="All 2 branches missed.">			if (!geomRes.isEmpty())</span>
+<span class="nc" id="L1532">				poly.addEnvelope((Envelope) geomRes, false);</span>
+<span class="nc" id="L1533">			return poly;</span>
+		}
+
+<span class="pc bpc" id="L1536" title="5 of 6 branches missed.">		if (gtRes == Geometry.Type.Point &amp;&amp; (op == '|' || op == '^')) {</span>
+<span class="nc" id="L1537">			MultiPoint poly = new MultiPoint(geomRes.getDescription());</span>
+<span class="nc bnc" id="L1538" title="All 2 branches missed.">			if (!geomRes.isEmpty())</span>
+<span class="nc" id="L1539">				poly.add((Point) geomRes);</span>
+<span class="nc" id="L1540">			return poly;</span>
+		}
+
+<span class="pc bpc" id="L1543" title="1 of 2 branches missed.">		if (gtRes == Geometry.Type.Line) {</span>
+<span class="nc" id="L1544">			Polyline poly = new Polyline(geomRes.getDescription());</span>
+<span class="nc bnc" id="L1545" title="All 2 branches missed.">			if (!geomRes.isEmpty())</span>
+<span class="nc" id="L1546">				poly.addSegment((Segment) geomRes, true);</span>
+<span class="nc" id="L1547">			return poly;</span>
+		}
+
+<span class="pc bpc" id="L1550" title="3 of 4 branches missed.">		if (gtRes == Geometry.Type.Point &amp;&amp; op == '-') {</span>
+<span class="nc bnc" id="L1551" title="All 2 branches missed.">			if (geom_a.getType() == Geometry.Type.Point) {</span>
+<span class="nc" id="L1552">				Point pt = new Point(geomRes.getDescription());</span>
+<span class="nc bnc" id="L1553" title="All 2 branches missed.">				if (!geomRes.isEmpty()) {</span>
+<span class="nc bnc" id="L1554" title="All 2 branches missed.">					assert (((MultiPoint) geomRes).getPointCount() == 1);</span>
+<span class="nc" id="L1555">					((MultiPoint) geomRes).getPointByVal(0, pt);</span>
+				}
+<span class="nc" id="L1557">				return pt;</span>
+			}
+		}
+
+<span class="fc bfc" id="L1561" title="All 4 branches covered.">		if (gtRes == Geometry.Type.MultiPoint &amp;&amp; op == '&amp;') {</span>
+<span class="fc bfc" id="L1562" title="All 2 branches covered.">			if (geom_a.getType() == Geometry.Type.Point) {</span>
+<span class="fc" id="L1563">				Point pt = new Point(geomRes.getDescription());</span>
+<span class="pc bpc" id="L1564" title="1 of 2 branches missed.">				if (!geomRes.isEmpty()) {</span>
+<span class="pc bpc" id="L1565" title="1 of 2 branches missed.">					assert (((MultiPoint) geomRes).getPointCount() == 1);</span>
+<span class="fc" id="L1566">					((MultiPoint) geomRes).getPointByVal(0, pt);</span>
+				}
+<span class="fc" id="L1568">				return pt;</span>
+			}
+		}
+
+<span class="fc" id="L1572">		return geomRes;</span>
+	}
+
+	// static
+	public static Geometry difference(Geometry geometry_a, Geometry geometry_b,
+			SpatialReference sr, ProgressTracker progress_tracker) {
+<span class="pc bpc" id="L1578" title="2 of 4 branches missed.">		if (geometry_a.isEmpty() || geometry_b.isEmpty()</span>
+<span class="pc bpc" id="L1579" title="1 of 2 branches missed.">				|| geometry_a.getDimension() &gt; geometry_b.getDimension())</span>
+<span class="nc" id="L1580">			return normalizeResult_(normalizeInputGeometry_(geometry_a),</span>
+					geometry_a, geometry_b, '-');
+
+<span class="fc" id="L1583">		Envelope2D env2D_1 = new Envelope2D();</span>
+<span class="fc" id="L1584">		geometry_a.queryEnvelope2D(env2D_1);</span>
+<span class="fc" id="L1585">		Envelope2D env2D_2 = new Envelope2D();</span>
+<span class="fc" id="L1586">		geometry_b.queryEnvelope2D(env2D_2);</span>
+
+<span class="pc bpc" id="L1588" title="1 of 2 branches missed.">		if (!env2D_1.isIntersecting(env2D_2)) {</span>
+<span class="nc" id="L1589">			return normalizeResult_(normalizeInputGeometry_(geometry_a),</span>
+					geometry_a, geometry_b, '-');
+		}
+
+<span class="fc" id="L1593">		Envelope2D envMerged = new Envelope2D();</span>
+<span class="fc" id="L1594">		envMerged.setCoords(env2D_1);</span>
+<span class="fc" id="L1595">		envMerged.merge(env2D_2);</span>
+<span class="fc" id="L1596">		double tolerance = InternalUtils.calculateToleranceFromGeometry(sr,</span>
+				envMerged, true);// conservative to have same effect as simplify
+
+<span class="fc" id="L1599">		TopologicalOperations topoOps = new TopologicalOperations();</span>
+<span class="fc" id="L1600">		EditShape edit_shape = new EditShape();</span>
+<span class="fc" id="L1601">		int geom_a = edit_shape</span>
+<span class="fc" id="L1602">				.addGeometry(normalizeInputGeometry_(geometry_a));</span>
+<span class="fc" id="L1603">		int geom_b = edit_shape</span>
+<span class="fc" id="L1604">				.addGeometry(normalizeInputGeometry_(geometry_b));</span>
+<span class="fc" id="L1605">		topoOps.setEditShapeCrackAndCluster(edit_shape, tolerance,</span>
+				progress_tracker);
+<span class="fc" id="L1607">		int result = topoOps.difference(geom_a, geom_b);</span>
+<span class="fc" id="L1608">		Geometry resGeom = edit_shape.getGeometry(result);</span>
+
+<span class="fc" id="L1610">		Geometry res_geom = normalizeResult_(resGeom, geometry_a, geometry_b,</span>
+				'-');
+
+<span class="fc bfc" id="L1613" title="All 2 branches covered.">		if (Geometry.isMultiPath(res_geom.getType().value())) {</span>
+<span class="fc" id="L1614">			((MultiVertexGeometryImpl) res_geom._getImpl()).setIsSimple(</span>
+					GeometryXSimple.Strong, tolerance, false);
+<span class="fc bfc" id="L1616" title="All 2 branches covered.">			if (res_geom.getType() == Geometry.Type.Polygon)</span>
+<span class="fc" id="L1617">				((MultiPathImpl) res_geom._getImpl())._updateOGCFlags();</span>
+		}
+
+<span class="fc" id="L1620">		return res_geom;</span>
+	}
+
+	public static Geometry dissolve(Geometry geometry_a, Geometry geometry_b,
+			SpatialReference sr, ProgressTracker progress_tracker) {
+<span class="nc bnc" id="L1625" title="All 2 branches missed.">		if (geometry_a.getDimension() &gt; geometry_b.getDimension())</span>
+<span class="nc" id="L1626">			return normalizeResult_(normalizeInputGeometry_(geometry_a),</span>
+					geometry_a, geometry_b, '|');
+
+<span class="nc bnc" id="L1629" title="All 2 branches missed.">		if (geometry_a.getDimension() &lt; geometry_b.getDimension())</span>
+<span class="nc" id="L1630">			return normalizeResult_(normalizeInputGeometry_(geometry_b),</span>
+					geometry_a, geometry_b, '|');
+
+<span class="nc bnc" id="L1633" title="All 2 branches missed.">		if (geometry_a.isEmpty())</span>
+<span class="nc" id="L1634">			return normalizeResult_(normalizeInputGeometry_(geometry_b),</span>
+					geometry_a, geometry_b, '|');
+
+<span class="nc bnc" id="L1637" title="All 2 branches missed.">		if (geometry_b.isEmpty())</span>
+<span class="nc" id="L1638">			return normalizeResult_(normalizeInputGeometry_(geometry_a),</span>
+					geometry_a, geometry_b, '|');
+
+<span class="nc" id="L1641">		Envelope2D env2D_1 = new Envelope2D();</span>
+<span class="nc" id="L1642">		geometry_a.queryEnvelope2D(env2D_1);</span>
+<span class="nc" id="L1643">		Envelope2D env2D_2 = new Envelope2D();</span>
+<span class="nc" id="L1644">		geometry_b.queryEnvelope2D(env2D_2);</span>
+
+<span class="nc" id="L1646">		Envelope2D envMerged = new Envelope2D();</span>
+<span class="nc" id="L1647">		envMerged.setCoords(env2D_1);</span>
+<span class="nc" id="L1648">		envMerged.merge(env2D_2);</span>
+<span class="nc" id="L1649">		double tolerance = InternalUtils.calculateToleranceFromGeometry(sr,</span>
+				envMerged, true);// conservative to have same effect as simplify
+
+<span class="nc bnc" id="L1652" title="All 2 branches missed.">		if (!env2D_1.isIntersecting(env2D_2.getInflated(tolerance, tolerance))) {</span>
+			// TODO: add optimization here to merge two geometries if the
+			// envelopes do not overlap.
+<span class="nc" id="L1655">			Geometry geom1 = normalizeInputGeometry_(geometry_a);</span>
+<span class="nc bnc" id="L1656" title="All 2 branches missed.">			assert (Geometry.isMultiVertex(geom1.getType().value()));</span>
+<span class="nc" id="L1657">			Geometry geom2 = normalizeInputGeometry_(geometry_b);</span>
+<span class="nc bnc" id="L1658" title="All 2 branches missed.">			assert (Geometry.isMultiVertex(geom2.getType().value()));</span>
+<span class="nc bnc" id="L1659" title="All 2 branches missed.">			assert (geom1.getType() == geom2.getType());</span>
+<span class="nc bnc" id="L1660" title="All 4 branches missed.">			switch (geom1.getType().value()) {</span>
+			case Geometry.GeometryType.MultiPoint: {
+<span class="nc" id="L1662">				Geometry res = Geometry._clone(geom1);</span>
+<span class="nc" id="L1663">				((MultiPoint) res).add((MultiPoint) geom2, 0, -1);</span>
+<span class="nc" id="L1664">				return res;</span>
+			}
+				// break;
+			case Geometry.GeometryType.Polyline: {
+<span class="nc" id="L1668">				Geometry res = Geometry._clone(geom1);</span>
+<span class="nc" id="L1669">				((Polyline) res).add((MultiPath) geom2, false);</span>
+<span class="nc" id="L1670">				return res;</span>
+			}
+				// break;
+			case Geometry.GeometryType.Polygon: {
+<span class="nc" id="L1674">				Geometry res = Geometry._clone(geom1);</span>
+<span class="nc" id="L1675">				((Polygon) res).add((MultiPath) geom2, false);</span>
+<span class="nc" id="L1676">				return res;</span>
+			}
+				// break;
+			default:
+<span class="nc" id="L1680">				throw GeometryException.GeometryInternalError();</span>
+			}
+		}
+
+<span class="nc" id="L1684">		TopologicalOperations topoOps = new TopologicalOperations();</span>
+<span class="nc" id="L1685">		EditShape edit_shape = new EditShape();</span>
+<span class="nc" id="L1686">		int geom_a = edit_shape</span>
+<span class="nc" id="L1687">				.addGeometry(normalizeInputGeometry_(geometry_a));</span>
+<span class="nc" id="L1688">		int geom_b = edit_shape</span>
+<span class="nc" id="L1689">				.addGeometry(normalizeInputGeometry_(geometry_b));</span>
+<span class="nc" id="L1690">		topoOps.setEditShapeCrackAndCluster(edit_shape, tolerance,</span>
+				progress_tracker);
+<span class="nc" id="L1692">		int result = topoOps.dissolve(geom_a, geom_b);</span>
+
+<span class="nc" id="L1694">		Geometry res_geom = normalizeResult_(edit_shape.getGeometry(result),</span>
+				geometry_a, geometry_b, '|');
+
+<span class="nc bnc" id="L1697" title="All 2 branches missed.">		if (Geometry.isMultiPath(res_geom.getType().value())) {</span>
+<span class="nc" id="L1698">			((MultiVertexGeometryImpl) res_geom._getImpl()).setIsSimple(</span>
+					GeometryXSimple.Strong, tolerance, false);
+<span class="nc bnc" id="L1700" title="All 2 branches missed.">			if (res_geom.getType() == Geometry.Type.Polygon)</span>
+<span class="nc" id="L1701">				((MultiPathImpl) res_geom._getImpl())._updateOGCFlags();</span>
+		}
+
+<span class="nc" id="L1704">		return res_geom;</span>
+	}
+
+	static Geometry dissolveDirty(ArrayList&lt;Geometry&gt; geometries,
+			SpatialReference sr, ProgressTracker progress_tracker) {
+<span class="pc bpc" id="L1709" title="1 of 2 branches missed.">		if (geometries.size() &lt; 2)</span>
+<span class="nc" id="L1710">			throw new IllegalArgumentException(</span>
+					&quot;not enough geometries to dissolve&quot;);
+
+<span class="fc" id="L1713">		int dim = 0;</span>
+<span class="fc bfc" id="L1714" title="All 2 branches covered.">		for (int i = 0, n = geometries.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L1715">			dim = Math.max(geometries.get(i).getDimension(), dim);</span>
+		}
+
+<span class="fc" id="L1718">		Envelope2D envMerged = new Envelope2D();</span>
+<span class="fc" id="L1719">		envMerged.setEmpty();</span>
+
+<span class="fc" id="L1721">		EditShape shape = new EditShape();</span>
+<span class="fc" id="L1722">		int geom = -1;</span>
+<span class="fc" id="L1723">		int count = 0;</span>
+<span class="fc" id="L1724">		int any_index = -1;</span>
+<span class="fc bfc" id="L1725" title="All 2 branches covered.">		for (int i = 0, n = geometries.size(); i &lt; n; i++) {</span>
+<span class="pc bpc" id="L1726" title="1 of 2 branches missed.">			if (geometries.get(i).getDimension() == dim) {</span>
+<span class="fc bfc" id="L1727" title="All 2 branches covered.">				if (!geometries.get(i).isEmpty()) {</span>
+<span class="fc" id="L1728">					any_index = i;</span>
+<span class="fc bfc" id="L1729" title="All 2 branches covered.">					if (geom == -1)</span>
+<span class="fc" id="L1730">						geom = shape</span>
+<span class="fc" id="L1731">								.addGeometry(normalizeInputGeometry_(geometries</span>
+<span class="fc" id="L1732">										.get(i)));</span>
+					else
+<span class="fc" id="L1734">						shape.appendGeometry(geom,</span>
+<span class="fc" id="L1735">								normalizeInputGeometry_(geometries.get(i)));</span>
+
+<span class="fc" id="L1737">					Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L1738">					geometries.get(i).queryLooseEnvelope2D(env);</span>
+<span class="fc" id="L1739">					envMerged.merge(env);</span>
+<span class="fc" id="L1740">					count++;</span>
+<span class="fc bfc" id="L1741" title="All 2 branches covered.">				} else if (any_index == -1)</span>
+<span class="fc" id="L1742">					any_index = i;</span>
+			}
+		}
+
+<span class="fc bfc" id="L1746" title="All 2 branches covered.">		if (count &lt; 2) {</span>
+<span class="fc" id="L1747">			return normalizeInputGeometry_(geometries.get(any_index));</span>
+		}
+
+<span class="fc bfc" id="L1750" title="All 2 branches covered.">		boolean winding = dim == 2;</span>
+
+<span class="fc bfc" id="L1752" title="All 2 branches covered.">		SpatialReference psr = dim == 0 ? sr : null;// if points, then use</span>
+													// correct tolerance.
+<span class="fc" id="L1754">		double tolerance = InternalUtils.calculateToleranceFromGeometry(psr,</span>
+				envMerged, true);
+<span class="fc" id="L1756">		TopologicalOperations topoOps = new TopologicalOperations();</span>
+<span class="fc" id="L1757">		return topoOps.planarSimplify(shape, geom, tolerance, winding, true,</span>
+				progress_tracker);
+	}
+
+	// static
+	public static Geometry intersection(Geometry geometry_a,
+			Geometry geometry_b, SpatialReference sr,
+			ProgressTracker progress_tracker) {
+
+<span class="fc" id="L1766">		Envelope2D env2D_1 = new Envelope2D();</span>
+<span class="fc" id="L1767">		geometry_a.queryEnvelope2D(env2D_1);</span>
+<span class="fc" id="L1768">		Envelope2D env2D_2 = new Envelope2D();</span>
+<span class="fc" id="L1769">		geometry_b.queryEnvelope2D(env2D_2);</span>
+
+<span class="fc" id="L1771">		Envelope2D envMerged = new Envelope2D();</span>
+<span class="fc" id="L1772">		envMerged.setCoords(env2D_1);</span>
+<span class="fc" id="L1773">		envMerged.merge(env2D_2);</span>
+<span class="fc" id="L1774">		double tolerance = InternalUtils.calculateToleranceFromGeometry(sr,</span>
+				envMerged, true);// conservative to have same effect as simplify
+
+<span class="fc" id="L1777">		Envelope2D e = new Envelope2D();</span>
+<span class="fc" id="L1778">		e.setCoords(env2D_2);</span>
+<span class="fc" id="L1779">		double tol_cluster = InternalUtils</span>
+<span class="fc" id="L1780">				.adjust_tolerance_for_TE_clustering(tolerance);</span>
+<span class="fc" id="L1781">		e.inflate(tol_cluster, tol_cluster);</span>
+
+<span class="pc bpc" id="L1783" title="1 of 2 branches missed.">		if (!env2D_1.isIntersecting(e))// also includes the empty geometry</span>
+										// cases
+		{
+<span class="nc bnc" id="L1786" title="All 2 branches missed.">			if (geometry_a.getDimension() &lt;= geometry_b.getDimension())</span>
+<span class="nc" id="L1787">				return normalizeResult_(</span>
+<span class="nc" id="L1788">						normalizeInputGeometry_(geometry_a.createInstance()),</span>
+						geometry_a, geometry_b, '&amp;');
+
+<span class="nc bnc" id="L1791" title="All 2 branches missed.">			if (geometry_a.getDimension() &gt; geometry_b.getDimension())</span>
+<span class="nc" id="L1792">				return normalizeResult_(</span>
+<span class="nc" id="L1793">						normalizeInputGeometry_(geometry_b.createInstance()),</span>
+						geometry_a, geometry_b, '&amp;');
+		}
+
+<span class="fc" id="L1797">		TopologicalOperations topoOps = new TopologicalOperations();</span>
+<span class="fc" id="L1798">		EditShape edit_shape = new EditShape();</span>
+<span class="fc" id="L1799">		int geom_a = edit_shape</span>
+<span class="fc" id="L1800">				.addGeometry(normalizeInputGeometry_(geometry_a));</span>
+<span class="fc" id="L1801">		int geom_b = edit_shape</span>
+<span class="fc" id="L1802">				.addGeometry(normalizeInputGeometry_(geometry_b));</span>
+
+<span class="fc" id="L1804">		topoOps.setEditShapeCrackAndCluster(edit_shape, tolerance,</span>
+				progress_tracker);
+<span class="fc" id="L1806">		int result = topoOps.intersection(geom_a, geom_b);</span>
+<span class="fc" id="L1807">		Geometry res_geom = normalizeResult_(edit_shape.getGeometry(result),</span>
+				geometry_a, geometry_b, '&amp;');
+
+<span class="fc bfc" id="L1810" title="All 2 branches covered.">		if (Geometry.isMultiPath(res_geom.getType().value())) {</span>
+<span class="fc" id="L1811">			((MultiVertexGeometryImpl) res_geom._getImpl()).setIsSimple(</span>
+					GeometryXSimple.Strong, tolerance, false);
+<span class="fc bfc" id="L1813" title="All 2 branches covered.">			if (res_geom.getType() == Geometry.Type.Polygon)</span>
+<span class="fc" id="L1814">				((MultiPathImpl) res_geom._getImpl())._updateOGCFlags();</span>
+		}
+
+<span class="fc" id="L1817">		return res_geom;</span>
+	}
+
+	static Geometry[] intersectionEx(Geometry geometry_a, Geometry geometry_b,
+			SpatialReference sr, ProgressTracker progress_tracker) {
+<span class="fc" id="L1822">		Geometry[] res_vec = new Geometry[3];</span>
+
+<span class="fc" id="L1824">		Envelope2D env2D_1 = new Envelope2D();</span>
+<span class="fc" id="L1825">		geometry_a.queryEnvelope2D(env2D_1);</span>
+<span class="fc" id="L1826">		Envelope2D env2D_2 = new Envelope2D();</span>
+<span class="fc" id="L1827">		geometry_b.queryEnvelope2D(env2D_2);</span>
+
+<span class="fc" id="L1829">		Envelope2D envMerged = new Envelope2D();</span>
+<span class="fc" id="L1830">		envMerged.setCoords(env2D_1);</span>
+<span class="fc" id="L1831">		envMerged.merge(env2D_2);</span>
+<span class="fc" id="L1832">		double tolerance = InternalUtils.calculateToleranceFromGeometry(sr,</span>
+				envMerged, true);// conservative to have same effect as simplify
+
+<span class="fc" id="L1835">		Envelope2D e = new Envelope2D();</span>
+<span class="fc" id="L1836">		e.setCoords(env2D_2);</span>
+<span class="fc" id="L1837">		double tol_cluster = InternalUtils</span>
+<span class="fc" id="L1838">				.adjust_tolerance_for_TE_clustering(tolerance);</span>
+<span class="fc" id="L1839">		e.inflate(tol_cluster, tol_cluster);</span>
+
+<span class="fc bfc" id="L1841" title="All 2 branches covered.">		if (!env2D_1.isIntersecting(e))// also includes the empty geometry</span>
+										// cases
+		{
+<span class="fc bfc" id="L1844" title="All 2 branches covered.">			if (geometry_a.getDimension() &lt;= geometry_b.getDimension()) {</span>
+<span class="fc" id="L1845">				Geometry geom = normalizeResult_(</span>
+<span class="fc" id="L1846">						normalizeInputGeometry_(geometry_a.createInstance()),</span>
+						geometry_a, geometry_b, '&amp;');
+<span class="fc" id="L1848">				res_vec[geom.getDimension()] = geom;</span>
+<span class="fc" id="L1849">				return res_vec;</span>
+			}
+
+<span class="pc bpc" id="L1852" title="1 of 2 branches missed.">			if (geometry_a.getDimension() &gt; geometry_b.getDimension()) {</span>
+<span class="fc" id="L1853">				Geometry geom = normalizeResult_(</span>
+<span class="fc" id="L1854">						normalizeInputGeometry_(geometry_b.createInstance()),</span>
+						geometry_a, geometry_b, '&amp;');
+<span class="fc" id="L1856">				res_vec[geom.getDimension()] = geom;</span>
+<span class="fc" id="L1857">				return res_vec;</span>
+			}
+
+		}
+
+<span class="fc" id="L1862">		TopologicalOperations topoOps = new TopologicalOperations();</span>
+<span class="fc" id="L1863">		EditShape edit_shape = new EditShape();</span>
+<span class="fc" id="L1864">		int geom_a = edit_shape</span>
+<span class="fc" id="L1865">				.addGeometry(normalizeInputGeometry_(geometry_a));</span>
+<span class="fc" id="L1866">		int geom_b = edit_shape</span>
+<span class="fc" id="L1867">				.addGeometry(normalizeInputGeometry_(geometry_b));</span>
+
+<span class="fc" id="L1869">		topoOps.setEditShapeCrackAndCluster(edit_shape, tolerance,</span>
+				progress_tracker);
+<span class="fc" id="L1871">		int[] result_geom_handles = topoOps.intersectionEx(geom_a, geom_b);</span>
+<span class="fc bfc" id="L1872" title="All 2 branches covered.">		for (int i = 0; i &lt; result_geom_handles.length; i++) {</span>
+<span class="fc" id="L1873">			Geometry res_geom = normalizeResult_(</span>
+<span class="fc" id="L1874">					edit_shape.getGeometry(result_geom_handles[i]), geometry_a,</span>
+					geometry_b, '&amp;');
+
+<span class="fc bfc" id="L1877" title="All 2 branches covered.">			if (Geometry.isMultiPath(res_geom.getType().value())) {</span>
+<span class="fc" id="L1878">				((MultiVertexGeometryImpl) res_geom._getImpl()).setIsSimple(</span>
+						MultiVertexGeometryImpl.GeometryXSimple.Strong,
+						tolerance, false);
+<span class="fc bfc" id="L1881" title="All 2 branches covered.">				if (res_geom.getType().value() == Geometry.GeometryType.Polygon)</span>
+<span class="fc" id="L1882">					((MultiPathImpl) res_geom._getImpl())._updateOGCFlags();</span>
+			}
+
+<span class="fc" id="L1885">			res_vec[res_geom.getDimension()] = res_geom;</span>
+		}
+
+<span class="fc" id="L1888">		return res_vec;</span>
+	}
+
+	// static
+	public static Geometry symmetricDifference(Geometry geometry_a,
+			Geometry geometry_b, SpatialReference sr,
+			ProgressTracker progress_tracker) {
+<span class="pc bpc" id="L1895" title="1 of 2 branches missed.">		if (geometry_a.getDimension() &gt; geometry_b.getDimension())</span>
+<span class="nc" id="L1896">			return normalizeResult_(normalizeInputGeometry_(geometry_a),</span>
+					geometry_a, geometry_b, '^');
+
+<span class="pc bpc" id="L1899" title="1 of 2 branches missed.">		if (geometry_a.getDimension() &lt; geometry_b.getDimension())</span>
+<span class="nc" id="L1900">			return normalizeResult_(normalizeInputGeometry_(geometry_b),</span>
+					geometry_a, geometry_b, '^');
+
+<span class="pc bpc" id="L1903" title="1 of 2 branches missed.">		if (geometry_a.isEmpty())</span>
+<span class="nc" id="L1904">			return normalizeResult_(normalizeInputGeometry_(geometry_b),</span>
+					geometry_a, geometry_b, '^');
+
+<span class="pc bpc" id="L1907" title="1 of 2 branches missed.">		if (geometry_b.isEmpty())</span>
+<span class="nc" id="L1908">			return normalizeResult_(normalizeInputGeometry_(geometry_a),</span>
+					geometry_a, geometry_b, '^');
+
+<span class="fc" id="L1911">		Envelope2D env2D_1 = new Envelope2D();</span>
+<span class="fc" id="L1912">		geometry_a.queryEnvelope2D(env2D_1);</span>
+<span class="fc" id="L1913">		Envelope2D env2D_2 = new Envelope2D();</span>
+<span class="fc" id="L1914">		geometry_b.queryEnvelope2D(env2D_2);</span>
+		// TODO: add optimization here to merge two geometries if the envelopes
+		// do not overlap.
+
+<span class="fc" id="L1918">		Envelope2D envMerged = new Envelope2D();</span>
+<span class="fc" id="L1919">		envMerged.setCoords(env2D_1);</span>
+<span class="fc" id="L1920">		envMerged.merge(env2D_2);</span>
+<span class="fc" id="L1921">		double tolerance = InternalUtils.calculateToleranceFromGeometry(sr,</span>
+				envMerged, true);// conservative to have same effect as simplify
+
+<span class="fc" id="L1924">		TopologicalOperations topoOps = new TopologicalOperations();</span>
+<span class="fc" id="L1925">		EditShape edit_shape = new EditShape();</span>
+<span class="fc" id="L1926">		int geom_a = edit_shape</span>
+<span class="fc" id="L1927">				.addGeometry(normalizeInputGeometry_(geometry_a));</span>
+<span class="fc" id="L1928">		int geom_b = edit_shape</span>
+<span class="fc" id="L1929">				.addGeometry(normalizeInputGeometry_(geometry_b));</span>
+<span class="fc" id="L1930">		topoOps.setEditShapeCrackAndCluster(edit_shape, tolerance,</span>
+				progress_tracker);
+<span class="fc" id="L1932">		int result = topoOps.symmetricDifference(geom_a, geom_b);</span>
+<span class="fc" id="L1933">		Geometry res_geom = normalizeResult_(edit_shape.getGeometry(result),</span>
+				geometry_a, geometry_b, '^');
+
+<span class="pc bpc" id="L1936" title="1 of 2 branches missed.">		if (Geometry.isMultiPath(res_geom.getType().value())) {</span>
+<span class="fc" id="L1937">			((MultiVertexGeometryImpl) res_geom._getImpl()).setIsSimple(</span>
+					GeometryXSimple.Strong, tolerance, false);
+<span class="pc bpc" id="L1939" title="1 of 2 branches missed.">			if (res_geom.getType() == Geometry.Type.Polygon)</span>
+<span class="fc" id="L1940">				((MultiPathImpl) res_geom._getImpl())._updateOGCFlags();</span>
+		}
+
+<span class="fc" id="L1943">		return res_geom;</span>
+	}
+
+	static Geometry _denormalizeGeometry(Geometry geom, Geometry geomA,
+			Geometry geomB) {
+<span class="nc" id="L1948">		Geometry.Type gtA = geomA.getType();</span>
+<span class="nc" id="L1949">		Geometry.Type gtB = geomB.getType();</span>
+<span class="nc" id="L1950">		Geometry.Type gt = geom.getType();</span>
+<span class="nc bnc" id="L1951" title="All 2 branches missed.">		if (gt == Geometry.Type.MultiPoint) {</span>
+<span class="nc bnc" id="L1952" title="All 4 branches missed.">			if (gtA == Geometry.Type.Point || gtB == Geometry.Type.Point) {</span>
+<span class="nc" id="L1953">				MultiPoint mp = (MultiPoint) geom;</span>
+<span class="nc bnc" id="L1954" title="All 2 branches missed.">				if (mp.getPointCount() &lt;= 1) {</span>
+<span class="nc" id="L1955">					Point pt = new Point(geom.getDescription());</span>
+<span class="nc bnc" id="L1956" title="All 2 branches missed.">					if (!mp.isEmpty())</span>
+<span class="nc" id="L1957">						mp.getPointByVal(0, pt);</span>
+<span class="nc" id="L1958">					return (Geometry) pt;</span>
+				}
+			}
+		}
+<span class="nc" id="L1962">		return geom;</span>
+	}
+
+	private void flushVertices_(int geometry, AttributeStreamOfInt32 vertices) {
+<span class="fc" id="L1966">		EditShape shape = m_topo_graph.getShape();</span>
+<span class="fc" id="L1967">		int path = shape.insertPath(geometry, -1);</span>
+<span class="fc" id="L1968">		int size = vertices.size();</span>
+		// _ASSERT(size != 0);
+<span class="fc bfc" id="L1970" title="All 2 branches covered.">		for (int i = 0; i &lt; size; i++) {</span>
+<span class="fc" id="L1971">			int vertex = vertices.get(i);</span>
+<span class="fc" id="L1972">			shape.addVertex(path, vertex);</span>
+		}
+<span class="fc" id="L1974">		shape.setClosedPath(path, true);// need to close polygon rings</span>
+<span class="fc" id="L1975">	}</span>
+
+	private void setHalfEdgeOrientations_(int orientationIndex, int cutter) {
+<span class="fc" id="L1978">		EditShape shape = m_topo_graph.getShape();</span>
+
+<span class="fc bfc" id="L1980" title="All 2 branches covered.">		for (int igeometry = shape.getFirstGeometry(); igeometry != -1; igeometry = shape</span>
+<span class="fc" id="L1981">				.getNextGeometry(igeometry)) {</span>
+<span class="fc bfc" id="L1982" title="All 2 branches covered.">			if (igeometry != cutter)</span>
+<span class="fc" id="L1983">				continue;</span>
+
+<span class="fc bfc" id="L1985" title="All 2 branches covered.">			for (int ipath = shape.getFirstPath(igeometry); ipath != -1; ipath = shape</span>
+<span class="fc" id="L1986">					.getNextPath(ipath)) {</span>
+<span class="fc" id="L1987">				int ivertex = shape.getFirstVertex(ipath);</span>
+<span class="pc bpc" id="L1988" title="1 of 2 branches missed.">				if (ivertex == -1)</span>
+<span class="nc" id="L1989">					continue;</span>
+
+<span class="fc" id="L1991">				int ivertexNext = shape.getNextVertex(ivertex);</span>
+<span class="pc bpc" id="L1992" title="1 of 2 branches missed.">				assert (ivertexNext != -1);</span>
+
+<span class="fc bfc" id="L1994" title="All 2 branches covered.">				while (ivertexNext != -1) {</span>
+<span class="fc" id="L1995">					int clusterFrom = m_topo_graph</span>
+<span class="fc" id="L1996">							.getClusterFromVertex(ivertex);</span>
+<span class="fc" id="L1997">					int clusterTo = m_topo_graph</span>
+<span class="fc" id="L1998">							.getClusterFromVertex(ivertexNext);</span>
+<span class="fc" id="L1999">					int half_edge = m_topo_graph.getHalfEdgeConnector(</span>
+							clusterFrom, clusterTo);
+
+<span class="fc bfc" id="L2002" title="All 2 branches covered.">					if (half_edge != -1) {</span>
+<span class="fc" id="L2003">						int halfEdgeTwin = m_topo_graph</span>
+<span class="fc" id="L2004">								.getHalfEdgeTwin(half_edge);</span>
+<span class="fc" id="L2005">						m_topo_graph.setHalfEdgeUserIndex(half_edge,</span>
+								orientationIndex, 1);
+<span class="fc" id="L2007">						m_topo_graph.setHalfEdgeUserIndex(halfEdgeTwin,</span>
+								orientationIndex, 2);
+					}
+
+<span class="fc" id="L2011">					ivertex = ivertexNext;</span>
+<span class="fc" id="L2012">					ivertexNext = shape.getNextVertex(ivertex);</span>
+<span class="fc" id="L2013">				}</span>
+			}
+		}
+<span class="fc" id="L2016">	}</span>
+
+	private void processPolygonCuts_(int orientationIndex, int sideIndex,
+			int cuttee, int cutter) {
+<span class="fc" id="L2020">		int idCuttee = m_topo_graph.getGeometryID(cuttee);</span>
+<span class="fc" id="L2021">		int idCutter = m_topo_graph.getGeometryID(cutter);</span>
+<span class="fc" id="L2022">		AttributeStreamOfInt32 vertices = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L2023">		vertices.reserve(256);</span>
+<span class="fc" id="L2024">		EditShape shape = m_topo_graph.getShape();</span>
+
+<span class="fc" id="L2026">		int visitedIndex = m_topo_graph.createUserIndexForHalfEdges();</span>
+<span class="fc bfc" id="L2027" title="All 2 branches covered.">		for (int cluster = m_topo_graph.getFirstCluster(); cluster != -1; cluster = m_topo_graph</span>
+<span class="fc" id="L2028">				.getNextCluster(cluster)) {</span>
+<span class="fc" id="L2029">			int firstHalfEdge = m_topo_graph.getClusterHalfEdge(cluster);</span>
+
+<span class="fc bfc" id="L2031" title="All 2 branches covered.">			if (firstHalfEdge == -1)</span>
+<span class="fc" id="L2032">				continue;</span>
+
+<span class="fc" id="L2034">			int half_edge = firstHalfEdge;</span>
+
+			do {
+<span class="fc" id="L2037">				int visited = m_topo_graph.getHalfEdgeUserIndex(half_edge,</span>
+						visitedIndex);
+<span class="fc bfc" id="L2039" title="All 2 branches covered.">				if (visited != 1) {</span>
+<span class="fc" id="L2040">					int faceHalfEdge = half_edge;</span>
+<span class="fc" id="L2041">					int toHalfEdge = half_edge;</span>
+<span class="fc" id="L2042">					boolean bFoundCutter = false;</span>
+<span class="fc" id="L2043">					int side = 0;</span>
+					do {
+<span class="fc" id="L2045">						m_topo_graph.setHalfEdgeUserIndex(faceHalfEdge,</span>
+								visitedIndex, 1);
+<span class="fc bfc" id="L2047" title="All 2 branches covered.">						if (!bFoundCutter) {</span>
+<span class="fc" id="L2048">							int edgeParentage = m_topo_graph</span>
+<span class="fc" id="L2049">									.getHalfEdgeParentage(faceHalfEdge);</span>
+<span class="fc bfc" id="L2050" title="All 2 branches covered.">							if ((edgeParentage &amp; idCutter) != 0) {</span>
+<span class="fc" id="L2051">								int faceParentage = m_topo_graph</span>
+<span class="fc" id="L2052">										.getHalfEdgeFaceParentage(faceHalfEdge);</span>
+<span class="fc bfc" id="L2053" title="All 2 branches covered.">								if ((faceParentage &amp; idCuttee) != 0) {</span>
+<span class="fc" id="L2054">									toHalfEdge = faceHalfEdge;// reset the loop</span>
+<span class="fc" id="L2055">									bFoundCutter = true;</span>
+								}
+							}
+						}
+
+<span class="fc bfc" id="L2060" title="All 2 branches covered.">						if (bFoundCutter) {</span>
+<span class="fc" id="L2061">							int clusterOrigin = m_topo_graph</span>
+<span class="fc" id="L2062">									.getHalfEdgeOrigin(faceHalfEdge);</span>
+<span class="fc" id="L2063">							int iterator = m_topo_graph</span>
+<span class="fc" id="L2064">									.getClusterVertexIterator(clusterOrigin);</span>
+<span class="pc bpc" id="L2065" title="1 of 2 branches missed.">							assert (iterator != -1);</span>
+<span class="fc" id="L2066">							int vertex = m_topo_graph</span>
+<span class="fc" id="L2067">									.getVertexFromVertexIterator(iterator);</span>
+<span class="fc" id="L2068">							vertices.add(vertex);</span>
+
+							// get side
+<span class="pc bpc" id="L2071" title="1 of 2 branches missed.">							if (orientationIndex != -1) {</span>
+<span class="fc" id="L2072">								int edgeParentage = m_topo_graph</span>
+<span class="fc" id="L2073">										.getHalfEdgeParentage(faceHalfEdge);</span>
+<span class="fc bfc" id="L2074" title="All 2 branches covered.">								if ((edgeParentage &amp; idCutter) != 0) {</span>
+<span class="fc" id="L2075">									int orientation = m_topo_graph</span>
+<span class="fc" id="L2076">											.getHalfEdgeUserIndex(faceHalfEdge,</span>
+													orientationIndex);
+<span class="pc bpc" id="L2078" title="1 of 4 branches missed.">									assert (orientation == 1 || orientation == 2);</span>
+<span class="fc" id="L2079">									side |= orientation;</span>
+								}
+							}
+						}
+
+<span class="fc" id="L2084">						int next = m_topo_graph.getHalfEdgeNext(faceHalfEdge);</span>
+<span class="fc" id="L2085">						faceHalfEdge = next;</span>
+<span class="fc bfc" id="L2086" title="All 2 branches covered.">					} while (faceHalfEdge != toHalfEdge);</span>
+
+<span class="fc bfc" id="L2088" title="All 2 branches covered.">					if (bFoundCutter</span>
+<span class="fc bfc" id="L2089" title="All 2 branches covered.">							&amp;&amp; m_topo_graph.getChainArea(m_topo_graph</span>
+<span class="fc" id="L2090">									.getHalfEdgeChain(toHalfEdge)) &gt; 0.0) {// if</span>
+																			// we
+																			// found
+																			// a
+																			// cutter
+																			// face
+																			// and
+																			// its
+																			// area
+																			// is
+																			// positive,
+																			// then
+																			// add
+																			// the
+																			// cutter
+																			// face
+																			// as
+																			// new
+																			// polygon.
+<span class="fc" id="L2109">						int geometry = shape</span>
+<span class="fc" id="L2110">								.createGeometry(Geometry.Type.Polygon);</span>
+<span class="fc" id="L2111">						flushVertices_(geometry, vertices);// adds the cutter</span>
+															// face vertices to
+															// the new polygon
+
+<span class="pc bpc" id="L2115" title="1 of 2 branches missed.">						if (sideIndex != -1)</span>
+<span class="fc" id="L2116">							shape.setGeometryUserIndex(geometry, sideIndex,</span>
+									side); // what is that?
+					}
+
+<span class="fc" id="L2120">					vertices.clear(false);</span>
+				}
+<span class="fc" id="L2122">				half_edge = m_topo_graph.getHalfEdgeNext(m_topo_graph</span>
+<span class="fc" id="L2123">						.getHalfEdgeTwin(half_edge));</span>
+<span class="fc bfc" id="L2124" title="All 2 branches covered.">			} while (half_edge != firstHalfEdge);</span>
+		}
+
+<span class="fc" id="L2127">		m_topo_graph.deleteUserIndexForHalfEdges(visitedIndex);</span>
+<span class="fc" id="L2128">	}</span>
+
+	private void cutPolygonPolyline_(int sideIndex, int cuttee, int cutter,
+			AttributeStreamOfInt32 cutHandles) {
+<span class="fc" id="L2132">		m_topo_graph.removeSpikes_();</span>
+
+<span class="fc" id="L2134">		int orientationIndex = -1;</span>
+<span class="pc bpc" id="L2135" title="1 of 2 branches missed.">		if (sideIndex != -1) {</span>
+<span class="fc" id="L2136">			orientationIndex = m_topo_graph.createUserIndexForHalfEdges();</span>
+<span class="fc" id="L2137">			setHalfEdgeOrientations_(orientationIndex, cutter);</span>
+		}
+
+<span class="fc" id="L2140">		processPolygonCuts_(orientationIndex, sideIndex, cuttee, cutter);</span>
+
+<span class="fc" id="L2142">		EditShape shape = m_topo_graph.getShape();</span>
+
+<span class="fc" id="L2144">		int cutCount = 0;</span>
+<span class="fc bfc" id="L2145" title="All 2 branches covered.">		for (int geometry_handle = shape.getFirstGeometry(); geometry_handle != -1; geometry_handle = shape</span>
+<span class="fc" id="L2146">				.getNextGeometry(geometry_handle)) {</span>
+<span class="fc bfc" id="L2147" title="All 4 branches covered.">			if (geometry_handle != cuttee &amp;&amp; geometry_handle != cutter) {</span>
+<span class="fc" id="L2148">				cutHandles.add(geometry_handle);</span>
+<span class="fc" id="L2149">				cutCount++;</span>
+			}
+		}
+
+		// sort
+<span class="fc" id="L2154">		CompareCuts compareCuts = new CompareCuts(shape);</span>
+<span class="fc" id="L2155">		cutHandles.Sort(0, cutCount, compareCuts);</span>
+<span class="fc" id="L2156">	}</span>
+	
+	//call this if EditShape instance has to survive the TopologicalOperations life.
+	void removeShape() {
+<span class="pc bpc" id="L2160" title="1 of 2 branches missed.">		if (m_topo_graph != null) {</span>
+<span class="fc" id="L2161">			m_topo_graph.removeShape();</span>
+<span class="fc" id="L2162">			m_topo_graph = null;</span>
+		}
+			
+<span class="fc" id="L2165">	}</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

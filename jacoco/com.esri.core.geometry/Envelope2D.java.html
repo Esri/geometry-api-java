@@ -1,0 +1,1263 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Envelope2D.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Envelope2D.java</span></div><h1>Envelope2D.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2018 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+import java.io.IOException;
+import java.io.ObjectStreamException;
+import java.io.Serializable;
+
+import static com.esri.core.geometry.SizeOf.SIZE_OF_ENVELOPE2D;
+
+/**
+ * An axis parallel 2-dimensional rectangle.
+ */
+public final class Envelope2D implements Serializable {
+	private static final long serialVersionUID = 1L;
+
+	private final static int XLESSXMIN = 1;
+	// private final int XGREATERXMAX = 2;
+	private final static int YLESSYMIN = 4;
+	// private final int YGREATERYMAX = 8;
+	private final static int XMASK = 3;
+	private final static int YMASK = 12;
+
+	public double xmin;
+
+	public double ymin;
+
+	public double xmax;
+
+	public double ymax;
+
+	public static Envelope2D construct(double _xmin, double _ymin,
+			double _xmax, double _ymax) {
+<span class="fc" id="L56">		Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L57">		env.xmin = _xmin;</span>
+<span class="fc" id="L58">		env.ymin = _ymin;</span>
+<span class="fc" id="L59">		env.xmax = _xmax;</span>
+<span class="fc" id="L60">		env.ymax = _ymax;</span>
+<span class="fc" id="L61">		return env;</span>
+	}
+
+	public static Envelope2D construct(Envelope2D other) {
+<span class="nc" id="L65">		Envelope2D env = new Envelope2D();</span>
+<span class="nc" id="L66">		env.setCoords(other);</span>
+<span class="nc" id="L67">		return env;</span>
+	}
+	
+<span class="fc" id="L70">	public Envelope2D() {</span>
+<span class="fc" id="L71">		setEmpty();</span>
+<span class="fc" id="L72">	}</span>
+
+<span class="fc" id="L74">	public Envelope2D(double _xmin, double _ymin, double _xmax, double _ymax) {</span>
+<span class="fc" id="L75">		xmin = _xmin;</span>
+<span class="fc" id="L76">		ymin = _ymin;</span>
+<span class="fc" id="L77">		xmax = _xmax;</span>
+<span class="fc" id="L78">		ymax = _ymax;</span>
+<span class="fc" id="L79">	}</span>
+
+<span class="nc" id="L81">	public Envelope2D(Envelope2D other) {</span>
+<span class="nc" id="L82">		setCoords(other);</span>
+<span class="nc" id="L83">	}</span>
+
+	public int estimateMemorySize()
+	{
+<span class="fc" id="L87">		return SIZE_OF_ENVELOPE2D;</span>
+	}
+	
+	public void setCoords(double _x, double _y) {
+<span class="fc" id="L91">		xmin = _x;</span>
+<span class="fc" id="L92">		ymin = _y;</span>
+<span class="fc" id="L93">		xmax = _x;</span>
+<span class="fc" id="L94">		ymax = _y;</span>
+<span class="fc" id="L95">	}</span>
+
+	public void setCoords(double _xmin, double _ymin, double _xmax, double _ymax) {
+<span class="fc" id="L98">		xmin = _xmin;</span>
+<span class="fc" id="L99">		ymin = _ymin;</span>
+<span class="fc" id="L100">		xmax = _xmax;</span>
+<span class="fc" id="L101">		ymax = _ymax;</span>
+<span class="fc" id="L102">		normalize();</span>
+<span class="fc" id="L103">	}</span>
+
+	public void setCoords(Point2D center, double width, double height) {
+<span class="fc" id="L106">		xmin = center.x - width * 0.5;</span>
+<span class="fc" id="L107">		xmax = xmin + width;</span>
+<span class="fc" id="L108">		ymin = center.y - height * 0.5;</span>
+<span class="fc" id="L109">		ymax = ymin + height;</span>
+<span class="fc" id="L110">		normalize();</span>
+<span class="fc" id="L111">	}</span>
+
+	public void setCoords(Point2D pt) {
+<span class="fc" id="L114">		xmin = pt.x;</span>
+<span class="fc" id="L115">		ymin = pt.y;</span>
+<span class="fc" id="L116">		xmax = pt.x;</span>
+<span class="fc" id="L117">		ymax = pt.y;</span>
+<span class="fc" id="L118">	}</span>
+
+	public void setCoords(Envelope2D envSrc) {
+<span class="fc" id="L121">		setCoords(envSrc.xmin, envSrc.ymin, envSrc.xmax, envSrc.ymax);</span>
+<span class="fc" id="L122">	}</span>
+
+	public Envelope2D getInflated(double dx, double dy) {
+<span class="nc" id="L125">		Envelope2D env = new Envelope2D();</span>
+<span class="nc" id="L126">		env.setCoords(this.xmin, this.ymin, this.xmax, this.ymax);</span>
+<span class="nc" id="L127">		env.inflate(dx, dy);</span>
+<span class="nc" id="L128">		return env;</span>
+	}
+
+	/**
+	 * Sets the envelope from the array of points. The envelope will be set to
+	 * empty if the array is null.
+	 * @param points The points to set the envelope from. No element in the array can be null.
+	 */
+	public void setFromPoints(Point2D[] points) {
+<span class="nc bnc" id="L137" title="All 4 branches missed.">		if (points == null || points.length == 0) {</span>
+<span class="nc" id="L138">			setEmpty();</span>
+<span class="nc" id="L139">			return;</span>
+		}
+
+<span class="nc" id="L142">		Point2D pt = points[0];</span>
+<span class="nc" id="L143">		setCoords(pt.x, pt.y);</span>
+<span class="nc bnc" id="L144" title="All 2 branches missed.">		for (int i = 1; i &lt; points.length; i++) {</span>
+<span class="nc" id="L145">			Point2D pt2d = points[i];</span>
+<span class="nc" id="L146">			mergeNE(pt2d.x, pt2d.y);</span>
+		}
+<span class="nc" id="L148">	}</span>
+
+	public void setEmpty() {
+<span class="fc" id="L151">		xmin = NumberUtils.TheNaN;</span>
+<span class="fc" id="L152">		ymin = NumberUtils.TheNaN;</span>
+<span class="fc" id="L153">		xmax = NumberUtils.TheNaN;</span>
+<span class="fc" id="L154">		ymax = NumberUtils.TheNaN;</span>
+<span class="fc" id="L155">	}</span>
+
+	public void setInfinite() {
+<span class="nc" id="L158">		xmin = NumberUtils.negativeInf();</span>
+<span class="nc" id="L159">		xmax = NumberUtils.positiveInf();</span>
+<span class="nc" id="L160">		ymin = NumberUtils.negativeInf();</span>
+<span class="nc" id="L161">		ymax = NumberUtils.positiveInf();</span>
+<span class="nc" id="L162">	}</span>
+
+	public boolean isEmpty() {
+<span class="pc bpc" id="L165" title="3 of 8 branches missed.">		return NumberUtils.isNaN(xmin) || NumberUtils.isNaN(ymin) || NumberUtils.isNaN(xmax) || NumberUtils.isNaN(ymax);</span>
+	}
+
+	public void setCoords(Envelope1D xinterval, Envelope1D yinterval) {
+<span class="nc bnc" id="L169" title="All 4 branches missed.">		if (xinterval.isEmpty() || yinterval.isEmpty()) {</span>
+<span class="nc" id="L170">			setEmpty();</span>
+<span class="nc" id="L171">			return;</span>
+		}
+
+<span class="nc" id="L174">		xmin = xinterval.vmin;</span>
+<span class="nc" id="L175">		xmax = xinterval.vmax;</span>
+<span class="nc" id="L176">		ymin = yinterval.vmin;</span>
+<span class="nc" id="L177">		ymax = yinterval.vmax;</span>
+<span class="nc" id="L178">	}</span>
+
+	public void merge(double x, double y) {
+<span class="fc bfc" id="L181" title="All 2 branches covered.">		if (isEmpty()) {</span>
+<span class="fc" id="L182">			xmin = x;</span>
+<span class="fc" id="L183">			ymin = y;</span>
+<span class="fc" id="L184">			xmax = x;</span>
+<span class="fc" id="L185">			ymax = y;</span>
+		} else {
+<span class="fc bfc" id="L187" title="All 2 branches covered.">			if (xmin &gt; x)</span>
+<span class="fc" id="L188">				xmin = x;</span>
+<span class="fc bfc" id="L189" title="All 2 branches covered.">			else if (xmax &lt; x)</span>
+<span class="fc" id="L190">				xmax = x;</span>
+
+<span class="fc bfc" id="L192" title="All 2 branches covered.">			if (ymin &gt; y)</span>
+<span class="fc" id="L193">				ymin = y;</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">			else if (ymax &lt; y)</span>
+<span class="fc" id="L195">				ymax = y;</span>
+		}
+<span class="fc" id="L197">	}</span>
+
+	/**
+	 * Merges a point with this envelope without checking if the envelope is
+	 * empty. Use with care.
+	 * @param x The x coord of the point
+	 * @param y the y coord in the point
+	 */
+	public void mergeNE(double x, double y) {
+<span class="fc bfc" id="L206" title="All 2 branches covered.">		if (xmin &gt; x)</span>
+<span class="fc" id="L207">			xmin = x;</span>
+<span class="fc bfc" id="L208" title="All 2 branches covered.">		else if (xmax &lt; x)</span>
+<span class="fc" id="L209">			xmax = x;</span>
+
+<span class="fc bfc" id="L211" title="All 2 branches covered.">		if (ymin &gt; y)</span>
+<span class="fc" id="L212">			ymin = y;</span>
+<span class="fc bfc" id="L213" title="All 2 branches covered.">		else if (ymax &lt; y)</span>
+<span class="fc" id="L214">			ymax = y;</span>
+<span class="fc" id="L215">	}</span>
+
+	public void merge(Point2D pt) {
+<span class="fc" id="L218">		merge(pt.x, pt.y);</span>
+<span class="fc" id="L219">	}</span>
+
+	public void merge(Point3D pt) {
+<span class="nc" id="L222">		merge(pt.x, pt.y);</span>
+<span class="nc" id="L223">	}</span>
+
+	public void merge(Envelope2D other) {
+<span class="fc bfc" id="L226" title="All 2 branches covered.">		if (other.isEmpty())</span>
+<span class="fc" id="L227">			return;</span>
+
+<span class="fc" id="L229">		merge(other.xmin, other.ymin);</span>
+<span class="fc" id="L230">		merge(other.xmax, other.ymax);</span>
+<span class="fc" id="L231">	}</span>
+
+	public void inflate(double dx, double dy) {
+<span class="fc bfc" id="L234" title="All 2 branches covered.">		if (isEmpty())</span>
+<span class="fc" id="L235">			return;</span>
+<span class="fc" id="L236">		xmin -= dx;</span>
+<span class="fc" id="L237">		xmax += dx;</span>
+<span class="fc" id="L238">		ymin -= dy;</span>
+<span class="fc" id="L239">		ymax += dy;</span>
+<span class="pc bpc" id="L240" title="2 of 4 branches missed.">		if (xmin &gt; xmax || ymin &gt; ymax)</span>
+<span class="nc" id="L241">			setEmpty();</span>
+<span class="fc" id="L242">	}</span>
+
+	public void scale(double f) {
+<span class="nc bnc" id="L245" title="All 2 branches missed.">		if (f &lt; 0.0)</span>
+<span class="nc" id="L246">			setEmpty();</span>
+
+<span class="nc bnc" id="L248" title="All 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L249">			return;</span>
+
+<span class="nc" id="L251">		xmin *= f;</span>
+<span class="nc" id="L252">		xmax *= f;</span>
+<span class="nc" id="L253">		ymin *= f;</span>
+<span class="nc" id="L254">		ymax *= f;</span>
+<span class="nc" id="L255">	}</span>
+
+	public void zoom(double factorX, double factorY) {
+<span class="nc bnc" id="L258" title="All 2 branches missed.">		if (!isEmpty())</span>
+<span class="nc" id="L259">			setCoords(getCenter(), factorX * getWidth(), factorY * getHeight());</span>
+<span class="nc" id="L260">	}</span>
+
+	/**
+	 * Checks if this envelope intersects the other.
+	 * @param other The other envelope.
+	 * @return True if this envelope intersects the other.
+	 */
+	public boolean isIntersecting(Envelope2D other) {
+		// No need to check if empty, this will work for empty envelopes too
+		// (IEEE math)
+<span class="fc bfc" id="L270" title="All 12 branches covered.">		return ((xmin &lt;= other.xmin) ? xmax &gt;= other.xmin : other.xmax &gt;= xmin)</span>
+				&amp;&amp; // check that x projections overlap
+				((ymin &lt;= other.ymin) ? ymax &gt;= other.ymin : other.ymax &gt;= ymin); // check
+																					// that
+																					// y
+																					// projections
+																					// overlap
+	}
+
+	/**
+	 * Checks if this envelope intersects the other assuming neither one is empty.
+	 * @param other The other envelope.
+	 * @return True if this envelope intersects the other. Assumes this and
+	 * other envelopes are not empty.
+	 */
+	public boolean isIntersectingNE(Envelope2D other) {
+<span class="fc bfc" id="L286" title="All 12 branches covered.">		return ((xmin &lt;= other.xmin) ? xmax &gt;= other.xmin : other.xmax &gt;= xmin)</span>
+				&amp;&amp; // check that x projections overlap
+				((ymin &lt;= other.ymin) ? ymax &gt;= other.ymin : other.ymax &gt;= ymin); // check
+																					// that
+																					// y
+																					// projections
+																					// overlap
+	}
+
+	/**
+	 * Checks if this envelope intersects the other.
+	 * @param xmin_
+	 * @param ymin_
+	 * @param xmax_
+	 * @param ymax_
+	 * @return True if this envelope intersects the other.
+	 */
+	public boolean isIntersecting(double xmin_, double ymin_, double xmax_, double ymax_) {
+		// No need to check if empty, this will work for empty geoms too (IEEE
+		// math)
+<span class="nc bnc" id="L306" title="All 12 branches missed.">		return ((xmin &lt;= xmin_) ? xmax &gt;= xmin_ : xmax_ &gt;= xmin) &amp;&amp; // check</span>
+																	// that x
+																	// projections
+																	// overlap
+				((ymin &lt;= ymin_) ? ymax &gt;= ymin_ : ymax_ &gt;= ymin); // check that
+																	// y
+																	// projections
+																	// overlap
+	}
+	
+	/**
+	 * Intersects this envelope with the other and stores result in this
+	 * envelope.
+	 * @param other The other envelope.
+	 * @return True if this envelope intersects the other, otherwise sets this
+	 *         envelope to empty state and returns False.
+	 */
+	public boolean intersect(Envelope2D other) {
+<span class="fc bfc" id="L324" title="All 4 branches covered.">		if (isEmpty() || other.isEmpty()) {</span>
+<span class="fc" id="L325">			setEmpty();</span>
+<span class="fc" id="L326">			return false;</span>
+		}
+
+<span class="fc bfc" id="L329" title="All 2 branches covered.">		if (other.xmin &gt; xmin)</span>
+<span class="fc" id="L330">			xmin = other.xmin;</span>
+
+<span class="fc bfc" id="L332" title="All 2 branches covered.">		if (other.xmax &lt; xmax)</span>
+<span class="fc" id="L333">			xmax = other.xmax;</span>
+
+<span class="fc bfc" id="L335" title="All 2 branches covered.">		if (other.ymin &gt; ymin)</span>
+<span class="fc" id="L336">			ymin = other.ymin;</span>
+
+<span class="fc bfc" id="L338" title="All 2 branches covered.">		if (other.ymax &lt; ymax)</span>
+<span class="fc" id="L339">			ymax = other.ymax;</span>
+
+<span class="fc bfc" id="L341" title="All 4 branches covered.">		boolean bIntersecting = xmin &lt;= xmax &amp;&amp; ymin &lt;= ymax;</span>
+
+<span class="fc bfc" id="L343" title="All 2 branches covered.">		if (!bIntersecting)</span>
+<span class="fc" id="L344">			setEmpty();</span>
+
+<span class="fc" id="L346">		return bIntersecting;</span>
+	}
+
+	/**
+	 * Queries a corner of the envelope.
+	 * 
+	 * @param index
+	 *            Indicates a corner of the envelope.
+	 *            &lt;p&gt;
+	 *            0 means lower left or (xmin, ymin)
+	 *            &lt;p&gt;
+	 *            1 means upper left or (xmin, ymax)
+	 *            &lt;p&gt;
+	 *            2 means upper right or (xmax, ymax)
+	 *            &lt;p&gt;
+	 *            3 means lower right or (xmax, ymin)
+	 * @return Point at a corner of the envelope.
+	 * 
+	 */
+	public Point2D queryCorner(int index) {
+<span class="pc bpc" id="L366" title="1 of 5 branches missed.">		switch (index) {</span>
+		case 0:
+<span class="fc" id="L368">			return Point2D.construct(xmin, ymin);</span>
+		case 1:
+<span class="fc" id="L370">			return Point2D.construct(xmin, ymax);</span>
+		case 2:
+<span class="fc" id="L372">			return Point2D.construct(xmax, ymax);</span>
+		case 3:
+<span class="fc" id="L374">			return Point2D.construct(xmax, ymin);</span>
+		default:
+<span class="nc" id="L376">			throw new IndexOutOfBoundsException();</span>
+
+		}
+	}
+
+	/**
+	 * Queries corners into a given array. The array length must be at least
+	 * 4. Starts from the lower left corner and goes clockwise.
+	 * @param corners The array of four points.
+	 */
+	public void queryCorners(Point2D[] corners) {
+<span class="pc bpc" id="L387" title="2 of 4 branches missed.">		if ((corners == null) || (corners.length &lt; 4))</span>
+<span class="nc" id="L388">			throw new IllegalArgumentException();</span>
+<span class="fc bfc" id="L389" title="All 2 branches covered.">		if (corners[0] != null)</span>
+<span class="fc" id="L390">			corners[0].setCoords(xmin, ymin);</span>
+		else
+<span class="fc" id="L392">			corners[0] = new Point2D(xmin, ymin);</span>
+
+<span class="fc bfc" id="L394" title="All 2 branches covered.">		if (corners[1] != null)</span>
+<span class="fc" id="L395">			corners[1].setCoords(xmin, ymax);</span>
+		else
+<span class="fc" id="L397">			corners[1] = new Point2D(xmin, ymax);</span>
+
+<span class="fc bfc" id="L399" title="All 2 branches covered.">		if (corners[2] != null)</span>
+<span class="fc" id="L400">			corners[2].setCoords(xmax, ymax);</span>
+		else
+<span class="fc" id="L402">			corners[2] = new Point2D(xmax, ymax);</span>
+
+<span class="fc bfc" id="L404" title="All 2 branches covered.">		if (corners[3] != null)</span>
+<span class="fc" id="L405">			corners[3].setCoords(xmax, ymin);</span>
+		else
+<span class="fc" id="L407">			corners[3] = new Point2D(xmax, ymin);</span>
+<span class="fc" id="L408">	}</span>
+
+	/**
+	 * Queries corners into a given array in reversed order. The array length
+	 * must be at least 4. Starts from the lower left corner and goes
+	 * counterclockwise.
+	 * @param corners The array of four points.
+	 */
+	public void queryCornersReversed(Point2D[] corners) {
+<span class="pc bpc" id="L417" title="3 of 6 branches missed.">		if (corners == null || ((corners != null) &amp;&amp; (corners.length &lt; 4)))</span>
+<span class="nc" id="L418">			throw new IllegalArgumentException();</span>
+<span class="fc bfc" id="L419" title="All 2 branches covered.">		if (corners[0] != null)</span>
+<span class="fc" id="L420">			corners[0].setCoords(xmin, ymin);</span>
+		else
+<span class="fc" id="L422">			corners[0] = new Point2D(xmin, ymin);</span>
+
+<span class="fc bfc" id="L424" title="All 2 branches covered.">		if (corners[1] != null)</span>
+<span class="fc" id="L425">			corners[1].setCoords(xmax, ymin);</span>
+		else
+<span class="fc" id="L427">			corners[1] = new Point2D(xmax, ymin);</span>
+
+<span class="fc bfc" id="L429" title="All 2 branches covered.">		if (corners[2] != null)</span>
+<span class="fc" id="L430">			corners[2].setCoords(xmax, ymax);</span>
+		else
+<span class="fc" id="L432">			corners[2] = new Point2D(xmax, ymax);</span>
+		
+<span class="fc bfc" id="L434" title="All 2 branches covered.">		if (corners[3] != null)</span>
+<span class="fc" id="L435">			corners[3].setCoords(xmin, ymax);</span>
+		else
+<span class="fc" id="L437">			corners[3] = new Point2D(xmin, ymax);</span>
+<span class="fc" id="L438">	}</span>
+
+	public double getArea() {
+<span class="pc bpc" id="L441" title="1 of 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L442">			return 0;</span>
+<span class="fc" id="L443">		return getWidth() * getHeight();</span>
+	}
+
+	public double getLength() {
+<span class="nc bnc" id="L447" title="All 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L448">			return 0;</span>
+<span class="nc" id="L449">		return 2.0 * (getWidth() + getHeight());</span>
+	}
+
+	public void setFromPoints(Point2D[] points, int count) {
+<span class="nc bnc" id="L453" title="All 2 branches missed.">		if (count == 0) {</span>
+<span class="nc" id="L454">			setEmpty();</span>
+<span class="nc" id="L455">			return;</span>
+		}
+<span class="nc" id="L457">		xmin = points[0].x;</span>
+<span class="nc" id="L458">		ymin = points[0].y;</span>
+<span class="nc" id="L459">		xmax = xmin;</span>
+<span class="nc" id="L460">		ymax = ymin;</span>
+<span class="nc bnc" id="L461" title="All 2 branches missed.">		for (int i = 1; i &lt; count; i++) {</span>
+<span class="nc" id="L462">			Point2D pt = points[i];</span>
+<span class="nc bnc" id="L463" title="All 2 branches missed.">			if (pt.x &lt; xmin)</span>
+<span class="nc" id="L464">				xmin = pt.x;</span>
+<span class="nc bnc" id="L465" title="All 2 branches missed.">			else if (pt.x &gt; xmax)</span>
+<span class="nc" id="L466">				xmax = pt.x;</span>
+<span class="nc bnc" id="L467" title="All 2 branches missed.">			if (pt.y &lt; ymin)</span>
+<span class="nc" id="L468">				ymin = pt.y;</span>
+<span class="nc bnc" id="L469" title="All 2 branches missed.">			else if (pt.y &gt; ymax)</span>
+<span class="nc" id="L470">				ymax = pt.y;</span>
+		}
+<span class="nc" id="L472">	}</span>
+
+	public void reaspect(double arWidth, double arHeight) {
+<span class="nc bnc" id="L475" title="All 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L476">			return;</span>
+<span class="nc" id="L477">		double newAspectRatio = arWidth / arHeight;</span>
+<span class="nc" id="L478">		double widthHalf = getWidth() * 0.5;</span>
+<span class="nc" id="L479">		double heightHalf = getHeight() * 0.5;</span>
+
+<span class="nc" id="L481">		double newWidthHalf = heightHalf * newAspectRatio;</span>
+<span class="nc bnc" id="L482" title="All 2 branches missed.">		if (widthHalf &lt;= newWidthHalf) {// preserve height, increase width</span>
+<span class="nc" id="L483">			double xc = getCenterX();</span>
+<span class="nc" id="L484">			xmin = xc - newWidthHalf;</span>
+<span class="nc" id="L485">			xmax = xc + newWidthHalf;</span>
+<span class="nc" id="L486">		} else {// preserve the width, increase height</span>
+<span class="nc" id="L487">			double newHeightHalf = widthHalf / newAspectRatio;</span>
+<span class="nc" id="L488">			double yc = getCenterY();</span>
+<span class="nc" id="L489">			ymin = yc - newHeightHalf;</span>
+<span class="nc" id="L490">			ymax = yc + newHeightHalf;</span>
+		}
+
+<span class="nc" id="L493">		normalize();</span>
+<span class="nc" id="L494">	}</span>
+
+	public double getCenterX() {
+<span class="fc" id="L497">		double cx = (xmax + xmin) / 2d;</span>
+<span class="fc" id="L498">		return cx;</span>
+	}
+
+	public double getCenterY() {
+<span class="fc" id="L502">		double cy = (ymax + ymin) / 2d;</span>
+<span class="fc" id="L503">		return cy;</span>
+	}
+
+	public double getWidth() {
+<span class="fc" id="L507">		return xmax - xmin;</span>
+	}
+
+	public double getHeight() {
+<span class="fc" id="L511">		return ymax - ymin;</span>
+	}
+
+	/**
+	 * Moves the Envelope by given distance.
+	 * @param dx
+	 * @param dy
+	 */
+	public void move(double dx, double dy) {
+<span class="nc bnc" id="L520" title="All 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L521">			return;</span>
+<span class="nc" id="L522">		xmin += dx;</span>
+<span class="nc" id="L523">		ymin += dy;</span>
+<span class="nc" id="L524">		xmax += dx;</span>
+<span class="nc" id="L525">		ymax += dy;</span>
+<span class="nc" id="L526">	}</span>
+
+	public void centerAt(double x, double y) {
+<span class="nc" id="L529">		move(x - getCenterX(), y - getCenterY());</span>
+<span class="nc" id="L530">	}</span>
+
+	void centerAt(Point2D pt) {
+<span class="nc" id="L533">		centerAt(pt.x, pt.y);</span>
+<span class="nc" id="L534">	}</span>
+
+	public void offset(double dx, double dy) {
+<span class="nc" id="L537">		xmin += dx;// NaN remains NaN</span>
+<span class="nc" id="L538">		xmax += dx;</span>
+<span class="nc" id="L539">		ymin += dy;</span>
+<span class="nc" id="L540">		ymax += dy;</span>
+<span class="nc" id="L541">	}</span>
+
+	public void normalize() {
+<span class="fc bfc" id="L544" title="All 2 branches covered.">		if (isEmpty())</span>
+<span class="fc" id="L545">			return;</span>
+
+<span class="fc" id="L547">		double min = Math.min(xmin, xmax);</span>
+<span class="fc" id="L548">		double max = Math.max(xmin, xmax);</span>
+<span class="fc" id="L549">		xmin = min;</span>
+<span class="fc" id="L550">		xmax = max;</span>
+<span class="fc" id="L551">		min = Math.min(ymin, ymax);</span>
+<span class="fc" id="L552">		max = Math.max(ymin, ymax);</span>
+<span class="fc" id="L553">		ymin = min;</span>
+<span class="fc" id="L554">		ymax = max;</span>
+<span class="fc" id="L555">	}</span>
+
+	public void queryLowerLeft(Point2D pt) {
+<span class="fc" id="L558">		pt.setCoords(xmin, ymin);</span>
+<span class="fc" id="L559">	}</span>
+
+	public void queryLowerRight(Point2D pt) {
+<span class="fc" id="L562">		pt.setCoords(xmax, ymin);</span>
+<span class="fc" id="L563">	}</span>
+
+	public void queryUpperLeft(Point2D pt) {
+<span class="fc" id="L566">		pt.setCoords(xmin, ymax);</span>
+<span class="fc" id="L567">	}</span>
+
+	public void queryUpperRight(Point2D pt) {
+<span class="fc" id="L570">		pt.setCoords(xmax, ymax);</span>
+<span class="fc" id="L571">	}</span>
+
+	/**
+	 * Returns True if this envelope is valid (empty, or has xmin less or equal
+	 * to xmax, or ymin less or equal to ymax).
+	 * @return True if the envelope is valid.
+	 */
+	public boolean isValid() {
+<span class="pc bpc" id="L579" title="3 of 6 branches missed.">		return isEmpty() || (xmin &lt;= xmax &amp;&amp; ymin &lt;= ymax);</span>
+	}
+
+	/**
+	 * Gets the center point of the envelope. The Center Point occurs at: ((XMin
+	 * + XMax) / 2, (YMin + YMax) / 2).
+	 * 
+	 * @return the center point
+	 */
+	public Point2D getCenter() {
+<span class="fc" id="L589">		return new Point2D((xmax + xmin) / 2d, (ymax + ymin) / 2d);</span>
+	}
+
+	public void queryCenter(Point2D center) {
+<span class="nc" id="L593">		center.x = (xmax + xmin) / 2d;</span>
+<span class="nc" id="L594">		center.y = (ymax + ymin) / 2d;</span>
+<span class="nc" id="L595">	}</span>
+
+	public void centerAt(Point c) {
+<span class="nc" id="L598">		double cx = (xmax - xmin) / 2d;</span>
+<span class="nc" id="L599">		double cy = (ymax - ymin) / 2d;</span>
+
+<span class="nc" id="L601">		xmin = c.getX() - cx;</span>
+<span class="nc" id="L602">		xmax = c.getX() + cx;</span>
+<span class="nc" id="L603">		ymin = c.getY() - cy;</span>
+<span class="nc" id="L604">		ymax = c.getY() + cy;</span>
+<span class="nc" id="L605">	}</span>
+
+	public Point2D getLowerLeft() {
+<span class="fc" id="L608">		return new Point2D(xmin, ymin);</span>
+	}
+
+	public Point2D getUpperLeft() {
+<span class="fc" id="L612">		return new Point2D(xmin, ymax);</span>
+	}
+
+	public Point2D getLowerRight() {
+<span class="fc" id="L616">		return new Point2D(xmax, ymin);</span>
+	}
+
+	public Point2D getUpperRight() {
+<span class="fc" id="L620">		return new Point2D(xmax, ymax);</span>
+	}
+
+	public boolean contains(Point p) {
+<span class="nc" id="L624">		return contains(p.getX(), p.getY());</span>
+	}
+
+	public boolean contains(Point2D p) {
+<span class="fc" id="L628">		return contains(p.x, p.y);</span>
+	}
+
+	public boolean contains(double x, double y) {
+		// Note: This will return False, if envelope is empty, thus no need to
+		// call is_empty().
+<span class="fc bfc" id="L634" title="All 8 branches covered.">		return x &gt;= xmin &amp;&amp; x &lt;= xmax &amp;&amp; y &gt;= ymin &amp;&amp; y &lt;= ymax;</span>
+	}
+
+	/**
+	 * Returns True if the envelope contains the other envelope (boundary
+	 * inclusive).
+	 * @param other The other envelope.
+	 * @return True if this contains the other.
+	 */
+	public boolean contains(Envelope2D other) {// Note: Will return False, if
+												// either envelope is empty.
+<span class="fc bfc" id="L645" title="All 8 branches covered.">		return other.xmin &gt;= xmin &amp;&amp; other.xmax &lt;= xmax &amp;&amp; other.ymin &gt;= ymin</span>
+				&amp;&amp; other.ymax &lt;= ymax;
+	}
+
+	/**
+	 * Returns True if the envelope contains the point (boundary exclusive).
+	 * @param x
+	 * @param y
+	 * @return True if this contains the point.
+	 * */
+	public boolean containsExclusive(double x, double y) {
+		// Note: This will return False, if envelope is empty, thus no need to
+		// call is_empty().
+<span class="pc bpc" id="L658" title="1 of 8 branches missed.">		return x &gt; xmin &amp;&amp; x &lt; xmax &amp;&amp; y &gt; ymin &amp;&amp; y &lt; ymax;</span>
+	}
+
+	/**
+	 * Returns True if the envelope contains the point (boundary exclusive).
+	 */
+	public boolean containsExclusive(Point2D pt) {
+<span class="fc" id="L665">		return containsExclusive(pt.x, pt.y);</span>
+	}
+
+	/**
+	 * Returns True if the envelope contains the other envelope (boundary
+	 * exclusive).
+	 * @param other The other envelope
+	 * @return True if this contains the other, boundary exclusive.
+	 */
+	boolean containsExclusive(Envelope2D other) {
+		// Note: This will return False, if either envelope is empty, thus no
+		// need to call is_empty().
+<span class="pc bpc" id="L677" title="2 of 8 branches missed.">		return other.xmin &gt; xmin &amp;&amp; other.xmax &lt; xmax &amp;&amp; other.ymin &gt; ymin</span>
+				&amp;&amp; other.ymax &lt; ymax;
+	}
+
+	@Override
+	public boolean equals(Object _other) {
+<span class="pc bpc" id="L683" title="1 of 2 branches missed.">		if (_other == this)</span>
+<span class="nc" id="L684">			return true;</span>
+
+<span class="fc bfc" id="L686" title="All 2 branches covered.">		if (!(_other instanceof Envelope2D))</span>
+<span class="fc" id="L687">			return false;</span>
+
+<span class="fc" id="L689">		Envelope2D other = (Envelope2D) _other;</span>
+<span class="pc bpc" id="L690" title="3 of 4 branches missed.">		if (isEmpty() &amp;&amp; other.isEmpty())</span>
+<span class="nc" id="L691">			return true;</span>
+
+<span class="pc bpc" id="L693" title="2 of 8 branches missed.">		if (xmin != other.xmin || ymin != other.ymin || xmax != other.xmax</span>
+				|| ymax != other.ymax)
+<span class="fc" id="L695">			return false;</span>
+
+<span class="fc" id="L697">		return true;</span>
+	}
+
+	@Override
+	public int hashCode() {
+<span class="nc bnc" id="L702" title="All 2 branches missed.">		if (isEmpty()) {</span>
+<span class="nc" id="L703">			return NumberUtils.hash(NumberUtils.TheNaN);</span>
+		}
+		
+<span class="nc" id="L706">		int hash = NumberUtils.hash(xmin);</span>
+<span class="nc" id="L707">		hash = NumberUtils.hash(hash, xmax);</span>
+<span class="nc" id="L708">		hash = NumberUtils.hash(hash, ymin);</span>
+<span class="nc" id="L709">		hash = NumberUtils.hash(hash, ymax);</span>
+
+<span class="nc" id="L711">		return hash;</span>
+	}
+
+	Point2D _snapToBoundary(Point2D pt) {
+<span class="fc" id="L715">		Point2D p = new Point2D();</span>
+<span class="fc" id="L716">		p.setCoords(pt);</span>
+<span class="pc bpc" id="L717" title="1 of 2 branches missed.">		if (p._isNan())</span>
+<span class="nc" id="L718">			return p;</span>
+
+<span class="pc bpc" id="L720" title="1 of 2 branches missed.">		if (isEmpty()) {</span>
+<span class="nc" id="L721">			p._setNan();</span>
+<span class="nc" id="L722">			return p;</span>
+		}
+
+<span class="pc bpc" id="L725" title="1 of 2 branches missed.">		if (p.x &lt; xmin)</span>
+<span class="nc" id="L726">			p.x = xmin;</span>
+<span class="pc bpc" id="L727" title="1 of 2 branches missed.">		else if (p.x &gt; xmax)</span>
+<span class="nc" id="L728">			p.x = xmax;</span>
+
+<span class="pc bpc" id="L730" title="1 of 2 branches missed.">		if (p.y &lt; ymin)</span>
+<span class="nc" id="L731">			p.y = ymin;</span>
+<span class="pc bpc" id="L732" title="1 of 2 branches missed.">		else if (p.y &gt; ymax)</span>
+<span class="nc" id="L733">			p.y = ymax;</span>
+
+<span class="pc bpc" id="L735" title="1 of 2 branches missed.">		if (!p.equals(pt))</span>
+<span class="nc" id="L736">			return p;</span>
+
+		// p is inside envelope
+<span class="fc" id="L739">		Point2D center = getCenter();</span>
+<span class="pc bpc" id="L740" title="1 of 2 branches missed.">		double deltax = p.x &lt; center.x ? p.x - xmin : xmax - p.x;</span>
+<span class="pc bpc" id="L741" title="1 of 2 branches missed.">		double deltay = p.y &lt; center.y ? p.y - ymin : ymax - p.y;</span>
+
+<span class="pc bpc" id="L743" title="1 of 2 branches missed.">		if (deltax &lt; deltay)</span>
+<span class="nc bnc" id="L744" title="All 2 branches missed.">			p.x = p.x &lt; center.x ? xmin : xmax;</span>
+		else
+<span class="pc bpc" id="L746" title="1 of 2 branches missed.">			p.y = p.y &lt; center.y ? ymin : ymax;</span>
+
+<span class="fc" id="L748">		return p;</span>
+	}
+
+	// Calculates distance of point from lower left corner of envelope,
+	// moving clockwise along the envelope boundary.
+	// The input point is assumed to lie exactly on envelope boundary
+	// If this is not the case then a projection to the nearest position on the
+	// envelope boundary is performed.
+	// (If the user knows that the input point does most likely not lie on the
+	// boundary,
+	// it is more efficient to perform ProjectToBoundary before using this
+	// function).
+	double _boundaryDistance(Point2D pt) {
+<span class="pc bpc" id="L761" title="1 of 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L762">			return NumberUtils.NaN();</span>
+
+<span class="fc bfc" id="L764" title="All 2 branches covered.">		if (pt.x == xmin)</span>
+<span class="fc" id="L765">			return pt.y - ymin;</span>
+
+<span class="fc" id="L767">		double height = ymax - ymin;</span>
+<span class="fc" id="L768">		double width = xmax - xmin;</span>
+
+<span class="pc bpc" id="L770" title="1 of 2 branches missed.">		if (pt.y == ymax)</span>
+<span class="fc" id="L771">			return height + pt.x - xmin;</span>
+
+<span class="nc bnc" id="L773" title="All 2 branches missed.">		if (pt.x == xmax)</span>
+<span class="nc" id="L774">			return height + width + ymax - pt.y;</span>
+
+<span class="nc bnc" id="L776" title="All 2 branches missed.">		if (pt.y == ymin)</span>
+<span class="nc" id="L777">			return height * 2.0 + width + xmax - pt.x;</span>
+
+<span class="nc" id="L779">		return _boundaryDistance(_snapToBoundary(pt));</span>
+	}
+
+	// returns 0,..3 depending on which side pt lies.
+	int _envelopeSide(Point2D pt) {
+
+<span class="nc bnc" id="L785" title="All 2 branches missed.">		if (isEmpty())</span>
+<span class="nc" id="L786">			return -1;</span>
+
+<span class="nc" id="L788">		double boundaryDist = _boundaryDistance(pt);</span>
+<span class="nc" id="L789">		double height = ymax - ymin;</span>
+<span class="nc" id="L790">		double width = xmax - xmin;</span>
+
+<span class="nc bnc" id="L792" title="All 2 branches missed.">		if (boundaryDist &lt; height)</span>
+<span class="nc" id="L793">			return 0;</span>
+
+<span class="nc bnc" id="L795" title="All 2 branches missed.">		if ((boundaryDist -= height) &lt; width)</span>
+<span class="nc" id="L796">			return 1;</span>
+
+<span class="nc bnc" id="L798" title="All 2 branches missed.">		return boundaryDist - width &lt; height ? 2 : 3;</span>
+	}
+
+	double _calculateToleranceFromEnvelope() {
+<span class="fc bfc" id="L802" title="All 2 branches covered.">		if (isEmpty())</span>
+<span class="fc" id="L803">			return NumberUtils.doubleEps() * 100.0; // GEOMTERYX_EPSFACTOR</span>
+													// 100.0;
+<span class="fc" id="L805">		double r = Math.abs(xmin) + Math.abs(xmax) + Math.abs(ymin)</span>
+<span class="fc" id="L806">				+ Math.abs(ymax) + 1;</span>
+<span class="fc" id="L807">		return r * NumberUtils.doubleEps() * 100.0; // GEOMTERYX_EPSFACTOR</span>
+													// 100.0;
+	}
+
+	public int clipLine(Point2D p1, Point2D p2)
+	// Modified Cohen-Sutherland Line-Clipping Algorithm
+	// returns:
+	// 0 - the segment is outside of the clipping window
+	// 1 - p1 was modified
+	// 2 - p2 was modified
+	// 3 - p1 and p2 were modified
+	// 4 - the segment is complitely inside of the clipping window
+	{
+<span class="fc" id="L820">		int c1 = _clipCode(p1), c2 = _clipCode(p2);</span>
+
+<span class="fc bfc" id="L822" title="All 2 branches covered.">		if ((c1 &amp; c2) != 0)// (c1 &amp; c2)</span>
+<span class="fc" id="L823">			return 0;</span>
+
+<span class="fc bfc" id="L825" title="All 2 branches covered.">		if ((c1 | c2) == 0)// (!(c1 | c2))</span>
+<span class="fc" id="L826">			return 4;</span>
+
+<span class="fc bfc" id="L828" title="All 4 branches covered.">		final int res = ((c1 != 0) ? 1 : 0) | ((c2 != 0) ? 2 : 0);// (c1 ? 1 :</span>
+																	// 0) | (c2
+																	// ? 2 : 0);
+
+		do {
+<span class="fc" id="L833">			double dx = p2.x - p1.x, dy = p2.y - p1.y;</span>
+
+<span class="fc bfc" id="L835" title="All 2 branches covered.">			boolean bDX = dx &gt; dy;</span>
+
+<span class="fc bfc" id="L837" title="All 2 branches covered.">			if (bDX) {</span>
+<span class="fc bfc" id="L838" title="All 2 branches covered.">				if ((c1 &amp; XMASK) != 0)// (c1 &amp; XMASK)</span>
+				{
+<span class="pc bpc" id="L840" title="1 of 2 branches missed.">					if ((c1 &amp; XLESSXMIN) != 0)// (c1 &amp; XLESSXMIN)</span>
+					{
+<span class="fc" id="L842">						p1.y += dy * (xmin - p1.x) / dx;</span>
+<span class="fc" id="L843">						p1.x = xmin;</span>
+					} else {
+<span class="nc" id="L845">						p1.y += dy * (xmax - p1.x) / dx;</span>
+<span class="nc" id="L846">						p1.x = xmax;</span>
+					}
+
+<span class="fc" id="L849">					c1 = _clipCode(p1);</span>
+<span class="fc bfc" id="L850" title="All 2 branches covered.">				} else if ((c2 &amp; XMASK) != 0)// (c2 &amp; XMASK)</span>
+				{
+<span class="pc bpc" id="L852" title="1 of 2 branches missed.">					if ((c2 &amp; XLESSXMIN) != 0) {</span>
+<span class="nc" id="L853">						p2.y += dy * (xmin - p2.x) / dx;</span>
+<span class="nc" id="L854">						p2.x = xmin;</span>
+					} else {
+<span class="fc" id="L856">						p2.y += dy * (xmax - p2.x) / dx;</span>
+<span class="fc" id="L857">						p2.x = xmax;</span>
+					}
+
+<span class="fc" id="L860">					c2 = _clipCode(p2);</span>
+<span class="fc bfc" id="L861" title="All 2 branches covered.">				} else if (c1 != 0)// (c1)</span>
+				{
+<span class="fc bfc" id="L863" title="All 2 branches covered.">					if ((c1 &amp; YLESSYMIN) != 0)// (c1 &amp; YLESSYMIN)</span>
+					{
+<span class="fc" id="L865">						p1.x += dx * (ymin - p1.y) / dy;</span>
+<span class="fc" id="L866">						p1.y = ymin;</span>
+					} else {
+<span class="fc" id="L868">						p1.x += dx * (ymax - p1.y) / dy;</span>
+<span class="fc" id="L869">						p1.y = ymax;</span>
+					}
+
+<span class="fc" id="L872">					c1 = _clipCode(p1);</span>
+				} else {
+<span class="fc bfc" id="L874" title="All 2 branches covered.">					if ((c2 &amp; YLESSYMIN) != 0)// (c2 &amp; YLESSYMIN)</span>
+					{
+<span class="fc" id="L876">						p2.x += dx * (ymin - p2.y) / dy;</span>
+<span class="fc" id="L877">						p2.y = ymin;</span>
+					} else {
+<span class="fc" id="L879">						p2.x += dx * (ymax - p2.y) / dy;</span>
+<span class="fc" id="L880">						p2.y = ymax;</span>
+					}
+
+<span class="fc" id="L883">					c2 = _clipCode(p2);</span>
+				}
+			} else {
+<span class="fc bfc" id="L886" title="All 2 branches covered.">				if ((c1 &amp; YMASK) != 0)// (c1 &amp; YMASK)</span>
+				{
+<span class="fc bfc" id="L888" title="All 2 branches covered.">					if ((c1 &amp; YLESSYMIN) != 0)// (c1 &amp; YLESSYMIN)</span>
+					{
+<span class="fc" id="L890">						p1.x += dx * (ymin - p1.y) / dy;</span>
+<span class="fc" id="L891">						p1.y = ymin;</span>
+					} else {
+<span class="fc" id="L893">						p1.x += dx * (ymax - p1.y) / dy;</span>
+<span class="fc" id="L894">						p1.y = ymax;</span>
+					}
+
+<span class="fc" id="L897">					c1 = _clipCode(p1);</span>
+<span class="fc bfc" id="L898" title="All 2 branches covered.">				} else if ((c2 &amp; YMASK) != 0)// (c2 &amp; YMASK)</span>
+				{
+<span class="fc bfc" id="L900" title="All 2 branches covered.">					if ((c2 &amp; YLESSYMIN) != 0) // (c2 &amp; YLESSYMIN)</span>
+					{
+<span class="fc" id="L902">						p2.x += dx * (ymin - p2.y) / dy;</span>
+<span class="fc" id="L903">						p2.y = ymin;</span>
+					} else {
+<span class="fc" id="L905">						p2.x += dx * (ymax - p2.y) / dy;</span>
+<span class="fc" id="L906">						p2.y = ymax;</span>
+					}
+
+<span class="fc" id="L909">					c2 = _clipCode(p2);</span>
+<span class="fc bfc" id="L910" title="All 2 branches covered.">				} else if (c1 != 0)// (c1)</span>
+				{
+<span class="fc bfc" id="L912" title="All 2 branches covered.">					if ((c1 &amp; XLESSXMIN) != 0)// (c1 &amp; XLESSXMIN)</span>
+					{
+<span class="fc" id="L914">						p1.y += dy * (xmin - p1.x) / dx;</span>
+<span class="fc" id="L915">						p1.x = xmin;</span>
+					} else {
+<span class="fc" id="L917">						p1.y += dy * (xmax - p1.x) / dx;</span>
+<span class="fc" id="L918">						p1.x = xmax;</span>
+					}
+
+<span class="fc" id="L921">					c1 = _clipCode(p1);</span>
+				} else {
+<span class="fc bfc" id="L923" title="All 2 branches covered.">					if ((c2 &amp; XLESSXMIN) != 0)// (c2 &amp; XLESSXMIN)</span>
+					{
+<span class="fc" id="L925">						p2.y += dy * (xmin - p2.x) / dx;</span>
+<span class="fc" id="L926">						p2.x = xmin;</span>
+					} else {
+<span class="fc" id="L928">						p2.y += dy * (xmax - p2.x) / dx;</span>
+<span class="fc" id="L929">						p2.x = xmax;</span>
+					}
+
+<span class="fc" id="L932">					c2 = _clipCode(p2);</span>
+				}
+
+				/*
+				 * if (c1) //original code. Faster, but less robust numerically.
+				 * ( //The Cohen-Sutherland Line-Clipping Algorithm) { if (c1 &amp;
+				 * XLESSXMIN) { p1.y += dy * (xmin - p1.x) / dx; p1.x = xmin; }
+				 * else if (c1 &amp; XGREATERXMAX) { p1.y += dy * (xmax - p1.x) /
+				 * dx; p1.x = xmax; } else if (c1 &amp; YLESSYMIN) { p1.x += dx *
+				 * (ymin - p1.y) / dy; p1.y = ymin; } else if (c1 &amp;
+				 * YGREATERYMAX) { p1.x += dx * (ymax - p1.y) / dy; p1.y = ymax;
+				 * }
+				 * 
+				 * c1 = _clipCode(p1, ClipRect); } else { if (c2 &amp; XLESSXMIN) {
+				 * p2.y += dy * (xmin - p2.x) / dx; p2.x = xmin; } else if (c2 &amp;
+				 * XGREATERXMAX) { p2.y += dy * (xmax - p2.x) / dx; p2.x = xmax;
+				 * } else if (c2 &amp; YLESSYMIN) { p2.x += dx * (ymin - p2.y) / dy;
+				 * p2.y = ymin; } else if (c2 &amp; YGREATERYMAX) { p2.x += dx *
+				 * (ymax - p2.y) / dy; p2.y = ymax; }
+				 * 
+				 * c2 = _clipCode(p2, ClipRect); }
+				 */
+			}
+
+<span class="fc bfc" id="L956" title="All 2 branches covered.">			if ((c1 &amp; c2) != 0)// (c1 &amp; c2)</span>
+<span class="fc" id="L957">				return 0;</span>
+
+<span class="fc bfc" id="L959" title="All 2 branches covered.">		} while ((c1 | c2) != 0);// (c1 | c2);</span>
+
+<span class="fc" id="L961">		return res;</span>
+	}
+
+	int _clipCode(Point2D p)// returns a code from the Cohen-Sutherland (0000 is
+							// boundary inclusive)
+	{
+<span class="fc bfc" id="L967" title="All 2 branches covered.">		int left = (p.x &lt; xmin) ? 1 : 0;</span>
+<span class="fc bfc" id="L968" title="All 2 branches covered.">		int right = (p.x &gt; xmax) ? 1 : 0;</span>
+<span class="fc bfc" id="L969" title="All 2 branches covered.">		int bottom = (p.y &lt; ymin) ? 1 : 0;</span>
+<span class="fc bfc" id="L970" title="All 2 branches covered.">		int top = (p.y &gt; ymax) ? 1 : 0;</span>
+<span class="fc" id="L971">		return left | right &lt;&lt; 1 | bottom &lt;&lt; 2 | top &lt;&lt; 3;</span>
+	}
+
+	// Clips and optionally extends line within envelope; modifies point 'from',
+	// 'to'.
+	// Algorithm: Liang-Barsky parametric line-clipping (Foley, vanDam, Feiner,
+	// Hughes, second edition, 117-124)
+	// lineExtension: 0 no line eExtension, 1 extend line at from point, 2
+	// extend line at endpoint, 3 extend line at both ends
+	// boundaryDistances can be NULLPTR.
+	// returns:
+	// 0 - the segment is outside of the clipping window
+	// 1 - p1 was modified
+	// 2 - p2 was modified
+	// 3 - p1 and p2 were modified
+	// 4 - the segment is complitely inside of the clipping window
+	int clipLine(Point2D p0, Point2D p1, int lineExtension, double[] segParams,
+			double[] boundaryDistances) {
+<span class="pc bpc" id="L989" title="1 of 2 branches missed.">		if (boundaryDistances != null) {</span>
+<span class="fc" id="L990">			boundaryDistances[0] = -1.0;</span>
+<span class="fc" id="L991">			boundaryDistances[1] = -1.0;</span>
+		}
+
+<span class="fc" id="L994">		double[] tOld = new double[2];// LOCALREFCLASS1(ArrayOf(double), int,</span>
+										// tOld, 2);
+<span class="fc" id="L996">		int modified = 0;</span>
+
+<span class="fc" id="L998">		Point2D delta = new Point2D(p1.x - p0.x, p1.y - p0.y);</span>
+
+<span class="fc bfc" id="L1000" title="All 4 branches covered.">		if (delta.x == 0.0 &amp;&amp; delta.y == 0.0) // input line degenerates to a</span>
+												// point
+		{
+<span class="fc" id="L1003">			segParams[0] = 0.0;</span>
+<span class="fc" id="L1004">			segParams[1] = 0.0;</span>
+<span class="pc bpc" id="L1005" title="1 of 2 branches missed.">			return contains(p0) ? 4 : 0;</span>
+		}
+
+<span class="pc bpc" id="L1008" title="1 of 2 branches missed.">		segParams[0] = ((lineExtension &amp; 1) != 0) ? NumberUtils.negativeInf()</span>
+<span class="fc" id="L1009">				: 0.0;</span>
+<span class="pc bpc" id="L1010" title="1 of 2 branches missed.">		segParams[1] = ((lineExtension &amp; 2) != 0) ? NumberUtils.positiveInf()</span>
+<span class="fc" id="L1011">				: 1.0;</span>
+<span class="fc" id="L1012">		tOld[0] = segParams[0];</span>
+<span class="fc" id="L1013">		tOld[1] = segParams[1];</span>
+
+<span class="pc bpc" id="L1015" title="1 of 2 branches missed.">		if (clipLineAuxiliary(delta.x, xmin - p0.x, segParams)</span>
+<span class="fc bfc" id="L1016" title="All 2 branches covered.">				&amp;&amp; clipLineAuxiliary(-delta.x, p0.x - xmax, segParams)</span>
+<span class="pc bpc" id="L1017" title="1 of 2 branches missed.">				&amp;&amp; clipLineAuxiliary(delta.y, ymin - p0.y, segParams)</span>
+<span class="pc bpc" id="L1018" title="1 of 2 branches missed.">				&amp;&amp; clipLineAuxiliary(-delta.y, p0.y - ymax, segParams)) {</span>
+<span class="fc bfc" id="L1019" title="All 2 branches covered.">			if (segParams[1] &lt; tOld[1]) {</span>
+<span class="fc" id="L1020">				p1.scaleAdd(segParams[1], delta, p0);</span>
+<span class="fc" id="L1021">				_snapToBoundary(p1); // needed for accuracy</span>
+<span class="fc" id="L1022">				modified |= 2;</span>
+
+<span class="pc bpc" id="L1024" title="1 of 2 branches missed.">				if (boundaryDistances != null)</span>
+<span class="fc" id="L1025">					boundaryDistances[1] = _boundaryDistance(p1);</span>
+			}
+<span class="fc bfc" id="L1027" title="All 2 branches covered.">			if (segParams[0] &gt; tOld[0]) {</span>
+<span class="fc" id="L1028">				p0.scaleAdd(segParams[0], delta, p0);</span>
+<span class="fc" id="L1029">				_snapToBoundary(p0); // needed for accuracy</span>
+<span class="fc" id="L1030">				modified |= 1;</span>
+
+<span class="pc bpc" id="L1032" title="1 of 2 branches missed.">				if (boundaryDistances != null)</span>
+<span class="fc" id="L1033">					boundaryDistances[0] = _boundaryDistance(p0);</span>
+			}
+		}
+
+<span class="fc" id="L1037">		return modified;</span>
+	}
+
+	boolean clipLineAuxiliary(double denominator, double numerator,
+			double[] segParams) {
+<span class="fc" id="L1042">		double t = numerator / denominator;</span>
+<span class="fc bfc" id="L1043" title="All 2 branches covered.">		if (denominator &gt; 0.0) {</span>
+<span class="fc bfc" id="L1044" title="All 2 branches covered.">			if (t &gt; segParams[1])</span>
+<span class="fc" id="L1045">				return false;</span>
+
+<span class="fc bfc" id="L1047" title="All 2 branches covered.">			if (t &gt; segParams[0]) {</span>
+<span class="fc" id="L1048">				segParams[0] = t;</span>
+<span class="fc" id="L1049">				return true;</span>
+			}
+<span class="fc bfc" id="L1051" title="All 2 branches covered.">		} else if (denominator &lt; 0.0) {</span>
+<span class="pc bpc" id="L1052" title="1 of 2 branches missed.">			if (t &lt; segParams[0])</span>
+<span class="nc" id="L1053">				return false;</span>
+
+<span class="fc bfc" id="L1055" title="All 2 branches covered.">			if (t &lt; segParams[1]) {</span>
+<span class="fc" id="L1056">				segParams[1] = t;</span>
+<span class="fc" id="L1057">				return true;</span>
+			}
+		} else
+<span class="pc bpc" id="L1060" title="1 of 2 branches missed.">			return numerator &lt;= 0.0;</span>
+
+<span class="fc" id="L1062">		return true;</span>
+	}
+
+	/**
+	 * Returns True, envelope is degenerate (Width or Height are less than
+	 * tolerance). Note: this returns False for Empty envelope.
+	 */
+	public boolean isDegenerate(double tolerance) {
+<span class="pc bpc" id="L1070" title="1 of 2 branches missed.">		return !isEmpty()</span>
+<span class="pc bpc" id="L1071" title="1 of 4 branches missed.">				&amp;&amp; (getWidth() &lt;= tolerance || getHeight() &lt;= tolerance);</span>
+	}
+
+	Point2D _snapClip(Point2D pt)// clips the point if it is outside, then snaps
+									// it to the boundary.
+	{
+<span class="nc" id="L1077">		double x = NumberUtils.snap(pt.x, xmin, xmax);</span>
+<span class="nc" id="L1078">		double y = NumberUtils.snap(pt.y, ymin, ymax);</span>
+<span class="nc" id="L1079">		return new Point2D(x, y);</span>
+	}
+
+	public boolean isPointOnBoundary(Point2D pt, double tolerance) {
+<span class="nc bnc" id="L1083" title="All 2 branches missed.">		return Math.abs(pt.x - xmin) &lt;= tolerance</span>
+<span class="nc bnc" id="L1084" title="All 2 branches missed.">				|| Math.abs(pt.x - xmax) &lt;= tolerance</span>
+<span class="nc bnc" id="L1085" title="All 2 branches missed.">				|| Math.abs(pt.y - ymin) &lt;= tolerance</span>
+<span class="nc bnc" id="L1086" title="All 2 branches missed.">				|| Math.abs(pt.y - ymax) &lt;= tolerance;</span>
+	}
+
+	/**
+	 * Calculates minimum distance from this envelope to the other.
+	 * Returns 0 for empty envelopes.
+	 * @param other The other envelope.
+	 * @return Returns the distance
+	 */
+	public double distance(Envelope2D other)
+	{
+<span class="nc" id="L1097">		return Math.sqrt(sqrDistance(other));</span>
+	}
+
+	/**
+	 * Calculates minimum distance from this envelope to the point.
+	 * Returns 0 for empty envelopes.
+	 * @param pt2D The other point.
+	 * @return Returns the distance
+	 */
+	public double distance(Point2D pt2D)
+	{
+<span class="nc" id="L1108">		return Math.sqrt(sqrDistance(pt2D));</span>
+	}
+
+	/**
+	 * Calculates minimum squared distance from this envelope to the other.
+	 * Returns 0 for empty envelopes.
+	 * @param other The other envelope.
+	 * @return Returns the squared distance
+	 */
+	public double sqrDistance(Envelope2D other)
+	{
+<span class="fc" id="L1119">		double dx = 0;</span>
+<span class="fc" id="L1120">		double dy = 0;</span>
+		double nn;
+
+<span class="fc" id="L1123">		nn = xmin - other.xmax;</span>
+<span class="fc bfc" id="L1124" title="All 2 branches covered.">		if (nn &gt; dx)</span>
+<span class="fc" id="L1125">			dx = nn;</span>
+
+<span class="fc" id="L1127">		nn = ymin - other.ymax;</span>
+<span class="fc bfc" id="L1128" title="All 2 branches covered.">		if (nn &gt; dy)</span>
+<span class="fc" id="L1129">			dy = nn;</span>
+
+<span class="fc" id="L1131">		nn = other.xmin - xmax;</span>
+<span class="fc bfc" id="L1132" title="All 2 branches covered.">		if (nn &gt; dx)</span>
+<span class="fc" id="L1133">			dx = nn;</span>
+
+<span class="fc" id="L1135">		nn = other.ymin - ymax;</span>
+<span class="fc bfc" id="L1136" title="All 2 branches covered.">		if (nn &gt; dy)</span>
+<span class="fc" id="L1137">			dy = nn;</span>
+
+<span class="fc" id="L1139">		return dx * dx + dy * dy;</span>
+	}
+
+	/**
+	 * Calculates minimum squared distance from this envelope to the other.
+	 * Returns 0 for empty envelopes.
+	 * @param xmin_
+	 * @param ymin_
+	 * @param xmax_
+	 * @param ymax_
+	 * @return Returns the squared distance.
+	 */
+	public double sqrDistance(double xmin_, double ymin_, double xmax_, double ymax_)
+	{
+<span class="nc" id="L1153">		double dx = 0;</span>
+<span class="nc" id="L1154">		double dy = 0;</span>
+		double nn;
+
+<span class="nc" id="L1157">		nn = xmin - xmax_;</span>
+<span class="nc bnc" id="L1158" title="All 2 branches missed.">		if (nn &gt; dx)</span>
+<span class="nc" id="L1159">			dx = nn;</span>
+
+<span class="nc" id="L1161">		nn = ymin - ymax_;</span>
+<span class="nc bnc" id="L1162" title="All 2 branches missed.">		if (nn &gt; dy)</span>
+<span class="nc" id="L1163">			dy = nn;</span>
+
+<span class="nc" id="L1165">		nn = xmin_ - xmax;</span>
+<span class="nc bnc" id="L1166" title="All 2 branches missed.">		if (nn &gt; dx)</span>
+<span class="nc" id="L1167">			dx = nn;</span>
+
+<span class="nc" id="L1169">		nn = ymin_ - ymax;</span>
+<span class="nc bnc" id="L1170" title="All 2 branches missed.">		if (nn &gt; dy)</span>
+<span class="nc" id="L1171">			dy = nn;</span>
+
+<span class="nc" id="L1173">		return dx * dx + dy * dy;</span>
+	}
+	
+	/**
+	 *Returns squared max distance between two bounding boxes. This is furthest distance between points on the two envelopes.
+	 *
+	 *@param other The bounding box to calculate the max distance two.
+	 *@return Squared distance value.
+	 */
+	public double sqrMaxDistance(Envelope2D other) {
+<span class="nc bnc" id="L1183" title="All 4 branches missed.">		if (isEmpty() || other.isEmpty())</span>
+<span class="nc" id="L1184">			return NumberUtils.TheNaN;</span>
+
+<span class="nc" id="L1186">		double dist = 0;</span>
+<span class="nc" id="L1187">		Point2D[] points = new Point2D[4];</span>
+<span class="nc" id="L1188">		queryCorners(points);</span>
+<span class="nc" id="L1189">		Point2D[] points_o = new Point2D[4];</span>
+<span class="nc" id="L1190">		other.queryCorners(points_o);</span>
+<span class="nc bnc" id="L1191" title="All 2 branches missed.">		for (int i = 0; i &lt; 4; i++) {</span>
+<span class="nc bnc" id="L1192" title="All 2 branches missed.">			for (int j = 0; j &lt; 4; j++) {</span>
+<span class="nc" id="L1193">				double d = Point2D.sqrDistance(points[i], points_o[j]);</span>
+<span class="nc bnc" id="L1194" title="All 2 branches missed.">				if (d &gt; dist) {</span>
+<span class="nc" id="L1195">					dist = d;</span>
+				}
+			}
+		}
+
+<span class="nc" id="L1200">		return dist;</span>
+	}
+	
+	/**
+	 * Calculates minimum squared distance from this envelope to the point.
+	 * Returns 0 for empty envelopes.
+	 * @param pt2D The point.
+	 * @return Returns the squared distance
+	 */
+	public double sqrDistance(Point2D pt2D)
+	{
+<span class="fc" id="L1211">		double dx = 0;</span>
+<span class="fc" id="L1212">		double dy = 0;</span>
+		double nn;
+
+<span class="fc" id="L1215">		nn = xmin - pt2D.x;</span>
+<span class="pc bpc" id="L1216" title="1 of 2 branches missed.">		if (nn &gt; dx)</span>
+<span class="nc" id="L1217">			dx = nn;</span>
+
+<span class="fc" id="L1219">		nn = ymin - pt2D.y;</span>
+<span class="fc bfc" id="L1220" title="All 2 branches covered.">		if (nn &gt; dy)</span>
+<span class="fc" id="L1221">			dy = nn;</span>
+
+<span class="fc" id="L1223">		nn = pt2D.x - xmax;</span>
+<span class="pc bpc" id="L1224" title="1 of 2 branches missed.">		if (nn &gt; dx)</span>
+<span class="nc" id="L1225">			dx = nn;</span>
+
+<span class="fc" id="L1227">		nn = pt2D.y - ymax;</span>
+<span class="pc bpc" id="L1228" title="1 of 2 branches missed.">		if (nn &gt; dy)</span>
+<span class="nc" id="L1229">			dy = nn;</span>
+
+<span class="fc" id="L1231">		return dx * dx + dy * dy;</span>
+	}
+
+	public void queryIntervalX(Envelope1D env1D)
+	{
+<span class="nc bnc" id="L1236" title="All 2 branches missed.">		if (isEmpty()) {</span>
+<span class="nc" id="L1237">			env1D.setEmpty();</span>
+		} else {
+<span class="nc" id="L1239">			env1D.setCoords(xmin, xmax);</span>
+		}
+<span class="nc" id="L1241">	}</span>
+
+	public void queryIntervalY(Envelope1D env1D)
+	{
+<span class="nc bnc" id="L1245" title="All 2 branches missed.">		if (isEmpty()) {</span>
+<span class="nc" id="L1246">			env1D.setEmpty();</span>
+		} else {
+<span class="nc" id="L1248">			env1D.setCoords(ymin, ymax);</span>
+		}
+<span class="nc" id="L1250">	}</span>
+	
+	 private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+<span class="fc" id="L1253">		 out.defaultWriteObject();</span>
+<span class="fc" id="L1254">	 }</span>
+	 private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+<span class="fc" id="L1256">		 in.defaultReadObject();</span>
+<span class="fc" id="L1257">	 }</span>
+	 private void readObjectNoData() throws ObjectStreamException {
+<span class="nc" id="L1259">		 setEmpty();</span>
+<span class="nc" id="L1260">	 }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

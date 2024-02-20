@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NumberUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">NumberUtils.java</span></div><h1>NumberUtils.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+<span class="nc" id="L27">public class NumberUtils {</span>
+
+	public static int snap(int v, int minv, int maxv) {
+<span class="nc bnc" id="L30" title="All 4 branches missed.">		return v &lt; minv ? minv : v &gt; maxv ? maxv : v;</span>
+	}
+
+	public static long snap(long v, long minv, long maxv) {
+<span class="nc bnc" id="L34" title="All 4 branches missed.">		return v &lt; minv ? minv : v &gt; maxv ? maxv : v;</span>
+	}
+
+	public static double snap(double v, double minv, double maxv) {
+<span class="pc bpc" id="L38" title="2 of 4 branches missed.">		return v &lt; minv ? minv : v &gt; maxv ? maxv : v;</span>
+	}
+
+	static int sizeOf(double v) {
+<span class="nc" id="L42">		return 8;</span>
+	}
+
+	static int sizeOfDouble() {
+<span class="nc" id="L46">		return 8;</span>
+	}
+
+	static int sizeOf(int v) {
+<span class="fc" id="L50">		return 4;</span>
+	}
+
+	static int sizeOf(long v) {
+<span class="nc" id="L54">		return 8;</span>
+	}
+
+	static int sizeOf(byte v) {
+<span class="nc" id="L58">		return 1;</span>
+	}
+
+	static boolean isNaN(double d) {
+<span class="fc" id="L62">		return Double.isNaN(d);</span>
+	}
+
+	final static double TheNaN = Double.NaN;
+
+	static double NaN() {
+<span class="fc" id="L68">		return Double.NaN;</span>
+	}
+
+	//combines two hash values
+	public static int hashCombine(int hash1, int hash2) {
+<span class="fc" id="L73">		return (hash1 * 31 + hash2) &amp; 0x7FFFFFFF;</span>
+	}
+	
+	//makes a hash out of an int
+	static int hash(int n) {
+<span class="fc" id="L78">		int hash = 5381;</span>
+<span class="fc" id="L79">		hash = ((hash &lt;&lt; 5) + hash) + (n &amp; 0xFF); /* hash * 33 + c */</span>
+<span class="fc" id="L80">		hash = ((hash &lt;&lt; 5) + hash) + ((n &gt;&gt; 8) &amp; 0xFF);</span>
+<span class="fc" id="L81">		hash = ((hash &lt;&lt; 5) + hash) + ((n &gt;&gt; 16) &amp; 0xFF);</span>
+<span class="fc" id="L82">		hash = ((hash &lt;&lt; 5) + hash) + ((n &gt;&gt; 24) &amp; 0xFF);</span>
+<span class="fc" id="L83">		hash &amp;= 0x7FFFFFFF;</span>
+<span class="fc" id="L84">		return hash;</span>
+	}
+
+	//	//makes a hash out of an double
+	static int hash(double d) {
+<span class="nc" id="L89">		long bits = Double.doubleToLongBits(d);</span>
+<span class="nc" id="L90">		int hc = (int) (bits ^ (bits &gt;&gt;&gt; 32));</span>
+<span class="nc" id="L91">		return hash(hc);</span>
+	}
+
+	//adds an int to a hash value
+	static int hash(int hashIn, int n) {
+<span class="fc" id="L96">		int hash = ((hashIn &lt;&lt; 5) + hashIn) + (n &amp; 0xFF); /* hash * 33 + c */</span>
+<span class="fc" id="L97">		hash = ((hash &lt;&lt; 5) + hash) + ((n &gt;&gt; 8) &amp; 0xFF);</span>
+<span class="fc" id="L98">		hash = ((hash &lt;&lt; 5) + hash) + ((n &gt;&gt; 16) &amp; 0xFF);</span>
+<span class="fc" id="L99">		hash = ((hash &lt;&lt; 5) + hash) + ((n &gt;&gt; 24) &amp; 0xFF);</span>
+<span class="fc" id="L100">		hash &amp;= 0x7FFFFFFF;</span>
+<span class="fc" id="L101">		return hash;</span>
+	}
+
+	//adds a double to a hash value
+	static int hash(int hash, double d) {
+<span class="fc" id="L106">		long bits = Double.doubleToLongBits(d);</span>
+<span class="fc" id="L107">		int hc = (int) (bits ^ (bits &gt;&gt;&gt; 32));</span>
+<span class="fc" id="L108">		return hash(hash, hc);</span>
+	}
+
+	static long doubleToInt64Bits(double d) {
+<span class="fc" id="L112">		return Double.doubleToLongBits(d);</span>
+	}
+
+	static double negativeInf() {
+<span class="fc" id="L116">		return Double.NEGATIVE_INFINITY;</span>
+	}
+
+	static double positiveInf() {
+<span class="fc" id="L120">		return Double.POSITIVE_INFINITY;</span>
+	}
+
+	static int intMax() {
+<span class="fc" id="L124">		return Integer.MAX_VALUE;</span>
+	}
+
+	static double doubleEps() {
+<span class="fc" id="L128">		return 2.2204460492503131e-016;</span>
+	}
+
+	static double doubleMax() {
+<span class="fc" id="L132">		return Double.MAX_VALUE;</span>
+	}
+
+	static int nextRand(int prevRand) {
+<span class="fc" id="L136">		return (1103515245 * prevRand + 12345) &amp; intMax(); // according to Wiki,</span>
+															// this is gcc's
+	}
+	
+	/**
+	 * Returns true if two values are equal (also can compare inf and nan).
+	 */
+	static boolean isEqualNonIEEE(double a, double b) {
+<span class="pc bpc" id="L144" title="1 of 6 branches missed.">		return a == b || (Double.isNaN(a) &amp;&amp; Double.isNaN(b));</span>
+	}
+
+	/**
+	 * Returns true if two values are equal (also can compare inf and nan).
+	 */
+	static boolean isEqualNonIEEE(double a, double b, double tolerance) {
+<span class="nc bnc" id="L151" title="All 8 branches missed.">		return a == b || Math.abs(a - b) &lt;= tolerance || (Double.isNaN(a) &amp;&amp; Double.isNaN(b));</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

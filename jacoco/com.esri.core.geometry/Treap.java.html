@@ -1,0 +1,967 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Treap.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Treap.java</span></div><h1>Treap.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+
+package com.esri.core.geometry;
+
+<span class="fc" id="L28">final class Treap {</span>
+	static abstract class Comparator {
+<span class="fc" id="L30">		Comparator() {</span>
+<span class="fc" id="L31">			m_b_notify_on_actions = false;</span>
+<span class="fc" id="L32">		}</span>
+
+<span class="fc" id="L34">		Comparator(boolean bNotifyOnActions) {</span>
+<span class="fc" id="L35">			m_b_notify_on_actions = bNotifyOnActions;</span>
+<span class="fc" id="L36">		}</span>
+
+		// Compares the element elm to the element contained in the given node
+		abstract int compare(Treap treap, int elm, int node);
+
+		// These virtual methods are called only when Comparator(true) ctro has
+		// been used.
+		void onDelete(int elm) {
+<span class="nc" id="L44">		}</span>
+
+		void onSet(int elm) {
+<span class="nc" id="L47">		}</span>
+
+		void onEndSearch(int elm) {
+<span class="nc" id="L50">		}</span>
+
+		void onAddUniqueElementFailed(int elm) {
+<span class="nc" id="L53">		}</span>
+
+		private boolean m_b_notify_on_actions;
+
+		// void operator=(const Comparator&amp;); // do not allow operator =
+		void onDeleteImpl_(Treap treap, int node) {
+<span class="fc bfc" id="L59" title="All 2 branches covered.">			if (m_b_notify_on_actions)</span>
+<span class="fc" id="L60">				onDelete(treap.getElement(node));</span>
+<span class="fc" id="L61">		}</span>
+
+		void onSetImpl_(Treap treap, int node) {
+<span class="pc bpc" id="L64" title="1 of 2 branches missed.">			if (m_b_notify_on_actions)</span>
+<span class="nc" id="L65">				onSet(treap.getElement(node));</span>
+<span class="fc" id="L66">		}</span>
+
+		void onAddUniqueElementFailedImpl_(int elm) {
+<span class="fc bfc" id="L69" title="All 2 branches covered.">			if (m_b_notify_on_actions)</span>
+<span class="fc" id="L70">				onAddUniqueElementFailed(elm);</span>
+<span class="fc" id="L71">		}</span>
+
+		void onEndSearchImpl_(int elm) {
+<span class="nc bnc" id="L74" title="All 2 branches missed.">			if (m_b_notify_on_actions)</span>
+<span class="nc" id="L75">				onEndSearch(elm);</span>
+<span class="nc" id="L76">		}</span>
+	};
+
+<span class="fc" id="L79">	static abstract class MonikerComparator {</span>
+		// Compares the moniker, contained in the MonikerComparator with the
+		// element contained in the given node.
+		abstract int compare(Treap treap, int node);
+	};
+
+<span class="fc" id="L85">	public Treap() {</span>
+<span class="fc" id="L86">		m_random = 124234251;</span>
+<span class="fc" id="L87">		m_b_balancing = true;</span>
+<span class="fc" id="L88">		m_touchFlag = 0;</span>
+<span class="fc" id="L89">		m_defaultTreap = nullNode();</span>
+<span class="fc" id="L90">		m_treapData = new StridedIndexTypeCollection(7);</span>
+<span class="fc" id="L91">		m_comparator = null;</span>
+<span class="fc" id="L92">	}</span>
+
+	// Sets the comparator
+	public void setComparator(Comparator comparator) {
+<span class="fc" id="L96">		m_comparator = comparator;</span>
+<span class="fc" id="L97">	}</span>
+
+	// Returns the comparator
+	public Comparator getComparator() {
+<span class="nc" id="L101">		return m_comparator;</span>
+	}
+
+	// Stops auto-balancing
+	public void disableBalancing() {
+<span class="fc" id="L106">		m_b_balancing = false;</span>
+<span class="fc" id="L107">	}</span>
+
+	// Reserves memory for nodes givne number of nodes
+	public void setCapacity(int capacity) {
+<span class="fc" id="L111">		m_treapData.setCapacity(capacity);</span>
+<span class="fc" id="L112">	}</span>
+
+	// Create a new treap and returns the treap handle.
+	public int createTreap(int treap_data) {
+<span class="fc" id="L116">		int treap = m_treapData.newElement();</span>
+<span class="fc" id="L117">		setSize_(0, treap);</span>
+<span class="fc" id="L118">		setTreapData_(treap_data, treap);</span>
+<span class="fc" id="L119">		return treap;</span>
+	}
+
+	// Deletes the treap at the given treap handle.
+	public void deleteTreap(int treap) {
+<span class="fc" id="L124">		m_treapData.deleteElement(treap);</span>
+<span class="fc" id="L125">	}</span>
+
+	// Adds new element to the treap. Allows duplicates to be added.
+	public int addElement(int element, int treap) {
+		int treap_;
+<span class="fc bfc" id="L130" title="All 2 branches covered.">		if (treap == -1) {</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">			if (m_defaultTreap == nullNode())</span>
+<span class="fc" id="L132">				m_defaultTreap = createTreap(-1);</span>
+<span class="fc" id="L133">			treap_ = m_defaultTreap;</span>
+		} else {
+<span class="fc" id="L135">			treap_ = treap;</span>
+		}
+
+<span class="fc" id="L138">		return addElement_(element, 0, treap_);</span>
+	}
+
+	// Adds new element to the treap if it is not equal to other elements.
+	// If the return value is -1, then get_duplicate_element reutrns the node of
+	// the already existing element equal to element.
+	public int addUniqueElement(int element, int treap) {
+		int treap_;
+<span class="pc bpc" id="L146" title="1 of 2 branches missed.">		if (treap == -1) {</span>
+<span class="fc bfc" id="L147" title="All 2 branches covered.">			if (m_defaultTreap == nullNode())</span>
+<span class="fc" id="L148">				m_defaultTreap = createTreap(-1);</span>
+<span class="fc" id="L149">			treap_ = m_defaultTreap;</span>
+		} else {
+<span class="nc" id="L151">			treap_ = treap;</span>
+		}
+
+<span class="fc" id="L154">		return addElement_(element, 1, treap_);</span>
+	}
+
+	// Adds a new element to the treap that is known to be bigger or equal of
+	// all elements already in the treap.
+	// Use this method when adding elements from a sorted list for maximum
+	// performance (it does not call the treap comparator).
+	public int addBiggestElement(int element, int treap) {
+		int treap_;
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">		if (treap == -1) {</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">			if (m_defaultTreap == nullNode())</span>
+<span class="fc" id="L165">				m_defaultTreap = createTreap(-1);</span>
+<span class="fc" id="L166">			treap_ = m_defaultTreap;</span>
+		} else {
+<span class="nc" id="L168">			treap_ = treap;</span>
+		}
+
+<span class="fc bfc" id="L171" title="All 2 branches covered.">		if (getRoot_(treap_) == nullNode()) {</span>
+<span class="fc" id="L172">			int newNode = newNode_(element);</span>
+<span class="fc" id="L173">			setRoot_(newNode, treap_);</span>
+<span class="fc" id="L174">			addToList_(-1, newNode, treap_);</span>
+<span class="fc" id="L175">			return newNode;</span>
+		}
+
+<span class="fc" id="L178">		int cur = getLast_(treap_);</span>
+<span class="fc" id="L179">		int newNode = newNode_(element);</span>
+<span class="fc" id="L180">		setRight_(cur, newNode);</span>
+<span class="fc" id="L181">		setParent_(newNode, cur);</span>
+<span class="pc bpc" id="L182" title="1 of 2 branches missed.">		assert (m_b_balancing);// don't use this method for unbalanced tree, or</span>
+								// the performance will be bad.
+<span class="fc" id="L184">		bubbleUp_(newNode);</span>
+<span class="fc bfc" id="L185" title="All 2 branches covered.">		if (getParent(newNode) == nullNode())</span>
+<span class="fc" id="L186">			setRoot_(newNode, treap_);</span>
+
+<span class="fc" id="L188">		addToList_(-1, newNode, treap_);</span>
+<span class="fc" id="L189">		return newNode;</span>
+	}
+
+	// template &lt;class Iterator&gt; void build_from_sorted(const Iterator&amp; begin,
+	// const Iterator&amp; end);
+	// Adds new element to the treap at the known position, thus avoiding a call
+	// to the comparator.
+	// If bCallCompare is True, the comparator will be called at most twice,
+	// once to compare with prevElement and once to compare with nextElement.
+	// When bUnique is true, if the return value is -1, then
+	// get_duplicate_element reutrns the node of the already existing element.
+	public int addElementAtPosition(int prevNode, int nextNode, int element,
+			boolean bUnique, boolean bCallCompare, int treap) {
+<span class="fc" id="L202">		int treap_ = treap;</span>
+<span class="pc bpc" id="L203" title="1 of 2 branches missed.">		if (treap_ == -1) {</span>
+<span class="pc bpc" id="L204" title="1 of 2 branches missed.">			if (m_defaultTreap == nullNode())</span>
+<span class="nc" id="L205">				m_defaultTreap = createTreap(-1);</span>
+<span class="fc" id="L206">			treap_ = m_defaultTreap;</span>
+		}
+
+		// dbg_check_(m_root);
+<span class="fc bfc" id="L210" title="All 2 branches covered.">		if (getRoot_(treap_) == nullNode()) {</span>
+<span class="pc bpc" id="L211" title="2 of 4 branches missed.">			assert (nextNode == nullNode() &amp;&amp; prevNode == nullNode());</span>
+<span class="fc" id="L212">			int root = newNode_(element);</span>
+<span class="fc" id="L213">			setRoot_(root, treap_);</span>
+<span class="fc" id="L214">			addToList_(-1, root, treap_);</span>
+<span class="fc" id="L215">			return root;</span>
+		}
+
+		int cmpNext;
+		int cmpPrev;
+<span class="fc bfc" id="L220" title="All 2 branches covered.">		if (bCallCompare) {</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">			cmpNext = nextNode != nullNode() ? m_comparator.compare(this,</span>
+<span class="fc" id="L222">					element, nextNode) : -1;</span>
+<span class="pc bpc" id="L223" title="1 of 2 branches missed.">			assert (cmpNext &lt;= 0);</span>
+<span class="fc bfc" id="L224" title="All 2 branches covered.">			cmpPrev = prevNode != nullNode() ? m_comparator.compare(this,</span>
+<span class="fc" id="L225">					element, prevNode) : 1;</span>
+			// cmpPrev can be negative in plane sweep when intersection is
+			// detected.
+		} else {
+<span class="fc" id="L229">			cmpNext = -1;</span>
+<span class="fc" id="L230">			cmpPrev = 1;</span>
+		}
+
+<span class="pc bpc" id="L233" title="3 of 6 branches missed.">		if (bUnique &amp;&amp; (cmpNext == 0 || cmpPrev == 0)) {</span>
+<span class="nc" id="L234">			m_comparator.onAddUniqueElementFailedImpl_(element);</span>
+<span class="nc bnc" id="L235" title="All 2 branches missed.">			int cur = cmpNext == 0 ? nextNode : prevNode;</span>
+<span class="nc" id="L236">			setDuplicateElement_(cur, treap_);</span>
+<span class="nc" id="L237">			return -1;// return negative value.</span>
+		}
+
+		int cur;
+		int cmp;
+		boolean bNext;
+<span class="fc bfc" id="L243" title="All 4 branches covered.">		if (nextNode != nullNode() &amp;&amp; prevNode != nullNode()) {</span>
+			// randomize the the cost to insert a node.
+<span class="fc bfc" id="L245" title="All 2 branches covered.">			bNext = m_random &gt; NumberUtils.nextRand(m_random) &gt;&gt; 1;</span>
+		} else
+<span class="fc bfc" id="L247" title="All 2 branches covered.">			bNext = nextNode != nullNode();</span>
+
+<span class="fc bfc" id="L249" title="All 2 branches covered.">		if (bNext) {</span>
+<span class="fc" id="L250">			cmp = cmpNext;</span>
+<span class="fc" id="L251">			cur = nextNode;</span>
+		} else {
+<span class="fc" id="L253">			cmp = cmpPrev;</span>
+<span class="fc" id="L254">			cur = prevNode;</span>
+		}
+
+<span class="fc" id="L257">		int newNode = -1;</span>
+<span class="fc" id="L258">		int before = -1;</span>
+<span class="fc" id="L259">		boolean b_first = true;</span>
+		for (;;) {
+<span class="fc bfc" id="L261" title="All 2 branches covered.">			if (cmp &lt; 0) {</span>
+<span class="fc" id="L262">				int left = getLeft(cur);</span>
+<span class="fc bfc" id="L263" title="All 2 branches covered.">				if (left != nullNode())</span>
+<span class="fc" id="L264">					cur = left;</span>
+				else {
+<span class="fc" id="L266">					before = cur;</span>
+<span class="fc" id="L267">					newNode = newNode_(element);</span>
+<span class="fc" id="L268">					setLeft_(cur, newNode);</span>
+<span class="fc" id="L269">					setParent_(newNode, cur);</span>
+<span class="fc" id="L270">					break;</span>
+				}
+<span class="fc" id="L272">			} else {</span>
+<span class="fc" id="L273">				int right = getRight(cur);</span>
+<span class="fc bfc" id="L274" title="All 2 branches covered.">				if (right != nullNode())</span>
+<span class="fc" id="L275">					cur = right;</span>
+				else {
+<span class="fc" id="L277">					before = getNext(cur);</span>
+<span class="fc" id="L278">					newNode = newNode_(element);</span>
+<span class="fc" id="L279">					setRight_(cur, newNode);</span>
+<span class="fc" id="L280">					setParent_(newNode, cur);</span>
+<span class="fc" id="L281">					break;</span>
+				}
+			}
+
+<span class="fc bfc" id="L285" title="All 2 branches covered.">			if (b_first) {</span>
+<span class="fc" id="L286">				cmp *= -1;</span>
+<span class="fc" id="L287">				b_first = false;</span>
+			}
+		}
+
+<span class="fc" id="L291">		bubbleUp_(newNode);</span>
+<span class="fc bfc" id="L292" title="All 2 branches covered.">		if (getParent(newNode) == nullNode())</span>
+<span class="fc" id="L293">			setRoot_(newNode, treap_);</span>
+
+<span class="fc" id="L295">		addToList_(before, newNode, treap_);</span>
+		// dbg_check_(m_root);
+<span class="fc" id="L297">		return newNode;</span>
+	}
+
+	// Get duplicate element
+	public int getDuplicateElement(int treap) {
+<span class="pc bpc" id="L302" title="1 of 2 branches missed.">		if (treap == -1)</span>
+<span class="fc" id="L303">			return getDuplicateElement_(m_defaultTreap);</span>
+
+<span class="nc" id="L305">		return getDuplicateElement_(treap);</span>
+	}
+
+	// Removes a node from the treap. Throws if doesn't exist.
+	public void deleteNode(int treap_node_index, int treap) {
+<span class="fc" id="L310">		touch_();</span>
+		// assert(isValidNode(treap_node_index));
+<span class="fc bfc" id="L312" title="All 2 branches covered.">		if (m_comparator != null)</span>
+<span class="fc" id="L313">			m_comparator.onDeleteImpl_(this, treap_node_index);</span>
+
+		int treap_;
+<span class="fc bfc" id="L316" title="All 2 branches covered.">		if (treap == -1)</span>
+<span class="fc" id="L317">			treap_ = m_defaultTreap;</span>
+		else
+<span class="fc" id="L319">			treap_ = treap;</span>
+
+<span class="fc bfc" id="L321" title="All 2 branches covered.">		if (!m_b_balancing) {</span>
+<span class="fc" id="L322">			unbalancedDelete_(treap_node_index, treap_);</span>
+		} else
+<span class="fc" id="L324">			deleteNode_(treap_node_index, treap_);</span>
+<span class="fc" id="L325">	}</span>
+
+	// Finds an element in the treap and returns its node or -1.
+	public int search(int data, int treap) {
+<span class="fc" id="L329">		int cur = getRoot(treap);</span>
+<span class="pc bpc" id="L330" title="1 of 2 branches missed.">		while (cur != nullNode()) {</span>
+<span class="fc" id="L331">			int res = m_comparator.compare(this, data, cur);</span>
+<span class="fc bfc" id="L332" title="All 2 branches covered.">			if (res == 0)</span>
+<span class="fc" id="L333">				return cur;</span>
+<span class="fc bfc" id="L334" title="All 2 branches covered.">			else if (res &lt; 0)</span>
+<span class="fc" id="L335">				cur = getLeft(cur);</span>
+			else
+<span class="fc" id="L337">				cur = getRight(cur);</span>
+<span class="fc" id="L338">		}</span>
+
+<span class="nc" id="L340">		m_comparator.onEndSearchImpl_(data);</span>
+<span class="nc" id="L341">		return nullNode();</span>
+	}
+
+	// Find a first node in the treap which is less or equal the moniker.
+	// Returns closest smaller (Comparator::compare returns -1) or any equal.
+	public int searchLowerBound(MonikerComparator moniker, int treap) {
+<span class="fc" id="L347">		int cur = getRoot(treap);</span>
+<span class="fc" id="L348">		int bound = -1;</span>
+<span class="fc bfc" id="L349" title="All 2 branches covered.">		while (cur != nullNode()) {</span>
+<span class="fc" id="L350">			int res = moniker.compare(this, cur);</span>
+<span class="pc bpc" id="L351" title="1 of 2 branches missed.">			if (res == 0)</span>
+<span class="nc" id="L352">				return cur;</span>
+<span class="fc bfc" id="L353" title="All 2 branches covered.">			else if (res &lt; 0)</span>
+<span class="fc" id="L354">				cur = getLeft(cur);</span>
+			else {
+<span class="fc" id="L356">				bound = cur;</span>
+<span class="fc" id="L357">				cur = getRight(cur);</span>
+			}
+<span class="fc" id="L359">		}</span>
+
+<span class="fc" id="L361">		return bound;</span>
+	}
+
+	// Find a first node in the treap which is greater or equal the moniker.
+	// Returns closest greater (Comparator::compare returns 1) or any equal.
+	public int searchUpperBound(MonikerComparator moniker, int treap) {
+<span class="fc" id="L367">		int cur = getRoot(treap);</span>
+<span class="fc" id="L368">		int bound = -1;</span>
+<span class="fc bfc" id="L369" title="All 2 branches covered.">		while (cur != nullNode()) {</span>
+<span class="fc" id="L370">			int res = moniker.compare(this, cur);</span>
+<span class="fc bfc" id="L371" title="All 2 branches covered.">			if (res == 0)</span>
+<span class="fc" id="L372">				return cur;</span>
+<span class="fc bfc" id="L373" title="All 2 branches covered.">			else if (res &lt; 0) {</span>
+<span class="fc" id="L374">				bound = cur;</span>
+<span class="fc" id="L375">				cur = getLeft(cur);</span>
+			} else {
+<span class="fc" id="L377">				cur = getRight(cur);</span>
+			}
+<span class="fc" id="L379">		}</span>
+
+<span class="fc" id="L381">		return bound;</span>
+	}
+
+	// Returns treap node data (element) from the given node index.
+	public int getElement(int treap_node_index) {
+<span class="fc" id="L386">		return m_treapData.getField(treap_node_index, 3);// no error checking</span>
+															// here
+	}
+
+	// Returns treap node for the left node for the given treap node index
+	public int getLeft(int treap_node_index) {
+<span class="fc" id="L392">		return m_treapData.getField(treap_node_index, 0);// no error checking</span>
+															// here
+	}
+
+	// Returns treap index for the right node for the given treap node index
+	public int getRight(int treap_node_index) {
+<span class="fc" id="L398">		return m_treapData.getField(treap_node_index, 1);// no error checking</span>
+															// here
+	}
+
+	// Returns treap index for the parent node for the given treap node index
+	public int getParent(int treap_node_index) {
+<span class="fc" id="L404">		return m_treapData.getField(treap_node_index, 2);// no error checking</span>
+															// here
+	}
+
+	// Returns next treap index. Allows to navigate Treap in the sorted order
+	public int getNext(int treap_node_index) {
+<span class="fc" id="L410">		return m_treapData.getField(treap_node_index, 6);</span>
+	}
+
+	// Returns prev treap index. Allows to navigate Treap in the sorted order
+	// backwards
+	public int getPrev(int treap_node_index) {
+<span class="fc" id="L416">		return m_treapData.getField(treap_node_index, 5);</span>
+	}
+
+	// Returns the first element in the treap (least one). Used together with
+	// get_next to write a loop
+	public int getFirst(int treap) {
+<span class="fc bfc" id="L422" title="All 2 branches covered.">		if (treap == -1)</span>
+<span class="fc" id="L423">			return getFirst_(m_defaultTreap);</span>
+
+<span class="fc" id="L425">		return getFirst_(treap);</span>
+	}
+
+	// Returns the last element in the treap (greatest one). Used together with
+	// get_prev to write a loop
+	public int getLast(int treap) {
+<span class="fc bfc" id="L431" title="All 2 branches covered.">		if (treap == -1)</span>
+<span class="fc" id="L432">			return getLast_(m_defaultTreap);</span>
+
+<span class="fc" id="L434">		return getLast_(treap);</span>
+	}
+
+	// Gets the treap data associated with the treap.
+	public int getTreapData(int treap) {
+<span class="pc bpc" id="L439" title="1 of 2 branches missed.">		if (treap == -1)</span>
+<span class="nc" id="L440">			return getTreapData_(m_defaultTreap);</span>
+
+<span class="fc" id="L442">		return getTreapData_(treap);</span>
+	}
+
+	// Change the element value. Note: do not call this method if setting the
+	// element will change the sorted order.
+	public void setElement(int treap_node_index, int newElement) {
+<span class="fc bfc" id="L448" title="All 2 branches covered.">		if (m_comparator != null)</span>
+<span class="fc" id="L449">			m_comparator.onSetImpl_(this, treap_node_index);</span>
+<span class="fc" id="L450">		setElement_(treap_node_index, newElement);</span>
+<span class="fc" id="L451">	}</span>
+
+	// Returns the root of the treap.
+	public int getRoot(int treap) {
+<span class="fc bfc" id="L455" title="All 2 branches covered.">		if (treap == -1)</span>
+<span class="fc" id="L456">			return getRoot_(m_defaultTreap);</span>
+
+<span class="fc" id="L458">		return getRoot_(treap);</span>
+	}
+
+	// Check if the node is Null (does not exist).
+	public static int nullNode() {
+<span class="fc" id="L463">		return -1;</span>
+	}
+
+	// Clears all nodes
+	public void clear() {
+<span class="fc" id="L468">		m_treapData.deleteAll(false);</span>
+<span class="fc" id="L469">		m_defaultTreap = nullNode();</span>
+<span class="fc" id="L470">	}</span>
+
+	// Total number of nodes
+	public int size(int treap) {
+<span class="fc bfc" id="L474" title="All 2 branches covered.">		if (treap == -1)</span>
+<span class="fc" id="L475">			return getSize_(m_defaultTreap);</span>
+
+<span class="fc" id="L477">		return getSize_(treap);</span>
+	}
+
+	// Returns the maximum depth of this Treap at given moment
+	public int getMaxDepth(int treap) {
+<span class="nc" id="L482">		return getMaxDepthHelper_(getRoot(treap));</span>
+	}
+
+	public int getStateFlag() {
+<span class="nc" id="L486">		m_touchFlag &amp;= 0x7FFFFFFF;</span>
+<span class="nc" id="L487">		return m_touchFlag;</span>
+	}
+
+	private int m_defaultTreap;
+	private int m_random;
+	private Treap.Comparator m_comparator;// comparator used to arrange the
+											// nodes
+	private StridedIndexTypeCollection m_treapData; // m_left (0), m_right (1),
+													// m_parent (2), m_element
+													// (3), m_priority (4),
+													// m_prev (5), m_next (6)
+													// (optional: m_root (0),
+													// m_first (1), m_last (2),
+													// m_duplicate_element (3),
+													// m_treap_size (4),
+													// m_treapData (5))
+	private int m_touchFlag;
+	private boolean m_b_balancing;
+
+	private void touch_() {
+<span class="fc bfc" id="L507" title="All 2 branches covered.">		if (m_touchFlag &gt;= 0) {</span>
+<span class="fc" id="L508">			m_touchFlag += 0x80000001;</span>
+		}
+<span class="fc" id="L510">	}</span>
+
+	private int getPriority_(int treap_node_index) {
+<span class="fc" id="L513">		return m_treapData.getField(treap_node_index, 4);// no error checking</span>
+															// here
+	}
+
+	private void bubbleDown_(int treap_node_index) {
+<span class="fc" id="L518">		int left = getLeft(treap_node_index);</span>
+<span class="fc" id="L519">		int right = getRight(treap_node_index);</span>
+<span class="fc" id="L520">		int priority = getPriority_(treap_node_index);</span>
+<span class="fc bfc" id="L521" title="All 4 branches covered.">		while (left != nullNode() || right != nullNode()) {</span>
+<span class="fc bfc" id="L522" title="All 2 branches covered.">			int lcprior = left != nullNode() ? getPriority_(left) : NumberUtils</span>
+<span class="fc" id="L523">					.intMax();</span>
+<span class="fc bfc" id="L524" title="All 2 branches covered.">			int rcprior = right != nullNode() ? getPriority_(right)</span>
+<span class="fc" id="L525">					: NumberUtils.intMax();</span>
+<span class="fc" id="L526">			int minprior = Math.min(lcprior, rcprior);</span>
+
+<span class="pc bpc" id="L528" title="1 of 2 branches missed.">			if (priority &lt;= minprior)</span>
+<span class="nc" id="L529">				return;</span>
+
+<span class="fc bfc" id="L531" title="All 2 branches covered.">			if (lcprior &lt;= rcprior)</span>
+<span class="fc" id="L532">				rotateRight_(left);</span>
+			else
+<span class="fc" id="L534">				rotateLeft_(treap_node_index);</span>
+
+<span class="fc" id="L536">			left = getLeft(treap_node_index);</span>
+<span class="fc" id="L537">			right = getRight(treap_node_index);</span>
+<span class="fc" id="L538">		}</span>
+<span class="fc" id="L539">	}</span>
+
+	private void bubbleUp_(int node) {
+<span class="fc bfc" id="L542" title="All 2 branches covered.">		if (!m_b_balancing)</span>
+<span class="fc" id="L543">			return;</span>
+<span class="fc" id="L544">		int priority = getPriority_(node);</span>
+<span class="fc" id="L545">		int parent = getParent(node);</span>
+<span class="fc bfc" id="L546" title="All 4 branches covered.">		while (parent != nullNode() &amp;&amp; getPriority_(parent) &gt; priority) {</span>
+<span class="fc bfc" id="L547" title="All 2 branches covered.">			if (getLeft(parent) == node)</span>
+<span class="fc" id="L548">				rotateRight_(node);</span>
+			else
+<span class="fc" id="L550">				rotateLeft_(parent);</span>
+
+<span class="fc" id="L552">			parent = getParent(node);</span>
+		}
+<span class="fc" id="L554">	}</span>
+
+	private void rotateLeft_(int treap_node_index) {
+<span class="fc" id="L557">		int px = treap_node_index;</span>
+<span class="fc" id="L558">		int py = getRight(treap_node_index);</span>
+		int ptemp;
+<span class="fc" id="L560">		setParent_(py, getParent(px));</span>
+<span class="fc" id="L561">		setParent_(px, py);</span>
+
+<span class="fc" id="L563">		ptemp = getLeft(py);</span>
+<span class="fc" id="L564">		setRight_(px, ptemp);</span>
+
+<span class="fc bfc" id="L566" title="All 2 branches covered.">		if (ptemp != nullNode())</span>
+<span class="fc" id="L567">			setParent_(ptemp, px);</span>
+
+<span class="fc" id="L569">		setLeft_(py, px);</span>
+
+<span class="fc" id="L571">		ptemp = getParent(py);</span>
+<span class="fc bfc" id="L572" title="All 2 branches covered.">		if (ptemp != nullNode()) {</span>
+<span class="fc bfc" id="L573" title="All 2 branches covered.">			if (getLeft(ptemp) == px)</span>
+<span class="fc" id="L574">				setLeft_(ptemp, py);</span>
+			else {
+<span class="pc bpc" id="L576" title="1 of 2 branches missed.">				assert (getRight(ptemp) == px);</span>
+<span class="fc" id="L577">				setRight_(ptemp, py);</span>
+			}
+		}
+<span class="fc" id="L580">	}</span>
+
+	private void rotateRight_(int treap_node_index) {
+<span class="fc" id="L583">		int py = getParent(treap_node_index);</span>
+<span class="fc" id="L584">		int px = treap_node_index;</span>
+		int ptemp;
+
+<span class="fc" id="L587">		setParent_(px, getParent(py));</span>
+<span class="fc" id="L588">		setParent_(py, px);</span>
+
+<span class="fc" id="L590">		ptemp = getRight(px);</span>
+<span class="fc" id="L591">		setLeft_(py, ptemp);</span>
+
+<span class="fc bfc" id="L593" title="All 2 branches covered.">		if (ptemp != nullNode())</span>
+<span class="fc" id="L594">			setParent_(ptemp, py);</span>
+
+<span class="fc" id="L596">		setRight_(px, py);</span>
+
+<span class="fc" id="L598">		ptemp = getParent(px);</span>
+<span class="fc bfc" id="L599" title="All 2 branches covered.">		if (ptemp != nullNode()) {</span>
+<span class="fc bfc" id="L600" title="All 2 branches covered.">			if (getLeft(ptemp) == py)</span>
+<span class="fc" id="L601">				setLeft_(ptemp, px);</span>
+			else {
+<span class="pc bpc" id="L603" title="1 of 2 branches missed.">				assert (getRight(ptemp) == py);</span>
+<span class="fc" id="L604">				setRight_(ptemp, px);</span>
+			}
+		}
+<span class="fc" id="L607">	}</span>
+
+	private void setParent_(int treap_node_index, int new_parent) {
+<span class="fc" id="L610">		m_treapData.setField(treap_node_index, 2, new_parent); // no error</span>
+																// checking here
+<span class="fc" id="L612">	}</span>
+
+	private void setLeft_(int treap_node_index, int new_left) {
+<span class="fc" id="L615">		m_treapData.setField(treap_node_index, 0, new_left); // no error</span>
+																// checking here
+<span class="fc" id="L617">	}</span>
+
+	private void setRight_(int treap_node_index, int new_right) {
+<span class="fc" id="L620">		m_treapData.setField(treap_node_index, 1, new_right); // no error</span>
+																// checking here
+<span class="fc" id="L622">	}</span>
+
+	private void setPriority_(int treap_node_index, int new_priority) {
+<span class="fc" id="L625">		m_treapData.setField(treap_node_index, 4, new_priority); // no error</span>
+																	// checking
+																	// here
+<span class="fc" id="L628">	}</span>
+
+	private void setPrev_(int treap_node_index, int prev) {
+<span class="pc bpc" id="L631" title="1 of 2 branches missed.">		assert (prev != treap_node_index);</span>
+<span class="fc" id="L632">		m_treapData.setField(treap_node_index, 5, prev); // no error checking</span>
+															// here
+<span class="fc" id="L634">	}</span>
+
+	private void setNext_(int treap_node_index, int next) {
+<span class="pc bpc" id="L637" title="1 of 2 branches missed.">		assert (next != treap_node_index);</span>
+<span class="fc" id="L638">		m_treapData.setField(treap_node_index, 6, next); // no error checking</span>
+															// here
+<span class="fc" id="L640">	}</span>
+
+	private void setRoot_(int root, int treap) {
+<span class="fc" id="L643">		m_treapData.setField(treap, 0, root);</span>
+<span class="fc" id="L644">	}</span>
+
+	private void setFirst_(int first, int treap) {
+<span class="fc" id="L647">		m_treapData.setField(treap, 1, first);</span>
+<span class="fc" id="L648">	}</span>
+
+	private void setLast_(int last, int treap) {
+<span class="fc" id="L651">		m_treapData.setField(treap, 2, last);</span>
+<span class="fc" id="L652">	}</span>
+
+	private void setDuplicateElement_(int duplicate_element, int treap) {
+<span class="fc" id="L655">		m_treapData.setField(treap, 3, duplicate_element);</span>
+<span class="fc" id="L656">	}</span>
+
+	private void setSize_(int size, int treap) {
+<span class="fc" id="L659">		m_treapData.setField(treap, 4, size);</span>
+<span class="fc" id="L660">	}</span>
+
+	private void setTreapData_(int treap_data, int treap) {
+<span class="fc" id="L663">		m_treapData.setField(treap, 5, treap_data);</span>
+<span class="fc" id="L664">	}</span>
+
+	private int getRoot_(int treap) {
+<span class="fc bfc" id="L667" title="All 2 branches covered.">		if (treap == -1)</span>
+<span class="fc" id="L668">			return nullNode();</span>
+
+<span class="fc" id="L670">		return m_treapData.getField(treap, 0);</span>
+	}
+
+	private int getFirst_(int treap) {
+<span class="pc bpc" id="L674" title="1 of 2 branches missed.">		if (treap == -1)</span>
+<span class="nc" id="L675">			return nullNode();</span>
+
+<span class="fc" id="L677">		return m_treapData.getField(treap, 1);</span>
+	}
+
+	private int getLast_(int treap) {
+<span class="pc bpc" id="L681" title="1 of 2 branches missed.">		if (treap == -1)</span>
+<span class="nc" id="L682">			return nullNode();</span>
+
+<span class="fc" id="L684">		return m_treapData.getField(treap, 2);</span>
+	}
+
+	private int getDuplicateElement_(int treap) {
+<span class="pc bpc" id="L688" title="1 of 2 branches missed.">		if (treap == -1)</span>
+<span class="nc" id="L689">			return nullNode();</span>
+
+<span class="fc" id="L691">		return m_treapData.getField(treap, 3);</span>
+	}
+
+	private int getSize_(int treap) {
+<span class="fc bfc" id="L695" title="All 2 branches covered.">		if (treap == -1)</span>
+<span class="fc" id="L696">			return 0;</span>
+
+<span class="fc" id="L698">		return m_treapData.getField(treap, 4);</span>
+	}
+
+	private int getTreapData_(int treap) {
+<span class="fc" id="L702">		return m_treapData.getField(treap, 5);</span>
+	}
+
+	private int newNode_(int element) {
+<span class="fc" id="L706">		touch_();</span>
+<span class="fc" id="L707">		int newNode = m_treapData.newElement();</span>
+<span class="fc" id="L708">		setPriority_(newNode, generatePriority_());</span>
+<span class="fc" id="L709">		setElement_(newNode, element);</span>
+<span class="fc" id="L710">		return newNode;</span>
+	}
+
+	private void freeNode_(int treap_node_index, int treap) {
+<span class="pc bpc" id="L714" title="1 of 2 branches missed.">		if (treap_node_index == nullNode())</span>
+<span class="nc" id="L715">			return;</span>
+
+<span class="fc" id="L717">		m_treapData.deleteElement(treap_node_index);</span>
+<span class="fc" id="L718">	}</span>
+
+	private int generatePriority_() {
+<span class="fc" id="L721">		m_random = NumberUtils.nextRand(m_random);</span>
+<span class="fc" id="L722">		return m_random &amp; (NumberUtils.intMax() &gt;&gt; 1);</span>
+	}
+
+	private int getMaxDepthHelper_(int node) {
+<span class="nc bnc" id="L726" title="All 2 branches missed.">		if (node == nullNode())</span>
+<span class="nc" id="L727">			return 0;</span>
+
+<span class="nc" id="L729">		return 1 + Math.max(getMaxDepthHelper_(getLeft(node)),</span>
+<span class="nc" id="L730">				getMaxDepthHelper_(getRight(node)));</span>
+	}
+
+	private int addElement_(int element, int kind, int treap) {
+		// dbg_check_(m_root);
+<span class="fc bfc" id="L735" title="All 2 branches covered.">		if (getRoot_(treap) == nullNode()) {</span>
+<span class="fc" id="L736">			int newNode = newNode_(element);</span>
+<span class="fc" id="L737">			setRoot_(newNode, treap);</span>
+<span class="fc" id="L738">			addToList_(-1, newNode, treap);</span>
+<span class="fc" id="L739">			return newNode;</span>
+		}
+
+<span class="fc" id="L742">		int cur = getRoot_(treap);</span>
+<span class="fc" id="L743">		int newNode = -1;</span>
+<span class="fc" id="L744">		int before = -1;</span>
+
+		for (;;) {
+<span class="pc bpc" id="L747" title="1 of 2 branches missed.">			int cmp = kind == -1 ? 1 : m_comparator.compare(this, element, cur);</span>
+<span class="fc bfc" id="L748" title="All 2 branches covered.">			if (cmp &lt; 0) {</span>
+<span class="fc" id="L749">				int left = getLeft(cur);</span>
+<span class="fc bfc" id="L750" title="All 2 branches covered.">				if (left != nullNode())</span>
+<span class="fc" id="L751">					cur = left;</span>
+				else {
+<span class="fc" id="L753">					before = cur;</span>
+<span class="fc" id="L754">					newNode = newNode_(element);</span>
+<span class="fc" id="L755">					setLeft_(cur, newNode);</span>
+<span class="fc" id="L756">					setParent_(newNode, cur);</span>
+<span class="fc" id="L757">					break;</span>
+				}
+<span class="fc" id="L759">			} else {</span>
+<span class="fc bfc" id="L760" title="All 4 branches covered.">				if (kind == 1 &amp;&amp; cmp == 0) {</span>
+<span class="fc" id="L761">					m_comparator.onAddUniqueElementFailedImpl_(element);</span>
+<span class="fc" id="L762">					setDuplicateElement_(cur, treap);</span>
+<span class="fc" id="L763">					return -1;// return negative value.</span>
+				}
+
+<span class="fc" id="L766">				int right = getRight(cur);</span>
+<span class="fc bfc" id="L767" title="All 2 branches covered.">				if (right != nullNode())</span>
+<span class="fc" id="L768">					cur = right;</span>
+				else {
+<span class="fc" id="L770">					before = getNext(cur);</span>
+<span class="fc" id="L771">					newNode = newNode_(element);</span>
+<span class="fc" id="L772">					setRight_(cur, newNode);</span>
+<span class="fc" id="L773">					setParent_(newNode, cur);</span>
+<span class="fc" id="L774">					break;</span>
+				}
+			}
+<span class="fc" id="L777">		}</span>
+
+<span class="fc" id="L779">		bubbleUp_(newNode);</span>
+<span class="fc bfc" id="L780" title="All 2 branches covered.">		if (getParent(newNode) == nullNode())</span>
+<span class="fc" id="L781">			setRoot_(newNode, treap);</span>
+
+<span class="fc" id="L783">		addToList_(before, newNode, treap);</span>
+		// dbg_check_(m_root);
+<span class="fc" id="L785">		return newNode;</span>
+	}
+
+	private void addToList_(int before, int node, int treap) {
+<span class="pc bpc" id="L789" title="1 of 2 branches missed.">		assert (before != node);</span>
+		int prev;
+<span class="fc bfc" id="L791" title="All 2 branches covered.">		if (before != -1) {</span>
+<span class="fc" id="L792">			prev = getPrev(before);</span>
+<span class="fc" id="L793">			setPrev_(before, node);</span>
+		} else
+<span class="fc" id="L795">			prev = getLast_(treap);</span>
+
+<span class="fc" id="L797">		setPrev_(node, prev);</span>
+<span class="fc bfc" id="L798" title="All 2 branches covered.">		if (prev != -1)</span>
+<span class="fc" id="L799">			setNext_(prev, node);</span>
+<span class="fc" id="L800">		setNext_(node, before);</span>
+
+<span class="fc bfc" id="L802" title="All 2 branches covered.">		if (before == getFirst_(treap)) {</span>
+<span class="fc" id="L803">			setFirst_(node, treap);</span>
+		}
+<span class="fc bfc" id="L805" title="All 2 branches covered.">		if (before == -1) {</span>
+<span class="fc" id="L806">			setLast_(node, treap);</span>
+		}
+
+<span class="fc" id="L809">		setSize_(getSize_(treap) + 1, treap);</span>
+<span class="fc" id="L810">	}</span>
+
+	private void removeFromList_(int node, int treap) {
+<span class="fc" id="L813">		int prev = getPrev(node);</span>
+<span class="fc" id="L814">		int next = getNext(node);</span>
+<span class="fc bfc" id="L815" title="All 2 branches covered.">		if (prev != -1)</span>
+<span class="fc" id="L816">			setNext_(prev, next);</span>
+		else
+<span class="fc" id="L818">			setFirst_(next, treap);</span>
+
+<span class="fc bfc" id="L820" title="All 2 branches covered.">		if (next != -1)</span>
+<span class="fc" id="L821">			setPrev_(next, prev);</span>
+		else
+<span class="fc" id="L823">			setLast_(prev, treap);</span>
+
+<span class="fc" id="L825">		setSize_(getSize_(treap) - 1, treap);</span>
+<span class="fc" id="L826">	}</span>
+
+	private void unbalancedDelete_(int treap_node_index, int treap) {
+<span class="pc bpc" id="L829" title="1 of 2 branches missed.">		assert (!m_b_balancing);</span>
+		// dbg_check_(m_root);
+<span class="fc" id="L831">		removeFromList_(treap_node_index, treap);</span>
+<span class="fc" id="L832">		int left = getLeft(treap_node_index);</span>
+<span class="fc" id="L833">		int right = getRight(treap_node_index);</span>
+<span class="fc" id="L834">		int parent = getParent(treap_node_index);</span>
+<span class="fc" id="L835">		int x = treap_node_index;</span>
+<span class="fc bfc" id="L836" title="All 4 branches covered.">		if (left != -1 &amp;&amp; right != -1) {</span>
+<span class="fc" id="L837">			m_random = NumberUtils.nextRand(m_random);</span>
+			int R;
+<span class="fc bfc" id="L839" title="All 2 branches covered.">			if (m_random &gt; (NumberUtils.intMax() &gt;&gt; 1))</span>
+<span class="fc" id="L840">				R = getNext(treap_node_index);</span>
+			else
+<span class="fc" id="L842">				R = getPrev(treap_node_index);</span>
+
+<span class="pc bpc" id="L844" title="1 of 2 branches missed.">			assert (R != -1);// cannot be NULL becaus the node has left and</span>
+								// right
+
+<span class="fc bfc" id="L847" title="All 2 branches covered.">			boolean bFixMe = getParent(R) == treap_node_index;</span>
+
+			// swap left, right, and parent
+<span class="fc" id="L850">			m_treapData.swapField(treap_node_index, R, 0);</span>
+<span class="fc" id="L851">			m_treapData.swapField(treap_node_index, R, 1);</span>
+<span class="fc" id="L852">			m_treapData.swapField(treap_node_index, R, 2);</span>
+
+<span class="fc bfc" id="L854" title="All 2 branches covered.">			if (parent != -1) {</span>
+				// Connect ex-parent of int to R.
+<span class="fc bfc" id="L856" title="All 2 branches covered.">				if (getLeft(parent) == treap_node_index) {</span>
+<span class="fc" id="L857">					setLeft_(parent, R);</span>
+				} else {
+<span class="pc bpc" id="L859" title="1 of 2 branches missed.">					assert (getRight(parent) == treap_node_index);</span>
+<span class="fc" id="L860">					setRight_(parent, R);</span>
+				}
+			} else {// int was the root. Make R the Root.
+<span class="fc" id="L863">				setRoot_(R, treap);</span>
+			}
+
+<span class="fc bfc" id="L866" title="All 2 branches covered.">			if (bFixMe) {// R was a child of int</span>
+<span class="fc bfc" id="L867" title="All 2 branches covered.">				if (left == R) {</span>
+<span class="fc" id="L868">					setLeft_(R, treap_node_index);</span>
+<span class="fc" id="L869">					setParent_(right, R);</span>
+<span class="pc bpc" id="L870" title="1 of 2 branches missed.">				} else if (right == R) {</span>
+<span class="fc" id="L871">					setRight_(R, treap_node_index);</span>
+<span class="fc" id="L872">					setParent_(left, R);</span>
+				}
+
+<span class="fc" id="L875">				setParent_(treap_node_index, R);</span>
+<span class="fc" id="L876">				parent = R;</span>
+			} else {
+<span class="fc" id="L878">				setParent_(left, R);</span>
+<span class="fc" id="L879">				setParent_(right, R);</span>
+<span class="fc" id="L880">				parent = getParent(treap_node_index);</span>
+<span class="fc" id="L881">				x = R;</span>
+			}
+
+<span class="pc bpc" id="L884" title="1 of 2 branches missed.">			assert (parent != -1);</span>
+<span class="fc" id="L885">			left = getLeft(treap_node_index);</span>
+<span class="fc" id="L886">			right = getRight(treap_node_index);</span>
+<span class="fc bfc" id="L887" title="All 2 branches covered.">			if (left != -1)</span>
+<span class="fc" id="L888">				setParent_(left, treap_node_index);</span>
+<span class="fc bfc" id="L889" title="All 2 branches covered.">			if (right != -1)</span>
+<span class="fc" id="L890">				setParent_(right, treap_node_index);</span>
+
+<span class="pc bpc" id="L892" title="1 of 4 branches missed.">			assert (left == -1 || right == -1);</span>
+		}
+
+		// At most one child is not NULL.
+<span class="fc bfc" id="L896" title="All 2 branches covered.">		int child = left != -1 ? left : right;</span>
+
+<span class="fc bfc" id="L898" title="All 2 branches covered.">		if (parent == -1) {</span>
+<span class="fc" id="L899">			setRoot_(child, treap);</span>
+		} else {
+<span class="fc bfc" id="L901" title="All 2 branches covered.">			if (getLeft(parent) == x) {</span>
+<span class="fc" id="L902">				setLeft_(parent, child);</span>
+			} else {
+<span class="pc bpc" id="L904" title="1 of 2 branches missed.">				assert (getRight(parent) == x);</span>
+<span class="fc" id="L905">				setRight_(parent, child);</span>
+			}
+		}
+
+<span class="fc bfc" id="L909" title="All 2 branches covered.">		if (child != -1)</span>
+<span class="fc" id="L910">			setParent_(child, parent);</span>
+
+<span class="fc" id="L912">		freeNode_(treap_node_index, treap);</span>
+		// dbg_check_(m_root);
+<span class="fc" id="L914">	}</span>
+
+	private void deleteNode_(int treap_node_index, int treap) {
+<span class="pc bpc" id="L917" title="1 of 2 branches missed.">		assert (m_b_balancing);</span>
+<span class="fc" id="L918">		setPriority_(treap_node_index, NumberUtils.intMax()); // set the node</span>
+																// priority high
+<span class="fc" id="L920">		int prl = nullNode();</span>
+<span class="fc" id="L921">		int prr = nullNode();</span>
+<span class="fc" id="L922">		int root = getRoot_(treap);</span>
+<span class="fc bfc" id="L923" title="All 2 branches covered.">		boolean isroot = (root == treap_node_index);</span>
+
+<span class="fc bfc" id="L925" title="All 2 branches covered.">		if (isroot) {</span>
+			// remember children of the root node, if the root node is to be
+			// deleted
+<span class="fc" id="L928">			prl = getLeft(root);</span>
+<span class="fc" id="L929">			prr = getRight(root);</span>
+
+<span class="fc bfc" id="L931" title="All 4 branches covered.">			if (prl == nullNode() &amp;&amp; prr == nullNode()) {</span>
+<span class="fc" id="L932">				removeFromList_(root, treap);</span>
+<span class="fc" id="L933">				freeNode_(root, treap);</span>
+<span class="fc" id="L934">				setRoot_(nullNode(), treap);</span>
+<span class="fc" id="L935">				return;</span>
+			}
+		}
+
+<span class="fc" id="L939">		bubbleDown_(treap_node_index); // let the node to slide to the leaves of</span>
+										// tree
+
+<span class="fc" id="L942">		int p = getParent(treap_node_index);</span>
+
+<span class="pc bpc" id="L944" title="1 of 2 branches missed.">		if (p != nullNode()) {</span>
+<span class="fc bfc" id="L945" title="All 2 branches covered.">			if (getLeft(p) == treap_node_index)</span>
+<span class="fc" id="L946">				setLeft_(p, nullNode());</span>
+			else
+<span class="fc" id="L948">				setRight_(p, nullNode());</span>
+		}
+
+<span class="fc" id="L951">		removeFromList_(treap_node_index, treap);</span>
+<span class="fc" id="L952">		freeNode_(treap_node_index, treap);</span>
+
+<span class="fc bfc" id="L954" title="All 2 branches covered.">		if (isroot) // if the root node is deleted, assign new root</span>
+<span class="fc bfc" id="L955" title="All 4 branches covered.">			setRoot_((prl == nullNode() || getParent(prl) != nullNode()) ? prr</span>
+<span class="fc" id="L956">					: prl, treap);</span>
+
+<span class="pc bpc" id="L958" title="1 of 2 branches missed.">		assert (getParent(getRoot(treap)) == nullNode());</span>
+<span class="fc" id="L959">	}</span>
+
+	private void setElement_(int treap_node_index, int newElement) {
+<span class="fc" id="L962">		touch_();</span>
+<span class="fc" id="L963">		m_treapData.setField(treap_node_index, 3, newElement);// no error</span>
+																// checking here
+<span class="fc" id="L965">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

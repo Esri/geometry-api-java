@@ -1,0 +1,468 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GeoDist.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">GeoDist.java</span></div><h1>GeoDist.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+import com.esri.core.geometry.PeDouble;
+
+<span class="nc" id="L29">final class GeoDist {</span>
+	private static final double PE_PI = 3.14159265358979323846264;
+	private static final double PE_PI2 = 1.57079632679489661923132;
+	private static final double PE_2PI = 6.283185307179586476925287;
+	private static final double PE_EPS = 3.55271367880050092935562e-15;
+
+	/** Get the absolute value of a number */
+	static private double PE_ABS(double a) {
+<span class="fc bfc" id="L37" title="All 2 branches covered.">		return (a &lt; 0) ? -a : a;</span>
+	}
+
+	/** Assign the sign of the second number to the first */
+	static private double PE_SGN(double a, double b) {
+<span class="pc bpc" id="L42" title="1 of 2 branches missed.">		return (b &gt;= 0) ? PE_ABS(a) : -PE_ABS(a);</span>
+	}
+
+	/** Determine if two doubles are equal within a default tolerance */
+	static private boolean PE_EQ(double a, double b) {
+<span class="fc bfc" id="L47" title="All 2 branches covered.">		return (a == b)</span>
+<span class="pc bpc" id="L48" title="1 of 2 branches missed.">				|| PE_ABS(a - b) &lt;= PE_EPS * (1 + (PE_ABS(a) + PE_ABS(b)) / 2);</span>
+	}
+
+	/** Determine if a double is within a given tolerance of zero */
+	static private boolean PE_ZERO(double a) {
+<span class="pc bpc" id="L53" title="2 of 4 branches missed.">		return (a == 0.0) || (PE_ABS(a) &lt;= PE_EPS);</span>
+	}
+
+	static private double lam_delta(double lam) {
+<span class="fc" id="L57">		double d = Math.IEEEremainder(lam, PE_2PI);</span>
+
+<span class="pc bpc" id="L59" title="3 of 4 branches missed.">		return (PE_ABS(d) &lt;= PE_PI) ? d : ((d &lt; 0) ? d + PE_2PI : d - PE_2PI);</span>
+	}
+
+	static private void lam_phi_reduction(PeDouble p_lam, PeDouble p_phi) {
+<span class="fc" id="L63">		p_lam.val = lam_delta(p_lam.val);</span>
+<span class="fc" id="L64">		p_phi.val = lam_delta(p_phi.val);</span>
+
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">		if (PE_ABS(p_phi.val) &gt; PE_PI2) {</span>
+<span class="nc" id="L67">			p_lam.val = lam_delta(p_lam.val + PE_PI);</span>
+<span class="nc" id="L68">			p_phi.val = PE_SGN(PE_PI, p_phi.val) - p_phi.val;</span>
+		}
+<span class="fc" id="L70">	}</span>
+
+	static private double q90(double a, double e2) {
+		/*
+		 * Rapp // Geometric Geodesy (Part I) // p. 39. Adams, O.S. // Latitude
+		 * Developments ... // pp. 122-127. Terms extended past n4 by David
+		 * Burrows, ESRI
+		 */
+
+		/* Calculate meridional arc distance from equator to pole */
+
+		/*
+		 * q90 = a * PE_PI2 * (1 + 1/4 n2 + 1/64 n4 + 1/256 n6 + 25/16384 n8 +
+		 * 49/65536 n10 + ...)/(1.0 + n)
+		 */
+
+<span class="nc" id="L86">		double t = Math.sqrt(1.0 - e2);</span>
+<span class="nc" id="L87">		double n = (1.0 - t) / (1.0 + t);</span>
+<span class="nc" id="L88">		double n2 = n * n;</span>
+
+<span class="nc" id="L90">		return a / (1.0 + n)</span>
+				* (1.0 + n2 * (1.0 / 4.0 + n2 * (1.0 / 64.0 + n2 * (1.0 / 256.0))))
+				* PE_PI2;
+	}
+
+	static public void geodesic_distance_ngs(double a, double e2, double lam1,
+			double phi1, double lam2, double phi2, PeDouble p_dist,
+			PeDouble p_az12, PeDouble p_az21) {
+		/* Highly edited version (plus lots of additions) of NGS FORTRAN code */
+
+		/*
+		 * inverse for long-line and antipodal cases.* latitudes may be 90
+		 * degrees exactly.* latitude positive north, longitude positive east,
+		 * radians.* azimuth clockwise from north, radians.* original programmed
+		 * by thaddeus vincenty, 1975, 1976* removed back side solution option,
+		 * debugged, revised -- 2011may01 -- dgm* this version of code is
+		 * interim -- antipodal boundary needs work
+		 * 
+		 * * output (besides az12, az21, and dist):* These have been removed
+		 * from this esri version of the ngs code* it, iteration count* sigma,
+		 * spherical distance on auxiliary sphere* lam_sph, longitude difference
+		 * on auxiliary sphere* kind, solution flag: kind=1, long-line; kind=2,
+		 * antipodal
+		 * 
+		 * 
+		 * All references to Rapp are Part II
+		 */
+
+<span class="fc" id="L118">		double tol = 1.0e-14;</span>
+<span class="fc" id="L119">		double eps = 1.0e-15;</span>
+
+<span class="fc" id="L121">		double boa = 0.0;</span>
+<span class="fc" id="L122">		double dlam = 0.0;</span>
+<span class="fc" id="L123">		double eta1 = 0.0, sin_eta1 = 0.0, cos_eta1 = 0.0;</span>
+<span class="fc" id="L124">		double eta2 = 0.0, sin_eta2 = 0.0, cos_eta2 = 0.0;</span>
+<span class="fc" id="L125">		double prev = 0.0, test = 0.0;</span>
+<span class="fc" id="L126">		double sin_lam_sph = 0.0, cos_lam_sph = 0.0, temp = 0.0, sin_sigma = 0.0, cos_sigma = 0.0;</span>
+<span class="fc" id="L127">		double sin_azeq = 0.0, cos2_azeq = 0.0, costm = 0.0, costm2 = 0.0, c = 0.0, d = 0.0;</span>
+<span class="fc" id="L128">		double tem1 = 0.0, tem2 = 0.0, ep2 = 0.0, bige = 0.0, bigf = 0.0, biga = 0.0, bigb = 0.0, z = 0.0, dsigma = 0.0;</span>
+		boolean q_continue_looping;
+
+<span class="fc" id="L131">		double f = 0.0;</span>
+
+<span class="fc" id="L133">		double az12 = 0.0, az21 = 0.0, dist = 0.0;</span>
+<span class="fc" id="L134">		double sigma = 0.0, lam_sph = 0.0;</span>
+<span class="fc" id="L135">		int it = 0, kind = 0;</span>
+
+<span class="fc" id="L137">		PeDouble lam = new PeDouble();</span>
+<span class="fc" id="L138">		PeDouble phi = new PeDouble();</span>
+
+		/* Are there any values to calculate? */
+<span class="pc bpc" id="L141" title="5 of 6 branches missed.">		if (p_dist == null &amp;&amp; p_az12 == null &amp;&amp; p_az21 == null) {</span>
+<span class="nc" id="L142">			return;</span>
+		}
+
+		/* Normalize point 1 and 2 */
+<span class="fc" id="L146">		lam.val = lam1;</span>
+<span class="fc" id="L147">		phi.val = phi1;</span>
+<span class="fc" id="L148">		lam_phi_reduction(lam, phi);</span>
+<span class="fc" id="L149">		lam1 = lam.val;</span>
+<span class="fc" id="L150">		phi1 = phi.val;</span>
+
+<span class="fc" id="L152">		lam.val = lam2;</span>
+<span class="fc" id="L153">		phi.val = phi2;</span>
+<span class="fc" id="L154">		lam_phi_reduction(lam, phi);</span>
+<span class="fc" id="L155">		lam2 = lam.val;</span>
+<span class="fc" id="L156">		phi2 = phi.val;</span>
+
+<span class="fc" id="L158">		dlam = lam_delta(lam2 - lam1); /* longitude difference [-Pi, Pi] */</span>
+
+<span class="pc bpc" id="L160" title="2 of 6 branches missed.">		if (PE_EQ(phi1, phi2) &amp;&amp; (PE_ZERO(dlam) || PE_EQ(PE_ABS(phi1), PE_PI2))) {</span>
+			/* Check that the points are not the same */
+<span class="nc bnc" id="L162" title="All 2 branches missed.">			if (p_dist != null)</span>
+<span class="nc" id="L163">				p_dist.val = 0.0;</span>
+<span class="nc bnc" id="L164" title="All 2 branches missed.">			if (p_az12 != null)</span>
+<span class="nc" id="L165">				p_az12.val = 0.0;</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">			if (p_az21 != null)</span>
+<span class="nc" id="L167">				p_az21.val = 0.0;</span>
+
+<span class="nc" id="L169">			return;</span>
+<span class="fc bfc" id="L170" title="All 2 branches covered.">		} else if (PE_EQ(phi1, -phi2)) {</span>
+			/* Check if they are perfectly antipodal */
+<span class="pc bpc" id="L172" title="1 of 2 branches missed.">			if (PE_EQ(PE_ABS(phi1), PE_PI2)) {</span>
+				/* Check if they are at opposite poles */
+<span class="nc bnc" id="L174" title="All 2 branches missed.">				if (p_dist != null)</span>
+<span class="nc" id="L175">					p_dist.val = 2.0 * q90(a, e2);</span>
+
+<span class="nc bnc" id="L177" title="All 2 branches missed.">				if (p_az12 != null)</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">					p_az12.val = phi1 &gt; 0.0 ? lam_delta(PE_PI - lam_delta(lam2))</span>
+<span class="nc" id="L179">							: lam_delta(lam2);</span>
+
+<span class="nc bnc" id="L181" title="All 2 branches missed.">				if (p_az21 != null)</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">					p_az21.val = phi1 &gt; 0.0 ? lam_delta(lam2) : lam_delta(PE_PI</span>
+<span class="nc" id="L183">							- lam_delta(lam2));</span>
+
+<span class="nc" id="L185">				return;</span>
+<span class="pc bpc" id="L186" title="1 of 2 branches missed.">			} else if (PE_EQ(PE_ABS(dlam), PE_PI)) {</span>
+				/* Other antipodal */
+<span class="nc bnc" id="L188" title="All 2 branches missed.">				if (p_dist != null)</span>
+<span class="nc" id="L189">					p_dist.val = 2.0 * q90(a, e2);</span>
+<span class="nc bnc" id="L190" title="All 2 branches missed.">				if (p_az12 != null)</span>
+<span class="nc" id="L191">					p_az12.val = 0.0;</span>
+<span class="nc bnc" id="L192" title="All 2 branches missed.">				if (p_az21 != null)</span>
+<span class="nc" id="L193">					p_az21.val = 0.0;</span>
+<span class="nc" id="L194">				return;</span>
+			}
+		}
+
+<span class="pc bpc" id="L198" title="1 of 2 branches missed.">		if (PE_ZERO(e2)) /* Sphere */</span>
+		{
+			double cos_phi1, cos_phi2;
+			double sin_phi1, sin_phi2;
+
+<span class="nc" id="L203">			cos_phi1 = Math.cos(phi1);</span>
+<span class="nc" id="L204">			cos_phi2 = Math.cos(phi2);</span>
+<span class="nc" id="L205">			sin_phi1 = Math.sin(phi1);</span>
+<span class="nc" id="L206">			sin_phi2 = Math.sin(phi2);</span>
+
+<span class="nc bnc" id="L208" title="All 2 branches missed.">			if (p_dist != null) {</span>
+<span class="nc" id="L209">				tem1 = Math.sin((phi2 - phi1) / 2.0);</span>
+<span class="nc" id="L210">				tem2 = Math.sin(dlam / 2.0);</span>
+<span class="nc" id="L211">				sigma = 2.0 * Math.asin(Math.sqrt(tem1 * tem1 + cos_phi1</span>
+						* cos_phi2 * tem2 * tem2));
+<span class="nc" id="L213">				p_dist.val = sigma * a;</span>
+			}
+
+<span class="nc bnc" id="L216" title="All 2 branches missed.">			if (p_az12 != null) {</span>
+<span class="nc bnc" id="L217" title="All 2 branches missed.">				if (PE_EQ(PE_ABS(phi1), PE_PI2)) /* Origin at N or S Pole */</span>
+				{
+<span class="nc bnc" id="L219" title="All 2 branches missed.">					p_az12.val = phi1 &lt; 0.0 ? lam2 : lam_delta(PE_PI - lam2);</span>
+				} else {
+<span class="nc" id="L221">					p_az12.val = Math.atan2(cos_phi2 * Math.sin(dlam), cos_phi1</span>
+<span class="nc" id="L222">							* sin_phi2 - sin_phi1 * cos_phi2 * Math.cos(dlam));</span>
+				}
+			}
+
+<span class="nc bnc" id="L226" title="All 2 branches missed.">			if (p_az21 != null) {</span>
+<span class="nc bnc" id="L227" title="All 2 branches missed.">				if (PE_EQ(PE_ABS(phi2), PE_PI2)) /* Destination at N or S Pole */</span>
+				{
+<span class="nc bnc" id="L229" title="All 2 branches missed.">					p_az21.val = phi2 &lt; 0.0 ? lam1 : lam_delta(PE_PI - lam1);</span>
+				} else {
+<span class="nc" id="L231">					p_az21.val = Math.atan2(cos_phi1 * Math.sin(dlam), sin_phi2</span>
+<span class="nc" id="L232">							* cos_phi1 * Math.cos(dlam) - cos_phi2 * sin_phi1);</span>
+<span class="nc" id="L233">					p_az21.val = lam_delta(p_az21.val + PE_PI);</span>
+				}
+			}
+
+<span class="nc" id="L237">			return;</span>
+		}
+
+<span class="fc" id="L240">		f = 1.0 - Math.sqrt(1.0 - e2);</span>
+<span class="fc" id="L241">		boa = 1.0 - f;</span>
+
+<span class="fc" id="L243">		eta1 = Math.atan(boa * Math.tan(phi1)); /* better reduced latitude */</span>
+<span class="fc" id="L244">		sin_eta1 = Math.sin(eta1);</span>
+<span class="fc" id="L245">		cos_eta1 = Math.cos(eta1);</span>
+
+<span class="fc" id="L247">		eta2 = Math.atan(boa * Math.tan(phi2)); /* better reduced latitude */</span>
+<span class="fc" id="L248">		sin_eta2 = Math.sin(eta2);</span>
+<span class="fc" id="L249">		cos_eta2 = Math.cos(eta2);</span>
+
+<span class="fc" id="L251">		prev = dlam;</span>
+<span class="fc" id="L252">		test = dlam;</span>
+<span class="fc" id="L253">		it = 0;</span>
+<span class="fc" id="L254">		kind = 1;</span>
+<span class="fc" id="L255">		lam_sph = dlam; /* v13 (Rapp ) */</span>
+
+		/* top of the long-line loop (kind = 1) */
+
+<span class="fc" id="L259">		q_continue_looping = true;</span>
+<span class="fc bfc" id="L260" title="All 4 branches covered.">		while (q_continue_looping &amp;&amp; it &lt; 100) {</span>
+<span class="fc" id="L261">			it = it + 1;</span>
+
+<span class="fc bfc" id="L263" title="All 2 branches covered.">			if (kind == 1) {</span>
+<span class="fc" id="L264">				sin_lam_sph = Math.sin(lam_sph);</span>
+
+				/*
+				 * if ( PE_ABS(PE_PI - PE_ABS(dlam)) &lt; 2.0e-11 ) sin_lam_sph =
+				 * 0.0 no--troublesome
+				 */
+
+<span class="fc" id="L271">				cos_lam_sph = Math.cos(lam_sph);</span>
+<span class="fc" id="L272">				tem1 = cos_eta2 * sin_lam_sph;</span>
+<span class="fc" id="L273">				temp = cos_eta1 * sin_eta2 - sin_eta1 * cos_eta2 * cos_lam_sph;</span>
+<span class="fc" id="L274">				sin_sigma = Math.sqrt(tem1 * tem1 + temp * temp); /*</span>
+																 * v14 (Rapp
+																 * 1.87)
+																 */
+<span class="fc" id="L278">				cos_sigma = sin_eta1 * sin_eta2 + cos_eta1 * cos_eta2</span>
+						* cos_lam_sph; /* v15 (Rapp 1.88) */
+<span class="fc" id="L280">				sigma = Math.atan2(sin_sigma, cos_sigma); /* (Rapp 1.89) */</span>
+
+<span class="pc bpc" id="L282" title="1 of 2 branches missed.">				if (PE_ABS(sin_sigma) &lt; eps) /* avoid division by 0 */</span>
+				{
+<span class="nc" id="L284">					sin_azeq = cos_eta1 * cos_eta2 * sin_lam_sph</span>
+<span class="nc" id="L285">							/ PE_SGN(eps, sin_sigma);</span>
+				} else {
+<span class="fc" id="L287">					sin_azeq = cos_eta1 * cos_eta2 * sin_lam_sph / sin_sigma;</span>
+					/* v17 (Rapp 1.90) */
+				}
+
+<span class="fc" id="L291">				cos2_azeq = 1.0 - sin_azeq * sin_azeq;</span>
+
+<span class="fc bfc" id="L293" title="All 2 branches covered.">				if (PE_ABS(cos2_azeq) &lt; eps) /* avoid division by 0 */</span>
+				{
+<span class="fc" id="L295">					costm = cos_sigma - 2.0</span>
+<span class="fc" id="L296">							* (sin_eta1 * sin_eta2 / PE_SGN(eps, cos2_azeq));</span>
+				} else {
+<span class="fc" id="L298">					costm = cos_sigma - 2.0 * (sin_eta1 * sin_eta2 / cos2_azeq);</span>
+					/* v18 (Rapp 1.91) */
+				}
+<span class="fc" id="L301">				costm2 = costm * costm;</span>
+<span class="fc" id="L302">				c = ((-3.0 * cos2_azeq + 4.0) * f + 4.0) * cos2_azeq * f / 16.0; /*</span>
+																				 * v10
+																				 * (
+																				 * Rapp
+																				 * 1.83
+																				 * )
+																				 */
+			}
+
+			/* entry point of the antipodal loop (kind = 2) */
+<span class="fc" id="L312">			d = (1.0 - c)</span>
+					* f
+					* (sigma + c * sin_sigma
+							* (costm + cos_sigma * c * (2.0 * costm2 - 1.0)));
+			/* v11 (Rapp 1.84) */
+
+<span class="fc bfc" id="L318" title="All 2 branches covered.">			if (kind == 1) {</span>
+<span class="fc" id="L319">				lam_sph = dlam + d * sin_azeq;</span>
+<span class="fc bfc" id="L320" title="All 2 branches covered.">				if (PE_ABS(lam_sph - test) &lt; tol) {</span>
+<span class="fc" id="L321">					q_continue_looping = false;</span>
+<span class="fc" id="L322">					continue;</span>
+				}
+
+<span class="fc bfc" id="L325" title="All 2 branches covered.">				if (PE_ABS(lam_sph) &gt; PE_PI) {</span>
+<span class="fc" id="L326">					kind = 2;</span>
+<span class="fc" id="L327">					lam_sph = PE_PI;</span>
+<span class="fc bfc" id="L328" title="All 2 branches covered.">					if (dlam &lt; 0.0) {</span>
+<span class="fc" id="L329">						lam_sph = -lam_sph;</span>
+					}
+<span class="fc" id="L331">					sin_azeq = 0.0;</span>
+<span class="fc" id="L332">					cos2_azeq = 1.0;</span>
+<span class="fc" id="L333">					test = 2.0;</span>
+<span class="fc" id="L334">					prev = test;</span>
+
+<span class="fc" id="L336">					sigma = PE_PI</span>
+<span class="fc" id="L337">							- PE_ABS(Math.atan(sin_eta1 / cos_eta1)</span>
+<span class="fc" id="L338">									+ Math.atan(sin_eta2 / cos_eta2));</span>
+<span class="fc" id="L339">					sin_sigma = Math.sin(sigma);</span>
+<span class="fc" id="L340">					cos_sigma = Math.cos(sigma);</span>
+<span class="fc" id="L341">					c = ((-3.0 * cos2_azeq + 4.0) * f + 4.0) * cos2_azeq * f</span>
+							/ 16.0; /* v10 (Rapp 1.83) */
+
+<span class="pc bpc" id="L344" title="1 of 2 branches missed.">					if (PE_ABS(sin_azeq - prev) &lt; tol) {</span>
+<span class="nc" id="L345">						q_continue_looping = false;</span>
+<span class="nc" id="L346">						continue;</span>
+					}
+<span class="pc bpc" id="L348" title="1 of 2 branches missed.">					if (PE_ABS(cos2_azeq) &lt; eps) /* avoid division by 0 */</span>
+					{
+<span class="nc" id="L350">						costm = cos_sigma</span>
+								- 2.0
+<span class="nc" id="L352">								* (sin_eta1 * sin_eta2 / PE_SGN(eps, cos2_azeq));</span>
+					} else {
+<span class="fc" id="L354">						costm = cos_sigma - 2.0</span>
+								* (sin_eta1 * sin_eta2 / cos2_azeq);
+						/* v18 (Rapp 1.91) */
+					}
+<span class="fc" id="L358">					costm2 = costm * costm;</span>
+<span class="fc" id="L359">					continue;</span>
+				}
+
+<span class="pc bpc" id="L362" title="3 of 4 branches missed.">				if (((lam_sph - test) * (test - prev)) &lt; 0.0 &amp;&amp; it &gt; 5) {</span>
+					/* refined converge */
+<span class="nc" id="L364">					lam_sph = (2.0 * lam_sph + 3.0 * test + prev) / 6.0;</span>
+				}
+<span class="fc" id="L366">				prev = test;</span>
+<span class="fc" id="L367">				test = lam_sph;</span>
+<span class="fc" id="L368">				continue;</span>
+			} else /* kind == 2 */
+			{
+<span class="fc" id="L371">				sin_azeq = (lam_sph - dlam) / d;</span>
+<span class="fc bfc" id="L372" title="All 4 branches covered.">				if (((sin_azeq - test) * (test - prev)) &lt; 0.0 &amp;&amp; it &gt; 5) {</span>
+					/* refined converge */
+<span class="fc" id="L374">					sin_azeq = (2.0 * sin_azeq + 3.0 * test + prev) / 6.0;</span>
+				}
+<span class="fc" id="L376">				prev = test;</span>
+<span class="fc" id="L377">				test = sin_azeq;</span>
+<span class="fc" id="L378">				cos2_azeq = 1.0 - sin_azeq * sin_azeq;</span>
+<span class="fc" id="L379">				sin_lam_sph = sin_azeq * sin_sigma / (cos_eta1 * cos_eta2);</span>
+<span class="fc" id="L380">				cos_lam_sph = -Math</span>
+<span class="fc" id="L381">						.sqrt(PE_ABS(1.0 - sin_lam_sph * sin_lam_sph));</span>
+<span class="fc" id="L382">				lam_sph = Math.atan2(sin_lam_sph, cos_lam_sph);</span>
+<span class="fc" id="L383">				tem1 = cos_eta2 * sin_lam_sph;</span>
+<span class="fc" id="L384">				temp = cos_eta1 * sin_eta2 - sin_eta1 * cos_eta2 * cos_lam_sph;</span>
+<span class="fc" id="L385">				sin_sigma = Math.sqrt(tem1 * tem1 + temp * temp);</span>
+<span class="fc" id="L386">				cos_sigma = sin_eta1 * sin_eta2 + cos_eta1 * cos_eta2</span>
+						* cos_lam_sph;
+<span class="fc" id="L388">				sigma = Math.atan2(sin_sigma, cos_sigma);</span>
+<span class="fc" id="L389">				c = ((-3.0 * cos2_azeq + 4.0) * f + 4.0) * cos2_azeq * f / 16.0; /*</span>
+																				 * v10
+																				 * (
+																				 * Rapp
+																				 * 1.83
+																				 * )
+																				 */
+<span class="fc bfc" id="L396" title="All 2 branches covered.">				if (PE_ABS(sin_azeq - prev) &lt; tol) {</span>
+<span class="fc" id="L397">					q_continue_looping = false;</span>
+<span class="fc" id="L398">					continue;</span>
+				}
+<span class="pc bpc" id="L400" title="1 of 2 branches missed.">				if (PE_ABS(cos2_azeq) &lt; eps) /* avoid division by 0 */</span>
+				{
+<span class="nc" id="L402">					costm = cos_sigma - 2.0</span>
+<span class="nc" id="L403">							* (sin_eta1 * sin_eta2 / PE_SGN(eps, cos2_azeq));</span>
+				} else {
+<span class="fc" id="L405">					costm = cos_sigma - 2.0 * (sin_eta1 * sin_eta2 / cos2_azeq);</span>
+					/* v18 (Rapp 1.91) */
+				}
+<span class="fc" id="L408">				costm2 = costm * costm;</span>
+<span class="fc" id="L409">				continue;</span>
+			}
+		} /* End of while q_continue_looping */
+
+		/* Convergence */
+
+<span class="pc bpc" id="L415" title="1 of 2 branches missed.">		if (p_dist != null) {</span>
+			/*
+			 * Helmert 1880 from Vincenty's
+			 * &quot;Geodetic inverse solution between antipodal points&quot;
+			 */
+
+<span class="fc" id="L421">			ep2 = 1.0 / (boa * boa) - 1.0;</span>
+<span class="fc" id="L422">			bige = Math.sqrt(1.0 + ep2 * cos2_azeq); /* 15 */</span>
+<span class="fc" id="L423">			bigf = (bige - 1.0) / (bige + 1.0); /* 16 */</span>
+<span class="fc" id="L424">			biga = (1.0 + bigf * bigf / 4.0) / (1.0 - bigf); /* 17 */</span>
+<span class="fc" id="L425">			bigb = bigf * (1.0 - 0.375 * bigf * bigf); /* 18 */</span>
+<span class="fc" id="L426">			z = bigb / 6.0 * costm * (-3.0 + 4.0 * sin_sigma * sin_sigma)</span>
+					* (-3.0 + 4.0 * costm2);
+<span class="fc" id="L428">			dsigma = bigb</span>
+					* sin_sigma
+					* (costm + bigb / 4.0
+							* (cos_sigma * (-1.0 + 2.0 * costm2) - z)); /* 19 */
+<span class="fc" id="L432">			dist = (boa * a) * biga * (sigma - dsigma); /* 20 */</span>
+
+<span class="fc" id="L434">			p_dist.val = dist;</span>
+		}
+
+<span class="pc bpc" id="L437" title="2 of 4 branches missed.">		if (p_az12 != null || p_az21 != null) {</span>
+<span class="nc bnc" id="L438" title="All 2 branches missed.">			if (kind == 2) /* antipodal */</span>
+			{
+<span class="nc" id="L440">				az12 = sin_azeq / cos_eta1;</span>
+<span class="nc" id="L441">				az21 = Math.sqrt(1.0 - az12 * az12);</span>
+<span class="nc bnc" id="L442" title="All 2 branches missed.">				if (temp &lt; 0.0) {</span>
+<span class="nc" id="L443">					az21 = -az21;</span>
+				}
+<span class="nc" id="L445">				az12 = Math.atan2(az12, az21);</span>
+<span class="nc" id="L446">				tem1 = -sin_azeq;</span>
+<span class="nc" id="L447">				tem2 = sin_eta1 * sin_sigma - cos_eta1 * cos_sigma * az21;</span>
+<span class="nc" id="L448">				az21 = Math.atan2(tem1, tem2);</span>
+			} else /* long-line */
+			{
+<span class="nc" id="L451">				tem1 = cos_eta2 * sin_lam_sph;</span>
+<span class="nc" id="L452">				tem2 = cos_eta1 * sin_eta2 - sin_eta1 * cos_eta2 * cos_lam_sph;</span>
+<span class="nc" id="L453">				az12 = Math.atan2(tem1, tem2);</span>
+<span class="nc" id="L454">				tem1 = -cos_eta1 * sin_lam_sph;</span>
+<span class="nc" id="L455">				tem2 = sin_eta1 * cos_eta2 - cos_eta1 * sin_eta2 * cos_lam_sph;</span>
+<span class="nc" id="L456">				az21 = Math.atan2(tem1, tem2);</span>
+			}
+
+<span class="nc bnc" id="L459" title="All 2 branches missed.">			if (p_az12 != null) {</span>
+<span class="nc" id="L460">				p_az12.val = lam_delta(az12);</span>
+			}
+<span class="nc bnc" id="L462" title="All 2 branches missed.">			if (p_az21 != null) {</span>
+<span class="nc" id="L463">				p_az21.val = lam_delta(az21);</span>
+			}
+		}
+<span class="fc" id="L466">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

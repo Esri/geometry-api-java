@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Operator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Operator.java</span></div><h1>Operator.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2017 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+import com.esri.core.geometry.Geometry.GeometryAccelerationDegree;
+
+/**
+ * The base class for Geometry Operators.
+ */
+<span class="fc" id="L31">public abstract class Operator {</span>
+	/**
+	 * The operator type enum.
+	 */
+<span class="fc" id="L35">	public enum Type {</span>
+<span class="fc" id="L36">		Project,</span>
+
+<span class="fc" id="L38">		ExportToJson, ImportFromJson,</span>
+<span class="fc" id="L39">		ExportToESRIShape, ImportFromESRIShape,</span>
+
+<span class="fc" id="L41">		Union, Difference,</span>
+
+<span class="fc" id="L43">		Proximity2D, Centroid2D,</span>
+
+<span class="fc" id="L45">		Relate, Equals, Disjoint, Intersects, Within, Contains, Crosses, Touches, Overlaps,</span>
+
+<span class="fc" id="L47">		Buffer, Distance, Intersection, Clip, Cut, DensifyByLength,</span>
+<span class="fc" id="L48">		DensifyByAngle, LabelPoint,</span>
+
+<span class="fc" id="L50">		GeodesicBuffer, GeodeticDensifyByLength, ShapePreservingDensify, GeodeticLength, GeodeticArea,</span>
+
+<span class="fc" id="L52">		Simplify, SimplifyOGC, Offset, Generalize,</span>
+
+<span class="fc" id="L54">		ExportToWkb, ImportFromWkb, ExportToWkt, ImportFromWkt, ImportFromGeoJson, ExportToGeoJson, SymmetricDifference, ConvexHull, Boundary</span>
+
+	}
+
+	public abstract Type getType();
+
+	/**
+	 * Processes Geometry to accelerate operations on it. The Geometry and it's
+	 * copies remain accelerated until modified. The acceleration of Geometry
+	 * can be a time consuming operation. The accelerated geometry also takes
+	 * more memory. Some operators share the same accelerator, some require
+	 * a different one. If the accelerator is built for the given parameters,
+	 * the method returns immediately.
+	 * 
+	 * @param geometry
+	 *            The geometry to be accelerated
+	 * @param spatialReference
+	 *            The spatial reference of that geometry
+	 * @param accelDegree The acceleration degree for geometry.
+	 */
+	public boolean accelerateGeometry(Geometry geometry,
+			SpatialReference spatialReference,
+			GeometryAccelerationDegree accelDegree) {
+		// Override at specific Operator level
+<span class="nc" id="L78">		return false;</span>
+	}
+
+	/**
+	 * Returns true if the geometry can be accelerated.
+	 * 
+	 * @param geometry
+	 * @return true for geometries that can be accelerated, false for geometries
+	 *         that cannot
+	 */
+	public boolean canAccelerateGeometry(Geometry geometry) {
+		// Override at specific Operator level
+<span class="nc" id="L90">		return false;</span>
+	}
+
+	/**
+	 * Removes accelerators from given geometry.
+	 * @param geometry The geometry instance to remove accelerators from.
+	 */
+	public static void deaccelerateGeometry(Geometry geometry) {
+<span class="nc" id="L98">		Geometry.Type gt = geometry.getType();</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">		if (Geometry.isMultiVertex(gt.value()))</span>
+		{
+<span class="nc" id="L101">			GeometryAccelerators accel = ((MultiVertexGeometryImpl) geometry</span>
+<span class="nc" id="L102">					._getImpl())._getAccelerators();</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">			if (accel != null){</span>
+<span class="nc" id="L104">				accel._setRasterizedGeometry(null);</span>
+<span class="nc" id="L105">				accel._setQuadTree(null);</span>
+			}
+		}
+<span class="nc" id="L108">	}</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

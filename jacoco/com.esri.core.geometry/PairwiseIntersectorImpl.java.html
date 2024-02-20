@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PairwiseIntersectorImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">PairwiseIntersectorImpl.java</span></div><h1>PairwiseIntersectorImpl.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+class PairwiseIntersectorImpl {
+    // Quad_tree
+    private MultiPathImpl m_multi_path_impl_a;
+    private MultiPathImpl m_multi_path_impl_b;
+    private boolean m_b_paths;
+    private boolean m_b_quad_tree;
+    private boolean m_b_done;
+    private boolean m_b_swap_elements;
+    private double m_tolerance;
+    private int m_path_index;
+    private int m_element_handle;
+<span class="fc" id="L37">    private Envelope2D m_paths_query = new Envelope2D(); // only used for m_b_paths == true case</span>
+    private QuadTreeImpl m_quad_tree;
+    private QuadTreeImpl.QuadTreeIteratorImpl m_qt_iter;
+    private SegmentIteratorImpl m_seg_iter;
+
+    // Envelope_2D_intersector
+    private Envelope2DIntersectorImpl m_intersector;
+
+    private int m_function;
+
+    private interface State {
+        static final int nextPath = 0;
+        static final int nextSegment = 1;
+        static final int iterate = 2;
+    }
+
+<span class="fc" id="L53">    PairwiseIntersectorImpl(MultiPathImpl multi_path_impl_a, MultiPathImpl multi_path_impl_b, double tolerance, boolean b_paths) {</span>
+<span class="fc" id="L54">        m_multi_path_impl_a = multi_path_impl_a;</span>
+<span class="fc" id="L55">        m_multi_path_impl_b = multi_path_impl_b;</span>
+
+<span class="fc" id="L57">        m_b_paths = b_paths;</span>
+<span class="fc" id="L58">        m_path_index = -1;</span>
+
+<span class="fc" id="L60">        m_b_quad_tree = false;</span>
+
+<span class="fc" id="L62">        GeometryAccelerators geometry_accelerators_a = multi_path_impl_a._getAccelerators();</span>
+
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (geometry_accelerators_a != null) {</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">            QuadTreeImpl qtree_a = (!b_paths ? geometry_accelerators_a.getQuadTree() : geometry_accelerators_a.getQuadTreeForPaths());</span>
+
+<span class="pc bpc" id="L67" title="1 of 2 branches missed.">            if (qtree_a != null) {</span>
+<span class="fc" id="L68">                m_b_done = false;</span>
+<span class="fc" id="L69">                m_tolerance = tolerance;</span>
+<span class="fc" id="L70">                m_quad_tree = qtree_a;</span>
+<span class="fc" id="L71">                m_qt_iter = m_quad_tree.getIterator();</span>
+<span class="fc" id="L72">                m_b_quad_tree = true;</span>
+<span class="fc" id="L73">                m_b_swap_elements = true;</span>
+<span class="fc" id="L74">                m_function = State.nextPath;</span>
+
+<span class="fc bfc" id="L76" title="All 2 branches covered.">                if (!b_paths)</span>
+<span class="fc" id="L77">                    m_seg_iter = multi_path_impl_b.querySegmentIterator();</span>
+                else
+<span class="fc" id="L79">                    m_path_index = multi_path_impl_b.getPathCount(); // we will iterate backwards until we hit -1</span>
+            }
+        }
+
+<span class="fc bfc" id="L83" title="All 2 branches covered.">        if (!m_b_quad_tree) {</span>
+<span class="fc" id="L84">            GeometryAccelerators geometry_accelerators_b = multi_path_impl_b._getAccelerators();</span>
+
+<span class="fc bfc" id="L86" title="All 2 branches covered.">            if (geometry_accelerators_b != null) {</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">                QuadTreeImpl qtree_b = (!b_paths ? geometry_accelerators_b.getQuadTree() : geometry_accelerators_b.getQuadTreeForPaths());</span>
+
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">                if (qtree_b != null) {</span>
+<span class="nc" id="L90">                    m_b_done = false;</span>
+<span class="nc" id="L91">                    m_tolerance = tolerance;</span>
+<span class="nc" id="L92">                    m_quad_tree = qtree_b;</span>
+<span class="nc" id="L93">                    m_qt_iter = m_quad_tree.getIterator();</span>
+<span class="nc" id="L94">                    m_b_quad_tree = true;</span>
+<span class="nc" id="L95">                    m_b_swap_elements = false;</span>
+<span class="nc" id="L96">                    m_function = State.nextPath;</span>
+
+<span class="nc bnc" id="L98" title="All 2 branches missed.">                    if (!b_paths)</span>
+<span class="nc" id="L99">                        m_seg_iter = multi_path_impl_a.querySegmentIterator();</span>
+                    else
+<span class="nc" id="L101">                        m_path_index = multi_path_impl_a.getPathCount(); // we will iterate backwards until we hit -1</span>
+                }
+            }
+        }
+
+<span class="fc bfc" id="L106" title="All 2 branches covered.">        if (!m_b_quad_tree) {</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">            if (!b_paths) {</span>
+<span class="fc" id="L108">                m_intersector = InternalUtils.getEnvelope2DIntersector(multi_path_impl_a, multi_path_impl_b, tolerance);</span>
+            } else {
+<span class="fc bfc" id="L110" title="All 2 branches covered.">                boolean b_simple_a = multi_path_impl_a.getIsSimple(0.0) &gt;= 1;</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">                boolean b_simple_b = multi_path_impl_b.getIsSimple(0.0) &gt;= 1;</span>
+<span class="fc" id="L112">                m_intersector = InternalUtils.getEnvelope2DIntersectorForParts(multi_path_impl_a, multi_path_impl_b, tolerance, b_simple_a, b_simple_b);</span>
+            }
+        }
+<span class="fc" id="L115">    }</span>
+
+    boolean next() {
+<span class="fc bfc" id="L118" title="All 2 branches covered.">        if (m_b_quad_tree) {</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">            if (m_b_done)</span>
+<span class="nc" id="L120">                return false;</span>
+
+<span class="fc" id="L122">            boolean b_searching = true;</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">            while (b_searching) {</span>
+<span class="pc bpc" id="L124" title="1 of 4 branches missed.">                switch (m_function) {</span>
+                    case State.nextPath:
+<span class="fc" id="L126">                        b_searching = nextPath_();</span>
+<span class="fc" id="L127">                        break;</span>
+                    case State.nextSegment:
+<span class="fc" id="L129">                        b_searching = nextSegment_();</span>
+<span class="fc" id="L130">                        break;</span>
+                    case State.iterate:
+<span class="fc" id="L132">                        b_searching = iterate_();</span>
+<span class="fc" id="L133">                        break;</span>
+                    default:
+<span class="nc" id="L135">                        throw GeometryException.GeometryInternalError();</span>
+                }
+            }
+
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">            if (m_b_done)</span>
+<span class="nc" id="L140">                return false;</span>
+
+<span class="fc" id="L142">            return true;</span>
+        }
+
+<span class="fc bfc" id="L145" title="All 2 branches covered.">        if (m_intersector == null)</span>
+<span class="fc" id="L146">            return false;</span>
+
+<span class="fc" id="L148">        return m_intersector.next();</span>
+    }
+
+    int getRedElement() {
+<span class="fc bfc" id="L152" title="All 2 branches covered.">        if (m_b_quad_tree) {</span>
+<span class="pc bpc" id="L153" title="1 of 2 branches missed.">            if (!m_b_swap_elements)</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">                return (!m_b_paths ? m_seg_iter.getStartPointIndex() : m_path_index);</span>
+
+<span class="fc" id="L156">            return m_quad_tree.getElement(m_element_handle);</span>
+        }
+
+<span class="fc" id="L159">        return m_intersector.getRedElement(m_intersector.getHandleA());</span>
+    }
+
+    int getBlueElement() {
+<span class="fc bfc" id="L163" title="All 2 branches covered.">        if (m_b_quad_tree) {</span>
+<span class="pc bpc" id="L164" title="1 of 2 branches missed.">            if (m_b_swap_elements)</span>
+<span class="pc bpc" id="L165" title="1 of 2 branches missed.">                return (!m_b_paths ? m_seg_iter.getStartPointIndex() : m_path_index);</span>
+
+<span class="nc" id="L167">            return m_quad_tree.getElement(m_element_handle);</span>
+        }
+
+<span class="fc" id="L170">        return m_intersector.getBlueElement(m_intersector.getHandleB());</span>
+    }
+
+    Envelope2D getRedEnvelope() {
+<span class="pc bpc" id="L174" title="1 of 2 branches missed.">        if (!m_b_paths)</span>
+<span class="nc" id="L175">            throw GeometryException.GeometryInternalError();</span>
+
+<span class="pc bpc" id="L177" title="1 of 2 branches missed.">        if (m_b_quad_tree) {</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">            if (!m_b_swap_elements)</span>
+<span class="nc" id="L179">                return m_paths_query;</span>
+
+<span class="nc" id="L181">            return m_quad_tree.getElementExtent(m_element_handle);</span>
+        }
+
+<span class="fc" id="L184">        return m_intersector.getRedEnvelope(m_intersector.getHandleA());</span>
+    }
+
+    Envelope2D getBlueEnvelope() {
+<span class="pc bpc" id="L188" title="1 of 2 branches missed.">        if (!m_b_paths)</span>
+<span class="nc" id="L189">            throw GeometryException.GeometryInternalError();</span>
+
+<span class="pc bpc" id="L191" title="1 of 2 branches missed.">        if (m_b_quad_tree) {</span>
+<span class="nc bnc" id="L192" title="All 2 branches missed.">            if (m_b_swap_elements)</span>
+<span class="nc" id="L193">                return m_paths_query;</span>
+
+<span class="nc" id="L195">            return m_quad_tree.getElementExtent(m_element_handle);</span>
+        }
+
+<span class="fc" id="L198">        return m_intersector.getBlueEnvelope(m_intersector.getHandleB());</span>
+    }
+
+    boolean nextPath_() {
+<span class="fc bfc" id="L202" title="All 2 branches covered.">        if (!m_b_paths) {</span>
+<span class="pc bpc" id="L203" title="1 of 2 branches missed.">            if (!m_seg_iter.nextPath()) {</span>
+<span class="nc" id="L204">                m_b_done = true;</span>
+<span class="nc" id="L205">                return false;</span>
+            }
+
+<span class="fc" id="L208">            m_function = State.nextSegment;</span>
+<span class="fc" id="L209">            return true;</span>
+        }
+
+<span class="pc bpc" id="L212" title="1 of 2 branches missed.">        if (--m_path_index == -1) {</span>
+<span class="nc" id="L213">            m_b_done = true;</span>
+<span class="nc" id="L214">            return false;</span>
+        }
+
+<span class="pc bpc" id="L217" title="1 of 2 branches missed.">        if (m_b_swap_elements)</span>
+<span class="fc" id="L218">            m_multi_path_impl_b.queryPathEnvelope2D(m_path_index, m_paths_query);</span>
+        else
+<span class="nc" id="L220">            m_multi_path_impl_a.queryPathEnvelope2D(m_path_index, m_paths_query);</span>
+
+<span class="fc" id="L222">        m_qt_iter.resetIterator(m_paths_query, m_tolerance);</span>
+<span class="fc" id="L223">        m_function = State.iterate;</span>
+<span class="fc" id="L224">        return true;</span>
+    }
+
+    boolean nextSegment_() {
+<span class="pc bpc" id="L228" title="1 of 2 branches missed.">        if (!m_seg_iter.hasNextSegment()) {</span>
+<span class="nc" id="L229">            m_function = State.nextPath;</span>
+<span class="nc" id="L230">            return true;</span>
+        }
+
+<span class="fc" id="L233">        Segment segment = m_seg_iter.nextSegment();</span>
+<span class="fc" id="L234">        m_qt_iter.resetIterator(segment, m_tolerance);</span>
+<span class="fc" id="L235">        m_function = State.iterate;</span>
+<span class="fc" id="L236">        return true;</span>
+    }
+
+    boolean iterate_() {
+<span class="fc" id="L240">        m_element_handle = m_qt_iter.next();</span>
+
+<span class="pc bpc" id="L242" title="1 of 2 branches missed.">        if (m_element_handle == -1) {</span>
+<span class="nc bnc" id="L243" title="All 2 branches missed.">            m_function = (!m_b_paths ? State.nextSegment : State.nextPath);</span>
+<span class="nc" id="L244">            return true;</span>
+        }
+
+<span class="fc" id="L247">        return false;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

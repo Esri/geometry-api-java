@@ -1,0 +1,1532 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PlaneSweepCrackerHelper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">PlaneSweepCrackerHelper.java</span></div><h1>PlaneSweepCrackerHelper.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package com.esri.core.geometry;
+
+<span class="fc" id="L30">final class PlaneSweepCrackerHelper {</span>
+<span class="fc" id="L31">	PlaneSweepCrackerHelper() {</span>
+<span class="fc" id="L32">		m_edges = new StridedIndexTypeCollection(8);</span>
+<span class="fc" id="L33">		m_clusters = new StridedIndexTypeCollection(5);</span>
+<span class="fc" id="L34">		m_cluster_vertices = new IndexMultiList();</span>
+<span class="fc" id="L35">		m_edge_vertices = new IndexMultiList();</span>
+<span class="fc" id="L36">		m_complications = false;</span>
+<span class="fc" id="L37">		m_sweep_point = new Point2D();</span>
+<span class="fc" id="L38">		m_sweep_point.setCoords(0, 0);</span>
+<span class="fc" id="L39">		m_tolerance = 0;</span>
+<span class="fc" id="L40">		m_vertex_cluster_index = -1;</span>
+<span class="fc" id="L41">		m_b_cracked = false;</span>
+<span class="fc" id="L42">		m_shape = null;</span>
+
+<span class="fc" id="L44">		m_event_q = new Treap();</span>
+<span class="fc" id="L45">		m_sweep_structure = new Treap();</span>
+<span class="fc" id="L46">		m_edges_to_insert_in_sweep_structure = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L47">		m_segment_intersector = new SegmentIntersector();</span>
+<span class="fc" id="L48">		m_temp_edge_buffer = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L49">		m_modified_clusters = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L50">		m_helper_point = new Point();</span>
+<span class="fc" id="L51">	}</span>
+
+	// For use in Cluster/Cracker loop
+	boolean sweep(EditShape shape, double tolerance) {
+<span class="fc" id="L55">		Transformation2D transform = new Transformation2D();</span>
+<span class="fc" id="L56">		transform.setSwapCoordinates();</span>
+<span class="fc" id="L57">		shape.applyTransformation(transform);// swap coordinates for the sweep</span>
+												// along x
+<span class="fc" id="L59">		setEditShape_(shape);</span>
+<span class="fc" id="L60">		m_b_cracked = false;</span>
+<span class="fc" id="L61">		m_tolerance = tolerance;</span>
+<span class="fc" id="L62">		m_tolerance_sqr = tolerance * tolerance;</span>
+
+<span class="fc" id="L64">		boolean b_cracked = sweepImpl_();</span>
+<span class="fc" id="L65">		shape.applyTransformation(transform);</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">		if (!b_cracked) {</span>
+<span class="fc" id="L67">			fillEventQueuePass2();</span>
+<span class="fc" id="L68">			b_cracked |= sweepImpl_();</span>
+		}
+		
+<span class="pc bpc" id="L71" title="1 of 2 branches missed.">		if (m_vertex_cluster_index != -1) {</span>
+<span class="fc" id="L72">			m_shape.removeUserIndex(m_vertex_cluster_index);</span>
+<span class="fc" id="L73">			m_vertex_cluster_index = -1;</span>
+		}
+		
+<span class="fc" id="L76">		m_shape = null;</span>
+<span class="fc" id="L77">		return m_b_cracked;</span>
+	}
+
+	// Does one pass sweep vertically
+	boolean sweepVertical(EditShape shape, double tolerance) {
+<span class="fc" id="L82">		setEditShape_(shape);</span>
+<span class="fc" id="L83">		m_b_cracked = false;</span>
+<span class="fc" id="L84">		m_tolerance = tolerance;</span>
+<span class="fc" id="L85">		m_tolerance_sqr = tolerance * tolerance;</span>
+<span class="fc" id="L86">		m_complications = false;</span>
+<span class="fc" id="L87">		boolean bresult = sweepImpl_();</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">		if (!m_complications) {</span>
+<span class="fc" id="L89">			int filtered = shape.filterClosePoints(tolerance, true, false);</span>
+<span class="pc bpc" id="L90" title="1 of 2 branches missed.">			m_complications = filtered == 1;</span>
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">			bresult |= filtered == 1;</span>
+		}
+		
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">		if (m_vertex_cluster_index != -1) {</span>
+<span class="fc" id="L95">			m_shape.removeUserIndex(m_vertex_cluster_index);</span>
+<span class="fc" id="L96">			m_vertex_cluster_index = -1;</span>
+		}
+		
+<span class="fc" id="L99">		m_shape = null;</span>
+<span class="fc" id="L100">		return bresult;</span>
+	}
+
+	boolean hadCompications() {
+<span class="fc" id="L104">		return m_complications;</span>
+	}
+
+	private EditShape m_shape;
+	private StridedIndexTypeCollection m_edges;
+	private StridedIndexTypeCollection m_clusters;
+	private IndexMultiList m_cluster_vertices;
+	private IndexMultiList m_edge_vertices;
+	private Point m_helper_point;
+
+	private Treap m_event_q;
+	private Treap m_sweep_structure;
+
+	boolean m_complications;
+
+<span class="fc" id="L119">	static final class SimplifySweepComparator extends SweepComparator {</span>
+		PlaneSweepCrackerHelper m_parent;
+
+		SimplifySweepComparator(PlaneSweepCrackerHelper parent) {
+<span class="fc" id="L123">			super(parent.m_shape, parent.m_tolerance, false);</span>
+<span class="fc" id="L124">			m_parent = parent;</span>
+<span class="fc" id="L125">		}</span>
+
+		@Override
+		int compare(Treap treap, int elm, int node) {
+			// Compares two segments on a sweep line passing through m_sweep_y,
+			// m_sweep_x.
+<span class="fc bfc" id="L131" title="All 2 branches covered.">			if (m_b_intersection_detected)</span>
+<span class="fc" id="L132">				return -1;</span>
+
+<span class="fc" id="L134">			int vertex_list_left = m_parent.getEdgeOriginVertices(elm);</span>
+<span class="fc" id="L135">			int left = m_parent.m_edge_vertices</span>
+<span class="fc" id="L136">					.getFirstElement(vertex_list_left);</span>
+
+<span class="fc" id="L138">			int right_elm = treap.getElement(node);</span>
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">			assert (m_parent.getEdgeSweepNode(right_elm) == node);</span>
+<span class="fc" id="L140">			int vertex_list_right = m_parent.getEdgeOriginVertices(right_elm);</span>
+<span class="fc" id="L141">			int right = m_parent.m_edge_vertices</span>
+<span class="fc" id="L142">					.getFirstElement(vertex_list_right);</span>
+
+<span class="fc" id="L144">			m_current_node = node;</span>
+<span class="fc" id="L145">			return compareSegments(elm, left, right_elm, right);</span>
+		}
+	};
+
+	static final class SimplifySweepMonikerComparator extends
+			SweepMonkierComparator {
+		PlaneSweepCrackerHelper m_parent;
+
+		SimplifySweepMonikerComparator(PlaneSweepCrackerHelper parent) {
+<span class="fc" id="L154">			super(parent.m_shape, parent.m_tolerance);</span>
+<span class="fc" id="L155">			m_parent = parent;</span>
+<span class="fc" id="L156">		}</span>
+
+		@Override
+		int compare(Treap treap, int node) {
+			// Compares two segments on a sweep line passing through m_sweep_y,
+			// m_sweep_x.
+<span class="pc bpc" id="L162" title="1 of 2 branches missed.">			if (m_b_intersection_detected)</span>
+<span class="nc" id="L163">				return -1;</span>
+
+<span class="fc" id="L165">			int elm = treap.getElement(node);</span>
+<span class="fc" id="L166">			int vertexList = m_parent.getEdgeOriginVertices(elm);</span>
+<span class="fc" id="L167">			int vertex = m_parent.m_edge_vertices.getFirstElement(vertexList);</span>
+
+<span class="fc" id="L169">			m_current_node = node;</span>
+<span class="fc" id="L170">			return compareVertex_(treap, node, vertex);</span>
+		}
+	};
+
+	SimplifySweepComparator m_sweep_comparator;
+
+	AttributeStreamOfInt32 m_temp_edge_buffer;
+	AttributeStreamOfInt32 m_modified_clusters;
+	AttributeStreamOfInt32 m_edges_to_insert_in_sweep_structure;
+
+	int m_prev_neighbour;
+	int m_next_neighbour;
+	boolean m_b_continuing_segment_chain_optimization;// set to true, when the
+														// cluster has two edges
+														// attached, one is
+														// below and another
+														// above the sweep line
+
+	SegmentIntersector m_segment_intersector;
+
+	Line m_line_1;
+	Line m_line_2;
+
+	Point2D m_sweep_point;
+	double m_tolerance;
+	double m_tolerance_sqr;
+
+	int m_sweep_point_cluster;
+	int m_vertex_cluster_index;
+
+	boolean m_b_cracked;
+	boolean m_b_sweep_point_cluster_was_modified;// set to true if the
+													// coordinates of the
+													// cluster, where the sweep
+													// line was, has been
+													// changed.
+
+	int getEdgeCluster(int edge, int end) {
+<span class="pc bpc" id="L208" title="1 of 4 branches missed.">		assert (end == 0 || end == 1);</span>
+<span class="fc" id="L209">		return m_edges.getField(edge, 0 + end);</span>
+	}
+
+	void setEdgeCluster_(int edge, int end, int cluster) {
+<span class="pc bpc" id="L213" title="1 of 4 branches missed.">		assert (end == 0 || end == 1);</span>
+<span class="fc" id="L214">		m_edges.setField(edge, 0 + end, cluster);</span>
+<span class="fc" id="L215">	}</span>
+
+	// Edge may have several origin vertices, when there are two or more equal
+	// segements in that edge
+	// We have to store edge origin separately from the cluster vertices,
+	// because cluster can have several different edges started on it.
+	int getEdgeOriginVertices(int edge) {
+<span class="fc" id="L222">		return m_edges.getField(edge, 2);</span>
+	}
+
+	void setEdgeOriginVertices_(int edge, int vertices) {
+<span class="fc" id="L226">		m_edges.setField(edge, 2, vertices);</span>
+<span class="fc" id="L227">	}</span>
+
+	int getNextEdgeEx(int edge, int end) {
+<span class="pc bpc" id="L230" title="1 of 4 branches missed.">		assert (end == 0 || end == 1);</span>
+<span class="fc" id="L231">		return m_edges.getField(edge, 3 + end);</span>
+	}
+
+	void setNextEdgeEx_(int edge, int end, int next_edge) {
+<span class="nc bnc" id="L235" title="All 4 branches missed.">		assert (end == 0 || end == 1);</span>
+<span class="nc" id="L236">		m_edges.setField(edge, 3 + end, next_edge);</span>
+<span class="nc" id="L237">	}</span>
+
+	// int get_prev_edge_ex(int edge, int end)
+	// {
+	// assert(end == 0 || end == 1);
+	// return m_edges.get_field(edge, 5 + end);
+	// }
+	// void set_prev_edge_ex_(int edge, int end, int prevEdge)
+	// {
+	// assert(end == 0 || end == 1);
+	// m_edges.set_field(edge, 5 + end, prevEdge);
+	// }
+
+	int getEdgeSweepNode(int edge) {
+<span class="fc" id="L251">		return m_edges.getField(edge, 7);</span>
+	}
+
+	void setEdgeSweepNode_(int edge, int sweepNode) {
+<span class="fc" id="L255">		m_edges.setField(edge, 7, sweepNode);</span>
+<span class="fc" id="L256">	}</span>
+
+	int getNextEdge(int edge, int cluster) {
+<span class="fc" id="L259">		int end = getEdgeEnd(edge, cluster);</span>
+<span class="pc bpc" id="L260" title="1 of 4 branches missed.">		assert (end == 0 || end == 1);</span>
+<span class="fc" id="L261">		return m_edges.getField(edge, 3 + end);</span>
+	}
+
+	void setNextEdge_(int edge, int cluster, int next_edge) {
+<span class="fc" id="L265">		int end = getEdgeEnd(edge, cluster);</span>
+<span class="pc bpc" id="L266" title="1 of 4 branches missed.">		assert (end == 0 || end == 1);</span>
+<span class="fc" id="L267">		m_edges.setField(edge, 3 + end, next_edge);</span>
+<span class="fc" id="L268">	}</span>
+
+	int getPrevEdge(int edge, int cluster) {
+<span class="fc" id="L271">		int end = getEdgeEnd(edge, cluster);</span>
+<span class="pc bpc" id="L272" title="1 of 4 branches missed.">		assert (end == 0 || end == 1);</span>
+<span class="fc" id="L273">		return m_edges.getField(edge, 5 + end);</span>
+	}
+
+	void setPrevEdge_(int edge, int cluster, int prevEdge) {
+<span class="fc" id="L277">		int end = getEdgeEnd(edge, cluster);</span>
+<span class="pc bpc" id="L278" title="1 of 4 branches missed.">		assert (end == 0 || end == 1);</span>
+<span class="fc" id="L279">		m_edges.setField(edge, 5 + end, prevEdge);</span>
+<span class="fc" id="L280">	}</span>
+
+	int getClusterVertices(int cluster) {
+<span class="fc" id="L283">		return m_clusters.getField(cluster, 0);</span>
+	}
+
+	void setClusterVertices_(int cluster, int vertices) {
+<span class="fc" id="L287">		m_clusters.setField(cluster, 0, vertices);</span>
+<span class="fc" id="L288">	}</span>
+
+	int getClusterVertexIndex(int cluster) {
+<span class="fc" id="L291">		return m_clusters.getField(cluster, 4);</span>
+	}
+
+	void setClusterVertexIndex_(int cluster, int vindex) {
+<span class="fc" id="L295">		m_clusters.setField(cluster, 4, vindex);</span>
+<span class="fc" id="L296">	}</span>
+
+	int getClusterSweepEdgeList(int cluster) {
+<span class="nc" id="L299">		return m_clusters.getField(cluster, 2);</span>
+	}
+
+	void setClusterSweepEdgeList_(int cluster, int sweep_edges) {
+<span class="nc" id="L303">		m_clusters.setField(cluster, 2, sweep_edges);</span>
+<span class="nc" id="L304">	}</span>
+
+	int getClusterFirstEdge(int cluster) {
+<span class="fc" id="L307">		return m_clusters.getField(cluster, 1);</span>
+	}
+
+	void setClusterFirstEdge_(int cluster, int first_edge) {
+<span class="fc" id="L311">		m_clusters.setField(cluster, 1, first_edge);</span>
+<span class="fc" id="L312">	}</span>
+
+	int getClusterEventQNode(int cluster) {
+<span class="fc" id="L315">		return m_clusters.getField(cluster, 3);</span>
+	}
+
+	void setClusterEventQNode_(int cluster, int node) {
+<span class="fc" id="L319">		m_clusters.setField(cluster, 3, node);</span>
+<span class="fc" id="L320">	}</span>
+
+	int newCluster_(int vertex) {
+<span class="fc" id="L323">		int cluster = m_clusters.newElement();</span>
+<span class="fc" id="L324">		int vertexList = m_cluster_vertices.createList();</span>
+<span class="fc" id="L325">		setClusterVertices_(cluster, vertexList);</span>
+<span class="fc bfc" id="L326" title="All 2 branches covered.">		if (vertex != -1) {</span>
+<span class="fc" id="L327">			m_cluster_vertices.addElement(vertexList, vertex);</span>
+<span class="pc bpc" id="L328" title="1 of 2 branches missed.">			assert (m_shape.getUserIndex(vertex, m_vertex_cluster_index) == -1);</span>
+<span class="fc" id="L329">			m_shape.setUserIndex(vertex, m_vertex_cluster_index, cluster);</span>
+<span class="fc" id="L330">			setClusterVertexIndex_(cluster, m_shape.getVertexIndex(vertex));</span>
+		} else {
+<span class="fc" id="L332">			setClusterVertexIndex_(cluster, -1);</span>
+		}
+
+<span class="fc" id="L335">		return cluster;</span>
+	}
+
+	void deleteCluster_(int cluster) {
+<span class="fc" id="L339">		m_clusters.deleteElement(cluster);</span>
+<span class="fc" id="L340">	}</span>
+
+	void addVertexToCluster_(int cluster, int vertex) {
+<span class="pc bpc" id="L343" title="1 of 2 branches missed.">		assert (m_shape.getUserIndex(vertex, m_vertex_cluster_index) == -1);</span>
+<span class="fc" id="L344">		int vertexList = getClusterVertices(cluster);</span>
+<span class="fc" id="L345">		m_cluster_vertices.addElement(vertexList, vertex);</span>
+<span class="fc" id="L346">		m_shape.setUserIndex(vertex, m_vertex_cluster_index, cluster);</span>
+<span class="fc" id="L347">	}</span>
+
+	// Creates a new unattached edge with the given origin.
+	int newEdge_(int origin_vertex) {
+<span class="fc" id="L351">		int edge = m_edges.newElement();</span>
+<span class="fc" id="L352">		int edgeVertices = m_edge_vertices.createList();</span>
+<span class="fc" id="L353">		setEdgeOriginVertices_(edge, edgeVertices);</span>
+<span class="fc bfc" id="L354" title="All 2 branches covered.">		if (origin_vertex != -1)</span>
+<span class="fc" id="L355">			m_edge_vertices.addElement(edgeVertices, origin_vertex);</span>
+
+<span class="fc" id="L357">		return edge;</span>
+	}
+
+	void addVertexToEdge_(int edge, int vertex) {
+<span class="fc" id="L361">		int vertexList = getEdgeOriginVertices(edge);</span>
+<span class="fc" id="L362">		m_edge_vertices.addElement(vertexList, vertex);</span>
+<span class="fc" id="L363">	}</span>
+
+	void deleteEdge_(int edge) {
+<span class="fc" id="L366">		m_edges.deleteElement(edge);</span>
+<span class="fc" id="L367">		int ind = m_edges_to_insert_in_sweep_structure.findElement(edge);</span>
+<span class="pc bpc" id="L368" title="1 of 2 branches missed.">		if (ind &gt;= 0)</span>
+<span class="nc" id="L369">			m_edges_to_insert_in_sweep_structure.popElement(ind);</span>
+<span class="fc" id="L370">	}</span>
+
+	void addEdgeToCluster(int edge, int cluster) {
+<span class="fc bfc" id="L373" title="All 2 branches covered.">		if (getEdgeCluster(edge, 0) == -1) {</span>
+<span class="pc bpc" id="L374" title="1 of 2 branches missed.">			assert (getEdgeCluster(edge, 1) != cluster);</span>
+<span class="fc" id="L375">			setEdgeCluster_(edge, 0, cluster);</span>
+<span class="pc bpc" id="L376" title="1 of 2 branches missed.">		} else if (getEdgeCluster(edge, 1) == -1) {</span>
+<span class="pc bpc" id="L377" title="1 of 2 branches missed.">			assert (getEdgeCluster(edge, 0) != cluster);</span>
+<span class="fc" id="L378">			setEdgeCluster_(edge, 1, cluster);</span>
+		} else
+<span class="nc" id="L380">			throw GeometryException.GeometryInternalError();</span>
+
+<span class="fc" id="L382">		addEdgeToClusterImpl_(edge, cluster);// simply adds the edge to the list</span>
+												// of cluster edges.
+<span class="fc" id="L384">	}</span>
+
+	void addEdgeToClusterImpl_(int edge, int cluster) {
+<span class="fc" id="L387">		int first_edge = getClusterFirstEdge(cluster);</span>
+<span class="fc bfc" id="L388" title="All 2 branches covered.">		if (first_edge != -1) {</span>
+<span class="fc" id="L389">			int next = getNextEdge(first_edge, cluster);</span>
+<span class="fc" id="L390">			setPrevEdge_(next, cluster, edge);</span>
+<span class="fc" id="L391">			setNextEdge_(edge, cluster, next);</span>
+<span class="fc" id="L392">			setNextEdge_(first_edge, cluster, edge);</span>
+<span class="fc" id="L393">			setPrevEdge_(edge, cluster, first_edge);</span>
+<span class="fc" id="L394">		} else {</span>
+<span class="fc" id="L395">			setPrevEdge_(edge, cluster, edge);// point to itself</span>
+<span class="fc" id="L396">			setNextEdge_(edge, cluster, edge);</span>
+<span class="fc" id="L397">			setClusterFirstEdge_(cluster, edge);</span>
+		}
+<span class="fc" id="L399">	}</span>
+
+	int getEdgeEnd(int edge, int cluster) {
+<span class="fc bfc" id="L402" title="All 2 branches covered.">		if (getEdgeCluster(edge, 0) == cluster) {</span>
+<span class="pc bpc" id="L403" title="1 of 2 branches missed.">			assert (getEdgeCluster(edge, 1) != cluster);</span>
+<span class="fc" id="L404">			return 0;</span>
+		} else {
+<span class="pc bpc" id="L406" title="1 of 2 branches missed.">			assert (getEdgeCluster(edge, 1) == cluster);</span>
+<span class="fc" id="L407">			return 1;</span>
+		}
+	}
+
+	// Merges two coincident clusters into one. The cluster2 becomes invalid.
+	void mergeClusters_(int cluster_1, int cluster2) {
+		// dbg_check_cluster_(cluster_1);
+		// dbg_check_cluster_(cluster2);
+<span class="fc" id="L415">		int eventQnode = getClusterEventQNode(cluster2);</span>
+<span class="pc bpc" id="L416" title="1 of 2 branches missed.">		if (eventQnode != -1) {</span>
+<span class="nc" id="L417">			m_event_q.deleteNode(eventQnode, -1);</span>
+<span class="nc" id="L418">			setClusterEventQNode_(cluster2, -1);</span>
+		}
+
+<span class="fc" id="L421">		int firstEdge1 = getClusterFirstEdge(cluster_1);</span>
+<span class="fc" id="L422">		int firstEdge2 = getClusterFirstEdge(cluster2);</span>
+
+<span class="pc bpc" id="L424" title="1 of 2 branches missed.">		if (firstEdge2 != -1) {// scope</span>
+<span class="fc" id="L425">			int edge2 = firstEdge2;</span>
+<span class="fc" id="L426">			int lastEdge = firstEdge2;</span>
+<span class="fc" id="L427">			boolean bForceContinue = false;</span>
+			// Delete edges that connect cluster_1 and cluster2.
+			do {
+				// dbg_check_edge_(edge2);
+<span class="fc" id="L431">				bForceContinue = false;</span>
+				// assert(!StridedIndexTypeCollection.isValidElement(getEdgeSweepNode(edge2)));
+<span class="fc" id="L433">				int end = getEdgeEnd(edge2, cluster2);</span>
+<span class="fc" id="L434">				int nextEdge2 = getNextEdgeEx(edge2, end);</span>
+<span class="fc bfc" id="L435" title="All 2 branches covered.">				if (getEdgeCluster(edge2, (end + 1) &amp; 1) == cluster_1) { // Snapping</span>
+																			// clusters
+																			// that
+																			// are
+																			// connected
+																			// with
+																			// an
+																			// edge
+																			// Delete
+																			// the
+																			// edge.
+<span class="fc" id="L446">					disconnectEdge_(edge2);</span>
+<span class="fc" id="L447">					int edgeOrigins2 = getEdgeOriginVertices(edge2);</span>
+<span class="fc" id="L448">					m_edge_vertices.deleteList(edgeOrigins2);</span>
+<span class="fc" id="L449">					deleteEdge_(edge2);</span>
+<span class="fc bfc" id="L450" title="All 2 branches covered.">					if (edge2 == nextEdge2) {// deleted last edge connecting to</span>
+												// the cluster2 (all connections
+												// are degenerate)
+<span class="fc" id="L453">						firstEdge2 = -1;</span>
+<span class="fc" id="L454">						break;</span>
+					}
+<span class="fc bfc" id="L456" title="All 2 branches covered.">					if (firstEdge2 == edge2) {</span>
+<span class="fc" id="L457">						firstEdge2 = getClusterFirstEdge(cluster2);</span>
+<span class="fc" id="L458">						lastEdge = nextEdge2;</span>
+<span class="fc" id="L459">						bForceContinue = true;</span>
+					}
+<span class="fc" id="L461">				} else {</span>
+<span class="pc bpc" id="L462" title="1 of 2 branches missed.">					assert (edge2 != getClusterFirstEdge(cluster_1));</span>
+				}
+<span class="fc" id="L464">				edge2 = nextEdge2;</span>
+<span class="fc bfc" id="L465" title="All 4 branches covered.">			} while (edge2 != lastEdge || bForceContinue);</span>
+
+<span class="fc bfc" id="L467" title="All 2 branches covered.">			if (firstEdge2 != -1) {</span>
+				// set the cluster to the edge ends
+				do {
+<span class="fc" id="L470">					int end = getEdgeEnd(edge2, cluster2);</span>
+<span class="fc" id="L471">					int nextEdge2 = getNextEdgeEx(edge2, end);</span>
+<span class="pc bpc" id="L472" title="1 of 2 branches missed.">					assert (edge2 != getClusterFirstEdge(cluster_1));</span>
+<span class="fc" id="L473">					setEdgeCluster_(edge2, end, cluster_1);</span>
+<span class="fc" id="L474">					edge2 = nextEdge2;</span>
+<span class="fc bfc" id="L475" title="All 2 branches covered.">				} while (edge2 != lastEdge);</span>
+
+<span class="fc" id="L477">				firstEdge1 = getClusterFirstEdge(cluster_1);</span>
+<span class="fc bfc" id="L478" title="All 2 branches covered.">				if (firstEdge1 != -1) {</span>
+<span class="fc" id="L479">					int next1 = getNextEdge(firstEdge1, cluster_1);</span>
+<span class="fc" id="L480">					int next2 = getNextEdge(firstEdge2, cluster_1);</span>
+<span class="fc bfc" id="L481" title="All 2 branches covered.">					if (next1 == firstEdge1) {</span>
+<span class="fc" id="L482">						setClusterFirstEdge_(cluster_1, firstEdge2);</span>
+<span class="fc" id="L483">						addEdgeToClusterImpl_(firstEdge1, cluster_1);</span>
+<span class="fc" id="L484">						setClusterFirstEdge_(cluster_1, firstEdge1);</span>
+<span class="fc bfc" id="L485" title="All 2 branches covered.">					} else if (next2 == firstEdge2) {</span>
+<span class="fc" id="L486">						addEdgeToClusterImpl_(firstEdge2, cluster_1);</span>
+					}
+
+<span class="fc" id="L489">					setNextEdge_(firstEdge2, cluster_1, next1);</span>
+<span class="fc" id="L490">					setPrevEdge_(next1, cluster_1, firstEdge2);</span>
+<span class="fc" id="L491">					setNextEdge_(firstEdge1, cluster_1, next2);</span>
+<span class="fc" id="L492">					setPrevEdge_(next2, cluster_1, firstEdge1);</span>
+<span class="fc" id="L493">				} else {</span>
+<span class="fc" id="L494">					setClusterFirstEdge_(cluster_1, firstEdge2);</span>
+				}
+			}
+		}
+
+<span class="fc" id="L499">		int vertices1 = getClusterVertices(cluster_1);</span>
+<span class="fc" id="L500">		int vertices2 = getClusterVertices(cluster2);</span>
+		// Update cluster info on vertices.
+<span class="fc bfc" id="L502" title="All 2 branches covered.">		for (int vh = m_cluster_vertices.getFirst(vertices2); vh != -1; vh = m_cluster_vertices</span>
+<span class="fc" id="L503">				.getNext(vh)) {</span>
+<span class="fc" id="L504">			int v = m_cluster_vertices.getElement(vh);</span>
+<span class="fc" id="L505">			m_shape.setUserIndex(v, m_vertex_cluster_index, cluster_1);</span>
+		}
+<span class="fc" id="L507">		m_cluster_vertices.concatenateLists(vertices1, vertices2);</span>
+<span class="fc" id="L508">		deleteCluster_(cluster2);</span>
+		// dbg_check_cluster_(cluster_1);
+<span class="fc" id="L510">	}</span>
+
+	// Merges two coincident edges into one. The edge2 becomes invalid.
+	void mergeEdges_(int edge1, int edge2) {
+		// dbg_check_edge_(edge1);
+<span class="fc" id="L515">		int cluster_1 = getEdgeCluster(edge1, 0);</span>
+<span class="fc" id="L516">		int cluster2 = getEdgeCluster(edge1, 1);</span>
+<span class="fc" id="L517">		int cluster21 = getEdgeCluster(edge2, 0);</span>
+<span class="fc" id="L518">		int cluster22 = getEdgeCluster(edge2, 1);</span>
+
+<span class="fc" id="L520">		int originVertices1 = getEdgeOriginVertices(edge1);</span>
+<span class="fc" id="L521">		int originVertices2 = getEdgeOriginVertices(edge2);</span>
+<span class="fc" id="L522">		m_edge_vertices.concatenateLists(originVertices1, originVertices2);</span>
+<span class="fc bfc" id="L523" title="All 2 branches covered.">		if (edge2 == getClusterFirstEdge(cluster_1))</span>
+<span class="fc" id="L524">			setClusterFirstEdge_(cluster_1, edge1);</span>
+<span class="fc bfc" id="L525" title="All 2 branches covered.">		if (edge2 == getClusterFirstEdge(cluster2))</span>
+<span class="fc" id="L526">			setClusterFirstEdge_(cluster2, edge1);</span>
+
+<span class="fc" id="L528">		disconnectEdge_(edge2);// disconnects the edge2 from the clusters.</span>
+<span class="fc" id="L529">		deleteEdge_(edge2);</span>
+
+<span class="pc bpc" id="L531" title="3 of 8 branches missed.">		if (!((cluster_1 == cluster21 &amp;&amp; cluster2 == cluster22) || (cluster2 == cluster21 &amp;&amp; cluster_1 == cluster22))) {</span>
+			// Merged edges have different clusters (clusters have not yet been
+			// merged)
+			// merge clusters before merging the edges
+<span class="nc" id="L535">			getClusterXY(cluster_1, pt_1);</span>
+<span class="nc" id="L536">			getClusterXY(cluster21, pt_2);</span>
+<span class="nc bnc" id="L537" title="All 2 branches missed.">			if (pt_1.isEqual(pt_2)) {</span>
+<span class="nc bnc" id="L538" title="All 2 branches missed.">				if (cluster_1 != cluster21) {</span>
+<span class="nc" id="L539">					mergeClusters_(cluster_1, cluster21);</span>
+<span class="nc bnc" id="L540" title="All 2 branches missed.">					assert (!m_modified_clusters.hasElement(cluster21));</span>
+				}
+<span class="nc bnc" id="L542" title="All 2 branches missed.">				if (cluster2 != cluster22) {</span>
+<span class="nc" id="L543">					mergeClusters_(cluster2, cluster22);</span>
+<span class="nc bnc" id="L544" title="All 2 branches missed.">					assert (!m_modified_clusters.hasElement(cluster22));</span>
+				}
+			} else {
+<span class="nc bnc" id="L547" title="All 2 branches missed.">				if (cluster2 != cluster21) {</span>
+<span class="nc" id="L548">					mergeClusters_(cluster2, cluster21);</span>
+<span class="nc bnc" id="L549" title="All 2 branches missed.">					assert (!m_modified_clusters.hasElement(cluster21));</span>
+				}
+<span class="nc bnc" id="L551" title="All 2 branches missed.">				if (cluster_1 != cluster22) {</span>
+<span class="nc" id="L552">					mergeClusters_(cluster_1, cluster22);</span>
+<span class="nc bnc" id="L553" title="All 2 branches missed.">					assert (!m_modified_clusters.hasElement(cluster22));</span>
+				}
+			}
+		} else {
+			// Merged edges have equal clusters.
+		}
+		// dbg_check_edge_(edge1);
+<span class="fc" id="L560">	}</span>
+
+	// Disconnects the edge from its clusters.
+	void disconnectEdge_(int edge) {
+<span class="fc" id="L564">		int cluster_1 = getEdgeCluster(edge, 0);</span>
+<span class="fc" id="L565">		int cluster2 = getEdgeCluster(edge, 1);</span>
+<span class="fc" id="L566">		disconnectEdgeFromCluster_(edge, cluster_1);</span>
+<span class="fc" id="L567">		disconnectEdgeFromCluster_(edge, cluster2);</span>
+<span class="fc" id="L568">	}</span>
+
+	// Disconnects the edge from a cluster it is connected to.
+	void disconnectEdgeFromCluster_(int edge, int cluster) {
+<span class="fc" id="L572">		int next = getNextEdge(edge, cluster);</span>
+<span class="pc bpc" id="L573" title="1 of 2 branches missed.">		assert (getPrevEdge(next, cluster) == edge);</span>
+<span class="fc" id="L574">		int prev = getPrevEdge(edge, cluster);</span>
+<span class="pc bpc" id="L575" title="1 of 2 branches missed.">		assert (getNextEdge(prev, cluster) == edge);</span>
+<span class="fc" id="L576">		int first_edge = getClusterFirstEdge(cluster);</span>
+<span class="fc bfc" id="L577" title="All 2 branches covered.">		if (next != edge) {</span>
+<span class="fc" id="L578">			setNextEdge_(prev, cluster, next);</span>
+<span class="fc" id="L579">			setPrevEdge_(next, cluster, prev);</span>
+<span class="fc bfc" id="L580" title="All 2 branches covered.">			if (first_edge == edge)</span>
+<span class="fc" id="L581">				setClusterFirstEdge_(cluster, next);</span>
+		} else
+<span class="fc" id="L583">			setClusterFirstEdge_(cluster, -1);</span>
+<span class="fc" id="L584">	}</span>
+
+	void applyIntersectorToEditShape_(int edgeOrigins,
+			SegmentIntersector intersector, int intersector_index) {
+		// Split Edit_shape segments and produce new vertices. Modify
+		// coordinates as necessary. No vertices are deleted.
+<span class="fc" id="L590">		int vertexHandle = m_edge_vertices.getFirst(edgeOrigins);</span>
+<span class="fc" id="L591">		int first_vertex = m_edge_vertices.getElement(vertexHandle);</span>
+
+<span class="fc" id="L593">		int cluster_1 = getClusterFromVertex(first_vertex);</span>
+<span class="fc" id="L594">		int cluster2 = getClusterFromVertex(m_shape.getNextVertex(first_vertex));</span>
+<span class="pc bpc" id="L595" title="1 of 2 branches missed.">		boolean bComplexCase = cluster_1 == cluster2;</span>
+<span class="pc bpc" id="L596" title="1 of 2 branches missed.">		assert (!bComplexCase);// if it ever asserts there will be a bug. Should</span>
+								// be a case of a curve that forms a loop.
+
+<span class="fc" id="L599">		m_shape.splitSegment_(first_vertex, intersector, intersector_index,</span>
+				true);
+<span class="fc bfc" id="L601" title="All 2 branches covered.">		for (vertexHandle = m_edge_vertices.getNext(vertexHandle); vertexHandle != -1; vertexHandle = m_edge_vertices</span>
+<span class="fc" id="L602">				.getNext(vertexHandle)) {</span>
+<span class="fc" id="L603">			int vertex = m_edge_vertices.getElement(vertexHandle);</span>
+<span class="fc bfc" id="L604" title="All 2 branches covered.">			boolean b_forward = getClusterFromVertex(vertex) == cluster_1;</span>
+<span class="pc bpc" id="L605" title="1 of 4 branches missed.">			assert ((b_forward &amp;&amp; getClusterFromVertex(m_shape</span>
+<span class="pc bpc" id="L606" title="2 of 4 branches missed.">					.getNextVertex(vertex)) == cluster2) || (getClusterFromVertex(vertex) == cluster2 &amp;&amp; getClusterFromVertex(m_shape</span>
+<span class="fc" id="L607">					.getNextVertex(vertex)) == cluster_1));</span>
+<span class="fc" id="L608">			m_shape.splitSegment_(vertex, intersector, intersector_index,</span>
+					b_forward);
+		}
+
+		// Now apply the updated coordinates to all vertices in the cluster_1
+		// and cluster2.
+		Point2D pt_0;
+		Point2D pt_1;
+<span class="fc" id="L616">		pt_0 = intersector.getResultSegment(intersector_index, 0).getStartXY();</span>
+<span class="fc" id="L617">		pt_1 = intersector.getResultSegment(intersector_index,</span>
+<span class="fc" id="L618">				intersector.getResultSegmentCount(intersector_index) - 1)</span>
+<span class="fc" id="L619">				.getEndXY();</span>
+<span class="fc" id="L620">		updateClusterXY(cluster_1, pt_0);</span>
+<span class="fc" id="L621">		updateClusterXY(cluster2, pt_1);</span>
+<span class="fc" id="L622">	}</span>
+
+	void createEdgesAndClustersFromSplitEdge_(int edge1,
+			SegmentIntersector intersector, int intersector_index) {
+		// dbg_check_new_edges_array_();
+		// The method uses m_temp_edge_buffer for temporary storage and clears
+		// it at the end.
+<span class="fc" id="L629">		int edgeOrigins1 = getEdgeOriginVertices(edge1);</span>
+
+		// create new edges and clusters
+		// Note that edge1 is disconnected from its clusters already (the
+		// cluster's edge list does not contain it).
+<span class="fc" id="L634">		int cluster_1 = getEdgeCluster(edge1, 0);</span>
+<span class="fc" id="L635">		int cluster2 = getEdgeCluster(edge1, 1);</span>
+<span class="fc" id="L636">		int prevEdge = newEdge_(-1);</span>
+<span class="fc" id="L637">		m_edges_to_insert_in_sweep_structure.add(prevEdge);</span>
+<span class="fc" id="L638">		int c_3 = StridedIndexTypeCollection.impossibleIndex3();</span>
+<span class="fc" id="L639">		setEdgeSweepNode_(prevEdge, c_3);// mark that its in</span>
+											// m_edges_to_insert_in_sweep_structure
+<span class="fc" id="L641">		m_temp_edge_buffer.add(prevEdge);</span>
+<span class="fc" id="L642">		addEdgeToCluster(prevEdge, cluster_1);</span>
+<span class="fc" id="L643">		for (int i = 1, n = intersector</span>
+<span class="fc bfc" id="L644" title="All 2 branches covered.">				.getResultSegmentCount(intersector_index); i &lt; n; i++) {// each</span>
+																		// iteration
+																		// adds
+																		// new
+																		// Cluster
+																		// and
+																		// Edge.
+<span class="fc" id="L651">			int newCluster = newCluster_(-1);</span>
+<span class="fc" id="L652">			m_modified_clusters.add(newCluster);</span>
+<span class="fc" id="L653">			m_temp_edge_buffer.add(newCluster);</span>
+<span class="fc" id="L654">			addEdgeToCluster(prevEdge, newCluster);</span>
+<span class="fc" id="L655">			int newEdge = newEdge_(-1);</span>
+<span class="fc" id="L656">			m_edges_to_insert_in_sweep_structure.add(newEdge);</span>
+<span class="fc" id="L657">			setEdgeSweepNode_(newEdge, c_3);// mark that its in</span>
+											// m_edges_to_insert_in_sweep_structure
+<span class="fc" id="L659">			m_temp_edge_buffer.add(newEdge);</span>
+<span class="fc" id="L660">			addEdgeToCluster(newEdge, newCluster);</span>
+<span class="fc" id="L661">			prevEdge = newEdge;</span>
+		}
+<span class="fc" id="L663">		addEdgeToCluster(prevEdge, cluster2);</span>
+		// set the Edit_shape vertices to the new clusters and edges.
+<span class="fc bfc" id="L665" title="All 2 branches covered.">		for (int vertexHandle = m_edge_vertices.getFirst(edgeOrigins1); vertexHandle != -1; vertexHandle = m_edge_vertices</span>
+<span class="fc" id="L666">				.getNext(vertexHandle)) {</span>
+<span class="fc" id="L667">			int vertex = m_edge_vertices.getElement(vertexHandle);</span>
+<span class="fc" id="L668">			int cluster = getClusterFromVertex(vertex);</span>
+<span class="fc bfc" id="L669" title="All 2 branches covered.">			if (cluster == cluster_1) {// connecting from cluster_1 to cluster2</span>
+<span class="fc" id="L670">				int i = 0;</span>
+				do {
+<span class="fc bfc" id="L672" title="All 2 branches covered.">					if (i &gt; 0) {</span>
+<span class="fc" id="L673">						int c = m_temp_edge_buffer.get(i - 1);</span>
+<span class="fc" id="L674">						addVertexToCluster_(c, vertex);</span>
+<span class="fc bfc" id="L675" title="All 2 branches covered.">						if (getClusterVertexIndex(c) == -1)</span>
+<span class="fc" id="L676">							setClusterVertexIndex_(c,</span>
+<span class="fc" id="L677">									m_shape.getVertexIndex(vertex));</span>
+					}
+
+<span class="fc" id="L680">					int edge = m_temp_edge_buffer.get(i);</span>
+<span class="fc" id="L681">					i += 2;</span>
+<span class="fc" id="L682">					addVertexToEdge_(edge, vertex);</span>
+<span class="fc" id="L683">					vertex = m_shape.getNextVertex(vertex);</span>
+<span class="fc bfc" id="L684" title="All 2 branches covered.">				} while (i &lt; m_temp_edge_buffer.size());</span>
+<span class="pc bpc" id="L685" title="1 of 2 branches missed.">				assert (getClusterFromVertex(vertex) == cluster2);</span>
+<span class="fc" id="L686">			} else {// connecting from cluster2 to cluster_1</span>
+<span class="pc bpc" id="L687" title="1 of 2 branches missed.">				assert (cluster == cluster2);</span>
+<span class="fc" id="L688">				int i = m_temp_edge_buffer.size() - 1;</span>
+				do {
+<span class="fc bfc" id="L690" title="All 2 branches covered.">					if (i &lt; m_temp_edge_buffer.size() - 2) {</span>
+<span class="fc" id="L691">						int c = m_temp_edge_buffer.get(i + 1);</span>
+<span class="fc" id="L692">						addVertexToCluster_(c, vertex);</span>
+<span class="pc bpc" id="L693" title="1 of 2 branches missed.">						if (getClusterVertexIndex(c) &lt; 0)</span>
+<span class="nc" id="L694">							setClusterVertexIndex_(c,</span>
+<span class="nc" id="L695">									m_shape.getVertexIndex(vertex));</span>
+					}
+
+<span class="pc bpc" id="L698" title="1 of 2 branches missed.">					assert (i % 2 == 0);</span>
+<span class="fc" id="L699">					int edge = m_temp_edge_buffer.get(i);</span>
+<span class="fc" id="L700">					i -= 2;</span>
+<span class="fc" id="L701">					addVertexToEdge_(edge, vertex);</span>
+<span class="fc" id="L702">					vertex = m_shape.getNextVertex(vertex);</span>
+<span class="fc bfc" id="L703" title="All 2 branches covered.">				} while (i &gt;= 0);</span>
+<span class="pc bpc" id="L704" title="1 of 2 branches missed.">				assert (getClusterFromVertex(vertex) == cluster_1);</span>
+			}
+		}
+
+		// #ifdef _DEBUG_TOPO
+		// for (int i = 0, j = 0, n =
+		// intersector-&gt;get_result_segment_count(intersector_index); i &lt; n; i++,
+		// j+=2)
+		// {
+		// int edge = m_temp_edge_buffer.get(j);
+		// dbg_check_edge_(edge);
+		// }
+		// #endif
+
+<span class="fc" id="L718">		m_temp_edge_buffer.clear(false);</span>
+		// dbg_check_new_edges_array_();
+<span class="fc" id="L720">	}</span>
+
+	int getVertexFromClusterIndex(int cluster) {
+<span class="nc" id="L723">		int vertexList = getClusterVertices(cluster);</span>
+<span class="nc" id="L724">		int vertex = m_cluster_vertices.getFirstElement(vertexList);</span>
+<span class="nc" id="L725">		return vertex;</span>
+	}
+
+	int getClusterFromVertex(int vertex) {
+<span class="fc" id="L729">		return m_shape.getUserIndex(vertex, m_vertex_cluster_index);</span>
+	}
+
+	static final class QComparator extends Treap.Comparator {
+		EditShape m_shape;
+<span class="fc" id="L734">		Point2D pt_1 = new Point2D();</span>
+<span class="fc" id="L735">		Point2D pt_2 = new Point2D();</span>
+
+<span class="fc" id="L737">		QComparator(EditShape shape) {</span>
+<span class="fc" id="L738">			m_shape = shape;</span>
+<span class="fc" id="L739">		}</span>
+
+		@Override
+		int compare(Treap treap, int vertex, int node) {
+<span class="fc" id="L743">			m_shape.getXY(vertex, pt_1);</span>
+<span class="fc" id="L744">			int v_2 = treap.getElement(node);</span>
+<span class="fc" id="L745">			m_shape.getXY(v_2, pt_2);</span>
+<span class="fc" id="L746">			return pt_1.compare(pt_2);</span>
+		}
+	}
+
+	static final class QMonikerComparator extends Treap.MonikerComparator {
+		EditShape m_shape;
+<span class="fc" id="L752">		Point2D m_point = new Point2D();</span>
+<span class="fc" id="L753">		Point2D m_pt = new Point2D();</span>
+
+<span class="fc" id="L755">		QMonikerComparator(EditShape shape) {</span>
+<span class="fc" id="L756">			m_shape = shape;</span>
+<span class="fc" id="L757">		}</span>
+
+		void setPoint(Point2D pt) {
+<span class="fc" id="L760">			m_point.setCoords(pt);</span>
+<span class="fc" id="L761">		}</span>
+
+		@Override
+		int compare(Treap treap, int node) {
+<span class="fc" id="L765">			int v = treap.getElement(node);</span>
+<span class="fc" id="L766">			m_shape.getXY(v, m_pt);</span>
+<span class="fc" id="L767">			return m_point.compare(m_pt);</span>
+		}
+	};
+
+	void processSplitHelper1_(int index, int edge,
+			SegmentIntersector intersector) {
+<span class="fc" id="L773">		int clusterStart = getEdgeCluster(edge, 0);</span>
+<span class="fc" id="L774">		Point2D ptClusterStart = new Point2D();</span>
+<span class="fc" id="L775">		getClusterXY(clusterStart, ptClusterStart);</span>
+<span class="fc" id="L776">		Point2D ptClusterEnd = new Point2D();</span>
+<span class="fc" id="L777">		int clusterEnd = getEdgeCluster(edge, 1);</span>
+<span class="fc" id="L778">		getClusterXY(clusterEnd, ptClusterEnd);</span>
+		
+		// Collect all edges that are affected by the split and that are in the
+		// sweep structure.
+<span class="fc" id="L782">		int count = intersector.getResultSegmentCount(index);</span>
+<span class="fc" id="L783">		Segment seg = intersector.getResultSegment(index, 0);</span>
+<span class="fc" id="L784">		Point2D newStart = new Point2D();</span>
+<span class="fc" id="L785">		seg.getStartXY(newStart);</span>
+		
+<span class="fc bfc" id="L787" title="All 2 branches covered.">		if (!ptClusterStart.isEqual(newStart)) {</span>
+<span class="fc bfc" id="L788" title="All 2 branches covered.">			if (!m_complications) {</span>
+<span class="fc" id="L789">		        int res1 = ptClusterStart.compare(m_sweep_point);</span>
+<span class="fc" id="L790">		        int res2 = newStart.compare(m_sweep_point);</span>
+<span class="pc bpc" id="L791" title="1 of 2 branches missed.">		        if (res1 * res2 &lt; 0) {</span>
+<span class="nc" id="L792">					m_complications = true;// point is not yet have been processed</span>
+											// but moved before the sweep point,
+											// this will require
+					// repeating the cracking step and the sweep_vertical cannot
+					// help here
+				}
+			}
+			
+			// This cluster's position needs to be changed
+<span class="fc" id="L801">			getAffectedEdges(clusterStart, m_temp_edge_buffer);</span>
+<span class="fc" id="L802">			m_modified_clusters.add(clusterStart);</span>
+		}
+
+<span class="fc bfc" id="L805" title="All 4 branches covered.">		if (!m_complications &amp;&amp; count &gt; 1) {</span>
+<span class="fc" id="L806">			int dir = ptClusterStart.compare(ptClusterEnd);</span>
+<span class="fc" id="L807">			Point2D midPoint = seg.getEndXY();</span>
+<span class="fc bfc" id="L808" title="All 2 branches covered.">			if (ptClusterStart.compare(midPoint) != dir</span>
+<span class="pc bpc" id="L809" title="1 of 2 branches missed.">					|| midPoint.compare(ptClusterEnd) != dir) {// split segment</span>
+																// midpoint is
+																// above the
+																// sweep line.
+																// Therefore the
+																// part of the
+																// segment
+<span class="fc" id="L816">				m_complications = true;</span>
+			} else {
+<span class="fc bfc" id="L818" title="All 2 branches covered.">				if (midPoint.compare(m_sweep_point) &lt; 0) {</span>
+					// midpoint moved below sweepline.
+<span class="fc" id="L820">					m_complications = true;</span>
+				}
+			}
+		}
+
+<span class="fc" id="L825">		seg = intersector.getResultSegment(index, count - 1);</span>
+<span class="fc" id="L826">		Point2D newEnd = seg.getEndXY();</span>
+<span class="fc bfc" id="L827" title="All 2 branches covered.">		if (!ptClusterEnd.isEqual(newEnd)) {</span>
+<span class="fc bfc" id="L828" title="All 2 branches covered.">			if (!m_complications) {</span>
+<span class="fc" id="L829">		        int res1 = ptClusterEnd.compare(m_sweep_point);</span>
+<span class="fc" id="L830">		        int res2 = newEnd.compare(m_sweep_point);</span>
+<span class="pc bpc" id="L831" title="1 of 2 branches missed.">		        if (res1 * res2 &lt; 0) {			</span>
+<span class="nc" id="L832">					m_complications = true;// point is not yet have been processed</span>
+											// but moved before the sweep point.
+				}
+			}
+			// This cluster's position needs to be changed
+<span class="fc" id="L837">			getAffectedEdges(clusterEnd, m_temp_edge_buffer);</span>
+<span class="fc" id="L838">			m_modified_clusters.add(clusterEnd);</span>
+		}
+
+<span class="fc" id="L841">		m_temp_edge_buffer.add(edge);</span>
+		// Delete all nodes from the sweep structure that are affected by the
+		// change.
+<span class="fc bfc" id="L844" title="All 2 branches covered.">		for (int i = 0, n = m_temp_edge_buffer.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L845">			int e = m_temp_edge_buffer.get(i);</span>
+<span class="fc" id="L846">			int sweepNode = getEdgeSweepNode(e);</span>
+<span class="pc bpc" id="L847" title="1 of 2 branches missed.">			if (StridedIndexTypeCollection.isValidElement(sweepNode)) {</span>
+<span class="fc" id="L848">				m_sweep_structure.deleteNode(sweepNode, -1);</span>
+<span class="fc" id="L849">				setEdgeSweepNode_(e, -1);</span>
+			}
+
+<span class="fc" id="L852">			int c_3 = StridedIndexTypeCollection.impossibleIndex3();</span>
+<span class="pc bpc" id="L853" title="1 of 4 branches missed.">			if (e != edge &amp;&amp; getEdgeSweepNode(e) != c_3)// c_3 means the edge is</span>
+														// already in the
+														// m_edges_to_insert_in_sweep_structure
+			{
+<span class="fc" id="L857">				m_edges_to_insert_in_sweep_structure.add(e);</span>
+<span class="fc" id="L858">				setEdgeSweepNode_(e, c_3);</span>
+			}
+		}
+<span class="fc" id="L861">		m_temp_edge_buffer.clear(false);</span>
+<span class="fc" id="L862">	}</span>
+
+	boolean checkAndFixIntersection_(int leftSweepNode, int rightSweepNode) {
+<span class="fc" id="L865">		int leftEdge = m_sweep_structure.getElement(leftSweepNode);</span>
+<span class="fc" id="L866">		m_sweep_comparator.compare(m_sweep_structure, leftEdge, rightSweepNode);</span>
+<span class="fc bfc" id="L867" title="All 2 branches covered.">		if (m_sweep_comparator.intersectionDetected()) {</span>
+<span class="fc" id="L868">			m_sweep_comparator.clearIntersectionDetectedFlag();</span>
+<span class="fc" id="L869">			fixIntersection_(leftSweepNode, rightSweepNode);</span>
+<span class="fc" id="L870">			return true;</span>
+		}
+
+<span class="fc" id="L873">		return false;</span>
+	}
+
+	void fixIntersection_(int left, int right) {
+<span class="fc" id="L877">		m_b_cracked = true;</span>
+<span class="fc" id="L878">		int edge1 = m_sweep_structure.getElement(left);</span>
+<span class="fc" id="L879">		int edge2 = m_sweep_structure.getElement(right);</span>
+<span class="pc bpc" id="L880" title="1 of 2 branches missed.">		assert (edge1 != edge2);</span>
+		Segment seg_1;
+		Segment seg_2;
+<span class="fc" id="L883">		int vertexList1 = getEdgeOriginVertices(edge1);</span>
+<span class="fc" id="L884">		int origin1 = m_edge_vertices.getFirstElement(vertexList1);</span>
+<span class="fc" id="L885">		int vertexList2 = getEdgeOriginVertices(edge2);</span>
+<span class="fc" id="L886">		int origin2 = m_edge_vertices.getFirstElement(vertexList2);</span>
+<span class="fc" id="L887">		seg_1 = m_shape.getSegment(origin1);</span>
+<span class="pc bpc" id="L888" title="1 of 2 branches missed.">		if (seg_1 == null) {</span>
+<span class="fc bfc" id="L889" title="All 2 branches covered.">			if (m_line_1 == null)</span>
+<span class="fc" id="L890">				m_line_1 = new Line();</span>
+<span class="fc" id="L891">			m_shape.queryLineConnector(origin1, m_line_1);</span>
+<span class="fc" id="L892">			seg_1 = m_line_1;</span>
+		}
+
+<span class="fc" id="L895">		seg_2 = m_shape.getSegment(origin2);</span>
+<span class="pc bpc" id="L896" title="1 of 2 branches missed.">		if (seg_2 == null) {</span>
+<span class="fc bfc" id="L897" title="All 2 branches covered.">			if (m_line_2 == null)</span>
+<span class="fc" id="L898">				m_line_2 = new Line();</span>
+<span class="fc" id="L899">			m_shape.queryLineConnector(origin2, m_line_2);</span>
+<span class="fc" id="L900">			seg_2 = m_line_2;</span>
+		}
+
+		// #ifdef _DEBUG_CRACKING_REPORT
+		// {
+		// Point_2D pt11, pt12, pt21, pt22;
+		// pt11 = seg_1-&gt;get_start_xy();
+		// pt12 = seg_1-&gt;get_end_xy();
+		// pt21 = seg_2-&gt;get_start_xy();
+		// pt22 = seg_2-&gt;get_end_xy();
+		// DEBUGPRINTF(L&quot;Intersecting %d (%0.4f, %0.4f - %0.4f, %0.4f) and %d (%0.4f, %0.4f - %0.4f, %0.4f)\n&quot;,
+		// edge1, pt11.x, pt11.y, pt12.x, pt12.y, edge2, pt21.x, pt21.y, pt22.x,
+		// pt22.y);
+		// }
+		// #endif
+
+<span class="fc" id="L916">		m_segment_intersector.pushSegment(seg_1);</span>
+<span class="fc" id="L917">		m_segment_intersector.pushSegment(seg_2);</span>
+<span class="fc bfc" id="L918" title="All 2 branches covered.">		if (m_segment_intersector.intersect(m_tolerance, true))</span>
+<span class="fc" id="L919">			m_complications = true;</span>
+				
+				
+<span class="fc" id="L922">		splitEdge_(edge1, edge2, -1, m_segment_intersector);</span>
+<span class="fc" id="L923">		m_segment_intersector.clear();</span>
+<span class="fc" id="L924">	}</span>
+
+	void fixIntersectionPointSegment_(int cluster, int node) {
+<span class="fc" id="L927">		m_b_cracked = true;</span>
+<span class="fc" id="L928">		int edge1 = m_sweep_structure.getElement(node);</span>
+		Segment seg_1;
+<span class="fc" id="L930">		int vertexList1 = getEdgeOriginVertices(edge1);</span>
+<span class="fc" id="L931">		int origin1 = m_edge_vertices.getFirstElement(vertexList1);</span>
+<span class="fc" id="L932">		seg_1 = m_shape.getSegment(origin1);</span>
+<span class="pc bpc" id="L933" title="1 of 2 branches missed.">		if (seg_1 == null) {</span>
+<span class="pc bpc" id="L934" title="1 of 2 branches missed.">			if (m_line_1 == null)</span>
+<span class="fc" id="L935">				m_line_1 = new Line();</span>
+<span class="fc" id="L936">			m_shape.queryLineConnector(origin1, m_line_1);</span>
+<span class="fc" id="L937">			seg_1 = m_line_1;</span>
+		}
+
+<span class="fc" id="L940">		int clusterVertex = getClusterFirstVertex(cluster);</span>
+<span class="fc" id="L941">		m_segment_intersector.pushSegment(seg_1);</span>
+
+<span class="fc" id="L943">		m_shape.queryPoint(clusterVertex, m_helper_point);</span>
+<span class="fc" id="L944">		m_segment_intersector.intersect(m_tolerance, m_helper_point, 0, 1.0,</span>
+				true);
+
+<span class="fc" id="L947">		splitEdge_(edge1, -1, cluster, m_segment_intersector);</span>
+
+<span class="fc" id="L949">		m_segment_intersector.clear();</span>
+<span class="fc" id="L950">	}</span>
+
+	void insertNewEdges_() {
+<span class="fc bfc" id="L953" title="All 2 branches covered.">		if (m_edges_to_insert_in_sweep_structure.size() == 0)</span>
+<span class="fc" id="L954">			return;</span>
+
+<span class="fc bfc" id="L956" title="All 2 branches covered.">		while (m_edges_to_insert_in_sweep_structure.size() != 0) {</span>
+<span class="pc bpc" id="L957" title="1 of 2 branches missed.">			if (m_edges_to_insert_in_sweep_structure.size() &gt; Math.max(</span>
+<span class="fc" id="L958">					(int) 100, m_shape.getTotalPointCount())) {</span>
+<span class="nc" id="L959">				assert (false);</span>
+<span class="nc" id="L960">				m_edges_to_insert_in_sweep_structure.clear(false);</span>
+<span class="nc" id="L961">				m_complications = true;</span>
+<span class="nc" id="L962">				break;// something strange going on here. bail out, forget about</span>
+						// these edges and continue with sweep line. We'll
+						// iterate on the data one more time.
+			}
+
+<span class="fc" id="L967">			int edge = m_edges_to_insert_in_sweep_structure.getLast();</span>
+<span class="fc" id="L968">			m_edges_to_insert_in_sweep_structure.removeLast();</span>
+
+<span class="pc" id="L970">			assert (getEdgeSweepNode(edge) == StridedIndexTypeCollection</span>
+<span class="pc bpc" id="L971" title="1 of 2 branches missed.">					.impossibleIndex3());</span>
+<span class="fc" id="L972">			setEdgeSweepNode_(edge, -1);</span>
+<span class="fc" id="L973">			int terminatingCluster = isEdgeOnSweepLine_(edge);</span>
+<span class="fc bfc" id="L974" title="All 2 branches covered.">			if (terminatingCluster != -1) {</span>
+<span class="fc" id="L975">				insertNewEdgeToSweepStructure_(edge, terminatingCluster);</span>
+			}
+<span class="fc" id="L977">			m_b_continuing_segment_chain_optimization = false;</span>
+<span class="fc" id="L978">		}</span>
+<span class="fc" id="L979">	}</span>
+
+	boolean insertNewEdgeToSweepStructure_(int edge, int terminatingCluster) {
+<span class="pc bpc" id="L982" title="1 of 2 branches missed.">		assert (getEdgeSweepNode(edge) == -1);</span>
+		int newEdgeNode;
+<span class="fc bfc" id="L984" title="All 2 branches covered.">		if (m_b_continuing_segment_chain_optimization) {</span>
+<span class="fc" id="L985">			newEdgeNode = m_sweep_structure.addElementAtPosition(</span>
+					m_prev_neighbour, m_next_neighbour, edge, true, true, -1);
+<span class="fc" id="L987">			m_b_continuing_segment_chain_optimization = false;</span>
+		} else {
+<span class="fc" id="L989">			newEdgeNode = m_sweep_structure.addUniqueElement(edge, -1);</span>
+		}
+
+<span class="fc bfc" id="L992" title="All 2 branches covered.">		if (newEdgeNode == -1) {// a coinciding edge.</span>
+<span class="fc" id="L993">			int existingNode = m_sweep_structure.getDuplicateElement(-1);</span>
+<span class="fc" id="L994">			int existingEdge = m_sweep_structure.getElement(existingNode);</span>
+<span class="fc" id="L995">			mergeEdges_(existingEdge, edge);</span>
+<span class="fc" id="L996">			return false;</span>
+		}
+
+		// Remember the sweep structure node in the edge.
+<span class="fc" id="L1000">		setEdgeSweepNode_(edge, newEdgeNode);</span>
+
+<span class="fc bfc" id="L1002" title="All 2 branches covered.">		if (m_sweep_comparator.intersectionDetected()) {</span>
+			// The edge has been inserted into the sweep structure and an
+			// intersection has beebn found. The edge will be split and removed.
+<span class="fc" id="L1005">			m_sweep_comparator.clearIntersectionDetectedFlag();</span>
+<span class="fc" id="L1006">			int intersectionNode = m_sweep_comparator.getLastComparedNode();</span>
+<span class="fc" id="L1007">			fixIntersection_(intersectionNode, newEdgeNode);</span>
+<span class="fc" id="L1008">			return true;</span>
+		} else {
+			// The edge has been inserted into the sweep structure without
+			// problems (it does not intersect its neighbours)
+		}
+
+<span class="fc" id="L1014">		return false;</span>
+	}
+
+<span class="fc" id="L1017">	Point2D pt_1 = new Point2D();</span>
+<span class="fc" id="L1018">	Point2D pt_2 = new Point2D();</span>
+	int isEdgeOnSweepLine_(int edge) {
+<span class="fc" id="L1020">		int cluster_1 = getEdgeCluster(edge, 0);</span>
+<span class="fc" id="L1021">		int cluster2 = getEdgeCluster(edge, 1);</span>
+<span class="fc" id="L1022">		getClusterXY(cluster_1, pt_1);</span>
+<span class="fc" id="L1023">		getClusterXY(cluster2, pt_2);</span>
+<span class="pc bpc" id="L1024" title="1 of 2 branches missed.">		if (Point2D.sqrDistance(pt_1, pt_2) &lt;= m_tolerance_sqr) {// avoid</span>
+																	// degenerate
+																	// segments
+<span class="nc" id="L1027">			m_complications = true;</span>
+<span class="nc" id="L1028">			return -1;</span>
+		}
+<span class="fc" id="L1030">		int cmp1 = pt_1.compare(m_sweep_point);</span>
+<span class="fc" id="L1031">		int cmp2 = pt_2.compare(m_sweep_point);</span>
+<span class="fc bfc" id="L1032" title="All 4 branches covered.">		if (cmp1 &lt;= 0 &amp;&amp; cmp2 &gt; 0) {</span>
+<span class="fc" id="L1033">			return cluster2;</span>
+		}
+
+<span class="fc bfc" id="L1036" title="All 4 branches covered.">		if (cmp2 &lt;= 0 &amp;&amp; cmp1 &gt; 0) {</span>
+<span class="fc" id="L1037">			return cluster_1;</span>
+		}
+
+<span class="fc" id="L1040">		return -1;</span>
+	}
+
+	// void set_edit_shape(Edit_shape* shape);
+	// Fills the event queue and merges coincident clusters.
+	void fillEventQueue() {
+<span class="fc" id="L1046">		AttributeStreamOfInt32 event_q = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L1047">		event_q.reserve(m_shape.getTotalPointCount());// temporary structure to</span>
+														// sort and find
+														// clusters
+<span class="fc" id="L1050">		EditShape.VertexIterator iter = m_shape.queryVertexIterator();</span>
+<span class="fc bfc" id="L1051" title="All 2 branches covered.">		for (int vert = iter.next(); vert != -1; vert = iter.next()) {</span>
+<span class="pc bpc" id="L1052" title="1 of 2 branches missed.">			if (m_shape.getUserIndex(vert, m_vertex_cluster_index) != -1)</span>
+<span class="fc" id="L1053">				event_q.add(vert);</span>
+		}
+
+		// Now we can merge coincident clusters and form the envent structure.
+
+		// sort vertices lexicographically.
+<span class="fc" id="L1059">		m_shape.sortVerticesSimpleByY_(event_q, 0, event_q.size());</span>
+
+		// The m_event_q is the event structure for the planesweep algorithm.
+		// We could use any data structure that allows log(n) insertion and
+		// deletion in the sorted order and
+		// allow to iterate through in the sorted order.
+
+<span class="fc" id="L1066">		m_event_q.clear();</span>
+		// Populate the event structure
+<span class="fc" id="L1068">		m_event_q.setCapacity(event_q.size());</span>
+		{
+			// The comparator is used to sort vertices by the m_event_q
+<span class="fc" id="L1071">			m_event_q.setComparator(new QComparator(m_shape));</span>
+		}
+
+		// create the vertex clusters and fill the event structure m_event_q.
+		// Because most vertices are expected to be non clustered, we create
+		// clusters only for actual clusters to save some memory.
+<span class="fc" id="L1077">		Point2D cluster_pt = new Point2D();</span>
+<span class="fc" id="L1078">		cluster_pt.setNaN();</span>
+<span class="fc" id="L1079">		int cluster = -1;</span>
+<span class="fc" id="L1080">		Point2D pt = new Point2D();</span>
+<span class="fc bfc" id="L1081" title="All 2 branches covered.">		for (int index = 0, nvertex = event_q.size(); index &lt; nvertex; index++) {</span>
+<span class="fc" id="L1082">			int vertex = event_q.get(index);</span>
+<span class="fc" id="L1083">			m_shape.getXY(vertex, pt);</span>
+<span class="fc bfc" id="L1084" title="All 2 branches covered.">			if (pt.isEqual(cluster_pt)) {</span>
+<span class="fc" id="L1085">				int vertexCluster = m_shape.getUserIndex(vertex,</span>
+						m_vertex_cluster_index);
+<span class="fc" id="L1087">				mergeClusters_(cluster, vertexCluster);</span>
+<span class="fc" id="L1088">				continue;</span>
+			}
+
+<span class="fc" id="L1091">			cluster = getClusterFromVertex(vertex);</span>
+			// add a vertex to the event queue
+<span class="fc" id="L1093">			m_shape.getXY(vertex, cluster_pt);</span>
+<span class="fc" id="L1094">			int eventQnode = m_event_q.addBiggestElement(vertex, -1); // this</span>
+																		// method
+																		// does
+																		// not
+																		// call
+																		// comparator's
+																		// compare,
+																		// assuming
+																		// sorted
+																		// order.
+<span class="fc" id="L1104">			setClusterEventQNode_(cluster, eventQnode);</span>
+		}
+<span class="fc" id="L1106">	}</span>
+
+	void fillEventQueuePass2() {
+<span class="fc" id="L1109">		AttributeStreamOfInt32 event_q = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L1110">		event_q.reserve(m_shape.getTotalPointCount());// temporary structure to</span>
+														// sort and find
+														// clusters
+<span class="fc bfc" id="L1113" title="All 2 branches covered.">		for (int node = m_event_q.getFirst(-1); node != -1; node = m_event_q</span>
+<span class="fc" id="L1114">				.getNext(node)) {</span>
+<span class="fc" id="L1115">			int v = m_event_q.getElement(node);</span>
+<span class="fc" id="L1116">			event_q.add(v);</span>
+		}
+
+<span class="pc bpc" id="L1119" title="1 of 2 branches missed.">		assert (event_q.size() == m_event_q.size(-1));</span>
+
+<span class="fc" id="L1121">		m_event_q.clear();</span>
+
+		// sort vertices lexicographically.
+<span class="fc" id="L1124">		m_shape.sortVerticesSimpleByY_(event_q, 0, event_q.size());</span>
+
+<span class="fc bfc" id="L1126" title="All 2 branches covered.">		for (int index = 0, nvertex = event_q.size(); index &lt; nvertex; index++) {</span>
+<span class="fc" id="L1127">			int vertex = event_q.get(index);</span>
+<span class="fc" id="L1128">			int cluster = getClusterFromVertex(vertex);</span>
+<span class="fc" id="L1129">			int eventQnode = m_event_q.addBiggestElement(vertex, -1); // this</span>
+																		// method
+																		// does
+																		// not
+																		// call
+																		// comparator's
+																		// compare,
+																		// assuming
+																		// sorted
+																		// order.
+<span class="fc" id="L1139">			setClusterEventQNode_(cluster, eventQnode);</span>
+		}
+<span class="fc" id="L1141">	}</span>
+
+	// Returns edges already in the sweep structure that are affected by the
+	// change of cluster coordinate.
+	void getAffectedEdges(int cluster, AttributeStreamOfInt32 edges) {
+<span class="fc" id="L1146">		int first_edge = getClusterFirstEdge(cluster);</span>
+<span class="fc bfc" id="L1147" title="All 2 branches covered.">		if (first_edge == -1)</span>
+<span class="fc" id="L1148">			return;</span>
+
+<span class="fc" id="L1150">		int edge = first_edge;</span>
+		do {
+<span class="fc" id="L1152">			int sweepNode = getEdgeSweepNode(edge);</span>
+<span class="fc bfc" id="L1153" title="All 2 branches covered.">			if (StridedIndexTypeCollection.isValidElement(sweepNode)) {</span>
+<span class="fc" id="L1154">				edges.add(edge);</span>
+			}
+<span class="fc" id="L1156">			edge = getNextEdge(edge, cluster);</span>
+<span class="fc bfc" id="L1157" title="All 2 branches covered.">		} while (edge != first_edge);</span>
+<span class="fc" id="L1158">	}</span>
+
+	// Updates all vertices of the cluster to new coordinate
+	void updateClusterXY(int cluster, Point2D pt) {
+<span class="fc" id="L1162">		int vertexList = getClusterVertices(cluster);</span>
+<span class="fc bfc" id="L1163" title="All 2 branches covered.">		for (int vh = m_cluster_vertices.getFirst(vertexList); vh != -1; vh = m_cluster_vertices</span>
+<span class="fc" id="L1164">				.getNext(vh)) {</span>
+<span class="fc" id="L1165">			int vertex = m_cluster_vertices.getElement(vh);</span>
+<span class="fc" id="L1166">			m_shape.setXY(vertex, pt);</span>
+		}
+<span class="fc" id="L1168">	}</span>
+
+	// Modifies the given edges given the intersector class and the result
+	// index.
+	// The function updates the the event structure and puts new edges into the
+	// m_edges_to_insert_in_sweep_structure.
+	void splitEdge_(int edge1, int edge2, int intersectionCluster,
+			SegmentIntersector intersector) {
+
+<span class="fc" id="L1177">		disconnectEdge_(edge1);// disconnects the edge from the clusters. The</span>
+								// edge still remembers the clusters.
+<span class="fc bfc" id="L1179" title="All 2 branches covered.">		if (edge2 != -1)</span>
+<span class="fc" id="L1180">			disconnectEdge_(edge2);// disconnects the edge from the clusters.</span>
+									// The edge still remembers the clusters.
+
+		// Collect all edges that are affected when the clusters change position
+		// due to snapping
+		// The edges are collected in m_edges_to_insert_in_sweep_structure.
+		// Collect the modified clusters in m_modified_clusters.
+<span class="fc" id="L1187">		processSplitHelper1_(0, edge1, intersector);</span>
+<span class="fc bfc" id="L1188" title="All 2 branches covered.">		if (edge2 != -1)</span>
+<span class="fc" id="L1189">			processSplitHelper1_(1, edge2, intersector);</span>
+
+<span class="fc bfc" id="L1191" title="All 2 branches covered.">		if (intersectionCluster != -1) {</span>
+<span class="fc" id="L1192">			intersector.getResultPoint().getXY(pt_1);</span>
+<span class="fc" id="L1193">			getClusterXY(intersectionCluster, pt_2);</span>
+<span class="pc bpc" id="L1194" title="1 of 2 branches missed.">			if (!pt_2.isEqual(pt_1))</span>
+<span class="fc" id="L1195">				m_modified_clusters.add(intersectionCluster);</span>
+		}
+
+		// remove modified clusters from the event queue. We'll reincert them
+		// later
+<span class="fc bfc" id="L1200" title="All 2 branches covered.">		for (int i = 0, n = m_modified_clusters.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L1201">			int cluster = m_modified_clusters.get(i);</span>
+<span class="fc" id="L1202">			int eventQnode = getClusterEventQNode(cluster);</span>
+<span class="pc bpc" id="L1203" title="1 of 2 branches missed.">			if (eventQnode != -1) {</span>
+<span class="fc" id="L1204">				m_event_q.deleteNode(eventQnode, -1);</span>
+<span class="fc" id="L1205">				setClusterEventQNode_(cluster, -1);</span>
+			}
+		}
+
+<span class="fc" id="L1209">		int edgeOrigins1 = getEdgeOriginVertices(edge1);</span>
+<span class="fc bfc" id="L1210" title="All 2 branches covered.">		int edgeOrigins2 = (edge2 != -1) ? getEdgeOriginVertices(edge2) : -1;</span>
+
+		// Adjust the vertex coordinates and split the segments in the the edit
+		// shape.
+<span class="fc" id="L1214">		applyIntersectorToEditShape_(edgeOrigins1, intersector, 0);</span>
+<span class="fc bfc" id="L1215" title="All 2 branches covered.">		if (edgeOrigins2 != -1)</span>
+<span class="fc" id="L1216">			applyIntersectorToEditShape_(edgeOrigins2, intersector, 1);</span>
+		else {
+<span class="pc bpc" id="L1218" title="1 of 2 branches missed.">			assert (intersectionCluster != -1);</span>
+<span class="fc" id="L1219">			Point2D pt = intersector.getResultPoint().getXY();</span>
+<span class="fc" id="L1220">			updateClusterXY(intersectionCluster, pt);</span>
+		}
+		
+		// Produce clusters, and new edges. The new edges are added to
+		// m_edges_to_insert_in_sweep_structure.
+<span class="fc" id="L1225">		createEdgesAndClustersFromSplitEdge_(edge1, intersector, 0);</span>
+<span class="fc bfc" id="L1226" title="All 2 branches covered.">		if (edge2 != -1)</span>
+<span class="fc" id="L1227">			createEdgesAndClustersFromSplitEdge_(edge2, intersector, 1);</span>
+
+<span class="fc" id="L1229">		m_edge_vertices.deleteList(edgeOrigins1);</span>
+<span class="fc" id="L1230">		deleteEdge_(edge1);</span>
+
+<span class="fc bfc" id="L1232" title="All 2 branches covered.">		if (edge2 != -1) {</span>
+<span class="fc" id="L1233">			m_edge_vertices.deleteList(edgeOrigins2);</span>
+<span class="fc" id="L1234">			deleteEdge_(edge2);</span>
+		}
+
+		// insert clusters into the event queue and the edges into the sweep
+		// structure.
+<span class="fc bfc" id="L1239" title="All 2 branches covered.">		for (int i = 0, n = m_modified_clusters.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L1240">			int cluster = m_modified_clusters.get(i);</span>
+<span class="fc bfc" id="L1241" title="All 2 branches covered.">			if (cluster == m_sweep_point_cluster)</span>
+<span class="fc" id="L1242">				m_b_sweep_point_cluster_was_modified = true;</span>
+
+<span class="fc" id="L1244">			int eventQnode = getClusterEventQNode(cluster);</span>
+<span class="pc bpc" id="L1245" title="1 of 2 branches missed.">			if (eventQnode == -1) {</span>
+<span class="fc" id="L1246">				int vertex = getClusterFirstVertex(cluster);</span>
+<span class="pc bpc" id="L1247" title="1 of 2 branches missed.">				assert (getClusterFromVertex(vertex) == cluster);</span>
+
+<span class="fc" id="L1249">				eventQnode = m_event_q.addUniqueElement(vertex, -1);// O(logN)</span>
+																	// operation
+<span class="fc bfc" id="L1251" title="All 2 branches covered.">				if (eventQnode == -1) {// the cluster is coinciding with another</span>
+										// one. merge.
+<span class="fc" id="L1253">					int existingNode = m_event_q.getDuplicateElement(-1);</span>
+<span class="fc" id="L1254">					int v = m_event_q.getElement(existingNode);</span>
+<span class="pc bpc" id="L1255" title="1 of 2 branches missed.">					assert (m_shape.isEqualXY(vertex, v));</span>
+<span class="fc" id="L1256">					int existingCluster = getClusterFromVertex(v);</span>
+<span class="fc" id="L1257">					mergeClusters_(existingCluster, cluster);</span>
+<span class="fc" id="L1258">				} else {</span>
+<span class="fc" id="L1259">					setClusterEventQNode_(cluster, eventQnode);</span>
+				}
+			} else {
+				// if already inserted (probably impossible) case
+			}
+		}
+
+<span class="fc" id="L1266">		m_modified_clusters.clear(false);</span>
+<span class="fc" id="L1267">	}</span>
+
+	// Returns a cluster's xy.
+	void getClusterXY(int cluster, Point2D ptOut) {
+<span class="fc" id="L1271">		int vindex = getClusterVertexIndex(cluster);</span>
+<span class="fc" id="L1272">		m_shape.getXYWithIndex(vindex, ptOut);</span>
+<span class="fc" id="L1273">	}</span>
+
+	int getClusterFirstVertex(int cluster) {
+<span class="fc" id="L1276">		int vertexList = getClusterVertices(cluster);</span>
+<span class="fc" id="L1277">		int vertex = m_cluster_vertices.getFirstElement(vertexList);</span>
+<span class="fc" id="L1278">		return vertex;</span>
+	}
+
+	boolean sweepImpl_() {
+<span class="fc" id="L1282">		m_b_sweep_point_cluster_was_modified = false;</span>
+<span class="fc" id="L1283">		m_sweep_point_cluster = -1;</span>
+<span class="fc bfc" id="L1284" title="All 2 branches covered.">		if (m_sweep_comparator == null) {</span>
+<span class="fc" id="L1285">			m_sweep_structure.disableBalancing();</span>
+<span class="fc" id="L1286">			m_sweep_comparator = new SimplifySweepComparator(this);</span>
+<span class="fc" id="L1287">			m_sweep_structure.setComparator(m_sweep_comparator);</span>
+		}
+
+<span class="fc" id="L1290">		AttributeStreamOfInt32 edgesToDelete = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L1291">		SimplifySweepMonikerComparator sweepMoniker = null;</span>
+<span class="fc" id="L1292">		QMonikerComparator moniker = null;</span>
+
+<span class="fc" id="L1294">		int iterationCounter = 0;</span>
+<span class="fc" id="L1295">		m_prev_neighbour = -1;</span>
+<span class="fc" id="L1296">		m_next_neighbour = -1;</span>
+<span class="fc" id="L1297">		m_b_continuing_segment_chain_optimization = false;</span>
+
+<span class="fc" id="L1299">		int c_2 = StridedIndexTypeCollection.impossibleIndex2();</span>
+<span class="fc" id="L1300">		int c_3 = StridedIndexTypeCollection.impossibleIndex3();</span>
+<span class="pc bpc" id="L1301" title="1 of 2 branches missed.">		assert (c_2 != c_3);</span>
+
+<span class="fc bfc" id="L1303" title="All 2 branches covered.">		for (int eventQnode = m_event_q.getFirst(-1); eventQnode != -1;) {</span>
+<span class="fc" id="L1304">			iterationCounter++;</span>
+<span class="fc" id="L1305">			m_b_continuing_segment_chain_optimization = false;</span>
+
+<span class="fc" id="L1307">			int vertex = m_event_q.getElement(eventQnode);</span>
+<span class="fc" id="L1308">			m_sweep_point_cluster = getClusterFromVertex(vertex);</span>
+<span class="fc" id="L1309">			m_shape.getXY(vertex, m_sweep_point);</span>
+
+<span class="fc" id="L1311">			m_sweep_comparator.setSweepY(m_sweep_point.y, m_sweep_point.x);// move</span>
+																			// the
+																			// sweep
+																			// line
+
+<span class="fc" id="L1316">			boolean bDisconnectedCluster = false;</span>
+			{// scope
+<span class="fc" id="L1318">				int first_edge = getClusterFirstEdge(m_sweep_point_cluster);</span>
+<span class="fc bfc" id="L1319" title="All 2 branches covered.">				bDisconnectedCluster = first_edge == -1;</span>
+<span class="fc bfc" id="L1320" title="All 2 branches covered.">				if (!bDisconnectedCluster) {</span>
+<span class="fc" id="L1321">					int edge = first_edge;</span>
+					do {
+<span class="fc" id="L1323">						int sweepNode = getEdgeSweepNode(edge);</span>
+<span class="fc bfc" id="L1324" title="All 2 branches covered.">						if (sweepNode == -1) {</span>
+<span class="fc" id="L1325">							m_edges_to_insert_in_sweep_structure.add(edge);</span>
+<span class="fc" id="L1326">							setEdgeSweepNode_(edge, c_3);// mark that its in</span>
+															// m_edges_to_insert_in_sweep_structure
+<span class="pc bpc" id="L1328" title="1 of 2 branches missed.">						} else if (sweepNode != c_3) {</span>
+<span class="pc bpc" id="L1329" title="1 of 2 branches missed.">							assert(StridedIndexTypeCollection.isValidElement(sweepNode));</span>
+<span class="fc" id="L1330">							edgesToDelete.add(sweepNode);</span>
+						}
+<span class="fc" id="L1332">						edge = getNextEdge(edge, m_sweep_point_cluster);</span>
+<span class="fc bfc" id="L1333" title="All 2 branches covered.">					} while (edge != first_edge);</span>
+				}
+			}
+
+			// st_counter_insertions_peaks += edgesToDelete.size() == 0 &amp;&amp;
+			// m_edges_to_insert_in_sweep_structure.size() &gt; 0;
+			// First step is to delete the edges that terminate in the
+			// cluster.
+			// During that step we also determine the left and right neighbors
+			// of the deleted bunch and then check if those left and right
+			// intersect or not.
+<span class="fc bfc" id="L1344" title="All 2 branches covered.">			if (edgesToDelete.size() &gt; 0) {</span>
+<span class="fc" id="L1345">				m_b_continuing_segment_chain_optimization = (edgesToDelete</span>
+<span class="fc bfc" id="L1346" title="All 2 branches covered.">						.size() == 1 &amp;&amp; m_edges_to_insert_in_sweep_structure</span>
+<span class="fc bfc" id="L1347" title="All 2 branches covered.">						.size() == 1);</span>
+
+				// Mark nodes that need to be deleted by setting c_2 to the
+				// edge's sweep node member.
+<span class="fc bfc" id="L1351" title="All 2 branches covered.">				for (int i = 0, n = edgesToDelete.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L1352">					int edge = m_sweep_structure.getElement(edgesToDelete</span>
+<span class="fc" id="L1353">							.get(i));</span>
+<span class="fc" id="L1354">					setEdgeSweepNode_(edge, c_2);</span>
+				}
+
+<span class="fc" id="L1357">				int left = c_2;</span>
+<span class="fc" id="L1358">				int right = c_2;</span>
+				// Determine left and right nodes for the bunch of nodes we are
+				// deleting.
+<span class="pc bpc" id="L1361" title="1 of 2 branches missed.">				for (int i = 0, n = edgesToDelete.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L1362">					int sweepNode = edgesToDelete.get(i);</span>
+<span class="fc bfc" id="L1363" title="All 2 branches covered.">					if (left == c_2) {</span>
+<span class="fc" id="L1364">						int localleft = m_sweep_structure.getPrev(sweepNode);</span>
+<span class="fc bfc" id="L1365" title="All 2 branches covered.">						if (localleft != -1) {</span>
+<span class="fc" id="L1366">							int edge = m_sweep_structure.getElement(localleft);</span>
+<span class="fc" id="L1367">							int node = getEdgeSweepNode(edge);</span>
+<span class="fc bfc" id="L1368" title="All 2 branches covered.">							if (node != c_2)</span>
+<span class="fc" id="L1369">								left = localleft;</span>
+<span class="fc" id="L1370">						} else</span>
+<span class="fc" id="L1371">							left = -1;</span>
+					}
+
+<span class="fc bfc" id="L1374" title="All 2 branches covered.">					if (right == c_2) {</span>
+<span class="fc" id="L1375">						int localright = m_sweep_structure.getNext(sweepNode);</span>
+<span class="fc bfc" id="L1376" title="All 2 branches covered.">						if (localright != -1) {</span>
+<span class="fc" id="L1377">							int edge = m_sweep_structure.getElement(localright);</span>
+<span class="fc" id="L1378">							int node = getEdgeSweepNode(edge);</span>
+<span class="fc bfc" id="L1379" title="All 2 branches covered.">							if (node != c_2)</span>
+<span class="fc" id="L1380">								right = localright;</span>
+<span class="fc" id="L1381">						} else</span>
+<span class="fc" id="L1382">							right = -1;</span>
+					}
+
+<span class="fc bfc" id="L1385" title="All 4 branches covered.">					if (left != c_2 &amp;&amp; right != c_2)</span>
+<span class="fc" id="L1386">						break;</span>
+				}
+
+<span class="pc bpc" id="L1389" title="2 of 4 branches missed.">				assert (left != c_2 &amp;&amp; right != c_2);</span>
+				// Now delete the bunch.
+<span class="fc bfc" id="L1391" title="All 2 branches covered.">				for (int i = 0, n = edgesToDelete.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L1392">					int sweepNode = edgesToDelete.get(i);</span>
+<span class="fc" id="L1393">					int edge = m_sweep_structure.getElement(sweepNode);</span>
+<span class="fc" id="L1394">					m_sweep_structure.deleteNode(sweepNode, -1);</span>
+<span class="fc" id="L1395">					setEdgeSweepNode_(edge, -1);</span>
+				}
+
+<span class="fc" id="L1398">				edgesToDelete.clear(false);</span>
+
+<span class="fc bfc" id="L1400" title="All 2 branches covered.">				m_prev_neighbour = left != -1 ? left : -1;</span>
+<span class="fc bfc" id="L1401" title="All 2 branches covered.">				m_next_neighbour = right != -1 ? right : -1;</span>
+
+				// Now check if the left and right we found intersect or not.
+<span class="fc bfc" id="L1404" title="All 4 branches covered.">				if (left != -1 &amp;&amp; right != -1) {</span>
+<span class="fc bfc" id="L1405" title="All 2 branches covered.">					if (!m_b_continuing_segment_chain_optimization) {</span>
+<span class="fc" id="L1406">						boolean bIntersected = checkAndFixIntersection_(left,</span>
+								right);
+<span class="fc" id="L1408">					}</span>
+				} else {
+<span class="fc bfc" id="L1410" title="All 4 branches covered.">					if ((left == -1) &amp;&amp; (right == -1))</span>
+<span class="fc" id="L1411">						m_b_continuing_segment_chain_optimization = false;</span>
+				}
+<span class="fc" id="L1413">			} else {</span>
+				// edgesToDelete.size() == 0 - nothing to delete here. This is a
+				// cluster which has all edges directed up or a disconnected
+				// cluster.
+
+<span class="fc bfc" id="L1418" title="All 2 branches covered.">				if (bDisconnectedCluster) {// check standalone cluster (point or</span>
+											// multipoint) if it cracks an edge.
+<span class="pc bpc" id="L1420" title="1 of 2 branches missed.">					if (sweepMoniker == null)</span>
+<span class="fc" id="L1421">						sweepMoniker = new SimplifySweepMonikerComparator(this);</span>
+
+<span class="fc" id="L1423">					sweepMoniker.setPoint(m_sweep_point);</span>
+<span class="fc" id="L1424">					m_sweep_structure.searchUpperBound(sweepMoniker, -1);</span>
+<span class="fc bfc" id="L1425" title="All 2 branches covered.">					if (sweepMoniker.intersectionDetected()) {</span>
+<span class="fc" id="L1426">						sweepMoniker.clearIntersectionDetectedFlag();</span>
+<span class="fc" id="L1427">						fixIntersectionPointSegment_(m_sweep_point_cluster,</span>
+<span class="fc" id="L1428">								sweepMoniker.getCurrentNode());</span>
+					}
+				}
+			}
+
+			// Now insert edges that start at the cluster and go up
+<span class="fc" id="L1434">			insertNewEdges_();</span>
+
+<span class="fc bfc" id="L1436" title="All 2 branches covered.">			if (m_b_sweep_point_cluster_was_modified) {</span>
+<span class="fc" id="L1437">				m_b_sweep_point_cluster_was_modified = false;</span>
+<span class="fc bfc" id="L1438" title="All 2 branches covered.">				if (moniker == null)</span>
+<span class="fc" id="L1439">					moniker = new QMonikerComparator(m_shape);</span>
+<span class="fc" id="L1440">				moniker.setPoint(m_sweep_point);</span>
+<span class="fc" id="L1441">				eventQnode = m_event_q.searchUpperBound(moniker, -1);</span>
+			} else
+<span class="fc" id="L1443">				eventQnode = m_event_q.getNext(eventQnode);</span>
+<span class="fc" id="L1444">		}</span>
+
+<span class="fc" id="L1446">		return m_b_cracked;</span>
+	}
+
+	void setEditShape_(EditShape shape) {
+		// Populate the cluster and edge structures.
+<span class="fc" id="L1451">		m_shape = shape;</span>
+<span class="fc" id="L1452">		m_vertex_cluster_index = m_shape.createUserIndex();</span>
+
+<span class="fc" id="L1454">		m_edges.setCapacity(shape.getTotalPointCount() + 32);</span>
+
+<span class="fc" id="L1456">		m_clusters.setCapacity(shape.getTotalPointCount());</span>
+
+<span class="fc" id="L1458">		m_cluster_vertices.reserveLists(shape.getTotalPointCount());</span>
+<span class="fc" id="L1459">		m_cluster_vertices.reserveNodes(shape.getTotalPointCount());</span>
+
+<span class="fc" id="L1461">		m_edge_vertices.reserveLists(shape.getTotalPointCount() + 32);</span>
+<span class="fc" id="L1462">		m_edge_vertices.reserveNodes(shape.getTotalPointCount() + 32);</span>
+
+<span class="fc bfc" id="L1464" title="All 2 branches covered.">		for (int geometry = m_shape.getFirstGeometry(); geometry != -1; geometry = m_shape</span>
+<span class="fc" id="L1465">				.getNextGeometry(geometry)) {</span>
+<span class="fc" id="L1466">			boolean bMultiPath = Geometry.isMultiPath(m_shape</span>
+<span class="fc" id="L1467">					.getGeometryType(geometry));</span>
+
+<span class="fc bfc" id="L1469" title="All 2 branches covered.">			if (!bMultiPath) {// for multipoints do not add edges.</span>
+<span class="pc bpc" id="L1470" title="1 of 2 branches missed.">				assert (m_shape.getGeometryType(geometry) == Geometry.GeometryType.MultiPoint);</span>
+
+<span class="fc bfc" id="L1472" title="All 2 branches covered.">				for (int path = m_shape.getFirstPath(geometry); path != -1; path = m_shape</span>
+<span class="fc" id="L1473">						.getNextPath(path)) {</span>
+<span class="fc" id="L1474">					int vertex = m_shape.getFirstVertex(path);</span>
+<span class="fc bfc" id="L1475" title="All 2 branches covered.">					for (int i = 0, n = m_shape.getPathSize(path); i &lt; n; i++) {</span>
+						// int cluster
+<span class="fc" id="L1477">						newCluster_(vertex);</span>
+<span class="fc" id="L1478">						vertex = m_shape.getNextVertex(vertex);</span>
+					}
+				}
+<span class="fc" id="L1481">				continue;</span>
+			}
+
+<span class="fc bfc" id="L1484" title="All 2 branches covered.">			for (int path = m_shape.getFirstPath(geometry); path != -1; path = m_shape</span>
+<span class="fc" id="L1485">					.getNextPath(path)) {</span>
+<span class="fc" id="L1486">				int path_size = m_shape.getPathSize(path);</span>
+<span class="pc bpc" id="L1487" title="1 of 2 branches missed.">				assert (path_size &gt; 1);</span>
+<span class="fc" id="L1488">				int first_vertex = m_shape.getFirstVertex(path);</span>
+
+				// first------------------
+<span class="fc" id="L1491">				int firstCluster = newCluster_(first_vertex);</span>
+<span class="fc" id="L1492">				int first_edge = newEdge_(first_vertex);</span>
+<span class="fc" id="L1493">				addEdgeToCluster(first_edge, firstCluster);</span>
+<span class="fc" id="L1494">				int prevEdge = first_edge;</span>
+<span class="fc" id="L1495">				int vertex = m_shape.getNextVertex(first_vertex);</span>
+<span class="fc bfc" id="L1496" title="All 2 branches covered.">				for (int index = 0, n = path_size - 2; index &lt; n; index++) {</span>
+<span class="fc" id="L1497">					int nextvertex = m_shape.getNextVertex(vertex);</span>
+					// ------------x------------
+<span class="fc" id="L1499">					int cluster = newCluster_(vertex);</span>
+<span class="fc" id="L1500">					addEdgeToCluster(prevEdge, cluster);</span>
+<span class="fc" id="L1501">					int newEdge = newEdge_(vertex);</span>
+<span class="fc" id="L1502">					addEdgeToCluster(newEdge, cluster);</span>
+<span class="fc" id="L1503">					prevEdge = newEdge;</span>
+<span class="fc" id="L1504">					vertex = nextvertex;</span>
+				}
+
+				// ------------------lastx
+<span class="fc bfc" id="L1508" title="All 2 branches covered.">				if (m_shape.isClosedPath(path)) {</span>
+<span class="fc" id="L1509">					int cluster = newCluster_(vertex);</span>
+<span class="fc" id="L1510">					addEdgeToCluster(prevEdge, cluster);</span>
+					// close the path
+					// lastx------------------firstx
+<span class="fc" id="L1513">					int newEdge = newEdge_(vertex);</span>
+<span class="fc" id="L1514">					addEdgeToCluster(newEdge, cluster);</span>
+<span class="fc" id="L1515">					addEdgeToCluster(newEdge, firstCluster);</span>
+<span class="fc" id="L1516">				} else {</span>
+					// ------------------lastx
+<span class="fc" id="L1518">					int cluster = newCluster_(vertex);</span>
+<span class="fc" id="L1519">					addEdgeToCluster(prevEdge, cluster);</span>
+				}
+				
+			}
+		}
+
+<span class="fc" id="L1525">		fillEventQueue();</span>
+
+		// int perPoint = estimate_memory_size() /
+		// m_shape.get_total_point_count();
+		// perPoint = 0;
+<span class="fc" id="L1530">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

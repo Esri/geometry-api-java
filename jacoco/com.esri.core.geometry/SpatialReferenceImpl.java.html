@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SpatialReferenceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">SpatialReferenceImpl.java</span></div><h1>SpatialReferenceImpl.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+import java.util.Arrays;
+import java.util.concurrent.locks.ReentrantLock;
+
+class SpatialReferenceImpl extends SpatialReference {
+	static final boolean no_projection_engine = true;
+	public final static int c_SULIMIT32 = 2147483645;
+	public final static long c_SULIMIT64 = 9007199254740990L;
+
+<span class="nc" id="L35">	enum Precision {</span>
+<span class="nc" id="L36">		Integer32, Integer64, FloatingPoint</span>
+	};
+
+	int m_userWkid;// this wkid is provided by user to the create method.
+	int m_userLatestWkid;
+	int m_userOldestWkid;
+	String m_userWkt;// a string, the well-known text.
+
+	// public SgCoordRef m_sgCoordRef;
+
+<span class="fc" id="L46">	private final static ReentrantLock m_lock = new ReentrantLock();</span>
+
+	// TODO If one was going to create member object for locking it would be
+	// here.
+<span class="fc" id="L50">	SpatialReferenceImpl() {</span>
+<span class="fc" id="L51">		m_userWkid = 0;</span>
+<span class="fc" id="L52">		m_userLatestWkid = -1;</span>
+<span class="fc" id="L53">		m_userOldestWkid = -1;</span>
+<span class="fc" id="L54">		m_userWkt = null;</span>
+<span class="fc" id="L55">	}</span>
+
+	@Override
+	public int getID() {
+<span class="fc" id="L59">		return m_userWkid;</span>
+	}
+
+	double getFalseX() {
+<span class="nc" id="L63">		return 0;</span>
+	}
+
+	double getFalseY() {
+<span class="nc" id="L67">		return 0;</span>
+	}
+
+	double getFalseZ() {
+<span class="nc" id="L71">		return 0;</span>
+	}
+
+	double getFalseM() {
+<span class="nc" id="L75">		return 0;</span>
+	}
+
+	double getGridUnitsXY() {
+<span class="nc" id="L79">		return 1 / (1.0e-9 * 0.0174532925199433/* getOneDegreeGCSUnit() */);</span>
+	}
+
+	double getGridUnitsZ() {
+<span class="nc" id="L83">		return 1 / 0.001;</span>
+	}
+
+	double getGridUnitsM() {
+<span class="nc" id="L87">		return 1 / 0.001;</span>
+	}
+
+	Precision getPrecision() {
+<span class="nc" id="L91">		return Precision.Integer64;</span>
+	}
+
+	@Override
+	double getTolerance(int semantics) {
+<span class="fc" id="L96">		double tolerance = 0.001;</span>
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">		if (m_userWkid != 0) {</span>
+<span class="fc" id="L98">			tolerance = Wkid.find_tolerance_from_wkid(m_userWkid);</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">		} else if (m_userWkt != null) {</span>
+<span class="nc" id="L100">			tolerance = Wkt.find_tolerance_from_wkt(m_userWkt);</span>
+		}
+<span class="fc" id="L102">		return tolerance;</span>
+	}
+
+	public void queryValidCoordinateRange(Envelope2D env2D) {
+<span class="nc" id="L106">		double delta = 0;</span>
+<span class="nc bnc" id="L107" title="All 3 branches missed.">		switch (getPrecision()) {</span>
+		case Integer32:
+<span class="nc" id="L109">			delta = c_SULIMIT32 / getGridUnitsXY();</span>
+<span class="nc" id="L110">			break;</span>
+		case Integer64:
+<span class="nc" id="L112">			delta = c_SULIMIT64 / getGridUnitsXY();</span>
+<span class="nc" id="L113">			break;</span>
+		default:
+			// TODO
+<span class="nc" id="L116">			throw GeometryException.GeometryInternalError();</span>
+		}
+
+<span class="nc" id="L119">		env2D.setCoords(getFalseX(), getFalseY(), getFalseX() + delta,</span>
+<span class="nc" id="L120">				getFalseY() + delta);</span>
+<span class="nc" id="L121">	}</span>
+
+	public boolean requiresReSimplify(SpatialReference dst) {
+<span class="nc bnc" id="L124" title="All 2 branches missed.">		return dst != this;</span>
+	}
+
+	@Override
+	public String getText() {
+<span class="fc" id="L129">		return m_userWkt;</span>
+	}
+
+	/**
+	 * Returns the oldest value of the well known ID for the horizontal
+	 * coordinate system of the spatial reference. This ID is used for JSON
+	 * serialization. Not public.
+	 */
+	@Override
+	int getOldID() {
+<span class="fc" id="L139">		int ID_ = getID();</span>
+
+<span class="fc bfc" id="L141" title="All 2 branches covered.">		if (m_userOldestWkid != -1)</span>
+<span class="fc" id="L142">			return m_userOldestWkid;</span>
+
+<span class="fc" id="L144">		m_userOldestWkid = Wkid.wkid_to_old(ID_);</span>
+
+<span class="pc bpc" id="L146" title="1 of 2 branches missed.">		if (m_userOldestWkid != -1)</span>
+<span class="fc" id="L147">			return m_userOldestWkid;</span>
+
+<span class="nc" id="L149">		return ID_;</span>
+	}
+
+	/**
+	 * Returns the latest value of the well known ID for the horizontal
+	 * coordinate system of the spatial reference. This ID is used for JSON
+	 * serialization. Not public.
+	 */
+	@Override
+	int getLatestID() {
+<span class="fc" id="L159">		int ID_ = getID();</span>
+
+<span class="fc bfc" id="L161" title="All 2 branches covered.">		if (m_userLatestWkid != -1)</span>
+<span class="fc" id="L162">			return m_userLatestWkid;</span>
+
+<span class="fc" id="L164">		m_userLatestWkid = Wkid.wkid_to_new(ID_);</span>
+
+<span class="pc bpc" id="L166" title="1 of 2 branches missed.">		if (m_userLatestWkid != -1)</span>
+<span class="fc" id="L167">			return m_userLatestWkid;</span>
+
+<span class="nc" id="L169">		return ID_;</span>
+	}
+
+	public static SpatialReferenceImpl createImpl(int wkid) {
+<span class="pc bpc" id="L173" title="1 of 2 branches missed.">		if (wkid &lt;= 0)</span>
+<span class="nc" id="L174">			throw new IllegalArgumentException(&quot;Invalid or unsupported wkid: &quot;</span>
+					+ wkid);
+
+<span class="fc" id="L177">		SpatialReferenceImpl spatRef = new SpatialReferenceImpl();</span>
+<span class="fc" id="L178">		spatRef.m_userWkid = wkid;</span>
+
+<span class="fc" id="L180">		return spatRef;</span>
+	}
+
+	public static SpatialReferenceImpl createImpl(String wkt) {
+<span class="pc bpc" id="L184" title="2 of 4 branches missed.">		if (wkt == null || wkt.length() == 0)</span>
+<span class="nc" id="L185">			throw new IllegalArgumentException(</span>
+					&quot;Cannot create SpatialReference from null or empty text.&quot;);
+
+<span class="fc" id="L188">		SpatialReferenceImpl spatRef = new SpatialReferenceImpl();</span>
+<span class="fc" id="L189">		spatRef.m_userWkt = wkt;</span>
+
+<span class="fc" id="L191">		return spatRef;</span>
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+<span class="fc bfc" id="L196" title="All 2 branches covered.">		if (this == obj)</span>
+<span class="fc" id="L197">			return true;</span>
+<span class="pc bpc" id="L198" title="1 of 2 branches missed.">		if (obj == null)</span>
+<span class="nc" id="L199">			return false;</span>
+<span class="pc bpc" id="L200" title="1 of 2 branches missed.">		if (getClass() != obj.getClass())</span>
+<span class="nc" id="L201">			return false;</span>
+
+<span class="fc" id="L203">		SpatialReferenceImpl sr = (SpatialReferenceImpl) obj;</span>
+<span class="fc bfc" id="L204" title="All 2 branches covered.">		if (m_userWkid != sr.m_userWkid)</span>
+<span class="fc" id="L205">			return false;</span>
+
+<span class="fc bfc" id="L207" title="All 2 branches covered.">		if (m_userWkid == 0) {</span>
+<span class="fc bfc" id="L208" title="All 2 branches covered.">			if (!m_userWkt.equals(sr.m_userWkt))// m_userWkt cannot be null here!</span>
+<span class="fc" id="L209">				return false;</span>
+		}
+
+<span class="fc" id="L212">		return true;</span>
+	}
+
+	static double geodesicDistanceOnWGS84Impl(Point ptFrom, Point ptTo) {
+<span class="fc" id="L216">		double a = 6378137.0; // radius of spheroid for WGS_1984</span>
+<span class="fc" id="L217">		double e2 = 0.0066943799901413165; // ellipticity for WGS_1984</span>
+<span class="fc" id="L218">		double rpu = Math.PI / 180.0;</span>
+<span class="fc" id="L219">		PeDouble answer = new PeDouble();</span>
+<span class="fc" id="L220">		GeoDist.geodesic_distance_ngs(a, e2, ptFrom.getX() * rpu,</span>
+<span class="fc" id="L221">				ptFrom.getY() * rpu, ptTo.getX() * rpu, ptTo.getY()</span>
+						* rpu, answer, null, null);
+<span class="fc" id="L223">		return answer.val;</span>
+	}
+
+	public String getAuthority() {
+<span class="fc" id="L227">		int latestWKID = getLatestID();</span>
+<span class="pc bpc" id="L228" title="1 of 2 branches missed.">		if (latestWKID &lt;= 0)</span>
+<span class="nc" id="L229">			return new String(&quot;&quot;);</span>
+
+<span class="fc" id="L231">		return getAuthority_(latestWKID);</span>
+	}
+
+	private String getAuthority_(int latestWKID) {
+		String authority;
+
+<span class="pc bpc" id="L237" title="1 of 4 branches missed.">		if (latestWKID &gt;= 1024 &amp;&amp; latestWKID &lt;= 32767) {</span>
+
+<span class="fc" id="L239">			int index = Arrays.binarySearch(m_esri_codes, latestWKID);</span>
+
+<span class="pc bpc" id="L241" title="1 of 2 branches missed.">			if (index &gt;= 0)</span>
+<span class="nc" id="L242">				authority = new String(&quot;ESRI&quot;);</span>
+			else
+<span class="fc" id="L244">				authority = new String(&quot;EPSG&quot;);</span>
+<span class="fc" id="L245">		} else {</span>
+<span class="fc" id="L246">			authority = new String(&quot;ESRI&quot;);</span>
+		}
+
+<span class="fc" id="L249">		return authority;</span>
+	}
+
+<span class="fc" id="L252">	private static final int[] m_esri_codes = { </span>
+			2181, // ED_1950_Turkey_9
+			2182, // ED_1950_Turkey_10
+			2183, // ED_1950_Turkey_11
+			2184, // ED_1950_Turkey_12
+			2185, // ED_1950_Turkey_13
+			2186, // ED_1950_Turkey_14
+			2187, // ED_1950_Turkey_15
+			4305, // GCS_Voirol_Unifie_1960
+			4812, // GCS_Voirol_Unifie_1960_Paris
+			20002, // Pulkovo_1995_GK_Zone_2
+			20003, // Pulkovo_1995_GK_Zone_3
+			20062, // Pulkovo_1995_GK_Zone_2N
+			20063, // Pulkovo_1995_GK_Zone_3N
+			24721, // La_Canoa_UTM_Zone_21N
+			26761, // NAD_1927_StatePlane_Hawaii_1_FIPS_5101
+			26762, // NAD_1927_StatePlane_Hawaii_2_FIPS_5102
+			26763, // NAD_1927_StatePlane_Hawaii_3_FIPS_5103
+			26764, // NAD_1927_StatePlane_Hawaii_4_FIPS_5104
+			26765, // NAD_1927_StatePlane_Hawaii_5_FIPS_5105
+			26788, // NAD_1927_StatePlane_Michigan_North_FIPS_2111
+			26789, // NAD_1927_StatePlane_Michigan_Central_FIPS_2112
+			26790, // NAD_1927_StatePlane_Michigan_South_FIPS_2113
+			30591, // Nord_Algerie
+			30592, // Sud_Algerie
+			31491, // Germany_Zone_1
+			31492, // Germany_Zone_2
+			31493, // Germany_Zone_3
+			31494, // Germany_Zone_4
+			31495, // Germany_Zone_5
+			32059, // NAD_1927_StatePlane_Puerto_Rico_FIPS_5201
+			32060, // NAD_1927_StatePlane_Virgin_Islands_St_Croix_FIPS_5202
+	};
+	
+	@Override
+	public int hashCode() {
+<span class="pc bpc" id="L288" title="1 of 2 branches missed.">		if (m_userWkid != 0)</span>
+<span class="fc" id="L289">			return NumberUtils.hash(m_userWkid);</span>
+
+<span class="nc" id="L291">		return m_userWkt.hashCode();</span>
+	}	
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

@@ -1,0 +1,1157 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IntervalTreeImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">IntervalTreeImpl.java</span></div><h1>IntervalTreeImpl.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+import java.util.ArrayList;
+
+<span class="fc" id="L28">final class IntervalTreeImpl {</span>
+	private void sortEndIndices_(AttributeStreamOfInt32 end_indices, int begin_, int end_) {
+<span class="fc" id="L30">		IntervalTreeBucketSortHelper sorter = new IntervalTreeBucketSortHelper(this);</span>
+<span class="fc" id="L31">		BucketSort bucket_sort = new BucketSort();</span>
+<span class="fc" id="L32">		bucket_sort.sort(end_indices, begin_, end_, sorter);</span>
+<span class="fc" id="L33">	}</span>
+
+	private void sortEndIndicesHelper_(AttributeStreamOfInt32 end_indices, int begin_, int end_) {
+<span class="fc" id="L36">		end_indices.Sort(begin_, end_, new EndPointsComparer(this));</span>
+<span class="fc" id="L37">	}</span>
+
+	private double getValue_(int e) {
+<span class="fc bfc" id="L40" title="All 2 branches covered.">		if (!m_b_envelopes_ref) {</span>
+<span class="fc" id="L41">			Envelope1D interval = m_intervals.get(e &gt;&gt; 1);</span>
+<span class="fc bfc" id="L42" title="All 2 branches covered.">			double v = (isLeft_(e) ? interval.vmin : interval.vmax);</span>
+<span class="fc" id="L43">			return v;</span>
+		}
+
+<span class="fc" id="L46">		Envelope2D interval = m_envelopes_ref.get(e &gt;&gt; 1);</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">		double v = (isLeft_(e) ? interval.xmin : interval.xmax);</span>
+<span class="fc" id="L48">		return v;</span>
+	}
+
+	private static final class EndPointsComparer extends AttributeStreamOfInt32.IntComparator { // For user sort
+
+<span class="fc" id="L53">		EndPointsComparer(IntervalTreeImpl interval_tree) {</span>
+<span class="fc" id="L54">			m_interval_tree = interval_tree;</span>
+<span class="fc" id="L55">		}</span>
+
+		@Override
+		public int compare(int e_1, int e_2) {
+<span class="fc" id="L59">			double v_1 = m_interval_tree.getValue_(e_1);</span>
+<span class="fc" id="L60">			double v_2 = m_interval_tree.getValue_(e_2);</span>
+
+<span class="fc bfc" id="L62" title="All 8 branches covered.">			if (v_1 &lt; v_2 || (v_1 == v_2 &amp;&amp; isLeft_(e_1) &amp;&amp; isRight_(e_2)))</span>
+<span class="fc" id="L63">				return -1;</span>
+
+<span class="fc" id="L65">			return 1;</span>
+		}
+
+		private IntervalTreeImpl m_interval_tree;
+	}
+
+	private class IntervalTreeBucketSortHelper extends ClassicSort { // For bucket sort
+
+<span class="fc" id="L73">		IntervalTreeBucketSortHelper(IntervalTreeImpl interval_tree) {</span>
+<span class="fc" id="L74">			m_interval_tree = interval_tree;</span>
+<span class="fc" id="L75">		}</span>
+
+		@Override
+		public void userSort(int begin, int end, AttributeStreamOfInt32 indices) {
+<span class="fc" id="L79">			m_interval_tree.sortEndIndicesHelper_(indices, begin, end);</span>
+<span class="fc" id="L80">		}</span>
+
+		@Override
+		public double getValue(int e) {
+<span class="fc" id="L84">			return m_interval_tree.getValue_(e);</span>
+		}
+
+		private IntervalTreeImpl m_interval_tree;
+	}
+
+<span class="fc" id="L90">	IntervalTreeImpl(boolean b_offline_dynamic) {</span>
+<span class="fc" id="L91">		m_b_envelopes_ref = false;</span>
+<span class="fc" id="L92">		m_b_offline_dynamic = b_offline_dynamic;</span>
+<span class="fc" id="L93">		m_b_constructing = false;</span>
+<span class="fc" id="L94">		m_b_construction_ended = false;</span>
+<span class="fc" id="L95">	}</span>
+
+	void addEnvelopesRef(ArrayList&lt;Envelope2D&gt; envelopes) {
+<span class="fc" id="L98">		reset_(true, true);</span>
+<span class="fc" id="L99">		m_b_envelopes_ref = true;</span>
+<span class="fc" id="L100">		m_envelopes_ref = envelopes;</span>
+
+<span class="fc" id="L102">		m_b_constructing = false;</span>
+<span class="fc" id="L103">		m_b_construction_ended = true;</span>
+
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">		if (!m_b_offline_dynamic) {</span>
+<span class="nc" id="L106">			insertIntervalsStatic_();</span>
+<span class="nc" id="L107">			m_c_count = m_envelopes_ref.size();</span>
+		}
+<span class="fc" id="L109">	}</span>
+
+	void startConstruction() {
+<span class="fc" id="L112">		reset_(true, false);</span>
+<span class="fc" id="L113">	}</span>
+
+	void addInterval(Envelope1D interval) {
+<span class="pc bpc" id="L116" title="1 of 2 branches missed.">		if (!m_b_constructing)</span>
+<span class="nc" id="L117">			throw new GeometryException(&quot;invalid call&quot;);</span>
+
+<span class="fc" id="L119">		m_intervals.add(interval);</span>
+<span class="fc" id="L120">	}</span>
+
+	void addInterval(double min, double max) {
+<span class="nc bnc" id="L123" title="All 2 branches missed.">		if (!m_b_constructing)</span>
+<span class="nc" id="L124">			throw new GeometryException(&quot;invald call&quot;);</span>
+
+<span class="nc" id="L126">		m_intervals.add(new Envelope1D(min, max));</span>
+<span class="nc" id="L127">	}</span>
+
+	void endConstruction() {
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">		if (!m_b_constructing)</span>
+<span class="nc" id="L131">			throw new GeometryException(&quot;invalid call&quot;);</span>
+
+<span class="fc" id="L133">		m_b_constructing = false;</span>
+<span class="fc" id="L134">		m_b_construction_ended = true;</span>
+
+<span class="fc bfc" id="L136" title="All 2 branches covered.">		if (!m_b_offline_dynamic) {</span>
+<span class="fc" id="L137">			insertIntervalsStatic_();</span>
+<span class="fc" id="L138">			m_c_count = m_intervals.size();</span>
+		}
+<span class="fc" id="L140">	}</span>
+
+	/*
+	 * Resets the Interval_tree_impl to an empty state, but maintains a handle
+	 * on the current intervals.
+	 */
+	void reset() {
+<span class="nc bnc" id="L147" title="All 4 branches missed.">		if (!m_b_offline_dynamic || !m_b_construction_ended)</span>
+<span class="nc" id="L148">			throw new IllegalArgumentException(&quot;invalid call&quot;);</span>
+
+<span class="nc" id="L150">		reset_(false, m_b_envelopes_ref);</span>
+<span class="nc" id="L151">	}</span>
+
+	/**
+	 * Returns the number of intervals stored in the Interval_tree_impl
+	 */
+	int size() {
+<span class="fc" id="L157">		return m_c_count;</span>
+	}
+
+	/**
+	 * Gets an iterator on the Interval_tree_impl using the input Envelope_1D
+	 * interval as the query. To reuse the existing iterator on the same
+	 * Interval_tree_impl but with a new query, use the reset_iterator function
+	 * on the Interval_tree_iterator_impl. \param query The Envelope_1D interval
+	 * used for the query. \param tolerance The tolerance used for the
+	 * intersection tests.
+	 */
+	IntervalTreeIteratorImpl getIterator(Envelope1D query, double tolerance) {
+<span class="fc" id="L169">		return new IntervalTreeImpl.IntervalTreeIteratorImpl(this, query, tolerance);</span>
+	}
+
+	/**
+	 * Gets an iterator on the Interval_tree_impl using the input double as the
+	 * stabbing query. To reuse the existing iterator on the same
+	 * Interval_tree_impl but with a new query, use the reset_iterator function
+	 * on the Interval_tree_iterator_impl. \param query The double used for the
+	 * stabbing query. \param tolerance The tolerance used for the intersection
+	 * tests.
+	 */
+	IntervalTreeIteratorImpl getIterator(double query, double tolerance) {
+<span class="nc" id="L181">		return new IntervalTreeImpl.IntervalTreeIteratorImpl(this, query, tolerance);</span>
+	}
+
+	/**
+	 * Gets an iterator on the Interval_tree_impl.
+	 */
+	IntervalTreeIteratorImpl getIterator() {
+<span class="fc" id="L188">		return new IntervalTreeImpl.IntervalTreeIteratorImpl(this);</span>
+	}
+
+	private boolean m_b_envelopes_ref;
+	private boolean m_b_offline_dynamic;
+	private ArrayList&lt;Envelope1D&gt; m_intervals;
+	private ArrayList&lt;Envelope2D&gt; m_envelopes_ref;
+	private StridedIndexTypeCollection m_tertiary_nodes; // 5 elements for offline dynamic case, 4 elements for static case
+	private StridedIndexTypeCollection m_interval_nodes; // 3 elements
+	private AttributeStreamOfInt32 m_interval_handles; // for offline dynamic// case
+	private IndexMultiDCList m_secondary_lists; // for static case
+	private Treap m_secondary_treaps; // for off-line dynamic case
+	private AttributeStreamOfInt32 m_end_indices_unique; // for both offline dynamic and static cases
+	private int m_c_count;
+	private int m_root;
+	private boolean m_b_sort_intervals;
+	private boolean m_b_constructing;
+	private boolean m_b_construction_ended;
+
+      /* m_tertiary_nodes
+      * 0: m_discriminant_index_1
+      * 1: m_secondary
+      * 2: m_lptr
+      * 3: m_rptr
+      * 4: m_pptr
+      */
+
+	private void querySortedEndPointIndices_(AttributeStreamOfInt32 end_indices) {
+<span class="fc bfc" id="L216" title="All 2 branches covered.">		int size = (!m_b_envelopes_ref ? m_intervals.size() : m_envelopes_ref.size());</span>
+
+<span class="fc bfc" id="L218" title="All 2 branches covered.">		for (int i = 0; i &lt; 2 * size; i++)</span>
+<span class="fc" id="L219">			end_indices.add(i);</span>
+
+<span class="fc" id="L221">		sortEndIndices_(end_indices, 0, 2 * size);</span>
+<span class="fc" id="L222">	}</span>
+
+	private void querySortedDuplicatesRemoved_(AttributeStreamOfInt32 end_indices_sorted) {
+		// remove duplicates
+
+<span class="fc" id="L227">		double prev = NumberUtils.TheNaN;</span>
+<span class="fc bfc" id="L228" title="All 2 branches covered.">		for (int i = 0; i &lt; end_indices_sorted.size(); i++) {</span>
+<span class="fc" id="L229">			int e = end_indices_sorted.get(i);</span>
+<span class="fc" id="L230">			double v = getValue_(e);</span>
+
+<span class="fc bfc" id="L232" title="All 2 branches covered.">			if (v != prev) {</span>
+<span class="fc" id="L233">				m_end_indices_unique.add(e);</span>
+<span class="fc" id="L234">				prev = v;</span>
+			}
+		}
+<span class="fc" id="L237">	}</span>
+
+	void insert(int index) {
+<span class="pc bpc" id="L240" title="2 of 4 branches missed.">		if (!m_b_offline_dynamic || !m_b_construction_ended)</span>
+<span class="nc" id="L241">			throw new IllegalArgumentException(&quot;invalid call&quot;);</span>
+
+<span class="fc bfc" id="L243" title="All 2 branches covered.">		if (m_root == -1) {</span>
+
+<span class="fc bfc" id="L245" title="All 2 branches covered.">			int size = (!m_b_envelopes_ref ? m_intervals.size() : m_envelopes_ref.size());</span>
+
+<span class="pc bpc" id="L247" title="1 of 2 branches missed.">			if (m_b_sort_intervals) {</span>
+				// sort
+<span class="fc" id="L249">				AttributeStreamOfInt32 end_point_indices_sorted = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L250">				end_point_indices_sorted.reserve(2 * size);</span>
+<span class="fc" id="L251">				querySortedEndPointIndices_(end_point_indices_sorted);</span>
+
+				// remove duplicates
+<span class="fc" id="L254">				m_end_indices_unique.resize(0);</span>
+<span class="fc" id="L255">				querySortedDuplicatesRemoved_(end_point_indices_sorted);</span>
+<span class="fc" id="L256">				m_interval_handles.resize(size, -1);</span>
+<span class="fc" id="L257">				m_interval_handles.setRange(-1, 0, size);</span>
+<span class="fc" id="L258">				m_b_sort_intervals = false;</span>
+<span class="fc" id="L259">			} else {</span>
+<span class="nc" id="L260">				m_interval_handles.setRange(-1, 0, size);</span>
+			}
+
+<span class="fc" id="L263">			m_root = createRoot_();</span>
+		}
+
+<span class="fc" id="L266">		int interval_handle = insertIntervalEnd_(index &lt;&lt; 1, m_root);</span>
+<span class="fc" id="L267">		int secondary_handle = getSecondaryFromInterval_(interval_handle);</span>
+<span class="fc" id="L268">		int right_end_handle = m_secondary_treaps.addElement((index &lt;&lt; 1) + 1, secondary_handle);</span>
+<span class="fc" id="L269">		setRightEnd_(interval_handle, right_end_handle);</span>
+<span class="fc" id="L270">		m_interval_handles.set(index, interval_handle);</span>
+<span class="fc" id="L271">		m_c_count++;</span>
+		// assert(check_validation_());
+<span class="fc" id="L273">	}</span>
+
+	private void insertIntervalsStatic_() {
+<span class="pc bpc" id="L276" title="1 of 2 branches missed.">		int size = (!m_b_envelopes_ref ? m_intervals.size() : m_envelopes_ref.size());</span>
+
+<span class="pc bpc" id="L278" title="1 of 2 branches missed.">		assert (m_b_sort_intervals);</span>
+
+		// sort
+<span class="fc" id="L281">		AttributeStreamOfInt32 end_indices_sorted = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L282">		end_indices_sorted.reserve(2 * size);</span>
+<span class="fc" id="L283">		querySortedEndPointIndices_(end_indices_sorted);</span>
+
+		// remove duplicates
+<span class="fc" id="L286">		m_end_indices_unique.resize(0);</span>
+<span class="fc" id="L287">		querySortedDuplicatesRemoved_(end_indices_sorted);</span>
+
+<span class="pc bpc" id="L289" title="1 of 2 branches missed.">		assert (m_tertiary_nodes.size() == 0);</span>
+<span class="fc" id="L290">		m_interval_nodes.setCapacity(size); // one for each interval being inserted. each element contains a tertiary node, a left secondary node, and a right secondary node.</span>
+<span class="fc" id="L291">		m_secondary_lists.reserveNodes(2 * size); // one for each end point of the original interval set (not the unique set)</span>
+
+<span class="fc" id="L293">		AttributeStreamOfInt32 interval_handles = (AttributeStreamOfInt32) AttributeStreamBase.createIndexStream(size);</span>
+<span class="fc" id="L294">		interval_handles.setRange(-1, 0, size);</span>
+
+<span class="fc" id="L296">		m_root = createRoot_();</span>
+
+<span class="fc bfc" id="L298" title="All 2 branches covered.">		for (int i = 0; i &lt; end_indices_sorted.size(); i++) {</span>
+<span class="fc" id="L299">			int e = end_indices_sorted.get(i);</span>
+<span class="fc" id="L300">			int interval_handle = interval_handles.get(e &gt;&gt; 1);</span>
+
+<span class="fc bfc" id="L302" title="All 2 branches covered.">			if (interval_handle != -1) {// insert the right end point</span>
+<span class="pc bpc" id="L303" title="1 of 2 branches missed.">				assert (isRight_(e));</span>
+<span class="fc" id="L304">				int secondary_handle = getSecondaryFromInterval_(interval_handle);</span>
+<span class="fc" id="L305">				setRightEnd_(interval_handle, m_secondary_lists.addElement(secondary_handle, e));</span>
+<span class="fc" id="L306">			} else {// insert the left end point</span>
+<span class="pc bpc" id="L307" title="1 of 2 branches missed.">				assert (isLeft_(e));</span>
+<span class="fc" id="L308">				interval_handle = insertIntervalEnd_(e, m_root);</span>
+<span class="fc" id="L309">				interval_handles.set(e &gt;&gt; 1, interval_handle);</span>
+			}
+		}
+
+<span class="pc bpc" id="L313" title="1 of 2 branches missed.">		assert (m_secondary_lists.getNodeCount() == 2 * size);</span>
+<span class="fc" id="L314">	}</span>
+
+	private int createRoot_() {
+<span class="fc" id="L317">		int discriminant_index_1 = calculateDiscriminantIndex1_(0, m_end_indices_unique.size() - 1);</span>
+<span class="fc" id="L318">		return createTertiaryNode_(discriminant_index_1);</span>
+	}
+
+	private int insertIntervalEnd_(int end_index, int root) {
+<span class="pc bpc" id="L322" title="1 of 2 branches missed.">		assert (isLeft_(end_index));</span>
+<span class="fc" id="L323">		int pptr = -1;</span>
+<span class="fc" id="L324">		int ptr = root;</span>
+<span class="fc" id="L325">		int secondary_handle = -1;</span>
+<span class="fc" id="L326">		int interval_handle = -1;</span>
+<span class="fc" id="L327">		int il = 0, ir = m_end_indices_unique.size() - 1, im = 0;</span>
+<span class="fc" id="L328">		int index = end_index &gt;&gt; 1;</span>
+<span class="fc" id="L329">		double discriminant_pptr = NumberUtils.NaN();</span>
+<span class="fc" id="L330">		double discriminant_ptr = NumberUtils.NaN();</span>
+<span class="fc" id="L331">		boolean bSearching = true;</span>
+
+<span class="fc" id="L333">		double min = getMin_(index);</span>
+<span class="fc" id="L334">		double max = getMax_(index);</span>
+
+<span class="fc" id="L336">		int discriminant_index_1 = -1;</span>
+
+<span class="pc bpc" id="L338" title="1 of 2 branches missed.">		while (bSearching) {</span>
+<span class="fc" id="L339">			im = il + (ir - il) / 2;</span>
+<span class="pc bpc" id="L340" title="1 of 4 branches missed.">			assert (il != ir || min == max);</span>
+<span class="fc" id="L341">			discriminant_index_1 = calculateDiscriminantIndex1_(il, ir);</span>
+<span class="fc" id="L342">			double discriminant = getDiscriminantFromIndex1_(discriminant_index_1);</span>
+<span class="pc bpc" id="L343" title="1 of 2 branches missed.">			assert (!NumberUtils.isNaN(discriminant));</span>
+
+<span class="fc bfc" id="L345" title="All 2 branches covered.">			if (max &lt; discriminant) {</span>
+<span class="fc bfc" id="L346" title="All 2 branches covered.">				if (ptr != -1) {</span>
+<span class="fc bfc" id="L347" title="All 2 branches covered.">					if (discriminant_index_1 == getDiscriminantIndex1_(ptr)) {</span>
+<span class="pc bpc" id="L348" title="1 of 2 branches missed.">						assert (getDiscriminantFromIndex1_(discriminant_index_1) == getDiscriminant_(ptr));</span>
+
+<span class="fc" id="L350">						pptr = ptr;</span>
+<span class="fc" id="L351">						discriminant_pptr = discriminant;</span>
+<span class="fc" id="L352">						ptr = getLPTR_(ptr);</span>
+
+<span class="fc bfc" id="L354" title="All 2 branches covered.">						if (ptr != -1)</span>
+<span class="fc" id="L355">							discriminant_ptr = getDiscriminant_(ptr);</span>
+						else
+<span class="fc" id="L357">							discriminant_ptr = NumberUtils.NaN();</span>
+<span class="fc bfc" id="L358" title="All 2 branches covered.">					} else if (discriminant_ptr &gt; discriminant) {</span>
+<span class="fc" id="L359">						int tertiary_handle = createTertiaryNode_(discriminant_index_1);</span>
+
+<span class="fc bfc" id="L361" title="All 2 branches covered.">						if (discriminant &lt; discriminant_pptr)</span>
+<span class="fc" id="L362">							setLPTR_(pptr, tertiary_handle);</span>
+						else
+<span class="fc" id="L364">							setRPTR_(pptr, tertiary_handle);</span>
+
+<span class="fc" id="L366">						setRPTR_(tertiary_handle, ptr);</span>
+
+<span class="pc bpc" id="L368" title="1 of 2 branches missed.">						if (m_b_offline_dynamic) {</span>
+<span class="fc" id="L369">							setPPTR_(tertiary_handle, pptr);</span>
+<span class="fc" id="L370">							setPPTR_(ptr, tertiary_handle);</span>
+						}
+
+<span class="fc" id="L373">						pptr = tertiary_handle;</span>
+<span class="fc" id="L374">						discriminant_pptr = discriminant;</span>
+<span class="fc" id="L375">						ptr = -1;</span>
+<span class="fc" id="L376">						discriminant_ptr = NumberUtils.NaN();</span>
+					}
+				}
+
+<span class="fc" id="L380">				ir = im;</span>
+
+<span class="fc" id="L382">				continue;</span>
+			}
+
+<span class="fc bfc" id="L385" title="All 2 branches covered.">			if (min &gt; discriminant) {</span>
+<span class="fc bfc" id="L386" title="All 2 branches covered.">				if (ptr != -1) {</span>
+<span class="fc bfc" id="L387" title="All 2 branches covered.">					if (discriminant_index_1 == getDiscriminantIndex1_(ptr)) {</span>
+<span class="pc bpc" id="L388" title="1 of 2 branches missed.">						assert (getDiscriminantFromIndex1_(discriminant_index_1) == getDiscriminant_(ptr));</span>
+
+<span class="fc" id="L390">						pptr = ptr;</span>
+<span class="fc" id="L391">						discriminant_pptr = discriminant;</span>
+<span class="fc" id="L392">						ptr = getRPTR_(ptr);</span>
+
+<span class="fc bfc" id="L394" title="All 2 branches covered.">						if (ptr != -1)</span>
+<span class="fc" id="L395">							discriminant_ptr = getDiscriminant_(ptr);</span>
+						else
+<span class="fc" id="L397">							discriminant_ptr = NumberUtils.NaN();</span>
+<span class="fc bfc" id="L398" title="All 2 branches covered.">					} else if (discriminant_ptr &lt; discriminant) {</span>
+<span class="fc" id="L399">						int tertiary_handle = createTertiaryNode_(discriminant_index_1);</span>
+
+<span class="fc bfc" id="L401" title="All 2 branches covered.">						if (discriminant &lt; discriminant_pptr)</span>
+<span class="fc" id="L402">							setLPTR_(pptr, tertiary_handle);</span>
+						else
+<span class="fc" id="L404">							setRPTR_(pptr, tertiary_handle);</span>
+
+<span class="fc" id="L406">						setLPTR_(tertiary_handle, ptr);</span>
+
+<span class="fc bfc" id="L408" title="All 2 branches covered.">						if (m_b_offline_dynamic) {</span>
+<span class="fc" id="L409">							setPPTR_(tertiary_handle, pptr);</span>
+<span class="fc" id="L410">							setPPTR_(ptr, tertiary_handle);</span>
+						}
+
+<span class="fc" id="L413">						pptr = tertiary_handle;</span>
+<span class="fc" id="L414">						discriminant_pptr = discriminant;</span>
+<span class="fc" id="L415">						ptr = -1;</span>
+<span class="fc" id="L416">						discriminant_ptr = NumberUtils.NaN();</span>
+					}
+				}
+
+<span class="fc" id="L420">				il = im + 1;</span>
+
+<span class="fc" id="L422">				continue;</span>
+			}
+
+<span class="fc" id="L425">			int tertiary_handle = -1;</span>
+
+<span class="fc bfc" id="L427" title="All 4 branches covered.">			if (ptr == -1 || discriminant_index_1 != getDiscriminantIndex1_(ptr)) {</span>
+<span class="fc" id="L428">				tertiary_handle = createTertiaryNode_(discriminant_index_1);</span>
+			} else {
+<span class="fc" id="L430">				tertiary_handle = ptr;</span>
+			}
+
+<span class="fc" id="L433">			secondary_handle = getSecondaryFromTertiary_(tertiary_handle);</span>
+
+<span class="fc bfc" id="L435" title="All 2 branches covered.">			if (secondary_handle == -1) {</span>
+<span class="fc" id="L436">				secondary_handle = createSecondary_(tertiary_handle);</span>
+<span class="fc" id="L437">				setSecondaryToTertiary_(tertiary_handle, secondary_handle);</span>
+			}
+
+<span class="fc" id="L440">			int left_end_handle = addEndIndex_(secondary_handle, end_index);</span>
+<span class="fc" id="L441">			interval_handle = createIntervalNode_();</span>
+<span class="fc" id="L442">			setSecondaryToInterval_(interval_handle, secondary_handle);</span>
+<span class="fc" id="L443">			setLeftEnd_(interval_handle, left_end_handle);</span>
+
+<span class="fc bfc" id="L445" title="All 4 branches covered.">			if (ptr == -1 || discriminant_index_1 != getDiscriminantIndex1_(ptr)) {</span>
+<span class="pc bpc" id="L446" title="1 of 2 branches missed.">				assert (tertiary_handle != -1);</span>
+<span class="pc bpc" id="L447" title="3 of 8 branches missed.">				assert (getLPTR_(tertiary_handle) == -1 &amp;&amp; getRPTR_(tertiary_handle) == -1 &amp;&amp; (!m_b_offline_dynamic || getPPTR_(tertiary_handle) == -1));</span>
+
+<span class="fc bfc" id="L449" title="All 2 branches covered.">				if (discriminant &lt; discriminant_pptr)</span>
+<span class="fc" id="L450">					setLPTR_(pptr, tertiary_handle);</span>
+				else
+<span class="fc" id="L452">					setRPTR_(pptr, tertiary_handle);</span>
+
+<span class="fc bfc" id="L454" title="All 2 branches covered.">				if (m_b_offline_dynamic)</span>
+<span class="fc" id="L455">					setPPTR_(tertiary_handle, pptr);</span>
+
+<span class="fc bfc" id="L457" title="All 2 branches covered.">				if (ptr != -1) {</span>
+<span class="fc bfc" id="L458" title="All 2 branches covered.">					if (discriminant_ptr &lt; discriminant)</span>
+<span class="fc" id="L459">						setLPTR_(tertiary_handle, ptr);</span>
+					else
+<span class="fc" id="L461">						setRPTR_(tertiary_handle, ptr);</span>
+
+<span class="fc bfc" id="L463" title="All 2 branches covered.">					if (m_b_offline_dynamic)</span>
+<span class="fc" id="L464">						setPPTR_(ptr, tertiary_handle);</span>
+				}
+			}
+
+<span class="fc" id="L468">			bSearching = false;</span>
+<span class="fc" id="L469">			break;</span>
+		}
+
+<span class="fc" id="L472">		return interval_handle;</span>
+	}
+
+	void remove(int index) {
+<span class="pc bpc" id="L476" title="2 of 4 branches missed.">		if (!m_b_offline_dynamic || !m_b_construction_ended)</span>
+<span class="nc" id="L477">			throw new GeometryException(&quot;invalid call&quot;);</span>
+
+<span class="fc" id="L479">		int interval_handle = m_interval_handles.get(index);</span>
+
+<span class="pc bpc" id="L481" title="1 of 2 branches missed.">		if (interval_handle == -1)</span>
+<span class="nc" id="L482">			throw new GeometryException(&quot;the interval does not exist in the interval tree&quot;);</span>
+
+<span class="fc" id="L484">		m_interval_handles.set(index, -1);</span>
+
+<span class="pc bpc" id="L486" title="1 of 2 branches missed.">		assert (getSecondaryFromInterval_(interval_handle) != -1);</span>
+<span class="pc bpc" id="L487" title="1 of 2 branches missed.">		assert (getLeftEnd_(interval_handle) != -1);</span>
+<span class="pc bpc" id="L488" title="1 of 2 branches missed.">		assert (getRightEnd_(interval_handle) != -1);</span>
+
+<span class="fc" id="L490">		m_c_count--;</span>
+
+		int size;
+<span class="fc" id="L493">		int secondary_handle = getSecondaryFromInterval_(interval_handle);</span>
+<span class="fc" id="L494">		int tertiary_handle = -1;</span>
+
+<span class="fc" id="L496">		tertiary_handle = m_secondary_treaps.getTreapData(secondary_handle);</span>
+<span class="fc" id="L497">		m_secondary_treaps.deleteNode(getLeftEnd_(interval_handle), secondary_handle);</span>
+<span class="fc" id="L498">		m_secondary_treaps.deleteNode(getRightEnd_(interval_handle), secondary_handle);</span>
+<span class="fc" id="L499">		size = m_secondary_treaps.size(secondary_handle);</span>
+
+<span class="fc bfc" id="L501" title="All 2 branches covered.">		if (size == 0) {</span>
+<span class="fc" id="L502">			m_secondary_treaps.deleteTreap(secondary_handle);</span>
+<span class="fc" id="L503">			setSecondaryToTertiary_(tertiary_handle, -1);</span>
+		}
+
+<span class="fc" id="L506">		m_interval_nodes.deleteElement(interval_handle);</span>
+<span class="fc" id="L507">		int pptr = getPPTR_(tertiary_handle);</span>
+<span class="fc" id="L508">		int lptr = getLPTR_(tertiary_handle);</span>
+<span class="fc" id="L509">		int rptr = getRPTR_(tertiary_handle);</span>
+
+<span class="fc" id="L511">		int iterations = 0;</span>
+<span class="fc bfc" id="L512" title="All 8 branches covered.">		while (!(size &gt; 0 || tertiary_handle == m_root || (lptr != -1 &amp;&amp; rptr != -1))) {</span>
+<span class="pc bpc" id="L513" title="1 of 2 branches missed.">			assert (size == 0);</span>
+<span class="pc bpc" id="L514" title="1 of 4 branches missed.">			assert (lptr == -1 || rptr == -1);</span>
+<span class="pc bpc" id="L515" title="1 of 2 branches missed.">			assert (tertiary_handle != 0);</span>
+
+<span class="fc bfc" id="L517" title="All 2 branches covered.">			if (tertiary_handle == getLPTR_(pptr)) {</span>
+<span class="fc bfc" id="L518" title="All 2 branches covered.">				if (lptr != -1) {</span>
+<span class="fc" id="L519">					setLPTR_(pptr, lptr);</span>
+<span class="fc" id="L520">					setPPTR_(lptr, pptr);</span>
+<span class="fc" id="L521">					setLPTR_(tertiary_handle, -1);</span>
+<span class="fc" id="L522">					setPPTR_(tertiary_handle, -1);</span>
+<span class="fc bfc" id="L523" title="All 2 branches covered.">				} else if (rptr != -1) {</span>
+<span class="fc" id="L524">					setLPTR_(pptr, rptr);</span>
+<span class="fc" id="L525">					setPPTR_(rptr, pptr);</span>
+<span class="fc" id="L526">					setRPTR_(tertiary_handle, -1);</span>
+<span class="fc" id="L527">					setPPTR_(tertiary_handle, -1);</span>
+				} else {
+<span class="fc" id="L529">					setLPTR_(pptr, -1);</span>
+<span class="fc" id="L530">					setPPTR_(tertiary_handle, -1);</span>
+				}
+			} else {
+<span class="fc bfc" id="L533" title="All 2 branches covered.">				if (lptr != -1) {</span>
+<span class="fc" id="L534">					setRPTR_(pptr, lptr);</span>
+<span class="fc" id="L535">					setPPTR_(lptr, pptr);</span>
+<span class="fc" id="L536">					setLPTR_(tertiary_handle, -1);</span>
+<span class="fc" id="L537">					setPPTR_(tertiary_handle, -1);</span>
+<span class="fc bfc" id="L538" title="All 2 branches covered.">				} else if (rptr != -1) {</span>
+<span class="fc" id="L539">					setRPTR_(pptr, rptr);</span>
+<span class="fc" id="L540">					setPPTR_(rptr, pptr);</span>
+<span class="fc" id="L541">					setRPTR_(tertiary_handle, -1);</span>
+<span class="fc" id="L542">					setPPTR_(tertiary_handle, -1);</span>
+				} else {
+<span class="fc" id="L544">					setRPTR_(pptr, -1);</span>
+<span class="fc" id="L545">					setPPTR_(tertiary_handle, -1);</span>
+				}
+			}
+
+<span class="fc" id="L549">			m_tertiary_nodes.deleteElement(tertiary_handle);</span>
+
+<span class="fc" id="L551">			iterations++;</span>
+<span class="fc" id="L552">			tertiary_handle = pptr;</span>
+<span class="fc" id="L553">			secondary_handle = getSecondaryFromTertiary_(tertiary_handle);</span>
+<span class="fc bfc" id="L554" title="All 2 branches covered.">			size = (secondary_handle != -1 ? m_secondary_treaps.size(secondary_handle) : 0);</span>
+<span class="fc" id="L555">			lptr = getLPTR_(tertiary_handle);</span>
+<span class="fc" id="L556">			rptr = getRPTR_(tertiary_handle);</span>
+<span class="fc" id="L557">			pptr = getPPTR_(tertiary_handle);</span>
+		}
+
+<span class="pc bpc" id="L560" title="1 of 2 branches missed.">		assert (iterations &lt;= 2);</span>
+		//assert(check_validation_());
+<span class="fc" id="L562">	}</span>
+
+	private void reset_(boolean b_new_intervals, boolean b_envelopes_ref) {
+<span class="pc bpc" id="L565" title="1 of 2 branches missed.">		if (b_new_intervals) {</span>
+<span class="fc" id="L566">			m_b_envelopes_ref = false;</span>
+<span class="fc" id="L567">			m_envelopes_ref = null;</span>
+
+<span class="fc" id="L569">			m_b_sort_intervals = true;</span>
+<span class="fc" id="L570">			m_b_constructing = true;</span>
+<span class="fc" id="L571">			m_b_construction_ended = false;</span>
+
+<span class="pc bpc" id="L573" title="1 of 2 branches missed.">			if (m_end_indices_unique == null)</span>
+<span class="fc" id="L574">				m_end_indices_unique = (AttributeStreamOfInt32) (AttributeStreamBase.createIndexStream(0));</span>
+			else
+<span class="nc" id="L576">				m_end_indices_unique.resize(0);</span>
+
+<span class="fc bfc" id="L578" title="All 2 branches covered.">			if (!b_envelopes_ref) {</span>
+<span class="pc bpc" id="L579" title="1 of 2 branches missed.">				if (m_intervals == null)</span>
+<span class="fc" id="L580">					m_intervals = new ArrayList&lt;Envelope1D&gt;(0);</span>
+				else
+<span class="nc" id="L582">					m_intervals.clear();</span>
+			} else {
+<span class="pc bpc" id="L584" title="1 of 2 branches missed.">				if (m_intervals != null)</span>
+<span class="nc" id="L585">					m_intervals.clear();</span>
+
+<span class="fc" id="L587">				m_b_envelopes_ref = true;</span>
+			}
+		} else {
+<span class="nc bnc" id="L590" title="All 4 branches missed.">			assert (m_b_offline_dynamic &amp;&amp; m_b_construction_ended);</span>
+<span class="nc" id="L591">			m_b_sort_intervals = false;</span>
+		}
+
+<span class="fc bfc" id="L594" title="All 2 branches covered.">		if (m_b_offline_dynamic) {</span>
+<span class="pc bpc" id="L595" title="1 of 2 branches missed.">			if (m_interval_handles == null) {</span>
+<span class="fc" id="L596">				m_interval_handles = (AttributeStreamOfInt32) (AttributeStreamBase.createIndexStream(0));</span>
+<span class="fc" id="L597">				m_secondary_treaps = new Treap();</span>
+<span class="fc" id="L598">				m_secondary_treaps.setComparator(new SecondaryComparator(this));</span>
+			} else {
+<span class="nc" id="L600">				m_secondary_treaps.clear();</span>
+			}
+		} else {
+<span class="pc bpc" id="L603" title="1 of 2 branches missed.">			if (m_secondary_lists == null)</span>
+<span class="fc" id="L604">				m_secondary_lists = new IndexMultiDCList();</span>
+			else
+<span class="nc" id="L606">				m_secondary_lists.clear();</span>
+		}
+
+<span class="pc bpc" id="L609" title="1 of 2 branches missed.">		if (m_tertiary_nodes == null) {</span>
+<span class="fc" id="L610">			m_interval_nodes = new StridedIndexTypeCollection(3);</span>
+<span class="fc bfc" id="L611" title="All 2 branches covered.">			m_tertiary_nodes = new StridedIndexTypeCollection(m_b_offline_dynamic ? 5 : 4);</span>
+		} else {
+<span class="nc" id="L613">			m_interval_nodes.deleteAll(false);</span>
+<span class="nc" id="L614">			m_tertiary_nodes.deleteAll(false);</span>
+		}
+
+<span class="fc" id="L617">		m_root = -1;</span>
+<span class="fc" id="L618">		m_c_count = 0;</span>
+<span class="fc" id="L619">	}</span>
+
+	private double getDiscriminant_(int tertiary_handle) {
+<span class="fc" id="L622">		int discriminant_index_1 = getDiscriminantIndex1_(tertiary_handle);</span>
+<span class="fc" id="L623">		return getDiscriminantFromIndex1_(discriminant_index_1);</span>
+	}
+
+	private double getDiscriminantFromIndex1_(int discriminant_index_1) {
+<span class="pc bpc" id="L627" title="1 of 2 branches missed.">		if (discriminant_index_1 == -1)</span>
+<span class="nc" id="L628">			return NumberUtils.NaN();</span>
+
+<span class="fc bfc" id="L630" title="All 2 branches covered.">		if (discriminant_index_1 &gt; 0) {</span>
+<span class="fc" id="L631">			int j = discriminant_index_1 - 2;</span>
+<span class="fc" id="L632">			int e_1 = m_end_indices_unique.get(j);</span>
+<span class="fc" id="L633">			int e_2 = m_end_indices_unique.get(j + 1);</span>
+
+<span class="fc" id="L635">			double v_1 = getValue_(e_1);</span>
+<span class="fc" id="L636">			double v_2 = getValue_(e_2);</span>
+<span class="pc bpc" id="L637" title="1 of 2 branches missed.">			assert (v_1 &lt; v_2);</span>
+
+<span class="fc" id="L639">			return 0.5 * (v_1 + v_2);</span>
+		}
+
+<span class="fc" id="L642">		int j = -discriminant_index_1 - 2;</span>
+<span class="pc bpc" id="L643" title="1 of 2 branches missed.">		assert (j &gt;= 0);</span>
+<span class="fc" id="L644">		int e = m_end_indices_unique.get(j);</span>
+<span class="fc" id="L645">		double v = getValue_(e);</span>
+
+<span class="fc" id="L647">		return v;</span>
+	}
+
+	private int calculateDiscriminantIndex1_(int il, int ir) {
+		int discriminant_index_1;
+
+<span class="fc bfc" id="L653" title="All 2 branches covered.">		if (il &lt; ir) {</span>
+<span class="fc" id="L654">			int im = il + (ir - il) / 2;</span>
+<span class="fc" id="L655">			discriminant_index_1 = im + 2; // positive discriminant means use average of im and im + 1</span>
+<span class="fc" id="L656">		} else {</span>
+<span class="fc" id="L657">			discriminant_index_1 = -(il + 2); // negative discriminant just means use il (-(il + 2) will never be -1)</span>
+		}
+
+<span class="fc" id="L660">		return discriminant_index_1;</span>
+	}
+
+<span class="fc" id="L663">	static final class IntervalTreeIteratorImpl {</span>
+
+		private IntervalTreeImpl m_interval_tree;
+<span class="pc" id="L666">		private Envelope1D m_query = new Envelope1D();</span>
+		private int m_tertiary_handle;
+		private int m_next_tertiary_handle;
+		private int m_forked_handle;
+		private int m_current_end_handle;
+		private int m_next_end_handle;
+<span class="pc" id="L672">		private AttributeStreamOfInt32 m_tertiary_stack = new AttributeStreamOfInt32(0);</span>
+		private int m_function_index;
+<span class="pc" id="L674">		private int[] m_function_stack = new int[2];</span>
+
+		private interface State {
+			static final int initialize = 0;
+			static final int pIn = 1;
+			static final int pL = 2;
+			static final int pR = 3;
+			static final int pT = 4;
+			static final int right = 5;
+			static final int left = 6;
+			static final int all = 7;
+		}
+
+		private int getNext_() {
+<span class="fc bfc" id="L688" title="All 2 branches covered.">			if (!m_interval_tree.m_b_offline_dynamic)</span>
+<span class="fc" id="L689">				return m_interval_tree.m_secondary_lists.getNext(m_current_end_handle);</span>
+
+<span class="fc" id="L691">			return m_interval_tree.m_secondary_treaps.getNext(m_current_end_handle);</span>
+		}
+
+		private int getPrev_() {
+<span class="fc bfc" id="L695" title="All 2 branches covered.">			if (!m_interval_tree.m_b_offline_dynamic)</span>
+<span class="fc" id="L696">				return m_interval_tree.m_secondary_lists.getPrev(m_current_end_handle);</span>
+
+<span class="fc" id="L698">			return m_interval_tree.m_secondary_treaps.getPrev(m_current_end_handle);</span>
+		}
+
+		private int getCurrentEndIndex_() {
+<span class="fc bfc" id="L702" title="All 2 branches covered.">			if (!m_interval_tree.m_b_offline_dynamic)</span>
+<span class="fc" id="L703">				return m_interval_tree.m_secondary_lists.getData(m_current_end_handle);</span>
+
+<span class="fc" id="L705">			return m_interval_tree.m_secondary_treaps.getElement(m_current_end_handle);</span>
+		}
+
+		int next() {
+<span class="pc bpc" id="L709" title="1 of 2 branches missed.">			if (!m_interval_tree.m_b_construction_ended)</span>
+<span class="nc" id="L710">				throw new GeometryException(&quot;invalid call&quot;);</span>
+
+<span class="pc bpc" id="L712" title="1 of 2 branches missed.">			if (m_function_index &lt; 0)</span>
+<span class="nc" id="L713">				return -1;</span>
+
+<span class="fc" id="L715">			boolean b_searching = true;</span>
+
+<span class="fc bfc" id="L717" title="All 2 branches covered.">			while (b_searching) {</span>
+<span class="pc bpc" id="L718" title="1 of 9 branches missed.">				switch (m_function_stack[m_function_index]) {</span>
+				case State.pIn:
+<span class="fc" id="L720">					b_searching = pIn_();</span>
+<span class="fc" id="L721">					break;</span>
+				case State.pL:
+<span class="fc" id="L723">					b_searching = pL_();</span>
+<span class="fc" id="L724">					break;</span>
+				case State.pR:
+<span class="fc" id="L726">					b_searching = pR_();</span>
+<span class="fc" id="L727">					break;</span>
+				case State.pT:
+<span class="fc" id="L729">					b_searching = pT_();</span>
+<span class="fc" id="L730">					break;</span>
+				case State.right:
+<span class="fc" id="L732">					b_searching = right_();</span>
+<span class="fc" id="L733">					break;</span>
+				case State.left:
+<span class="fc" id="L735">					b_searching = left_();</span>
+<span class="fc" id="L736">					break;</span>
+				case State.all:
+<span class="fc" id="L738">					b_searching = all_();</span>
+<span class="fc" id="L739">					break;</span>
+				case State.initialize:
+<span class="fc" id="L741">					b_searching = initialize_();</span>
+<span class="fc" id="L742">					break;</span>
+				default:
+<span class="nc" id="L744">					throw GeometryException.GeometryInternalError();</span>
+				}
+			}
+
+<span class="fc bfc" id="L748" title="All 2 branches covered.">			if (m_current_end_handle != -1)</span>
+<span class="fc" id="L749">				return getCurrentEndIndex_() &gt;&gt; 1;</span>
+
+<span class="fc" id="L751">			return -1;</span>
+		}
+
+		private boolean initialize_() {
+<span class="fc" id="L755">			m_tertiary_handle = -1;</span>
+<span class="fc" id="L756">			m_next_tertiary_handle = -1;</span>
+<span class="fc" id="L757">			m_forked_handle = -1;</span>
+<span class="fc" id="L758">			m_current_end_handle = -1;</span>
+
+<span class="pc bpc" id="L760" title="1 of 4 branches missed.">			if (m_interval_tree.m_tertiary_nodes != null &amp;&amp; m_interval_tree.m_tertiary_nodes.size() &gt; 0) {</span>
+<span class="fc" id="L761">				m_function_stack[0] = State.pIn; // overwrite initialize</span>
+<span class="fc" id="L762">				m_next_tertiary_handle = m_interval_tree.m_root;</span>
+<span class="fc" id="L763">				return true;</span>
+			}
+
+<span class="fc" id="L766">			m_function_index = -1;</span>
+<span class="fc" id="L767">			return false;</span>
+		}
+
+		private boolean pIn_() {
+<span class="fc" id="L771">			m_tertiary_handle = m_next_tertiary_handle;</span>
+
+<span class="fc bfc" id="L773" title="All 2 branches covered.">			if (m_tertiary_handle == -1) {</span>
+<span class="fc" id="L774">				m_function_index = -1;</span>
+<span class="fc" id="L775">				m_current_end_handle = -1;</span>
+<span class="fc" id="L776">				return false;</span>
+			}
+
+<span class="fc" id="L779">			double discriminant = m_interval_tree.getDiscriminant_(m_tertiary_handle);</span>
+
+<span class="fc bfc" id="L781" title="All 2 branches covered.">			if (m_query.vmax &lt; discriminant) {</span>
+<span class="fc" id="L782">				int secondary_handle = m_interval_tree.getSecondaryFromTertiary_(m_tertiary_handle);</span>
+<span class="fc" id="L783">				m_next_tertiary_handle = m_interval_tree.getLPTR_(m_tertiary_handle);</span>
+
+<span class="fc bfc" id="L785" title="All 2 branches covered.">				if (secondary_handle != -1) {</span>
+<span class="fc" id="L786">					m_next_end_handle = m_interval_tree.getFirst_(secondary_handle);</span>
+<span class="fc" id="L787">					m_function_stack[++m_function_index] = State.left;</span>
+				}
+
+<span class="fc" id="L790">				return true;</span>
+			}
+
+<span class="fc bfc" id="L793" title="All 2 branches covered.">			if (discriminant &lt; m_query.vmin) {</span>
+<span class="fc" id="L794">				int secondary_handle = m_interval_tree.getSecondaryFromTertiary_(m_tertiary_handle);</span>
+<span class="fc" id="L795">				m_next_tertiary_handle = m_interval_tree.getRPTR_(m_tertiary_handle);</span>
+
+<span class="fc bfc" id="L797" title="All 2 branches covered.">				if (secondary_handle != -1) {</span>
+<span class="fc" id="L798">					m_next_end_handle = m_interval_tree.getLast_(secondary_handle);</span>
+<span class="fc" id="L799">					m_function_stack[++m_function_index] = State.right;</span>
+				}
+
+<span class="fc" id="L802">				return true;</span>
+			}
+
+<span class="pc bpc" id="L805" title="1 of 2 branches missed.">			assert (m_query.contains(discriminant));</span>
+
+<span class="fc" id="L807">			m_function_stack[m_function_index] = State.pL; // overwrite pIn</span>
+<span class="fc" id="L808">			m_forked_handle = m_tertiary_handle;</span>
+<span class="fc" id="L809">			int secondary_handle = m_interval_tree.getSecondaryFromTertiary_(m_tertiary_handle);</span>
+<span class="fc" id="L810">			m_next_tertiary_handle = m_interval_tree.getLPTR_(m_tertiary_handle);</span>
+
+<span class="fc bfc" id="L812" title="All 2 branches covered.">			if (secondary_handle != -1) {</span>
+<span class="fc" id="L813">				m_next_end_handle = m_interval_tree.getFirst_(secondary_handle);</span>
+<span class="fc" id="L814">				m_function_stack[++m_function_index] = State.all;</span>
+			}
+
+<span class="fc" id="L817">			return true;</span>
+		}
+
+		private boolean pL_() {
+<span class="fc" id="L821">			m_tertiary_handle = m_next_tertiary_handle;</span>
+
+<span class="fc bfc" id="L823" title="All 2 branches covered.">			if (m_tertiary_handle == -1) {</span>
+<span class="fc" id="L824">				m_function_stack[m_function_index] = State.pR; // overwrite pL</span>
+<span class="fc" id="L825">				m_next_tertiary_handle = m_interval_tree.getRPTR_(m_forked_handle);</span>
+<span class="fc" id="L826">				return true;</span>
+			}
+
+<span class="fc" id="L829">			double discriminant = m_interval_tree.getDiscriminant_(m_tertiary_handle);</span>
+
+<span class="fc bfc" id="L831" title="All 2 branches covered.">			if (discriminant &lt; m_query.vmin) {</span>
+<span class="fc" id="L832">				int secondary_handle = m_interval_tree.getSecondaryFromTertiary_(m_tertiary_handle);</span>
+<span class="fc" id="L833">				m_next_tertiary_handle = m_interval_tree.getRPTR_(m_tertiary_handle);</span>
+
+<span class="fc bfc" id="L835" title="All 2 branches covered.">				if (secondary_handle != -1) {</span>
+<span class="fc" id="L836">					m_next_end_handle = m_interval_tree.getLast_(secondary_handle);</span>
+<span class="fc" id="L837">					m_function_stack[++m_function_index] = State.right;</span>
+				}
+
+<span class="fc" id="L840">				return true;</span>
+			}
+
+<span class="pc bpc" id="L843" title="1 of 2 branches missed.">			assert (m_query.contains(discriminant));</span>
+
+<span class="fc" id="L845">			int secondary_handle = m_interval_tree.getSecondaryFromTertiary_(m_tertiary_handle);</span>
+<span class="fc" id="L846">			m_next_tertiary_handle = m_interval_tree.getLPTR_(m_tertiary_handle);</span>
+
+<span class="fc bfc" id="L848" title="All 2 branches covered.">			if (secondary_handle != -1) {</span>
+<span class="fc" id="L849">				m_next_end_handle = m_interval_tree.getFirst_(secondary_handle);</span>
+<span class="fc" id="L850">				m_function_stack[++m_function_index] = State.all;</span>
+			}
+
+<span class="fc" id="L853">			int rptr = m_interval_tree.getRPTR_(m_tertiary_handle);</span>
+
+<span class="fc bfc" id="L855" title="All 2 branches covered.">			if (rptr != -1) {</span>
+<span class="fc" id="L856">				m_tertiary_stack.add(rptr); // we'll search this in the pT state</span>
+			}
+
+<span class="fc" id="L859">			return true;</span>
+		}
+
+		private boolean pR_() {
+<span class="fc" id="L863">			m_tertiary_handle = m_next_tertiary_handle;</span>
+
+<span class="fc bfc" id="L865" title="All 2 branches covered.">			if (m_tertiary_handle == -1) {</span>
+<span class="fc" id="L866">				m_function_stack[m_function_index] = State.pT; // overwrite pR</span>
+<span class="fc" id="L867">				return true;</span>
+			}
+
+<span class="fc" id="L870">			double discriminant = m_interval_tree.getDiscriminant_(m_tertiary_handle);</span>
+
+<span class="fc bfc" id="L872" title="All 2 branches covered.">			if (m_query.vmax &lt; discriminant) {</span>
+<span class="fc" id="L873">				int secondary_handle = m_interval_tree.getSecondaryFromTertiary_(m_tertiary_handle);</span>
+<span class="fc" id="L874">				m_next_tertiary_handle = m_interval_tree.getLPTR_(m_tertiary_handle);</span>
+
+<span class="fc bfc" id="L876" title="All 2 branches covered.">				if (secondary_handle != -1) {</span>
+<span class="fc" id="L877">					m_next_end_handle = m_interval_tree.getFirst_(secondary_handle);</span>
+<span class="fc" id="L878">					m_function_stack[++m_function_index] = State.left;</span>
+				}
+
+<span class="fc" id="L881">				return true;</span>
+			}
+
+<span class="pc bpc" id="L884" title="1 of 2 branches missed.">			assert (m_query.contains(discriminant));</span>
+
+<span class="fc" id="L886">			int secondary_handle = m_interval_tree.getSecondaryFromTertiary_(m_tertiary_handle);</span>
+
+<span class="fc" id="L888">			m_next_tertiary_handle = m_interval_tree.getRPTR_(m_tertiary_handle);</span>
+
+<span class="fc bfc" id="L890" title="All 2 branches covered.">			if (secondary_handle != -1) {</span>
+<span class="fc" id="L891">				m_next_end_handle = m_interval_tree.getFirst_(secondary_handle);</span>
+<span class="fc" id="L892">				m_function_stack[++m_function_index] = State.all;</span>
+			}
+
+<span class="fc" id="L895">			int lptr = m_interval_tree.getLPTR_(m_tertiary_handle);</span>
+
+<span class="fc bfc" id="L897" title="All 2 branches covered.">			if (lptr != -1) {</span>
+<span class="fc" id="L898">				m_tertiary_stack.add(lptr); // we'll search this in the pT state</span>
+			}
+
+<span class="fc" id="L901">			return true;</span>
+		}
+
+		private boolean pT_() {
+<span class="fc bfc" id="L905" title="All 2 branches covered.">			if (m_tertiary_stack.size() == 0) {</span>
+<span class="fc" id="L906">				m_function_index = -1;</span>
+<span class="fc" id="L907">				m_current_end_handle = -1;</span>
+<span class="fc" id="L908">				return false;</span>
+			}
+
+<span class="fc" id="L911">			m_tertiary_handle = m_tertiary_stack.get(m_tertiary_stack.size() - 1);</span>
+<span class="fc" id="L912">			m_tertiary_stack.resize(m_tertiary_stack.size() - 1);</span>
+
+<span class="fc" id="L914">			int secondary_handle = m_interval_tree.getSecondaryFromTertiary_(m_tertiary_handle);</span>
+
+<span class="fc bfc" id="L916" title="All 2 branches covered.">			if (secondary_handle != -1) {</span>
+<span class="fc" id="L917">				m_next_end_handle = m_interval_tree.getFirst_(secondary_handle);</span>
+<span class="fc" id="L918">				m_function_stack[++m_function_index] = State.all;</span>
+			}
+
+<span class="fc bfc" id="L921" title="All 2 branches covered.">			if (m_interval_tree.getLPTR_(m_tertiary_handle) != -1)</span>
+<span class="fc" id="L922">				m_tertiary_stack.add(m_interval_tree.getLPTR_(m_tertiary_handle));</span>
+
+<span class="fc bfc" id="L924" title="All 2 branches covered.">			if (m_interval_tree.getRPTR_(m_tertiary_handle) != -1)</span>
+<span class="fc" id="L925">				m_tertiary_stack.add(m_interval_tree.getRPTR_(m_tertiary_handle));</span>
+
+<span class="fc" id="L927">			return true;</span>
+		}
+
+		private boolean left_() {
+<span class="fc" id="L931">			m_current_end_handle = m_next_end_handle;</span>
+
+<span class="pc bpc" id="L933" title="1 of 6 branches missed.">			if (m_current_end_handle != -1 &amp;&amp; IntervalTreeImpl.isLeft_(getCurrentEndIndex_()) &amp;&amp; m_interval_tree.getValue_(getCurrentEndIndex_()) &lt;= m_query.vmax) {</span>
+<span class="fc" id="L934">				m_next_end_handle = getNext_();</span>
+<span class="fc" id="L935">				return false;</span>
+			}
+
+<span class="fc" id="L938">			m_function_index--;</span>
+<span class="fc" id="L939">			return true;</span>
+		}
+
+		private boolean right_() {
+<span class="fc" id="L943">			m_current_end_handle = m_next_end_handle;</span>
+
+<span class="pc bpc" id="L945" title="1 of 6 branches missed.">			if (m_current_end_handle != -1 &amp;&amp; IntervalTreeImpl.isRight_(getCurrentEndIndex_()) &amp;&amp; m_interval_tree.getValue_(getCurrentEndIndex_()) &gt;= m_query.vmin) {</span>
+<span class="fc" id="L946">				m_next_end_handle = getPrev_();</span>
+<span class="fc" id="L947">				return false;</span>
+			}
+
+<span class="fc" id="L950">			m_function_index--;</span>
+<span class="fc" id="L951">			return true;</span>
+		}
+
+		private boolean all_() {
+<span class="fc" id="L955">			m_current_end_handle = m_next_end_handle;</span>
+
+<span class="pc bpc" id="L957" title="1 of 4 branches missed.">			if (m_current_end_handle != -1 &amp;&amp; IntervalTreeImpl.isLeft_(getCurrentEndIndex_())) {</span>
+<span class="fc" id="L958">				m_next_end_handle = getNext_();</span>
+<span class="fc" id="L959">				return false;</span>
+			}
+
+<span class="fc" id="L962">			m_function_index--;</span>
+<span class="fc" id="L963">			return true;</span>
+		}
+
+<span class="fc" id="L966">		IntervalTreeIteratorImpl(IntervalTreeImpl interval_tree, Envelope1D query, double tolerance) {</span>
+<span class="fc" id="L967">			m_interval_tree = interval_tree;</span>
+<span class="fc" id="L968">			m_tertiary_stack.reserve(20);</span>
+<span class="fc" id="L969">			resetIterator(query, tolerance);</span>
+<span class="fc" id="L970">		}</span>
+
+<span class="nc" id="L972">		IntervalTreeIteratorImpl(IntervalTreeImpl interval_tree, double query, double tolerance) {</span>
+<span class="nc" id="L973">			m_interval_tree = interval_tree;</span>
+<span class="nc" id="L974">			m_tertiary_stack.reserve(20);</span>
+<span class="nc" id="L975">			resetIterator(query, tolerance);</span>
+<span class="nc" id="L976">		}</span>
+
+<span class="fc" id="L978">		IntervalTreeIteratorImpl(IntervalTreeImpl interval_tree) {</span>
+<span class="fc" id="L979">			m_interval_tree = interval_tree;</span>
+<span class="fc" id="L980">			m_tertiary_stack.reserve(20);</span>
+<span class="fc" id="L981">			m_function_index = -1;</span>
+<span class="fc" id="L982">		}</span>
+
+		void resetIterator(Envelope1D query, double tolerance) {
+<span class="fc" id="L985">			m_query.vmin = query.vmin - tolerance;</span>
+<span class="fc" id="L986">			m_query.vmax = query.vmax + tolerance;</span>
+<span class="fc" id="L987">			m_tertiary_stack.resize(0);</span>
+<span class="fc" id="L988">			m_function_index = 0;</span>
+<span class="fc" id="L989">			m_function_stack[0] = State.initialize;</span>
+<span class="fc" id="L990">		}</span>
+
+		void resetIterator(double query_min, double query_max, double tolerance) {
+<span class="fc" id="L993">			m_query.vmin = query_min - tolerance;</span>
+<span class="fc" id="L994">			m_query.vmax = query_max + tolerance;</span>
+<span class="fc" id="L995">			m_tertiary_stack.resize(0);</span>
+<span class="fc" id="L996">			m_function_index = 0;</span>
+<span class="fc" id="L997">			m_function_stack[0] = State.initialize;</span>
+<span class="fc" id="L998">		}</span>
+
+		void resetIterator(double query, double tolerance) {
+<span class="fc" id="L1001">			m_query.vmin = query - tolerance;</span>
+<span class="fc" id="L1002">			m_query.vmax = query + tolerance;</span>
+<span class="fc" id="L1003">			m_tertiary_stack.resize(0);</span>
+<span class="fc" id="L1004">			m_function_index = 0;</span>
+<span class="fc" id="L1005">			m_function_stack[0] = State.initialize;</span>
+<span class="fc" id="L1006">		}</span>
+	}
+
+	private static final class SecondaryComparator extends Treap.Comparator {
+<span class="fc" id="L1010">		SecondaryComparator(IntervalTreeImpl interval_tree) {</span>
+<span class="fc" id="L1011">			m_interval_tree = interval_tree;</span>
+<span class="fc" id="L1012">		}</span>
+
+		@Override
+		public int compare(Treap treap, int e_1, int node) {
+<span class="fc" id="L1016">			int e_2 = treap.getElement(node);</span>
+<span class="fc" id="L1017">			double v_1 = m_interval_tree.getValue_(e_1);</span>
+<span class="fc" id="L1018">			double v_2 = m_interval_tree.getValue_(e_2);</span>
+
+<span class="fc bfc" id="L1020" title="All 2 branches covered.">			if (v_1 &lt; v_2)</span>
+<span class="fc" id="L1021">				return -1;</span>
+<span class="fc bfc" id="L1022" title="All 2 branches covered.">			if (v_1 == v_2) {</span>
+<span class="fc bfc" id="L1023" title="All 4 branches covered.">				if (isLeft_(e_1) &amp;&amp; isRight_(e_2))</span>
+<span class="fc" id="L1024">					return -1;</span>
+<span class="fc bfc" id="L1025" title="All 4 branches covered.">				if (isLeft_(e_2) &amp;&amp; isRight_(e_1))</span>
+<span class="fc" id="L1026">					return 1;</span>
+<span class="fc" id="L1027">				return 0;</span>
+			}
+<span class="fc" id="L1029">			return 1;</span>
+		}
+
+		private IntervalTreeImpl m_interval_tree;
+	}
+
+	private int createTertiaryNode_(int discriminant_index_1) {
+<span class="fc" id="L1036">		int tertiary_handle = m_tertiary_nodes.newElement();</span>
+<span class="fc" id="L1037">		setDiscriminantIndex1_(tertiary_handle, discriminant_index_1);</span>
+<span class="fc" id="L1038">		return tertiary_handle;</span>
+	}
+
+	private int createSecondary_(int tertiary_handle) {
+<span class="fc bfc" id="L1042" title="All 2 branches covered.">		if (!m_b_offline_dynamic)</span>
+<span class="fc" id="L1043">			return m_secondary_lists.createList(tertiary_handle);</span>
+
+<span class="fc" id="L1045">		return m_secondary_treaps.createTreap(tertiary_handle);</span>
+	}
+
+	private int createIntervalNode_() {
+<span class="fc" id="L1049">		return m_interval_nodes.newElement();</span>
+	}
+
+	private void setDiscriminantIndex1_(int tertiary_handle, int end_index) {
+<span class="fc" id="L1053">		m_tertiary_nodes.setField(tertiary_handle, 0, end_index);</span>
+<span class="fc" id="L1054">	}</span>
+
+	private void setSecondaryToTertiary_(int tertiary_handle, int secondary_handle) {
+<span class="fc" id="L1057">		m_tertiary_nodes.setField(tertiary_handle, 1, secondary_handle);</span>
+<span class="fc" id="L1058">	}</span>
+
+	private void setLPTR_(int tertiary_handle, int lptr) {
+<span class="fc" id="L1061">		m_tertiary_nodes.setField(tertiary_handle, 2, lptr);</span>
+<span class="fc" id="L1062">	}</span>
+
+	private void setRPTR_(int tertiary_handle, int rptr) {
+<span class="fc" id="L1065">		m_tertiary_nodes.setField(tertiary_handle, 3, rptr);</span>
+<span class="fc" id="L1066">	}</span>
+
+	private void setPPTR_(int tertiary_handle, int pptr) {
+<span class="fc" id="L1069">		m_tertiary_nodes.setField(tertiary_handle, 4, pptr);</span>
+<span class="fc" id="L1070">	}</span>
+
+	private void setSecondaryToInterval_(int interval_handle, int secondary_handle) {
+<span class="fc" id="L1073">		m_interval_nodes.setField(interval_handle, 0, secondary_handle);</span>
+<span class="fc" id="L1074">	}</span>
+
+	private int addEndIndex_(int secondary_handle, int end_index) {
+		int end_index_handle;
+
+<span class="fc bfc" id="L1079" title="All 2 branches covered.">		if (!m_b_offline_dynamic)</span>
+<span class="fc" id="L1080">			end_index_handle = m_secondary_lists.addElement(secondary_handle, end_index);</span>
+		else
+<span class="fc" id="L1082">			end_index_handle = m_secondary_treaps.addElement(end_index, secondary_handle);</span>
+
+<span class="fc" id="L1084">		return end_index_handle;</span>
+	}
+
+	private void setLeftEnd_(int interval_handle, int left_end_handle) {
+<span class="fc" id="L1088">		m_interval_nodes.setField(interval_handle, 1, left_end_handle);</span>
+<span class="fc" id="L1089">	}</span>
+
+	private void setRightEnd_(int interval_handle, int right_end_handle) {
+<span class="fc" id="L1092">		m_interval_nodes.setField(interval_handle, 2, right_end_handle);</span>
+<span class="fc" id="L1093">	}</span>
+
+	private int getDiscriminantIndex1_(int tertiary_handle) {
+<span class="fc" id="L1096">		return m_tertiary_nodes.getField(tertiary_handle, 0);</span>
+	}
+
+	private int getSecondaryFromTertiary_(int tertiary_handle) {
+<span class="fc" id="L1100">		return m_tertiary_nodes.getField(tertiary_handle, 1);</span>
+	}
+
+	private int getLPTR_(int tertiary_handle) {
+<span class="fc" id="L1104">		return m_tertiary_nodes.getField(tertiary_handle, 2);</span>
+	}
+
+	private int getRPTR_(int tertiary_handle) {
+<span class="fc" id="L1108">		return m_tertiary_nodes.getField(tertiary_handle, 3);</span>
+	}
+
+	private int getPPTR_(int tertiary_handle) {
+<span class="fc" id="L1112">		return m_tertiary_nodes.getField(tertiary_handle, 4);</span>
+	}
+
+	private int getSecondaryFromInterval_(int interval_handle) {
+<span class="fc" id="L1116">		return m_interval_nodes.getField(interval_handle, 0);</span>
+	}
+
+	private int getLeftEnd_(int interval_handle) {
+<span class="fc" id="L1120">		return m_interval_nodes.getField(interval_handle, 1);</span>
+	}
+
+	private int getRightEnd_(int interval_handle) {
+<span class="fc" id="L1124">		return m_interval_nodes.getField(interval_handle, 2);</span>
+	}
+
+	private double getMin_(int i) {
+<span class="fc bfc" id="L1128" title="All 2 branches covered.">		return (!m_b_envelopes_ref ? m_intervals.get(i).vmin : m_envelopes_ref.get(i).xmin);</span>
+	}
+
+	private double getMax_(int i) {
+<span class="fc bfc" id="L1132" title="All 2 branches covered.">		return (!m_b_envelopes_ref ? m_intervals.get(i).vmax : m_envelopes_ref.get(i).xmax);</span>
+	}
+
+	private int getFirst_(int secondary_handle) {
+<span class="fc bfc" id="L1136" title="All 2 branches covered.">		if (!m_b_offline_dynamic)</span>
+<span class="fc" id="L1137">			return m_secondary_lists.getFirst(secondary_handle);</span>
+
+<span class="fc" id="L1139">		return m_secondary_treaps.getFirst(secondary_handle);</span>
+	}
+
+	private int getLast_(int secondary_handle) {
+<span class="fc bfc" id="L1143" title="All 2 branches covered.">		if (!m_b_offline_dynamic)</span>
+<span class="fc" id="L1144">			return m_secondary_lists.getLast(secondary_handle);</span>
+
+<span class="fc" id="L1146">		return m_secondary_treaps.getLast(secondary_handle);</span>
+	}
+
+	private static boolean isLeft_(int end_index) {
+<span class="fc bfc" id="L1150" title="All 2 branches covered.">		return (end_index &amp; 0x1) == 0;</span>
+	}
+
+	private static boolean isRight_(int end_index) {
+<span class="fc bfc" id="L1154" title="All 2 branches covered.">		return (end_index &amp; 0x1) == 1;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

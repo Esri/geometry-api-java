@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MultiPoint.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">MultiPoint.java</span></div><h1>MultiPoint.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+import java.io.Serializable;
+
+import static com.esri.core.geometry.SizeOf.SIZE_OF_MULTI_POINT;
+
+/**
+ * A Multipoint is a collection of points. A multipoint is a one-dimensional
+ * geometry object. Multipoints can be used to store a collection of point-based
+ * information where the order and individual identity of each point is not an
+ * essential characteristic of the point set.
+ */
+public class MultiPoint extends MultiVertexGeometry implements
+		Serializable {
+
+	private static final long serialVersionUID = 2L;
+
+	private MultiPointImpl m_impl;
+
+	/**
+	 * Creates a new empty multipoint.
+	 */
+<span class="fc" id="L47">	public MultiPoint() {</span>
+<span class="fc" id="L48">		m_impl = new MultiPointImpl();</span>
+<span class="fc" id="L49">	}</span>
+
+<span class="fc" id="L51">	public MultiPoint(VertexDescription description) {</span>
+<span class="fc" id="L52">		m_impl = new MultiPointImpl(description);</span>
+<span class="fc" id="L53">	}</span>
+
+	@Override
+	public double getAttributeAsDbl(int semantics, int index, int ordinate) {
+<span class="fc" id="L57">		return m_impl.getAttributeAsDbl(semantics, index, ordinate);</span>
+	}
+
+	@Override
+	public int getAttributeAsInt(int semantics, int index, int ordinate) {
+<span class="fc" id="L62">		return m_impl.getAttributeAsInt(semantics, index, ordinate);</span>
+	}
+
+	@Override
+	public Point getPoint(int index) {
+<span class="fc" id="L67">		return m_impl.getPoint(index);</span>
+	}
+
+	@Override
+	public int getPointCount() {
+<span class="fc" id="L72">		return m_impl.getPointCount();</span>
+	}
+
+	@Override
+	public Point2D getXY(int index) {
+<span class="fc" id="L77">		return m_impl.getXY(index);</span>
+	}
+
+	@Override
+	public void getXY(int index, Point2D pt) {
+<span class="fc" id="L82">		m_impl.getXY(index, pt);</span>
+<span class="fc" id="L83">	}</span>
+
+	@Override
+	Point3D getXYZ(int index) {
+<span class="fc" id="L87">		return m_impl.getXYZ(index);</span>
+	}
+
+	@Override
+	public void queryCoordinates(Point2D[] dst) {
+<span class="fc" id="L92">		m_impl.queryCoordinates(dst);</span>
+<span class="fc" id="L93">	}</span>
+
+	@Override
+	public void queryCoordinates(Point[] dst) {
+<span class="nc" id="L97">		m_impl.queryCoordinates(dst);</span>
+<span class="nc" id="L98">	}</span>
+
+	@Override
+	protected Object _getImpl() {
+<span class="fc" id="L102">		return m_impl;</span>
+	}
+
+	/**
+	 * Adds a point multipoint.
+	 * 
+	 * @param point
+	 *            The Point to be added to this multipoint.
+	 */
+	public void add(Point point) {
+<span class="fc" id="L112">		m_impl.add(point);</span>
+<span class="fc" id="L113">	}</span>
+
+	/**
+	 * Adds a point with the specified X, Y coordinates to this multipoint.
+	 * 
+	 * @param x
+	 *            The new Point's X coordinate.
+	 * @param y
+	 *            The new Point's Y coordinate.
+	 */
+	public void add(double x, double y) {
+<span class="fc" id="L124">		m_impl.add(x, y);</span>
+<span class="fc" id="L125">	}</span>
+
+	/**
+	 * Adds a point with the specified X, Y coordinates to this multipoint.
+	 * 
+	 * @param pt the point to add
+	 */
+	public void add(Point2D pt) {
+<span class="nc" id="L133">		m_impl.add(pt.x, pt.y);</span>
+<span class="nc" id="L134">	}</span>
+	
+	/**
+	 * Adds a 3DPoint with the specified X, Y, Z coordinates to this multipoint.
+	 * 
+	 * @param x
+	 *            The new Point's X coordinate.
+	 * @param y
+	 *            The new Point's Y coordinate.
+	 * @param z
+	 *            The new Point's Z coordinate.
+	 */
+	void add(double x, double y, double z) {
+<span class="fc" id="L147">		m_impl.add(x, y, z);</span>
+<span class="fc" id="L148">	}</span>
+
+	/**
+	 * Appends points from another multipoint at the end of this multipoint.
+	 * 
+	 * @param src
+	 *            The mulitpoint to append to this multipoint.
+	 * @param srcFrom
+	 *            The start index in the source multipoint from which to start
+	 *            appending points.
+	 * @param srcTo
+	 *            The end index in the source multipoint right after the last
+	 *            point to be appended. Use -1 to indicate the rest of the
+	 *            source multipoint.
+	 */
+	public void add(MultiVertexGeometry src, int srcFrom, int srcTo) {
+<span class="fc" id="L164">		m_impl.add((MultiVertexGeometryImpl) src._getImpl(), srcFrom, srcTo);</span>
+<span class="fc" id="L165">	}</span>
+
+	void addPoints(Point2D[] points) {
+<span class="nc" id="L168">		m_impl.addPoints(points);</span>
+<span class="nc" id="L169">	}</span>
+
+	void addPoints(Point[] points) {
+<span class="nc" id="L172">		m_impl.addPoints(points);</span>
+<span class="nc" id="L173">	}</span>
+
+	/**
+	 * Inserts a point to this multipoint.
+	 * 
+	 * @param beforePointIndex
+	 *            The index right before the new point to insert.
+	 * @param pt
+	 *            The point to insert.
+	 */
+	public void insertPoint(int beforePointIndex, Point pt) {
+<span class="fc" id="L184">		m_impl.insertPoint(beforePointIndex, pt);</span>
+<span class="fc" id="L185">	} // inserts a point. The point is connected with Lines</span>
+
+	/**
+	 * Removes a point from this multipoint.
+	 * 
+	 * @param pointIndex
+	 *            The index of the point to be removed.
+	 */
+	public void removePoint(int pointIndex) {
+<span class="fc" id="L194">		m_impl.removePoint(pointIndex);</span>
+<span class="fc" id="L195">	}</span>
+
+	/**
+	 * Resizes the multipoint to have the given size.
+	 * 
+	 * @param pointCount
+	 *            - The number of points in this multipoint.
+	 */
+	public void resize(int pointCount) {
+<span class="nc" id="L204">		m_impl.resize(pointCount);</span>
+<span class="nc" id="L205">	}</span>
+
+	@Override
+	void queryCoordinates(Point3D[] dst) {
+<span class="nc" id="L209">		m_impl.queryCoordinates(dst);</span>
+<span class="nc" id="L210">	}</span>
+
+	@Override
+	public void setAttribute(int semantics, int index, int ordinate,
+			double value) {
+<span class="nc" id="L215">		m_impl.setAttribute(semantics, index, ordinate, value);</span>
+<span class="nc" id="L216">	}</span>
+
+	@Override
+	public void setAttribute(int semantics, int index, int ordinate, int value) {
+<span class="fc" id="L220">		m_impl.setAttribute(semantics, index, ordinate, value);</span>
+<span class="fc" id="L221">	}</span>
+
+	@Override
+	public void setPoint(int index, Point pointSrc) {
+<span class="fc" id="L225">		m_impl.setPoint(index, pointSrc);</span>
+<span class="fc" id="L226">	}</span>
+
+	@Override
+	public void setXY(int index, Point2D pt) {
+<span class="fc" id="L230">		m_impl.setXY(index, pt);</span>
+<span class="fc" id="L231">	}</span>
+
+	@Override
+	void setXYZ(int index, Point3D pt) {
+<span class="nc" id="L235">		m_impl.setXYZ(index, pt);</span>
+<span class="nc" id="L236">	}</span>
+
+	@Override
+	public void applyTransformation(Transformation2D transform) {
+<span class="fc" id="L240">		m_impl.applyTransformation(transform);</span>
+<span class="fc" id="L241">	}</span>
+
+	@Override
+	void applyTransformation(Transformation3D transform) {
+<span class="nc" id="L245">		m_impl.applyTransformation(transform);</span>
+<span class="nc" id="L246">	}</span>
+
+	@Override
+	public void copyTo(Geometry dst) {
+<span class="fc" id="L250">		m_impl.copyTo((Geometry) dst._getImpl());</span>
+<span class="fc" id="L251">	}</span>
+
+	@Override
+	public Geometry createInstance() {
+<span class="fc" id="L255">		return new MultiPoint(getDescription());</span>
+	}
+
+	@Override
+	public int getDimension() {
+<span class="fc" id="L260">		return 0;</span>
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+<span class="fc" id="L266">		return SIZE_OF_MULTI_POINT + m_impl.estimateMemorySize();</span>
+	}
+
+	@Override
+	public Geometry.Type getType() {
+<span class="fc" id="L271">		return Type.MultiPoint;</span>
+	}
+
+	@Override
+	public VertexDescription getDescription() {
+<span class="fc" id="L276">		return m_impl.getDescription();</span>
+	}
+
+	@Override
+	public void addAttribute(int semantics) {
+<span class="fc" id="L281">		m_impl.addAttribute(semantics);</span>
+<span class="fc" id="L282">	}</span>
+
+	@Override
+	public void assignVertexDescription(VertexDescription src) {
+<span class="nc" id="L286">		m_impl.assignVertexDescription(src);</span>
+<span class="nc" id="L287">	}</span>
+
+	@Override
+	public void dropAllAttributes() {
+<span class="fc" id="L291">		m_impl.dropAllAttributes();</span>
+<span class="fc" id="L292">	}</span>
+
+	@Override
+	public void dropAttribute(int semantics) {
+<span class="fc" id="L296">		m_impl.dropAttribute(semantics);</span>
+<span class="fc" id="L297">	}</span>
+
+	@Override
+	public void mergeVertexDescription(VertexDescription src) {
+<span class="fc" id="L301">		m_impl.mergeVertexDescription(src);</span>
+<span class="fc" id="L302">	}</span>
+
+	@Override
+	public boolean isEmpty() {
+<span class="fc" id="L306">		return m_impl.isEmpty();</span>
+	}
+
+	@Override
+	public void queryEnvelope(Envelope env) {
+<span class="fc" id="L311">		m_impl.queryEnvelope(env);</span>
+<span class="fc" id="L312">	}</span>
+
+	@Override
+	public void queryEnvelope2D(Envelope2D env) {
+<span class="fc" id="L316">		m_impl.queryEnvelope2D(env);</span>
+<span class="fc" id="L317">	}</span>
+
+	@Override
+	void queryEnvelope3D(Envelope3D env) {
+<span class="nc" id="L321">		m_impl.queryEnvelope3D(env);</span>
+<span class="nc" id="L322">	}</span>
+
+	@Override
+	public Envelope1D queryInterval(int semantics, int ordinate) {
+<span class="fc" id="L326">		return m_impl.queryInterval(semantics, ordinate);</span>
+	}
+
+	@Override
+	public void setEmpty() {
+<span class="fc" id="L331">		m_impl.setEmpty();</span>
+<span class="fc" id="L332">	}</span>
+
+	/**
+	 * Returns TRUE when this geometry has exactly same type, properties, and
+	 * coordinates as the other geometry.
+	 */
+	@Override
+	public boolean equals(Object other) {
+<span class="pc bpc" id="L340" title="1 of 2 branches missed.">		if (other == null)</span>
+<span class="nc" id="L341">			return false;</span>
+
+<span class="pc bpc" id="L343" title="1 of 2 branches missed.">		if (other == this)</span>
+<span class="nc" id="L344">			return true;</span>
+
+<span class="pc bpc" id="L346" title="1 of 2 branches missed.">		if (other.getClass() != getClass())</span>
+<span class="nc" id="L347">			return false;</span>
+
+<span class="fc" id="L349">		return m_impl.equals(((MultiPoint) other)._getImpl());</span>
+	}
+
+	/**
+	 * Returns a hash code value for this multipoint.
+	 */
+	@Override
+	public int hashCode() {
+<span class="fc" id="L357">		return m_impl.hashCode();</span>
+	}
+
+	int queryCoordinates(Point2D[] dst, int dstSize, int beginIndex,
+			int endIndex) {
+<span class="fc" id="L362">		return m_impl.queryCoordinates(dst, dstSize, beginIndex, endIndex);</span>
+	}
+
+	@Override
+	public void getPointByVal(int index, Point outPoint) {
+<span class="fc" id="L367">		m_impl.getPointByVal(index, outPoint);</span>
+<span class="fc" id="L368">	}</span>
+
+	@Override
+	public void setPointByVal(int index, Point pointSrc) {
+<span class="nc" id="L372">		m_impl.setPointByVal(index, pointSrc);</span>
+<span class="nc" id="L373">	}</span>
+
+	@Override
+	public int getStateFlag() {
+<span class="nc" id="L377">		return m_impl.getStateFlag();</span>
+	}
+
+    @Override
+    public Geometry getBoundary() {
+<span class="nc" id="L382">        return m_impl.getBoundary();</span>
+    }
+    
+    @Override
+    public void replaceNaNs(int semantics, double value) {
+<span class="fc" id="L387">    	m_impl.replaceNaNs(semantics, value);</span>
+<span class="fc" id="L388">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

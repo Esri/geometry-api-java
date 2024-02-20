@@ -1,0 +1,358 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OperatorDifferenceLocal.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">OperatorDifferenceLocal.java</span></div><h1>OperatorDifferenceLocal.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+<span class="fc" id="L27">class OperatorDifferenceLocal extends OperatorDifference {</span>
+
+	@Override
+	public GeometryCursor execute(GeometryCursor inputGeometries,
+			GeometryCursor subtractor, SpatialReference sr,
+			ProgressTracker progressTracker) {
+<span class="fc" id="L33">		return new OperatorDifferenceCursor(inputGeometries, subtractor, sr,</span>
+				progressTracker);
+	}
+
+	@Override
+	public Geometry execute(Geometry inputGeometry, Geometry subtractor,
+			SpatialReference sr, ProgressTracker progressTracker) {
+<span class="fc" id="L40">		SimpleGeometryCursor inputGeomCurs = new SimpleGeometryCursor(</span>
+				inputGeometry);
+<span class="fc" id="L42">		SimpleGeometryCursor subractorCurs = new SimpleGeometryCursor(</span>
+				subtractor);
+<span class="fc" id="L44">		GeometryCursor geometryCursor = execute(inputGeomCurs, subractorCurs,</span>
+				sr, progressTracker);
+
+<span class="fc" id="L47">		return geometryCursor.next();</span>
+	}
+
+	static Geometry difference(Geometry geometry_a, Geometry geometry_b,
+			SpatialReference spatial_reference, ProgressTracker progress_tracker) {
+<span class="pc bpc" id="L52" title="1 of 4 branches missed.">		if (geometry_a.isEmpty() || geometry_b.isEmpty())</span>
+<span class="fc" id="L53">			return geometry_a;</span>
+
+<span class="fc" id="L55">		int dimension_a = geometry_a.getDimension();</span>
+<span class="fc" id="L56">		int dimension_b = geometry_b.getDimension();</span>
+
+<span class="fc bfc" id="L58" title="All 2 branches covered.">		if (dimension_a &gt; dimension_b)</span>
+<span class="fc" id="L59">			return geometry_a;</span>
+
+<span class="fc" id="L61">		int type_a = geometry_a.getType().value();</span>
+<span class="fc" id="L62">		int type_b = geometry_b.getType().value();</span>
+
+<span class="fc" id="L64">		Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D(), env_merged = new Envelope2D();</span>
+<span class="fc" id="L65">		geometry_a.queryEnvelope2D(env_a);</span>
+<span class="fc" id="L66">		geometry_b.queryEnvelope2D(env_b);</span>
+<span class="fc" id="L67">		env_merged.setCoords(env_a);</span>
+<span class="fc" id="L68">		env_merged.merge(env_b);</span>
+
+<span class="fc" id="L70">		double tolerance = InternalUtils.calculateToleranceFromGeometry(</span>
+				spatial_reference, env_merged, false);
+<span class="fc" id="L72">		double tolerance_cluster = tolerance * Math.sqrt(2.0) * 1.00001;</span>
+
+<span class="fc" id="L74">		Envelope2D env_a_inflated = new Envelope2D();</span>
+<span class="fc" id="L75">		env_a_inflated.setCoords(env_a);</span>
+<span class="fc" id="L76">		env_a_inflated.inflate(tolerance_cluster, tolerance_cluster); // inflate</span>
+																		// by
+																		// cluster
+																		// tolerance
+
+<span class="fc bfc" id="L81" title="All 2 branches covered.">		if (!env_a_inflated.isIntersecting(env_b))</span>
+<span class="fc" id="L82">			return geometry_a;</span>
+
+<span class="fc bfc" id="L84" title="All 2 branches covered.">		if (type_a == Geometry.GeometryType.Point) {</span>
+			Geometry geometry_b_;
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">			if (MultiPath.isSegment(type_b)) {</span>
+<span class="nc" id="L87">				geometry_b_ = new Polyline(geometry_b.getDescription());</span>
+<span class="nc" id="L88">				((Polyline) (geometry_b_)).addSegment((Segment) (geometry_b),</span>
+						true);
+			} else {
+<span class="fc" id="L91">				geometry_b_ = geometry_b;</span>
+			}
+<span class="pc bpc" id="L93" title="1 of 6 branches missed.">			switch (type_b) {</span>
+			case Geometry.GeometryType.Polygon:
+<span class="fc" id="L95">				return pointMinusPolygon_((Point) (geometry_a),</span>
+						(Polygon) (geometry_b_), tolerance, progress_tracker);
+			case Geometry.GeometryType.Polyline:
+<span class="fc" id="L98">				return pointMinusPolyline_((Point) (geometry_a),</span>
+						(Polyline) (geometry_b_), tolerance, progress_tracker);
+			case Geometry.GeometryType.MultiPoint:
+<span class="fc" id="L101">				return pointMinusMultiPoint_((Point) (geometry_a),</span>
+						(MultiPoint) (geometry_b_), tolerance, progress_tracker);
+			case Geometry.GeometryType.Envelope:
+<span class="fc" id="L104">				return pointMinusEnvelope_((Point) (geometry_a),</span>
+						(Envelope) (geometry_b_), tolerance, progress_tracker);
+			case Geometry.GeometryType.Point:
+<span class="fc" id="L107">				return pointMinusPoint_((Point) (geometry_a),</span>
+						(Point) (geometry_b_), tolerance, progress_tracker);
+			default:
+<span class="nc" id="L110">				throw new IllegalArgumentException();</span>
+			}
+<span class="fc bfc" id="L112" title="All 2 branches covered.">		} else if (type_a == Geometry.GeometryType.MultiPoint) {</span>
+<span class="fc bfc" id="L113" title="All 4 branches covered.">			switch (type_b) {</span>
+			case Geometry.GeometryType.Polygon:
+<span class="fc" id="L115">				return multiPointMinusPolygon_((MultiPoint) (geometry_a),</span>
+						(Polygon) (geometry_b), tolerance, progress_tracker);
+			case Geometry.GeometryType.Envelope:
+<span class="fc" id="L118">				return multiPointMinusEnvelope_((MultiPoint) (geometry_a),</span>
+						(Envelope) (geometry_b), tolerance, progress_tracker);
+			case Geometry.GeometryType.Point:
+<span class="fc" id="L121">				return multiPointMinusPoint_((MultiPoint) (geometry_a),</span>
+						(Point) (geometry_b), tolerance, progress_tracker);
+			default:
+				break;
+			}
+		}
+<span class="fc" id="L127">		return TopologicalOperations.difference(geometry_a, geometry_b,</span>
+				spatial_reference, progress_tracker);
+	}
+
+	// these are special implementations, all others delegate to the topo-graph.
+	static Geometry pointMinusPolygon_(Point point, Polygon polygon,
+			double tolerance, ProgressTracker progress_tracker) {
+<span class="fc" id="L134">		PolygonUtils.PiPResult result = PolygonUtils.isPointInPolygon2D(</span>
+				polygon, point, tolerance);
+
+<span class="fc bfc" id="L137" title="All 2 branches covered.">		if (result == PolygonUtils.PiPResult.PiPOutside)</span>
+<span class="fc" id="L138">			return point;</span>
+
+<span class="fc" id="L140">		return point.createInstance();</span>
+	}
+
+	static Geometry pointMinusPolyline_(Point point, Polyline polyline,
+			double tolerance, ProgressTracker progress_tracker) {
+<span class="fc" id="L145">		Point2D pt = point.getXY();</span>
+<span class="fc" id="L146">		SegmentIterator seg_iter = polyline.querySegmentIterator();</span>
+
+<span class="fc" id="L148">		double tolerance_cluster = tolerance * Math.sqrt(2.0) * 1.00001;</span>
+<span class="fc" id="L149">		double tolerance_cluster_sq = tolerance_cluster * tolerance_cluster;</span>
+<span class="fc" id="L150">		Envelope2D env = new Envelope2D();</span>
+
+<span class="fc bfc" id="L152" title="All 2 branches covered.">		while (seg_iter.nextPath()) {</span>
+<span class="fc bfc" id="L153" title="All 2 branches covered.">			while (seg_iter.hasNextSegment()) {</span>
+<span class="fc" id="L154">				Segment segment = seg_iter.nextSegment();</span>
+
+<span class="fc" id="L156">				segment.queryEnvelope2D(env);</span>
+<span class="fc" id="L157">				env.inflate(tolerance_cluster, tolerance_cluster);</span>
+
+<span class="fc bfc" id="L159" title="All 2 branches covered.">				if (!env.contains(pt))</span>
+<span class="fc" id="L160">					continue;</span>
+
+<span class="pc bpc" id="L162" title="1 of 2 branches missed.">				if (segment.isIntersecting(pt, tolerance))</span>
+<span class="fc" id="L163">					return point.createInstance();</span>
+
+				// check segment end points to the cluster tolerance
+<span class="nc" id="L166">				Point2D end_point = segment.getStartXY();</span>
+
+<span class="nc bnc" id="L168" title="All 2 branches missed.">				if (Point2D.sqrDistance(pt, end_point) &lt;= tolerance_cluster_sq)</span>
+<span class="nc" id="L169">					return point.createInstance();</span>
+
+<span class="nc" id="L171">				end_point = segment.getEndXY();</span>
+
+<span class="nc bnc" id="L173" title="All 2 branches missed.">				if (Point2D.sqrDistance(pt, end_point) &lt;= tolerance_cluster_sq)</span>
+<span class="nc" id="L174">					return point.createInstance();</span>
+<span class="nc" id="L175">			}</span>
+		}
+
+<span class="fc" id="L178">		return point;</span>
+	}
+
+	static Geometry pointMinusMultiPoint_(Point point, MultiPoint multi_point,
+			double tolerance, ProgressTracker progress_tracker) {
+<span class="fc" id="L183">		MultiPointImpl multipointImpl = (MultiPointImpl) (multi_point</span>
+<span class="fc" id="L184">				._getImpl());</span>
+<span class="fc" id="L185">		AttributeStreamOfDbl position = (AttributeStreamOfDbl) multipointImpl</span>
+<span class="fc" id="L186">				.getAttributeStreamRef(VertexDescription.Semantics.POSITION);</span>
+<span class="fc" id="L187">		int point_count = multi_point.getPointCount();</span>
+<span class="fc" id="L188">		Point2D point2D = point.getXY();</span>
+<span class="fc" id="L189">		Point2D pt = new Point2D();</span>
+
+<span class="fc" id="L191">		double tolerance_cluster = tolerance * Math.sqrt(2.0) * 1.00001;</span>
+<span class="fc" id="L192">		double tolerance_cluster_sq = tolerance_cluster * tolerance_cluster;</span>
+
+<span class="pc bpc" id="L194" title="1 of 2 branches missed.">		for (int i = 0; i &lt; point_count; i++) {</span>
+<span class="fc" id="L195">			position.read(2 * i, pt);</span>
+<span class="fc" id="L196">			double sqr_dist = Point2D.sqrDistance(pt, point2D);</span>
+<span class="pc bpc" id="L197" title="1 of 2 branches missed.">			if (sqr_dist &lt;= tolerance_cluster_sq)</span>
+<span class="fc" id="L198">				return point.createInstance();// return an empty point.</span>
+		}
+
+<span class="nc" id="L201">		return point;// return the input point</span>
+	}
+
+	static Geometry pointMinusEnvelope_(Point point, Envelope envelope,
+			double tolerance, ProgressTracker progress_tracker) {
+<span class="fc" id="L206">		Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L207">		envelope.queryEnvelope2D(env);</span>
+<span class="fc" id="L208">		env.inflate(tolerance, tolerance);</span>
+
+<span class="fc" id="L210">		Point2D pt = point.getXY();</span>
+
+<span class="pc bpc" id="L212" title="1 of 2 branches missed.">		if (!env.contains(pt))</span>
+<span class="nc" id="L213">			return point;</span>
+
+<span class="fc" id="L215">		return point.createInstance();</span>
+	}
+
+	static Geometry pointMinusPoint_(Point point_a, Point point_b,
+			double tolerance, ProgressTracker progress_tracker) {
+<span class="fc" id="L220">		double tolerance_cluster = tolerance * Math.sqrt(2.0) * 1.00001;</span>
+<span class="fc" id="L221">		double tolerance_cluster_sq = tolerance_cluster * tolerance_cluster;</span>
+
+<span class="fc" id="L223">		Point2D pt_a = point_a.getXY();</span>
+<span class="fc" id="L224">		Point2D pt_b = point_b.getXY();</span>
+
+<span class="pc bpc" id="L226" title="1 of 2 branches missed.">		if (Point2D.sqrDistance(pt_a, pt_b) &lt;= tolerance_cluster_sq)</span>
+<span class="fc" id="L227">			return point_a.createInstance(); // return empty point</span>
+
+<span class="nc" id="L229">		return point_a;</span>
+	}
+
+	static Geometry multiPointMinusPolygon_(MultiPoint multi_point,
+			Polygon polygon, double tolerance, ProgressTracker progress_tracker) {
+<span class="fc" id="L234">		Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L235">		polygon.queryEnvelope2D(env);</span>
+<span class="fc" id="L236">		env.inflate(tolerance, tolerance);</span>
+
+<span class="fc" id="L238">		int point_count = multi_point.getPointCount();</span>
+
+<span class="fc" id="L240">		boolean b_found_covered = false;</span>
+<span class="fc" id="L241">		boolean[] covered = new boolean[point_count];</span>
+<span class="fc bfc" id="L242" title="All 2 branches covered.">		for (int i = 0; i &lt; point_count; i++)</span>
+<span class="fc" id="L243">			covered[i] = false;</span>
+
+<span class="fc" id="L245">		Point2D pt = new Point2D();</span>
+
+<span class="fc bfc" id="L247" title="All 2 branches covered.">		for (int i = 0; i &lt; point_count; i++) {</span>
+<span class="fc" id="L248">			multi_point.getXY(i, pt);</span>
+
+<span class="fc bfc" id="L250" title="All 2 branches covered.">			if (!env.contains(pt))</span>
+<span class="fc" id="L251">				continue;</span>
+
+<span class="fc" id="L253">			PolygonUtils.PiPResult result = PolygonUtils.isPointInPolygon2D(</span>
+					polygon, pt, tolerance);
+
+<span class="fc bfc" id="L256" title="All 2 branches covered.">			if (result == PolygonUtils.PiPResult.PiPOutside)</span>
+<span class="fc" id="L257">				continue;</span>
+
+<span class="fc" id="L259">			b_found_covered = true;</span>
+<span class="fc" id="L260">			covered[i] = true;</span>
+		}
+
+<span class="fc bfc" id="L263" title="All 2 branches covered.">		if (!b_found_covered)</span>
+<span class="fc" id="L264">			return multi_point;</span>
+
+<span class="fc" id="L266">		MultiPoint new_multipoint = (MultiPoint) multi_point.createInstance();</span>
+
+<span class="fc bfc" id="L268" title="All 2 branches covered.">		for (int i = 0; i &lt; point_count; i++) {</span>
+<span class="fc bfc" id="L269" title="All 2 branches covered.">			if (!covered[i])</span>
+<span class="fc" id="L270">				new_multipoint.add(multi_point, i, i + 1);</span>
+		}
+
+<span class="fc" id="L273">		return new_multipoint;</span>
+	}
+
+	static Geometry multiPointMinusEnvelope_(MultiPoint multi_point,
+			Envelope envelope, double tolerance,
+			ProgressTracker progress_tracker) {
+<span class="fc" id="L279">		Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L280">		envelope.queryEnvelope2D(env);</span>
+<span class="fc" id="L281">		env.inflate(tolerance, tolerance);</span>
+
+<span class="fc" id="L283">		int point_count = multi_point.getPointCount();</span>
+
+<span class="fc" id="L285">		boolean b_found_covered = false;</span>
+<span class="fc" id="L286">		boolean[] covered = new boolean[point_count];</span>
+<span class="fc bfc" id="L287" title="All 2 branches covered.">		for (int i = 0; i &lt; point_count; i++)</span>
+<span class="fc" id="L288">			covered[i] = false;</span>
+
+<span class="fc" id="L290">		Point2D pt = new Point2D();</span>
+
+<span class="fc bfc" id="L292" title="All 2 branches covered.">		for (int i = 0; i &lt; point_count; i++) {</span>
+<span class="fc" id="L293">			multi_point.getXY(i, pt);</span>
+
+<span class="fc bfc" id="L295" title="All 2 branches covered.">			if (!env.contains(pt))</span>
+<span class="fc" id="L296">				continue;</span>
+
+<span class="fc" id="L298">			b_found_covered = true;</span>
+<span class="fc" id="L299">			covered[i] = true;</span>
+		}
+
+<span class="fc bfc" id="L302" title="All 2 branches covered.">		if (!b_found_covered)</span>
+<span class="fc" id="L303">			return multi_point;</span>
+
+<span class="fc" id="L305">		MultiPoint new_multipoint = (MultiPoint) multi_point.createInstance();</span>
+
+<span class="fc bfc" id="L307" title="All 2 branches covered.">		for (int i = 0; i &lt; point_count; i++) {</span>
+<span class="fc bfc" id="L308" title="All 2 branches covered.">			if (!covered[i])</span>
+<span class="fc" id="L309">				new_multipoint.add(multi_point, i, i + 1);</span>
+		}
+
+<span class="fc" id="L312">		return new_multipoint;</span>
+	}
+
+	static Geometry multiPointMinusPoint_(MultiPoint multi_point, Point point,
+			double tolerance, ProgressTracker progress_tracker) {
+<span class="fc" id="L317">		MultiPointImpl multipointImpl = (MultiPointImpl) (multi_point</span>
+<span class="fc" id="L318">				._getImpl());</span>
+<span class="fc" id="L319">		AttributeStreamOfDbl position = (AttributeStreamOfDbl) (multipointImpl</span>
+<span class="fc" id="L320">				.getAttributeStreamRef(VertexDescription.Semantics.POSITION));</span>
+<span class="fc" id="L321">		int point_count = multi_point.getPointCount();</span>
+<span class="fc" id="L322">		Point2D point2D = point.getXY();</span>
+<span class="fc" id="L323">		Point2D pt = new Point2D();</span>
+
+<span class="fc" id="L325">		boolean b_found_covered = false;</span>
+<span class="fc" id="L326">		boolean[] covered = new boolean[point_count];</span>
+<span class="fc bfc" id="L327" title="All 2 branches covered.">		for (int i = 0; i &lt; point_count; i++)</span>
+<span class="fc" id="L328">			covered[i] = false;</span>
+
+<span class="fc" id="L330">		double tolerance_cluster = tolerance * Math.sqrt(2.0) * 1.00001;</span>
+<span class="fc" id="L331">		double tolerance_cluster_sq = tolerance_cluster * tolerance_cluster;</span>
+
+<span class="fc bfc" id="L333" title="All 2 branches covered.">		for (int i = 0; i &lt; point_count; i++) {</span>
+<span class="fc" id="L334">			position.read(2 * i, pt);</span>
+
+<span class="fc" id="L336">			double sqr_dist = Point2D.sqrDistance(pt, point2D);</span>
+
+<span class="fc bfc" id="L338" title="All 2 branches covered.">			if (sqr_dist &lt;= tolerance_cluster_sq) {</span>
+<span class="fc" id="L339">				b_found_covered = true;</span>
+<span class="fc" id="L340">				covered[i] = true;</span>
+			}
+		}
+
+<span class="fc bfc" id="L344" title="All 2 branches covered.">		if (!b_found_covered)</span>
+<span class="fc" id="L345">			return multi_point;</span>
+
+<span class="fc" id="L347">		MultiPoint new_multipoint = (MultiPoint) (multi_point.createInstance());</span>
+
+<span class="fc bfc" id="L349" title="All 2 branches covered.">		for (int i = 0; i &lt; point_count; i++) {</span>
+<span class="fc bfc" id="L350" title="All 2 branches covered.">			if (!covered[i])</span>
+<span class="fc" id="L351">				new_multipoint.add(multi_point, i, i + 1);</span>
+		}
+
+<span class="fc" id="L354">		return new_multipoint;</span>
+	}
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

@@ -1,0 +1,1320 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OperatorImportFromGeoJsonLocal.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">OperatorImportFromGeoJsonLocal.java</span></div><h1>OperatorImportFromGeoJsonLocal.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+import com.esri.core.geometry.VertexDescription.Semantics;
+import java.util.ArrayList;
+
+<span class="fc" id="L29">class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {</span>
+<span class="fc" id="L30">	static enum GeoJsonType {</span>
+<span class="fc" id="L31">		Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon, GeometryCollection;</span>
+		static GeoJsonType fromGeoJsonValue(int v) {
+<span class="nc" id="L33">			return GeoJsonType.values()[v - 1];</span>
+		}
+		
+		public int geogsjonvalue() {
+<span class="fc" id="L37">			return ordinal() + 1;</span>
+		}
+	};
+
+	static interface GeoJsonValues {
+<span class="fc" id="L42">		public final static int Point = GeoJsonType.Point.geogsjonvalue();</span>
+<span class="fc" id="L43">		public final static int LineString = GeoJsonType.LineString.geogsjonvalue();</span>
+<span class="fc" id="L44">		public final static int Polygon = GeoJsonType.Polygon.geogsjonvalue();</span>
+<span class="fc" id="L45">		public final static int MultiPoint = GeoJsonType.MultiPoint.geogsjonvalue();</span>
+<span class="fc" id="L46">		public final static int MultiLineString = GeoJsonType.MultiLineString.geogsjonvalue();</span>
+<span class="fc" id="L47">		public final static int MultiPolygon = GeoJsonType.MultiPolygon.geogsjonvalue();</span>
+<span class="fc" id="L48">		public final static int GeometryCollection = GeoJsonType.GeometryCollection.geogsjonvalue();</span>
+	};
+
+	@Override
+	public MapGeometry execute(int importFlags, Geometry.Type type,
+			String geoJsonString, ProgressTracker progressTracker)
+			throws JsonGeometryException {
+<span class="fc" id="L55">		MapGeometry map_geometry = OperatorImportFromGeoJsonHelper</span>
+<span class="fc" id="L56">				.importFromGeoJson(importFlags, type, JsonParserReader.createFromString(geoJsonString), progressTracker, false);</span>
+<span class="fc" id="L57">		return map_geometry;</span>
+	}
+
+	@Override
+	public MapGeometry execute(int importFlags, Geometry.Type type,
+			JsonReader jsonReader, ProgressTracker progressTracker)
+			throws JsonGeometryException {
+<span class="nc bnc" id="L64" title="All 2 branches missed.">		if (jsonReader == null)</span>
+<span class="nc" id="L65">			return null;</span>
+
+<span class="nc" id="L67">		return OperatorImportFromGeoJsonHelper.importFromGeoJson(importFlags,</span>
+				type, jsonReader, progressTracker, false);
+	}
+
+<span class="fc" id="L71">	static final class OperatorImportFromGeoJsonHelper {</span>
+
+		private AttributeStreamOfDbl m_position;
+		private AttributeStreamOfDbl m_zs;
+		private AttributeStreamOfDbl m_ms;
+		private AttributeStreamOfInt32 m_paths;
+		private AttributeStreamOfInt8 m_path_flags;
+		private Point m_point; // special case for Points
+		private boolean m_b_has_zs;
+		private boolean m_b_has_ms;
+		private boolean m_b_has_zs_known;
+		private boolean m_b_has_ms_known;
+		private int m_num_embeddings;
+
+		int m_ogcType;
+
+<span class="fc" id="L87">		OperatorImportFromGeoJsonHelper() {</span>
+<span class="fc" id="L88">			m_position = null;</span>
+<span class="fc" id="L89">			m_zs = null;</span>
+<span class="fc" id="L90">			m_ms = null;</span>
+<span class="fc" id="L91">			m_paths = null;</span>
+<span class="fc" id="L92">			m_path_flags = null;</span>
+<span class="fc" id="L93">			m_point = null;</span>
+<span class="fc" id="L94">			m_b_has_zs = false;</span>
+<span class="fc" id="L95">			m_b_has_ms = false;</span>
+<span class="fc" id="L96">			m_b_has_zs_known = false;</span>
+<span class="fc" id="L97">			m_b_has_ms_known = false;</span>
+<span class="fc" id="L98">			m_num_embeddings = 0;</span>
+<span class="fc" id="L99">			m_ogcType = 0;</span>
+<span class="fc" id="L100">		}</span>
+
+		static MapGeometry importFromGeoJson(int importFlags,
+				Geometry.Type type, JsonReader json_iterator,
+				ProgressTracker progress_tracker, boolean skip_coordinates)
+				throws JsonGeometryException {
+<span class="fc" id="L106">			OperatorImportFromGeoJsonHelper geo_json_helper = new OperatorImportFromGeoJsonHelper();</span>
+<span class="fc" id="L107">			MapOGCStructure ms = geo_json_helper.importFromGeoJsonImpl(</span>
+					importFlags, type, json_iterator, progress_tracker,
+					skip_coordinates, 0);
+			
+<span class="pc bpc" id="L111" title="3 of 4 branches missed.">			if (geo_json_helper.m_ogcType == GeoJsonValues.GeometryCollection &amp;&amp; !skip_coordinates)</span>
+<span class="nc" id="L112">				throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+
+<span class="fc" id="L114">			return new MapGeometry(ms.m_ogcStructure.m_geometry,</span>
+					ms.m_spatialReference);
+		}
+
+		static MapOGCStructure importFromGeoJson(int importFlags,
+				Geometry.Type type, JsonReader json_iterator,
+				ProgressTracker progress_tracker, boolean skip_coordinates,
+				int recursion) throws JsonGeometryException {
+<span class="fc" id="L122">			OperatorImportFromGeoJsonHelper geo_json_helper = new OperatorImportFromGeoJsonHelper();</span>
+<span class="fc" id="L123">			MapOGCStructure ms = geo_json_helper.importFromGeoJsonImpl(</span>
+					importFlags, type, json_iterator, progress_tracker,
+					skip_coordinates, recursion);
+			
+<span class="pc bpc" id="L127" title="3 of 4 branches missed.">			if (geo_json_helper.m_ogcType == GeoJsonValues.GeometryCollection &amp;&amp; !skip_coordinates)</span>
+<span class="nc" id="L128">				throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+
+<span class="fc" id="L130">			return ms;</span>
+		}		
+		MapOGCStructure importFromGeoJsonImpl(int importFlags,
+				Geometry.Type type, JsonReader json_iterator,
+				ProgressTracker progress_tracker, boolean skip_coordinates,
+				int recursion) throws JsonGeometryException {
+<span class="fc" id="L136">			OperatorImportFromGeoJsonHelper geo_json_helper = this;</span>
+<span class="fc" id="L137">			boolean b_type_found = false;</span>
+<span class="fc" id="L138">			boolean b_coordinates_found = false;</span>
+<span class="fc" id="L139">			boolean b_crs_found = false;</span>
+<span class="fc" id="L140">			boolean b_crsURN_found = false;</span>
+<span class="fc" id="L141">			boolean b_geometry_collection = false;</span>
+<span class="fc" id="L142">			boolean b_geometries_found = false;</span>
+<span class="fc" id="L143">			GeoJsonType geo_json_type = null;</span>
+
+<span class="fc" id="L145">			Geometry geometry = null;</span>
+<span class="fc" id="L146">			SpatialReference spatial_reference = null;</span>
+
+			JsonReader.Token current_token;
+<span class="fc" id="L149">			String field_name = null;</span>
+<span class="fc" id="L150">			MapOGCStructure ms = new MapOGCStructure();</span>
+
+<span class="fc bfc" id="L152" title="All 2 branches covered.">			while ((current_token = json_iterator.nextToken()) != JsonReader.Token.END_OBJECT) {</span>
+<span class="fc" id="L153">				field_name = json_iterator.currentString();</span>
+
+<span class="fc bfc" id="L155" title="All 2 branches covered.">				if (field_name.equals(&quot;type&quot;)) {</span>
+<span class="pc bpc" id="L156" title="1 of 2 branches missed.">					if (b_type_found) {</span>
+<span class="nc" id="L157">						throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+					}
+
+<span class="fc" id="L160">					b_type_found = true;</span>
+<span class="fc" id="L161">					current_token = json_iterator.nextToken();</span>
+
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">					if (current_token != JsonReader.Token.VALUE_STRING) {</span>
+<span class="nc" id="L164">						throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+					}
+
+<span class="fc" id="L167">					String s = json_iterator.currentString();</span>
+					try {
+<span class="fc" id="L169">						geo_json_type = GeoJsonType.valueOf(s);</span>
+<span class="nc" id="L170">					} catch (Exception ex) {</span>
+<span class="nc" id="L171">						throw new JsonGeometryException(s);</span>
+<span class="fc" id="L172">					}</span>
+					
+<span class="fc bfc" id="L174" title="All 2 branches covered.">					if (geo_json_type == GeoJsonType.GeometryCollection) {</span>
+<span class="pc bpc" id="L175" title="1 of 2 branches missed.">						if (type != Geometry.Type.Unknown)</span>
+<span class="nc" id="L176">							throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+						
+<span class="fc" id="L178">						b_geometry_collection = true;</span>
+					}
+<span class="fc bfc" id="L180" title="All 2 branches covered.">				} else if (field_name.equals(&quot;geometries&quot;))	{</span>
+<span class="fc" id="L181">					b_geometries_found = true;</span>
+<span class="pc bpc" id="L182" title="1 of 2 branches missed.">					if (type != Geometry.Type.Unknown)</span>
+<span class="nc" id="L183">						throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+					
+<span class="pc bpc" id="L185" title="1 of 2 branches missed.">					if (recursion &gt; 10) {</span>
+<span class="nc" id="L186">						throw new JsonGeometryException(&quot;deep geojson&quot;);</span>
+					}
+					
+<span class="pc bpc" id="L189" title="1 of 2 branches missed.">					if (skip_coordinates) {</span>
+<span class="nc" id="L190">						json_iterator.skipChildren();</span>
+					} else {
+<span class="fc" id="L192">						current_token = json_iterator.nextToken();</span>
+	
+<span class="fc" id="L194">						ms.m_ogcStructure = new OGCStructure();</span>
+<span class="fc" id="L195">						ms.m_ogcStructure.m_type = GeoJsonValues.GeometryCollection;</span>
+<span class="fc" id="L196">						ms.m_ogcStructure.m_structures = new ArrayList&lt;OGCStructure&gt;(</span>
+								0);
+	
+<span class="pc bpc" id="L199" title="1 of 2 branches missed.">						if (current_token == JsonReader.Token.START_ARRAY) {</span>
+<span class="fc" id="L200">							current_token = json_iterator.nextToken();</span>
+<span class="fc bfc" id="L201" title="All 2 branches covered.">							while (current_token != JsonReader.Token.END_ARRAY) {</span>
+<span class="fc" id="L202">								MapOGCStructure child = importFromGeoJson(</span>
+										importFlags
+												| GeoJsonImportFlags.geoJsonImportSkipCRS,
+										type, json_iterator,
+										progress_tracker, false,
+										recursion + 1);
+<span class="fc" id="L208">								ms.m_ogcStructure.m_structures</span>
+<span class="fc" id="L209">										.add(child.m_ogcStructure);</span>
+								
+<span class="fc" id="L211">								current_token = json_iterator.nextToken();</span>
+<span class="fc" id="L212">							}</span>
+						}
+<span class="nc bnc" id="L214" title="All 2 branches missed.">						else if (current_token != JsonReader.Token.VALUE_NULL) {</span>
+<span class="nc" id="L215">							throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+						}
+					}
+<span class="fc bfc" id="L218" title="All 2 branches covered.">				} else if (field_name.equals(&quot;coordinates&quot;)) {</span>
+					
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">					if (b_coordinates_found) {</span>
+<span class="nc" id="L221">						throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+					}
+
+<span class="fc" id="L224">					b_coordinates_found = true;</span>
+<span class="fc" id="L225">					current_token = json_iterator.nextToken();</span>
+
+<span class="pc bpc" id="L227" title="1 of 2 branches missed.">					if (skip_coordinates) {</span>
+<span class="nc" id="L228">						json_iterator.skipChildren();</span>
+					} else {// According to the spec, the value of the
+							// coordinates must be an array. However, I do an
+							// extra check for null too.
+<span class="fc bfc" id="L232" title="All 2 branches covered.">						if (current_token != JsonReader.Token.VALUE_NULL) {</span>
+<span class="pc bpc" id="L233" title="1 of 2 branches missed.">							if (current_token != JsonReader.Token.START_ARRAY) {</span>
+<span class="nc" id="L234">								throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+							}
+
+<span class="fc" id="L237">							geo_json_helper.import_coordinates_(json_iterator,</span>
+									progress_tracker);
+						}
+					}
+<span class="fc bfc" id="L241" title="All 2 branches covered.">				} else if (field_name.equals(&quot;crs&quot;)) {</span>
+<span class="pc bpc" id="L242" title="2 of 4 branches missed.">					if (b_crs_found || b_crsURN_found) {</span>
+<span class="nc" id="L243">						throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+					}
+
+<span class="fc" id="L246">					b_crs_found = true;</span>
+<span class="fc" id="L247">					current_token = json_iterator.nextToken();</span>
+
+<span class="pc bpc" id="L249" title="1 of 2 branches missed.">					if ((importFlags &amp; GeoJsonImportFlags.geoJsonImportSkipCRS) == 0)</span>
+<span class="fc" id="L250">						spatial_reference = importSpatialReferenceFromCrs(</span>
+								json_iterator, progress_tracker);
+					else
+<span class="nc" id="L253">						json_iterator.skipChildren();</span>
+<span class="pc bpc" id="L254" title="1 of 2 branches missed.">				} else if (field_name.equals(&quot;crsURN&quot;)) {</span>
+<span class="pc bpc" id="L255" title="2 of 4 branches missed.">					if (b_crs_found || b_crsURN_found) {</span>
+<span class="nc" id="L256">						throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+					}
+
+<span class="fc" id="L259">					b_crsURN_found = true;</span>
+<span class="fc" id="L260">					current_token = json_iterator.nextToken();</span>
+
+<span class="fc" id="L262">					spatial_reference = importSpatialReferenceFromCrsUrn_(</span>
+							json_iterator, progress_tracker);
+				} else {
+<span class="nc" id="L265">					json_iterator.nextToken();</span>
+<span class="nc" id="L266">					json_iterator.skipChildren();</span>
+				}
+			}
+
+			// According to the spec, a GeoJSON object must have both a type and
+			// a coordinates array
+<span class="pc bpc" id="L272" title="4 of 8 branches missed.">			if (!b_type_found || (!b_geometry_collection &amp;&amp; !b_coordinates_found &amp;&amp; !skip_coordinates)) {</span>
+<span class="nc" id="L273">				throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+			}
+			
+<span class="pc bpc" id="L276" title="2 of 8 branches missed.">			if ((!b_geometry_collection &amp;&amp; b_geometries_found) || (b_geometry_collection &amp;&amp; !b_geometries_found)) {</span>
+<span class="nc" id="L277">				throw new JsonGeometryException(&quot;parsing error&quot;);//found &quot;geometries&quot; but did not see &quot;GeometryCollection&quot;</span>
+			}
+				
+
+<span class="pc bpc" id="L281" title="1 of 4 branches missed.">			if (!skip_coordinates &amp;&amp; !b_geometry_collection) {</span>
+<span class="fc" id="L282">				geometry = geo_json_helper.createGeometry_(geo_json_type,</span>
+<span class="fc" id="L283">						type.value());</span>
+
+<span class="fc" id="L285">				ms.m_ogcStructure = new OGCStructure();</span>
+<span class="fc" id="L286">				ms.m_ogcStructure.m_type = m_ogcType;</span>
+<span class="fc" id="L287">				ms.m_ogcStructure.m_geometry = geometry;</span>
+			}
+
+<span class="pc bpc" id="L290" title="1 of 8 branches missed.">			if (!b_crs_found</span>
+					&amp;&amp; !b_crsURN_found
+					&amp;&amp; ((importFlags &amp; GeoJsonImportFlags.geoJsonImportSkipCRS) == 0)
+					&amp;&amp; ((importFlags &amp; GeoJsonImportFlags.geoJsonImportNoWGS84Default) == 0)) {
+<span class="fc" id="L294">				spatial_reference = SpatialReference.create(4326); // the spec</span>
+																	// gives a
+																	// default
+																	// of 4326
+																	// if no crs
+																	// is given
+			}
+
+<span class="fc" id="L302">			ms.m_spatialReference = spatial_reference;</span>
+<span class="fc" id="L303">			return ms;</span>
+		}
+
+		// We have to import the coordinates in the most general way possible to
+		// not assume the type of geometry we're parsing.
+		// JSON allows for unordered objects, so it's possible that the
+		// coordinates array can come before the type tag when parsing
+		// sequentially, otherwise
+		// we would have to parse using a JSON_object, which would be easier,
+		// but not as space/time efficient. So this function blindly imports the
+		// coordinates
+		// into the attribute stream(s), and will later assign them to a
+		// geometry after the type tag is found.
+		private void import_coordinates_(JsonReader json_iterator,
+				ProgressTracker progress_tracker) throws JsonGeometryException {
+<span class="pc bpc" id="L318" title="1 of 2 branches missed.">			assert (json_iterator.currentToken() == JsonReader.Token.START_ARRAY);</span>
+
+<span class="fc" id="L320">			int coordinates_level_lower = 1;</span>
+<span class="fc" id="L321">			int coordinates_level_upper = 4;</span>
+
+<span class="fc" id="L323">			json_iterator.nextToken();</span>
+
+<span class="fc bfc" id="L325" title="All 2 branches covered.">			while (json_iterator.currentToken() != JsonReader.Token.END_ARRAY) {</span>
+<span class="fc bfc" id="L326" title="All 2 branches covered.">				if (isDouble_(json_iterator)) {</span>
+<span class="pc bpc" id="L327" title="1 of 2 branches missed.">					if (coordinates_level_upper &gt; 1) {</span>
+<span class="fc" id="L328">						coordinates_level_upper = 1;</span>
+					}
+<span class="pc bpc" id="L330" title="1 of 2 branches missed.">				} else if (json_iterator.currentToken() == JsonReader.Token.START_ARRAY) {</span>
+<span class="fc bfc" id="L331" title="All 2 branches covered.">					if (coordinates_level_lower &lt; 2) {</span>
+<span class="fc" id="L332">						coordinates_level_lower = 2;</span>
+					}
+				} else {
+<span class="nc" id="L335">					throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+				}
+
+<span class="fc bfc" id="L338" title="All 2 branches covered.">				if (coordinates_level_lower &gt; coordinates_level_upper) {</span>
+<span class="fc" id="L339">					throw new IllegalArgumentException(&quot;invalid argument&quot;);</span>
+				}
+
+<span class="fc bfc" id="L342" title="All 4 branches covered.">				if (coordinates_level_lower == coordinates_level_upper</span>
+						&amp;&amp; coordinates_level_lower == 1) {// special
+															// code
+															// for
+															// Points
+<span class="fc" id="L347">					readCoordinateAsPoint_(json_iterator);</span>
+				} else {
+<span class="fc" id="L349">					boolean b_add_path_level_3 = true;</span>
+<span class="fc" id="L350">					boolean b_polygon_start_level_4 = true;</span>
+
+<span class="pc bpc" id="L352" title="1 of 2 branches missed.">					assert (json_iterator.currentToken() == JsonReader.Token.START_ARRAY);</span>
+<span class="fc" id="L353">					json_iterator.nextToken();</span>
+
+<span class="fc bfc" id="L355" title="All 2 branches covered.">					while (json_iterator.currentToken() != JsonReader.Token.END_ARRAY) {</span>
+<span class="fc bfc" id="L356" title="All 2 branches covered.">						if (isDouble_(json_iterator)) {</span>
+<span class="fc bfc" id="L357" title="All 2 branches covered.">							if (coordinates_level_upper &gt; 2) {</span>
+<span class="fc" id="L358">								coordinates_level_upper = 2;</span>
+							}
+<span class="pc bpc" id="L360" title="1 of 2 branches missed.">						} else if (json_iterator.currentToken() == JsonReader.Token.START_ARRAY) {</span>
+<span class="fc bfc" id="L361" title="All 2 branches covered.">							if (coordinates_level_lower &lt; 3) {</span>
+<span class="fc" id="L362">								coordinates_level_lower = 3;</span>
+							}
+						} else {
+<span class="nc" id="L365">							throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+						}
+
+<span class="fc bfc" id="L368" title="All 2 branches covered.">						if (coordinates_level_lower &gt; coordinates_level_upper) {</span>
+<span class="fc" id="L369">							throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+						}
+
+<span class="fc bfc" id="L372" title="All 4 branches covered.">						if (coordinates_level_lower == coordinates_level_upper</span>
+								&amp;&amp; coordinates_level_lower == 2) {// LineString
+																	// or
+																	// MultiPoint
+<span class="fc" id="L376">							addCoordinate_(json_iterator);</span>
+						} else {
+<span class="fc" id="L378">							boolean b_add_path_level_4 = true;</span>
+
+<span class="pc bpc" id="L380" title="1 of 2 branches missed.">							assert (json_iterator.currentToken() == JsonReader.Token.START_ARRAY);</span>
+<span class="fc" id="L381">							json_iterator.nextToken();</span>
+
+<span class="fc bfc" id="L383" title="All 2 branches covered.">							while (json_iterator.currentToken() != JsonReader.Token.END_ARRAY) {</span>
+<span class="fc bfc" id="L384" title="All 2 branches covered.">								if (isDouble_(json_iterator)) {</span>
+<span class="fc bfc" id="L385" title="All 2 branches covered.">									if (coordinates_level_upper &gt; 3) {</span>
+<span class="fc" id="L386">										coordinates_level_upper = 3;</span>
+									}
+<span class="pc bpc" id="L388" title="1 of 2 branches missed.">								} else if (json_iterator.currentToken() == JsonReader.Token.START_ARRAY) {</span>
+<span class="fc bfc" id="L389" title="All 2 branches covered.">									if (coordinates_level_lower &lt; 4) {</span>
+<span class="fc" id="L390">										coordinates_level_lower = 4;</span>
+									}
+								} else {
+<span class="nc" id="L393">									throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+								}
+
+<span class="fc bfc" id="L396" title="All 2 branches covered.">								if (coordinates_level_lower &gt; coordinates_level_upper) {</span>
+<span class="fc" id="L397">									throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+								}
+
+<span class="pc bpc" id="L400" title="1 of 4 branches missed.">								if (coordinates_level_lower == coordinates_level_upper</span>
+										&amp;&amp; coordinates_level_lower == 3) {// Polygon
+																			// or
+																			// MultiLineString
+<span class="fc bfc" id="L404" title="All 2 branches covered.">									if (b_add_path_level_3) {</span>
+<span class="fc" id="L405">										addPath_();</span>
+<span class="fc" id="L406">										b_add_path_level_3 = false;</span>
+									}
+
+<span class="fc" id="L409">									addCoordinate_(json_iterator);</span>
+								} else {
+<span class="pc bpc" id="L411" title="1 of 2 branches missed.">									assert (json_iterator.currentToken() == JsonReader.Token.START_ARRAY);</span>
+<span class="fc" id="L412">									json_iterator.nextToken();</span>
+
+<span class="fc bfc" id="L414" title="All 2 branches covered.">									if (json_iterator.currentToken() != JsonReader.Token.END_ARRAY) {</span>
+<span class="fc bfc" id="L415" title="All 2 branches covered.">										if (!isDouble_(json_iterator)) {</span>
+<span class="fc" id="L416">											throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+										}
+
+<span class="pc bpc" id="L419" title="2 of 4 branches missed.">										assert (coordinates_level_lower == coordinates_level_upper &amp;&amp; coordinates_level_lower == 4);</span>
+										// MultiPolygon
+
+<span class="fc bfc" id="L422" title="All 2 branches covered.">										if (b_add_path_level_4) {</span>
+<span class="fc" id="L423">											addPath_();</span>
+<span class="fc" id="L424">											addPathFlag_(b_polygon_start_level_4);</span>
+<span class="fc" id="L425">											b_add_path_level_4 = false;</span>
+<span class="fc" id="L426">											b_polygon_start_level_4 = false;</span>
+										}
+
+<span class="fc" id="L429">										addCoordinate_(json_iterator);</span>
+									}
+
+<span class="fc" id="L432">									json_iterator.nextToken();</span>
+								}
+							}
+
+<span class="fc" id="L436">							json_iterator.nextToken();</span>
+<span class="fc" id="L437">						}</span>
+					}
+
+<span class="fc" id="L440">					json_iterator.nextToken();</span>
+<span class="fc" id="L441">				}</span>
+			}
+
+<span class="fc bfc" id="L444" title="All 2 branches covered.">			if (m_paths != null) {</span>
+<span class="fc" id="L445">				m_paths.add(m_position.size() / 2); // add final path size</span>
+			}
+<span class="fc bfc" id="L447" title="All 2 branches covered.">			if (m_path_flags != null) {</span>
+<span class="fc" id="L448">				m_path_flags.add((byte) 0); // to match the paths size</span>
+			}
+
+<span class="fc" id="L451">			m_num_embeddings = coordinates_level_lower;</span>
+<span class="fc" id="L452">		}</span>
+
+		private void readCoordinateAsPoint_(JsonReader json_iterator)
+				throws JsonGeometryException {
+<span class="pc bpc" id="L456" title="1 of 2 branches missed.">			assert (isDouble_(json_iterator));</span>
+
+<span class="fc" id="L458">			m_point = new Point();</span>
+
+<span class="fc" id="L460">			double x = readDouble_(json_iterator);</span>
+<span class="fc" id="L461">			json_iterator.nextToken();</span>
+<span class="fc" id="L462">			double y = readDouble_(json_iterator);</span>
+<span class="fc" id="L463">			json_iterator.nextToken();</span>
+
+<span class="pc bpc" id="L465" title="1 of 2 branches missed.">			if (NumberUtils.isNaN(y)) {</span>
+<span class="nc" id="L466">				x = NumberUtils.NaN();</span>
+			}
+
+<span class="fc" id="L469">			m_point.setXY(x, y);</span>
+
+<span class="fc bfc" id="L471" title="All 2 branches covered.">			if (isDouble_(json_iterator)) {</span>
+<span class="fc" id="L472">				double z = readDouble_(json_iterator);</span>
+<span class="fc" id="L473">				json_iterator.nextToken();</span>
+<span class="fc" id="L474">				m_point.setZ(z);</span>
+			}
+
+<span class="fc bfc" id="L477" title="All 2 branches covered.">			if (isDouble_(json_iterator)) {</span>
+<span class="fc" id="L478">				double m = readDouble_(json_iterator);</span>
+<span class="fc" id="L479">				json_iterator.nextToken();</span>
+<span class="fc" id="L480">				m_point.setM(m);</span>
+			}
+
+<span class="fc bfc" id="L483" title="All 2 branches covered.">			if (json_iterator.currentToken() != JsonReader.Token.END_ARRAY) {</span>
+<span class="fc" id="L484">				throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+			}
+<span class="fc" id="L486">		}</span>
+
+		private void addCoordinate_(JsonReader json_iterator)
+				throws JsonGeometryException {
+<span class="pc bpc" id="L490" title="1 of 2 branches missed.">			assert (isDouble_(json_iterator));</span>
+
+<span class="fc bfc" id="L492" title="All 2 branches covered.">			if (m_position == null) {</span>
+<span class="fc" id="L493">				m_position = (AttributeStreamOfDbl) AttributeStreamBase</span>
+<span class="fc" id="L494">						.createDoubleStream(0);</span>
+			}
+
+<span class="fc" id="L497">			double x = readDouble_(json_iterator);</span>
+<span class="fc" id="L498">			json_iterator.nextToken();</span>
+<span class="fc" id="L499">			double y = readDouble_(json_iterator);</span>
+<span class="fc" id="L500">			json_iterator.nextToken();</span>
+
+<span class="fc" id="L502">			int size = m_position.size();</span>
+
+<span class="fc" id="L504">			m_position.add(x);</span>
+<span class="fc" id="L505">			m_position.add(y);</span>
+
+<span class="fc bfc" id="L507" title="All 2 branches covered.">			if (isDouble_(json_iterator)) {</span>
+<span class="fc bfc" id="L508" title="All 2 branches covered.">				if (!m_b_has_zs_known) {</span>
+<span class="fc" id="L509">					m_b_has_zs_known = true;</span>
+<span class="fc" id="L510">					m_b_has_zs = true;</span>
+<span class="fc" id="L511">					m_zs = (AttributeStreamOfDbl) AttributeStreamBase</span>
+<span class="fc" id="L512">							.createDoubleStream(0);</span>
+				} else {
+<span class="pc bpc" id="L514" title="1 of 2 branches missed.">					if (!m_b_has_zs) {</span>
+<span class="nc" id="L515">						m_zs = (AttributeStreamOfDbl) AttributeStreamBase</span>
+<span class="nc" id="L516">								.createDoubleStream(size &gt;&gt; 1,</span>
+										VertexDescription
+<span class="nc" id="L518">												.getDefaultValue(Semantics.Z));</span>
+<span class="nc" id="L519">						m_b_has_zs = true;</span>
+					}
+				}
+
+<span class="fc" id="L523">				double z = readDouble_(json_iterator);</span>
+<span class="fc" id="L524">				json_iterator.nextToken();</span>
+<span class="fc" id="L525">				m_zs.add(z);</span>
+<span class="fc" id="L526">			} else {</span>
+<span class="fc bfc" id="L527" title="All 2 branches covered.">				if (!m_b_has_zs_known) {</span>
+<span class="fc" id="L528">					m_b_has_zs_known = true;</span>
+<span class="fc" id="L529">					m_b_has_zs = false;</span>
+				} else {
+<span class="pc bpc" id="L531" title="1 of 2 branches missed.">					if (m_b_has_zs) {</span>
+<span class="nc" id="L532">						m_zs.add(VertexDescription.getDefaultValue(Semantics.Z));</span>
+					}
+				}
+			}
+
+<span class="fc bfc" id="L537" title="All 2 branches covered.">			if (isDouble_(json_iterator)) {</span>
+<span class="fc bfc" id="L538" title="All 2 branches covered.">				if (!m_b_has_ms_known) {</span>
+<span class="fc" id="L539">					m_b_has_ms_known = true;</span>
+<span class="fc" id="L540">					m_b_has_ms = true;</span>
+<span class="fc" id="L541">					m_ms = (AttributeStreamOfDbl) AttributeStreamBase</span>
+<span class="fc" id="L542">							.createDoubleStream(0);</span>
+				} else {
+<span class="fc bfc" id="L544" title="All 2 branches covered.">					if (!m_b_has_ms) {</span>
+<span class="fc" id="L545">						m_ms = (AttributeStreamOfDbl) AttributeStreamBase</span>
+<span class="fc" id="L546">								.createDoubleStream(size &gt;&gt; 1,</span>
+										VertexDescription
+<span class="fc" id="L548">												.getDefaultValue(Semantics.M));</span>
+<span class="fc" id="L549">						m_b_has_ms = true;</span>
+					}
+				}
+
+<span class="fc" id="L553">				double m = readDouble_(json_iterator);</span>
+<span class="fc" id="L554">				json_iterator.nextToken();</span>
+<span class="fc" id="L555">				m_ms.add(m);</span>
+<span class="fc" id="L556">			} else {</span>
+<span class="fc bfc" id="L557" title="All 2 branches covered.">				if (!m_b_has_ms_known) {</span>
+<span class="fc" id="L558">					m_b_has_ms_known = true;</span>
+<span class="fc" id="L559">					m_b_has_ms = false;</span>
+				} else {
+<span class="fc bfc" id="L561" title="All 2 branches covered.">					if (m_b_has_ms) {</span>
+<span class="fc" id="L562">						m_zs.add(VertexDescription.getDefaultValue(Semantics.M));</span>
+					}
+				}
+			}
+
+<span class="pc bpc" id="L567" title="1 of 2 branches missed.">			if (json_iterator.currentToken() != JsonReader.Token.END_ARRAY) {</span>
+<span class="nc" id="L568">				throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+			}
+<span class="fc" id="L570">		}</span>
+
+		private void addPath_() {
+<span class="fc bfc" id="L573" title="All 2 branches covered.">			if (m_paths == null) {</span>
+<span class="fc" id="L574">				m_paths = (AttributeStreamOfInt32) AttributeStreamBase</span>
+<span class="fc" id="L575">						.createIndexStream(0);</span>
+			}
+
+<span class="fc bfc" id="L578" title="All 2 branches covered.">			if (m_position == null) {</span>
+<span class="fc" id="L579">				m_paths.add(0);</span>
+			} else {
+<span class="fc" id="L581">				m_paths.add(m_position.size() / 2);</span>
+			}
+<span class="fc" id="L583">		}</span>
+
+		private void addPathFlag_(boolean b_polygon_start) {
+<span class="fc bfc" id="L586" title="All 2 branches covered.">			if (m_path_flags == null) {</span>
+<span class="fc" id="L587">				m_path_flags = (AttributeStreamOfInt8) AttributeStreamBase</span>
+<span class="fc" id="L588">						.createByteStream(0);</span>
+			}
+
+<span class="fc bfc" id="L591" title="All 2 branches covered.">			if (b_polygon_start) {</span>
+<span class="fc" id="L592">				m_path_flags</span>
+<span class="fc" id="L593">						.add((byte) (PathFlags.enumClosed | PathFlags.enumOGCStartPolygon));</span>
+			} else {
+<span class="fc" id="L595">				m_path_flags.add((byte) PathFlags.enumClosed);</span>
+			}
+<span class="fc" id="L597">		}</span>
+
+		private double readDouble_(JsonReader json_iterator)
+				throws JsonGeometryException {
+<span class="fc" id="L601">			JsonReader.Token current_token = json_iterator.currentToken();</span>
+<span class="pc bpc" id="L602" title="2 of 4 branches missed.">			if (current_token == JsonReader.Token.VALUE_NULL</span>
+					|| (current_token == JsonReader.Token.VALUE_STRING &amp;&amp; json_iterator
+<span class="nc bnc" id="L604" title="All 2 branches missed.">							.currentString().equals(&quot;NaN&quot;))) {</span>
+<span class="nc" id="L605">				return NumberUtils.NaN();</span>
+			} else {
+<span class="fc" id="L607">				return json_iterator.currentDoubleValue();</span>
+			}
+		}
+
+		private boolean isDouble_(JsonReader json_iterator)
+				throws JsonGeometryException {
+<span class="fc" id="L613">			JsonReader.Token current_token = json_iterator.currentToken();</span>
+
+<span class="fc bfc" id="L615" title="All 2 branches covered.">			if (current_token == JsonReader.Token.VALUE_NUMBER_FLOAT) {</span>
+<span class="fc" id="L616">				return true;</span>
+			}
+
+<span class="fc bfc" id="L619" title="All 2 branches covered.">			if (current_token == JsonReader.Token.VALUE_NUMBER_INT) {</span>
+<span class="fc" id="L620">				return true;</span>
+			}
+
+<span class="pc bpc" id="L623" title="2 of 4 branches missed.">			if (current_token == JsonReader.Token.VALUE_NULL</span>
+					|| (current_token == JsonReader.Token.VALUE_STRING &amp;&amp; json_iterator
+<span class="nc bnc" id="L625" title="All 2 branches missed.">							.currentString().equals(&quot;NaN&quot;))) {</span>
+<span class="nc" id="L626">				return true;</span>
+			}
+
+<span class="fc" id="L629">			return false;</span>
+		}
+
+		//does not accept GeometryCollection
+		private Geometry createGeometry_(GeoJsonType geo_json_type, int type)
+				throws JsonGeometryException {
+			Geometry geometry;
+
+<span class="fc bfc" id="L637" title="All 2 branches covered.">			if (type != Geometry.GeometryType.Unknown) {</span>
+<span class="pc bpc" id="L638" title="4 of 5 branches missed.">				switch (type) {</span>
+				case Geometry.GeometryType.Polygon:
+<span class="pc bpc" id="L640" title="1 of 4 branches missed.">					if (geo_json_type != GeoJsonType.MultiPolygon</span>
+							&amp;&amp; geo_json_type != GeoJsonType.Polygon) {
+<span class="nc" id="L642">						throw new GeometryException(&quot;invalid shape type&quot;);</span>
+					}
+					break;
+				case Geometry.GeometryType.Polyline:
+<span class="nc bnc" id="L646" title="All 4 branches missed.">					if (geo_json_type != GeoJsonType.MultiLineString</span>
+							&amp;&amp; geo_json_type != GeoJsonType.LineString) {
+<span class="nc" id="L648">						throw new GeometryException(&quot;invalid shape type&quot;);</span>
+					}
+					break;
+				case Geometry.GeometryType.MultiPoint:
+<span class="nc bnc" id="L652" title="All 2 branches missed.">					if (geo_json_type != GeoJsonType.MultiPoint) {</span>
+<span class="nc" id="L653">						throw new GeometryException(&quot;invalid shape type&quot;);</span>
+					}
+					break;
+				case Geometry.GeometryType.Point:
+<span class="nc bnc" id="L657" title="All 2 branches missed.">					if (geo_json_type != GeoJsonType.Point) {</span>
+<span class="nc" id="L658">						throw new GeometryException(&quot;invalid shape type&quot;);</span>
+					}
+					break;
+				default:
+<span class="nc" id="L662">					throw new GeometryException(&quot;invalid shape type&quot;);</span>
+				}
+			}
+			
+<span class="fc" id="L666">			m_ogcType = geo_json_type.geogsjonvalue();</span>
+<span class="pc bpc" id="L667" title="1 of 2 branches missed.">			if (geo_json_type == GeoJsonType.GeometryCollection)</span>
+<span class="nc" id="L668">				throw new IllegalArgumentException(&quot;invalid argument&quot;);</span>
+			
+<span class="fc bfc" id="L670" title="All 4 branches covered.">			if (m_position == null &amp;&amp; m_point == null) {</span>
+<span class="pc bpc" id="L671" title="1 of 7 branches missed.">				switch (geo_json_type)</span>
+				{
+				case Point: {
+<span class="pc bpc" id="L674" title="1 of 2 branches missed.">					if (m_num_embeddings &gt; 1) {</span>
+<span class="nc" id="L675">						throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+					}
+
+<span class="fc" id="L678">					geometry = new Point();</span>
+<span class="fc" id="L679">					break;</span>
+				}
+				case MultiPoint: {
+<span class="pc bpc" id="L682" title="1 of 2 branches missed.">					if (m_num_embeddings &gt; 2) {</span>
+<span class="nc" id="L683">						throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+					}
+
+<span class="fc" id="L686">					geometry = new MultiPoint();</span>
+<span class="fc" id="L687">					break;</span>
+				}
+				case LineString: {
+<span class="pc bpc" id="L690" title="1 of 2 branches missed.">					if (m_num_embeddings &gt; 2) {</span>
+<span class="nc" id="L691">						throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+					}
+
+<span class="fc" id="L694">					geometry = new Polyline();</span>
+<span class="fc" id="L695">					break;</span>
+				}
+				case MultiLineString: {
+<span class="pc bpc" id="L698" title="1 of 2 branches missed.">					if (m_num_embeddings &gt; 3) {</span>
+<span class="nc" id="L699">						throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+					}
+
+<span class="fc" id="L702">					geometry = new Polyline();</span>
+<span class="fc" id="L703">					break;</span>
+				}
+				case Polygon: {
+<span class="pc bpc" id="L706" title="1 of 2 branches missed.">					if (m_num_embeddings &gt; 3) {</span>
+<span class="nc" id="L707">						throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+					}
+
+<span class="fc" id="L710">					geometry = new Polygon();</span>
+<span class="fc" id="L711">					break;</span>
+				}
+				case MultiPolygon: {
+<span class="pc bpc" id="L714" title="1 of 2 branches missed.">					assert (m_num_embeddings &lt;= 4);</span>
+<span class="fc" id="L715">					geometry = new Polygon();</span>
+<span class="fc" id="L716">					break;</span>
+				}
+				default:
+<span class="nc" id="L719">					throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+				}
+<span class="fc bfc" id="L721" title="All 2 branches covered.">			} else if (m_num_embeddings == 1) {</span>
+<span class="pc bpc" id="L722" title="1 of 2 branches missed.">				if (geo_json_type != GeoJsonType.Point) {</span>
+<span class="nc" id="L723">					throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+				}
+
+<span class="pc bpc" id="L726" title="1 of 2 branches missed.">				assert (m_point != null);</span>
+<span class="fc" id="L727">				geometry = m_point;</span>
+<span class="fc bfc" id="L728" title="All 2 branches covered.">			} else if (m_num_embeddings == 2) {</span>
+<span class="fc bfc" id="L729" title="All 2 branches covered.">				if (geo_json_type == GeoJsonType.MultiPoint) {</span>
+<span class="fc" id="L730">					geometry = createMultiPointFromStreams_();</span>
+<span class="fc bfc" id="L731" title="All 2 branches covered.">				} else if (geo_json_type == GeoJsonType.LineString) {</span>
+<span class="fc" id="L732">					geometry = createPolylineFromStreams_();</span>
+				} else {
+<span class="fc" id="L734">					throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+				}
+<span class="fc bfc" id="L736" title="All 2 branches covered.">			} else if (m_num_embeddings == 3) {</span>
+<span class="fc bfc" id="L737" title="All 2 branches covered.">				if (geo_json_type == GeoJsonType.Polygon) {</span>
+<span class="fc" id="L738">					geometry = createPolygonFromStreams_();</span>
+<span class="fc bfc" id="L739" title="All 2 branches covered.">				} else if (geo_json_type == GeoJsonType.MultiLineString) {</span>
+<span class="fc" id="L740">					geometry = createPolylineFromStreams_();</span>
+				} else {
+<span class="fc" id="L742">					throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+				}
+			} else {
+<span class="pc bpc" id="L745" title="1 of 2 branches missed.">				if (geo_json_type != GeoJsonType.MultiPolygon) {</span>
+<span class="nc" id="L746">					throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+				}
+
+<span class="fc" id="L749">				geometry = createPolygonFromStreams_();</span>
+			}
+
+<span class="fc" id="L752">			return geometry;</span>
+		}
+
+		private Geometry createPolygonFromStreams_() {
+<span class="pc bpc" id="L756" title="1 of 2 branches missed.">			assert (m_position != null);</span>
+<span class="pc bpc" id="L757" title="1 of 2 branches missed.">			assert (m_paths != null);</span>
+<span class="pc bpc" id="L758" title="3 of 8 branches missed.">			assert ((m_num_embeddings == 3 &amp;&amp; m_path_flags == null) || (m_num_embeddings == 4 &amp;&amp; m_path_flags != null));</span>
+
+<span class="fc" id="L760">			Polygon polygon = new Polygon();</span>
+<span class="fc" id="L761">			MultiPathImpl multi_path_impl = (MultiPathImpl) polygon._getImpl();</span>
+
+<span class="fc" id="L763">			checkPathPointCountsForMultiPath_(true);</span>
+<span class="fc" id="L764">			multi_path_impl.setAttributeStreamRef(Semantics.POSITION,</span>
+					m_position);
+
+<span class="fc bfc" id="L767" title="All 2 branches covered.">			if (m_b_has_zs) {</span>
+<span class="pc bpc" id="L768" title="1 of 2 branches missed.">				assert (m_zs != null);</span>
+<span class="fc" id="L769">				multi_path_impl.setAttributeStreamRef(Semantics.Z, m_zs);</span>
+			}
+
+<span class="pc bpc" id="L772" title="1 of 2 branches missed.">			if (m_b_has_ms) {</span>
+<span class="nc bnc" id="L773" title="All 2 branches missed.">				assert (m_ms != null);</span>
+<span class="nc" id="L774">				multi_path_impl.setAttributeStreamRef(Semantics.M, m_ms);</span>
+			}
+
+<span class="fc bfc" id="L777" title="All 2 branches covered.">			if (m_path_flags == null) {</span>
+<span class="fc" id="L778">				m_path_flags = (AttributeStreamOfInt8) AttributeStreamBase</span>
+<span class="fc" id="L779">						.createByteStream(m_paths.size(), (byte) 0);</span>
+<span class="fc" id="L780">				m_path_flags</span>
+<span class="fc" id="L781">						.setBits(</span>
+								0,
+								(byte) (PathFlags.enumClosed | PathFlags.enumOGCStartPolygon));
+
+<span class="fc bfc" id="L785" title="All 2 branches covered.">				for (int i = 1; i &lt; m_path_flags.size() - 1; i++) {</span>
+<span class="fc" id="L786">					m_path_flags.setBits(i, (byte) PathFlags.enumClosed);</span>
+				}
+			}
+
+<span class="fc" id="L790">			multi_path_impl.setPathStreamRef(m_paths);</span>
+<span class="fc" id="L791">			multi_path_impl.setPathFlagsStreamRef(m_path_flags);</span>
+<span class="fc" id="L792">			multi_path_impl</span>
+<span class="fc" id="L793">					.notifyModified(MultiVertexGeometryImpl.DirtyFlags.DirtyAll);</span>
+
+<span class="fc" id="L795">			AttributeStreamOfInt8 path_flags_clone = new AttributeStreamOfInt8(</span>
+					m_path_flags);
+
+<span class="fc bfc" id="L798" title="All 2 branches covered.">			for (int i = 0; i &lt; path_flags_clone.size() - 1; i++) {</span>
+<span class="pc bpc" id="L799" title="1 of 2 branches missed.">				assert ((path_flags_clone.read(i) &amp; PathFlags.enumClosed) != 0);</span>
+<span class="pc bpc" id="L800" title="1 of 2 branches missed.">				assert ((m_path_flags.read(i) &amp; PathFlags.enumClosed) != 0);</span>
+
+<span class="fc bfc" id="L802" title="All 2 branches covered.">				if ((path_flags_clone.read(i) &amp; PathFlags.enumOGCStartPolygon) != 0) {// Should</span>
+																						// be
+																						// clockwise
+<span class="fc bfc" id="L805" title="All 2 branches covered.">					if (!InternalUtils.isClockwiseRing(multi_path_impl, i)) {</span>
+<span class="fc" id="L806">						multi_path_impl.reversePath(i); // make clockwise</span>
+					}
+				} else {// Should be counter-clockwise
+<span class="fc bfc" id="L809" title="All 2 branches covered.">					if (InternalUtils.isClockwiseRing(multi_path_impl, i)) {</span>
+<span class="fc" id="L810">						multi_path_impl.reversePath(i); // make</span>
+														// counter-clockwise
+					}
+				}
+			}
+			
+<span class="fc" id="L816">			multi_path_impl.setPathFlagsStreamRef(path_flags_clone);</span>
+<span class="fc" id="L817">			multi_path_impl.clearDirtyOGCFlags();</span>
+
+<span class="fc" id="L819">			return polygon;</span>
+		}
+
+		private Geometry createPolylineFromStreams_() {
+<span class="pc bpc" id="L823" title="1 of 2 branches missed.">			assert (m_position != null);</span>
+<span class="pc bpc" id="L824" title="3 of 8 branches missed.">			assert ((m_num_embeddings == 2 &amp;&amp; m_paths == null) || (m_num_embeddings == 3 &amp;&amp; m_paths != null));</span>
+<span class="pc bpc" id="L825" title="1 of 2 branches missed.">			assert (m_path_flags == null);</span>
+
+<span class="fc" id="L827">			Polyline polyline = new Polyline();</span>
+<span class="fc" id="L828">			MultiPathImpl multi_path_impl = (MultiPathImpl) polyline._getImpl();</span>
+
+<span class="fc bfc" id="L830" title="All 2 branches covered.">			if (m_paths == null) {</span>
+<span class="fc" id="L831">				m_paths = (AttributeStreamOfInt32) AttributeStreamBase</span>
+<span class="fc" id="L832">						.createIndexStream(0);</span>
+<span class="fc" id="L833">				m_paths.add(0);</span>
+<span class="fc" id="L834">				m_paths.add(m_position.size() / 2);</span>
+			}
+
+<span class="fc" id="L837">			checkPathPointCountsForMultiPath_(false);</span>
+<span class="fc" id="L838">			multi_path_impl.setAttributeStreamRef(Semantics.POSITION,</span>
+					m_position);
+
+<span class="fc bfc" id="L841" title="All 2 branches covered.">			if (m_b_has_zs) {</span>
+<span class="pc bpc" id="L842" title="1 of 2 branches missed.">				assert (m_zs != null);</span>
+<span class="fc" id="L843">				multi_path_impl.setAttributeStreamRef(Semantics.Z, m_zs);</span>
+			}
+
+<span class="fc bfc" id="L846" title="All 2 branches covered.">			if (m_b_has_ms) {</span>
+<span class="pc bpc" id="L847" title="1 of 2 branches missed.">				assert (m_ms != null);</span>
+<span class="fc" id="L848">				multi_path_impl.setAttributeStreamRef(Semantics.M, m_ms);</span>
+			}
+
+<span class="fc" id="L851">			m_path_flags = (AttributeStreamOfInt8) AttributeStreamBase</span>
+<span class="fc" id="L852">					.createByteStream(m_paths.size(), (byte) 0);</span>
+
+<span class="fc" id="L854">			multi_path_impl.setPathStreamRef(m_paths);</span>
+<span class="fc" id="L855">			multi_path_impl.setPathFlagsStreamRef(m_path_flags);</span>
+<span class="fc" id="L856">			multi_path_impl</span>
+<span class="fc" id="L857">					.notifyModified(MultiVertexGeometryImpl.DirtyFlags.DirtyAll);</span>
+
+<span class="fc" id="L859">			return polyline;</span>
+		}
+
+		private Geometry createMultiPointFromStreams_() {
+<span class="pc bpc" id="L863" title="1 of 2 branches missed.">			assert (m_position != null);</span>
+<span class="pc bpc" id="L864" title="1 of 2 branches missed.">			assert (m_paths == null);</span>
+<span class="pc bpc" id="L865" title="1 of 2 branches missed.">			assert (m_path_flags == null);</span>
+
+<span class="fc" id="L867">			MultiPoint multi_point = new MultiPoint();</span>
+<span class="fc" id="L868">			MultiPointImpl multi_point_impl = (MultiPointImpl) multi_point</span>
+<span class="fc" id="L869">					._getImpl();</span>
+<span class="fc" id="L870">			multi_point_impl.setAttributeStreamRef(Semantics.POSITION,</span>
+					m_position);
+
+<span class="pc bpc" id="L873" title="1 of 2 branches missed.">			if (m_b_has_zs) {</span>
+<span class="pc bpc" id="L874" title="1 of 2 branches missed.">				assert (m_zs != null);</span>
+<span class="fc" id="L875">				multi_point_impl.setAttributeStreamRef(Semantics.Z, m_zs);</span>
+			}
+
+<span class="pc bpc" id="L878" title="1 of 2 branches missed.">			if (m_b_has_ms) {</span>
+<span class="pc bpc" id="L879" title="1 of 2 branches missed.">				assert (m_ms != null);</span>
+<span class="fc" id="L880">				multi_point_impl.setAttributeStreamRef(Semantics.M, m_ms);</span>
+			}
+			
+<span class="fc" id="L883">			multi_point_impl.resize(m_position.size() / 2);</span>
+<span class="fc" id="L884">			multi_point_impl.notifyModified(MultiVertexGeometryImpl.DirtyFlags.DirtyAll);</span>
+<span class="fc" id="L885">			return multi_point;</span>
+		}
+
+		private void checkPathPointCountsForMultiPath_(boolean b_is_polygon) {
+<span class="fc" id="L889">			Point2D pt1 = new Point2D(), pt2 = new Point2D();</span>
+<span class="fc" id="L890">			double z1 = 0.0, z2 = 0.0, m1 = 0.0, m2 = 0.0;</span>
+<span class="fc" id="L891">			int path_count = m_paths.size() - 1;</span>
+<span class="fc" id="L892">			int guess_adjustment = 0;</span>
+
+<span class="fc bfc" id="L894" title="All 2 branches covered.">			if (b_is_polygon) {// Polygon</span>
+<span class="fc" id="L895">				guess_adjustment = path_count; // may remove up to path_count</span>
+												// number of points
+			} else {// Polyline
+<span class="fc bfc" id="L898" title="All 2 branches covered.">				for (int path = 0; path &lt; path_count; path++) {</span>
+<span class="fc" id="L899">					int path_size = m_paths.read(path + 1) - m_paths.read(path);</span>
+
+<span class="fc bfc" id="L901" title="All 2 branches covered.">					if (path_size == 1) {</span>
+<span class="fc" id="L902">						guess_adjustment--; // will add a point for each path</span>
+											// containing only 1 point
+					}
+				}
+
+<span class="fc bfc" id="L907" title="All 2 branches covered.">				if (guess_adjustment == 0) {</span>
+<span class="fc" id="L908">					return; // all paths are okay</span>
+				}
+			}
+
+<span class="fc" id="L912">			AttributeStreamOfDbl adjusted_position = (AttributeStreamOfDbl) AttributeStreamBase</span>
+<span class="fc" id="L913">					.createDoubleStream(m_position.size() - guess_adjustment);</span>
+<span class="fc" id="L914">			AttributeStreamOfInt32 adjusted_paths = (AttributeStreamOfInt32) AttributeStreamBase</span>
+<span class="fc" id="L915">					.createIndexStream(m_paths.size());</span>
+<span class="fc" id="L916">			AttributeStreamOfDbl adjusted_zs = null;</span>
+<span class="fc" id="L917">			AttributeStreamOfDbl adjusted_ms = null;</span>
+
+<span class="fc bfc" id="L919" title="All 2 branches covered.">			if (m_b_has_zs) {</span>
+<span class="fc" id="L920">				adjusted_zs = (AttributeStreamOfDbl) AttributeStreamBase</span>
+<span class="fc" id="L921">						.createDoubleStream(m_zs.size() - guess_adjustment);</span>
+			}
+
+<span class="pc bpc" id="L924" title="1 of 2 branches missed.">			if (m_b_has_ms) {</span>
+<span class="nc" id="L925">				adjusted_ms = (AttributeStreamOfDbl) AttributeStreamBase</span>
+<span class="nc" id="L926">						.createDoubleStream(m_ms.size() - guess_adjustment);</span>
+			}
+
+<span class="fc" id="L929">			int adjusted_start = 0;</span>
+<span class="fc" id="L930">			adjusted_paths.write(0, 0);</span>
+
+<span class="fc bfc" id="L932" title="All 2 branches covered.">			for (int path = 0; path &lt; path_count; path++) {</span>
+<span class="fc" id="L933">				int path_start = m_paths.read(path);</span>
+<span class="fc" id="L934">				int path_end = m_paths.read(path + 1);</span>
+<span class="fc" id="L935">				int path_size = path_end - path_start;</span>
+<span class="pc bpc" id="L936" title="1 of 2 branches missed.">				assert (path_size != 0); // we should not have added empty parts</span>
+											// on import
+
+<span class="fc bfc" id="L939" title="All 2 branches covered.">				if (path_size == 1) {</span>
+<span class="fc" id="L940">					insertIntoAdjustedStreams_(adjusted_position, adjusted_zs,</span>
+							adjusted_ms, adjusted_start, path_start, path_size);
+<span class="fc" id="L942">					insertIntoAdjustedStreams_(adjusted_position, adjusted_zs,</span>
+							adjusted_ms, adjusted_start + 1, path_start,
+							path_size);
+<span class="fc" id="L945">					adjusted_start += 2;</span>
+<span class="fc bfc" id="L946" title="All 4 branches covered.">				} else if (path_size &gt;= 3 &amp;&amp; b_is_polygon) {</span>
+<span class="fc" id="L947">					m_position.read(path_start * 2, pt1);</span>
+<span class="fc" id="L948">					m_position.read((path_end - 1) * 2, pt2);</span>
+
+<span class="fc bfc" id="L950" title="All 2 branches covered.">					if (m_b_has_zs) {</span>
+<span class="fc" id="L951">						z1 = m_zs.readAsDbl(path_start);</span>
+<span class="fc" id="L952">						z2 = m_zs.readAsDbl(path_end - 1);</span>
+					}
+
+<span class="pc bpc" id="L955" title="1 of 2 branches missed.">					if (m_b_has_ms) {</span>
+<span class="nc" id="L956">						m1 = m_ms.readAsDbl(path_start);</span>
+<span class="nc" id="L957">						m2 = m_ms.readAsDbl(path_end - 1);</span>
+					}
+
+<span class="fc bfc" id="L960" title="All 2 branches covered.">					if (pt1.equals(pt2)</span>
+<span class="pc bpc" id="L961" title="4 of 6 branches missed.">							&amp;&amp; (NumberUtils.isNaN(z1) &amp;&amp; NumberUtils.isNaN(z2) || z1 == z2)</span>
+<span class="pc bpc" id="L962" title="4 of 6 branches missed.">							&amp;&amp; (NumberUtils.isNaN(m1) &amp;&amp; NumberUtils.isNaN(m2) || m1 == m2)) {</span>
+<span class="fc" id="L963">						insertIntoAdjustedStreams_(adjusted_position,</span>
+								adjusted_zs, adjusted_ms, adjusted_start,
+								path_start, path_size - 1);
+<span class="fc" id="L966">						adjusted_start += path_size - 1;</span>
+					} else {
+<span class="fc" id="L968">						insertIntoAdjustedStreams_(adjusted_position,</span>
+								adjusted_zs, adjusted_ms, adjusted_start,
+								path_start, path_size);
+<span class="fc" id="L971">						adjusted_start += path_size;</span>
+					}
+				} else {
+<span class="fc" id="L974">					insertIntoAdjustedStreams_(adjusted_position, adjusted_zs,</span>
+							adjusted_ms, adjusted_start, path_start, path_size);
+<span class="fc" id="L976">					adjusted_start += path_size;</span>
+				}
+<span class="fc" id="L978">				adjusted_paths.write(path + 1, adjusted_start);</span>
+			}
+
+<span class="fc" id="L981">			m_position = adjusted_position;</span>
+<span class="fc" id="L982">			m_paths = adjusted_paths;</span>
+<span class="fc" id="L983">			m_zs = adjusted_zs;</span>
+<span class="fc" id="L984">			m_ms = adjusted_ms;</span>
+<span class="fc" id="L985">		}</span>
+
+		private void insertIntoAdjustedStreams_(
+				AttributeStreamOfDbl adjusted_position,
+				AttributeStreamOfDbl adjusted_zs,
+				AttributeStreamOfDbl adjusted_ms, int adjusted_start,
+				int path_start, int count) {
+<span class="fc" id="L992">			adjusted_position.insertRange(adjusted_start * 2, m_position,</span>
+					path_start * 2, count * 2, true, 2, adjusted_start * 2);
+
+<span class="fc bfc" id="L995" title="All 2 branches covered.">			if (m_b_has_zs) {</span>
+<span class="fc" id="L996">				adjusted_zs.insertRange(adjusted_start, m_zs, path_start,</span>
+						count, true, 1, adjusted_start);
+			}
+
+<span class="pc bpc" id="L1000" title="1 of 2 branches missed.">			if (m_b_has_ms) {</span>
+<span class="nc" id="L1001">				adjusted_ms.insertRange(adjusted_start, m_ms, path_start,</span>
+						count, true, 1, adjusted_start);
+			}
+<span class="fc" id="L1004">		}</span>
+
+		static SpatialReference importSpatialReferenceFromCrs(
+				JsonReader json_iterator, ProgressTracker progress_tracker)
+				throws JsonGeometryException {
+			// According to the spec, a null crs corresponds to no spatial
+			// reference
+<span class="fc bfc" id="L1011" title="All 2 branches covered.">			if (json_iterator.currentToken() == JsonReader.Token.VALUE_NULL) {</span>
+<span class="fc" id="L1012">				return null;</span>
+			}
+
+<span class="fc bfc" id="L1015" title="All 2 branches covered.">			if (json_iterator.currentToken() == JsonReader.Token.VALUE_STRING) {// see</span>
+																			// http://wiki.geojson.org/RFC-001
+																			// (this
+																			// is
+																			// deprecated,
+																			// but
+																			// there
+																			// may
+																			// be
+																			// data
+																			// with
+																			// this
+																			// format)
+
+<span class="fc" id="L1029">				String crs_short_form = json_iterator.currentString();</span>
+<span class="fc" id="L1030">				int wkid = GeoJsonCrsTables</span>
+<span class="fc" id="L1031">						.getWkidFromCrsShortForm(crs_short_form);</span>
+
+<span class="pc bpc" id="L1033" title="1 of 2 branches missed.">				if (wkid == -1) {</span>
+<span class="nc" id="L1034">					throw new GeometryException(&quot;not implemented&quot;);</span>
+				}
+
+<span class="fc" id="L1037">				SpatialReference spatial_reference = null;</span>
+
+				try {
+<span class="fc" id="L1040">					spatial_reference = SpatialReference.create(wkid);</span>
+<span class="nc" id="L1041">				} catch (Exception e) {</span>
+<span class="fc" id="L1042">				}</span>
+
+<span class="fc" id="L1044">				return spatial_reference;</span>
+			}
+
+<span class="pc bpc" id="L1047" title="1 of 2 branches missed.">			if (json_iterator.currentToken() != JsonReader.Token.START_OBJECT) {</span>
+<span class="nc" id="L1048">				throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+			}
+
+			// This is to support all cases of crs identifiers I've seen. Some
+			// may be rare or are legacy formats, but all are simple to
+			// accomodate.
+<span class="fc" id="L1054">			boolean b_found_type = false;</span>
+<span class="fc" id="L1055">			boolean b_found_properties = false;</span>
+<span class="fc" id="L1056">			boolean b_found_properties_name = false;</span>
+<span class="fc" id="L1057">			boolean b_found_properties_href = false;</span>
+<span class="fc" id="L1058">			boolean b_found_properties_urn = false;</span>
+<span class="fc" id="L1059">			boolean b_found_properties_url = false;</span>
+<span class="fc" id="L1060">			boolean b_found_properties_code = false;</span>
+<span class="fc" id="L1061">			boolean b_found_esriwkt = false;</span>
+<span class="fc" id="L1062">			String crs_field = null;</span>
+<span class="fc" id="L1063">			String properties_field = null;</span>
+<span class="fc" id="L1064">			String crs_identifier_name = null;</span>
+<span class="fc" id="L1065">			String crs_identifier_urn = null;</span>
+<span class="fc" id="L1066">			String crs_identifier_href = null;</span>
+<span class="fc" id="L1067">			String crs_identifier_url = null;</span>
+<span class="fc" id="L1068">			String esriwkt = null;</span>
+<span class="fc" id="L1069">			int crs_identifier_code = -1;</span>
+			JsonReader.Token current_token;
+
+<span class="fc bfc" id="L1072" title="All 2 branches covered.">			while (json_iterator.nextToken() != JsonReader.Token.END_OBJECT) {</span>
+<span class="fc" id="L1073">				crs_field = json_iterator.currentString();</span>
+
+<span class="fc bfc" id="L1075" title="All 2 branches covered.">				if (crs_field.equals(&quot;type&quot;)) {</span>
+<span class="pc bpc" id="L1076" title="1 of 2 branches missed.">					if (b_found_type) {</span>
+<span class="nc" id="L1077">						throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+					}
+
+<span class="fc" id="L1080">					b_found_type = true;</span>
+
+<span class="fc" id="L1082">					current_token = json_iterator.nextToken();</span>
+
+<span class="pc bpc" id="L1084" title="1 of 2 branches missed.">					if (current_token != JsonReader.Token.VALUE_STRING) {</span>
+<span class="nc" id="L1085">						throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+					}
+
+					//type = json_iterator.currentString();
+<span class="fc bfc" id="L1089" title="All 2 branches covered.">				} else if (crs_field.equals(&quot;properties&quot;)) {</span>
+<span class="pc bpc" id="L1090" title="1 of 2 branches missed.">					if (b_found_properties) {</span>
+<span class="nc" id="L1091">						throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+					}
+
+<span class="fc" id="L1094">					b_found_properties = true;</span>
+
+<span class="fc" id="L1096">					current_token = json_iterator.nextToken();</span>
+
+<span class="pc bpc" id="L1098" title="1 of 2 branches missed.">					if (current_token != JsonReader.Token.START_OBJECT) {</span>
+<span class="nc" id="L1099">						throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+					}
+
+<span class="fc bfc" id="L1102" title="All 2 branches covered.">					while (json_iterator.nextToken() != JsonReader.Token.END_OBJECT) {</span>
+<span class="fc" id="L1103">						properties_field = json_iterator.currentString();</span>
+
+<span class="fc bfc" id="L1105" title="All 2 branches covered.">						if (properties_field.equals(&quot;name&quot;)) {</span>
+<span class="pc bpc" id="L1106" title="1 of 2 branches missed.">							if (b_found_properties_name) {</span>
+<span class="nc" id="L1107">								throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+							}
+
+<span class="fc" id="L1110">							b_found_properties_name = true;</span>
+<span class="fc" id="L1111">							crs_identifier_name = getCrsIdentifier_(json_iterator);</span>
+<span class="fc bfc" id="L1112" title="All 2 branches covered.">						} else if (properties_field.equals(&quot;href&quot;)) {</span>
+<span class="pc bpc" id="L1113" title="1 of 2 branches missed.">							if (b_found_properties_href) {</span>
+<span class="nc" id="L1114">								throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+							}
+
+<span class="fc" id="L1117">							b_found_properties_href = true;</span>
+<span class="fc" id="L1118">							crs_identifier_href = getCrsIdentifier_(json_iterator);</span>
+<span class="fc bfc" id="L1119" title="All 2 branches covered.">						} else if (properties_field.equals(&quot;urn&quot;)) {</span>
+<span class="pc bpc" id="L1120" title="1 of 2 branches missed.">							if (b_found_properties_urn) {</span>
+<span class="nc" id="L1121">								throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+							}
+
+<span class="fc" id="L1124">							b_found_properties_urn = true;</span>
+<span class="fc" id="L1125">							crs_identifier_urn = getCrsIdentifier_(json_iterator);</span>
+<span class="fc bfc" id="L1126" title="All 2 branches covered.">						} else if (properties_field.equals(&quot;url&quot;)) {</span>
+<span class="pc bpc" id="L1127" title="1 of 2 branches missed.">							if (b_found_properties_url) {</span>
+<span class="nc" id="L1128">								throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+							}
+
+<span class="fc" id="L1131">							b_found_properties_url = true;</span>
+<span class="fc" id="L1132">							crs_identifier_url = getCrsIdentifier_(json_iterator);</span>
+<span class="pc bpc" id="L1133" title="1 of 2 branches missed.">						} else if (properties_field.equals(&quot;code&quot;)) {</span>
+<span class="nc bnc" id="L1134" title="All 2 branches missed.">							if (b_found_properties_code) {</span>
+<span class="nc" id="L1135">								throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+							}
+
+<span class="nc" id="L1138">							b_found_properties_code = true;</span>
+
+<span class="nc" id="L1140">							current_token = json_iterator.nextToken();</span>
+
+<span class="nc bnc" id="L1142" title="All 2 branches missed.">							if (current_token != JsonReader.Token.VALUE_NUMBER_INT) {</span>
+<span class="nc" id="L1143">								throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+							}
+
+<span class="nc" id="L1146">							crs_identifier_code = json_iterator</span>
+<span class="nc" id="L1147">									.currentIntValue();</span>
+						} else {
+<span class="fc" id="L1149">							json_iterator.nextToken();</span>
+<span class="fc" id="L1150">							json_iterator.skipChildren();</span>
+						}
+					}
+<span class="fc bfc" id="L1153" title="All 2 branches covered.">				} else if (crs_field.equals(&quot;esriwkt&quot;)) {</span>
+<span class="pc bpc" id="L1154" title="1 of 2 branches missed.">					if (b_found_esriwkt) {</span>
+<span class="nc" id="L1155">						throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+					}
+
+<span class="fc" id="L1158">					b_found_esriwkt = true;</span>
+
+<span class="fc" id="L1160">					current_token = json_iterator.nextToken();</span>
+
+<span class="pc bpc" id="L1162" title="1 of 2 branches missed.">					if (current_token != JsonReader.Token.VALUE_STRING) {</span>
+<span class="nc" id="L1163">						throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+					}
+
+<span class="fc" id="L1166">					esriwkt = json_iterator.currentString();</span>
+				} else {
+<span class="fc" id="L1168">					json_iterator.nextToken();</span>
+<span class="fc" id="L1169">					json_iterator.skipChildren();</span>
+				}
+			}
+
+<span class="pc bpc" id="L1173" title="2 of 6 branches missed.">			if ((!b_found_type || !b_found_properties) &amp;&amp; !b_found_esriwkt) {</span>
+<span class="nc" id="L1174">				throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+			}
+
+<span class="fc" id="L1177">			int wkid = -1;</span>
+
+<span class="fc bfc" id="L1179" title="All 2 branches covered.">			if (b_found_properties_name) {</span>
+<span class="fc" id="L1180">				wkid = GeoJsonCrsTables.getWkidFromCrsName(crs_identifier_name); // see</span>
+																					// http://wiki.geojson.org/GeoJSON_draft_version_6
+																					// (most
+																					// common)
+<span class="fc bfc" id="L1184" title="All 2 branches covered.">			} else if (b_found_properties_href) {</span>
+<span class="fc" id="L1185">				wkid = GeoJsonCrsTables.getWkidFromCrsHref(crs_identifier_href); // see</span>
+																					// http://wiki.geojson.org/GeoJSON_draft_version_6
+																					// (somewhat
+																					// common)
+<span class="fc bfc" id="L1189" title="All 2 branches covered.">			} else if (b_found_properties_urn) {</span>
+<span class="fc" id="L1190">				wkid = GeoJsonCrsTables</span>
+<span class="fc" id="L1191">						.getWkidFromCrsOgcUrn(crs_identifier_urn); // see</span>
+																	// http://wiki.geojson.org/GeoJSON_draft_version_5
+																	// (rare)
+<span class="fc bfc" id="L1194" title="All 2 branches covered.">			} else if (b_found_properties_url) {</span>
+<span class="fc" id="L1195">				wkid = GeoJsonCrsTables.getWkidFromCrsHref(crs_identifier_url); // see</span>
+																				// http://wiki.geojson.org/GeoJSON_draft_version_5
+																				// (rare)
+<span class="pc bpc" id="L1198" title="1 of 2 branches missed.">			} else if (b_found_properties_code) {</span>
+<span class="nc" id="L1199">				wkid = crs_identifier_code; // see</span>
+											// http://wiki.geojson.org/GeoJSON_draft_version_5
+											// (rare)
+<span class="pc bpc" id="L1202" title="1 of 2 branches missed.">			} else if (!b_found_esriwkt) {</span>
+<span class="nc" id="L1203">				throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+			}
+
+<span class="pc bpc" id="L1206" title="1 of 6 branches missed.">			if (wkid &lt; 0 &amp;&amp; !b_found_esriwkt &amp;&amp; !b_found_properties_name) {</span>
+<span class="nc" id="L1207">				throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+			}
+
+<span class="fc" id="L1210">			SpatialReference spatial_reference = null;</span>
+
+<span class="fc bfc" id="L1212" title="All 2 branches covered.">			if (wkid &gt; 0) {</span>
+				try {
+<span class="fc" id="L1214">					spatial_reference = SpatialReference.create(wkid);</span>
+<span class="nc" id="L1215">				} catch (Exception e) {</span>
+<span class="fc" id="L1216">				}</span>
+			}
+
+<span class="fc bfc" id="L1219" title="All 2 branches covered.">			if (spatial_reference == null) {</span>
+				try {
+<span class="fc bfc" id="L1221" title="All 2 branches covered.">					if (b_found_esriwkt) {// I exported crs wkt strings like</span>
+											// this
+<span class="fc" id="L1223">						spatial_reference = SpatialReference.create(esriwkt);</span>
+<span class="pc bpc" id="L1224" title="1 of 2 branches missed.">					} else if (b_found_properties_name) {// AGOL exported crs</span>
+															// wkt strings like
+															// this where the
+															// crs identifier of
+															// the properties
+															// name is like
+															// &quot;ESRI:&lt;wkt&gt;&quot;
+<span class="fc" id="L1231">						String potential_wkt = GeoJsonCrsTables</span>
+<span class="fc" id="L1232">								.getWktFromCrsName(crs_identifier_name);</span>
+<span class="fc" id="L1233">						spatial_reference = SpatialReference</span>
+<span class="fc" id="L1234">								.create(potential_wkt);</span>
+					}
+<span class="nc" id="L1236">				} catch (Exception e) {</span>
+<span class="fc" id="L1237">				}</span>
+			}
+
+<span class="fc" id="L1240">			return spatial_reference;</span>
+		}
+
+		// see http://geojsonwg.github.io/draft-geojson/draft.html
+		static SpatialReference importSpatialReferenceFromCrsUrn_(
+				JsonReader json_iterator, ProgressTracker progress_tracker)
+				throws JsonGeometryException {
+			// According to the spec, a null crs corresponds to no spatial
+			// reference
+<span class="pc bpc" id="L1249" title="1 of 2 branches missed.">			if (json_iterator.currentToken() == JsonReader.Token.VALUE_NULL) {</span>
+<span class="nc" id="L1250">				return null;</span>
+			}
+
+<span class="pc bpc" id="L1253" title="1 of 2 branches missed.">			if (json_iterator.currentToken() != JsonReader.Token.VALUE_STRING) {</span>
+<span class="nc" id="L1254">				throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+			}
+
+<span class="fc" id="L1257">			String crs_identifier_urn = json_iterator.currentString();</span>
+
+<span class="fc" id="L1259">			int wkid = GeoJsonCrsTables.getWkidFromCrsName(crs_identifier_urn); // This</span>
+																				// will
+																				// check
+																				// for
+																				// short
+																				// form
+																				// name,
+																				// as
+																				// well
+																				// as
+																				// long
+																				// form
+																				// URNs
+
+<span class="pc bpc" id="L1273" title="1 of 2 branches missed.">			if (wkid == -1) {</span>
+<span class="nc" id="L1274">				throw new GeometryException(&quot;not implemented&quot;);</span>
+			}
+
+<span class="fc" id="L1277">			SpatialReference spatial_reference = SpatialReference.create(wkid);</span>
+
+<span class="fc" id="L1279">			return spatial_reference;</span>
+		}
+
+		private static String getCrsIdentifier_(JsonReader json_iterator)
+				throws JsonGeometryException {
+<span class="fc" id="L1284">			JsonReader.Token current_token = json_iterator.nextToken();</span>
+
+<span class="pc bpc" id="L1286" title="1 of 2 branches missed.">			if (current_token != JsonReader.Token.VALUE_STRING) {</span>
+<span class="nc" id="L1287">				throw new JsonGeometryException(&quot;parsing error&quot;);</span>
+			}
+
+<span class="fc" id="L1290">			return json_iterator.currentString();</span>
+		}
+
+	}
+
+	@Override
+	public MapOGCStructure executeOGC(int import_flags, String geoJsonString,
+			ProgressTracker progress_tracker) throws JsonGeometryException {
+<span class="fc" id="L1298">		return executeOGC(import_flags, JsonParserReader.createFromString(geoJsonString),</span>
+				progress_tracker);
+	}
+	
+	public MapOGCStructure executeOGC(int import_flags,
+			JsonReader json_iterator, ProgressTracker progress_tracker)
+			throws JsonGeometryException {
+<span class="fc" id="L1305">		MapOGCStructure mapOGCStructure = OperatorImportFromGeoJsonHelper.importFromGeoJson(</span>
+				import_flags, Geometry.Type.Unknown, json_iterator,
+				progress_tracker, false, 0);
+		
+		//This is to restore legacy behavior when we always return a geometry collection of one element.
+<span class="fc" id="L1310">		MapOGCStructure res = new MapOGCStructure();</span>
+<span class="fc" id="L1311">		res.m_ogcStructure = new OGCStructure();</span>
+<span class="fc" id="L1312">		res.m_ogcStructure.m_type = 0;</span>
+<span class="fc" id="L1313">		res.m_ogcStructure.m_structures = new ArrayList&lt;OGCStructure&gt;();</span>
+<span class="fc" id="L1314">		res.m_ogcStructure.m_structures.add(mapOGCStructure.m_ogcStructure);</span>
+<span class="fc" id="L1315">		res.m_spatialReference = mapOGCStructure.m_spatialReference;</span>
+<span class="fc" id="L1316">		return res;</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

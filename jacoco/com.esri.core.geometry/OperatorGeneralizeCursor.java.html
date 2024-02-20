@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OperatorGeneralizeCursor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">OperatorGeneralizeCursor.java</span></div><h1>OperatorGeneralizeCursor.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+final class OperatorGeneralizeCursor extends GeometryCursor {
+	ProgressTracker m_progressTracker;
+	GeometryCursor m_geoms;
+	double m_maxDeviation;
+	boolean m_bRemoveDegenerateParts;
+
+	public OperatorGeneralizeCursor(GeometryCursor geoms, double maxDeviation,
+<span class="fc" id="L33">			boolean bRemoveDegenerateParts, ProgressTracker progressTracker) {</span>
+<span class="fc" id="L34">		m_geoms = geoms;</span>
+<span class="fc" id="L35">		m_maxDeviation = maxDeviation;</span>
+<span class="fc" id="L36">		m_progressTracker = progressTracker;</span>
+<span class="fc" id="L37">		m_bRemoveDegenerateParts = bRemoveDegenerateParts;</span>
+<span class="fc" id="L38">	}</span>
+
+	@Override
+	public Geometry next() {
+		// TODO Auto-generated method stub
+<span class="fc" id="L43">		Geometry geom = m_geoms.next();</span>
+<span class="fc bfc" id="L44" title="All 2 branches covered.">		if (geom == null)</span>
+<span class="fc" id="L45">			return null;</span>
+<span class="fc" id="L46">		return Generalize(geom);</span>
+	}
+
+	@Override
+	public int getGeometryID() {
+		// TODO Auto-generated method stub
+<span class="fc" id="L52">		return m_geoms.getGeometryID();</span>
+	}
+
+	private Geometry Generalize(Geometry geom) {
+<span class="fc" id="L56">		Geometry.Type gt = geom.getType();</span>
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">		if (Geometry.isPoint(gt.value()))</span>
+<span class="nc" id="L58">			return geom;</span>
+<span class="pc bpc" id="L59" title="1 of 2 branches missed.">		if (gt == Geometry.Type.Envelope) {</span>
+<span class="nc" id="L60">			Polygon poly = new Polygon(geom.getDescription());</span>
+<span class="nc" id="L61">			poly.addEnvelope((Envelope) geom, false);</span>
+<span class="nc" id="L62">			return Generalize(poly);</span>
+		}
+<span class="pc bpc" id="L64" title="1 of 2 branches missed.">		if (geom.isEmpty())</span>
+<span class="nc" id="L65">			return geom;</span>
+<span class="fc" id="L66">		MultiPath mp = (MultiPath) geom;</span>
+<span class="fc" id="L67">		MultiPath dstmp = (MultiPath) geom.createInstance();</span>
+<span class="fc" id="L68">		Line line = new Line();</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">		for (int ipath = 0, npath = mp.getPathCount(); ipath &lt; npath; ipath++) {</span>
+<span class="fc" id="L70">			GeneralizePath((MultiPathImpl) mp._getImpl(), ipath,</span>
+<span class="fc" id="L71">					(MultiPathImpl) dstmp._getImpl(), line);</span>
+		}
+
+<span class="fc" id="L74">		return dstmp;</span>
+	}
+
+	private void GeneralizePath(MultiPathImpl mpsrc, int ipath,
+			MultiPathImpl mpdst, Line lineHelper) {
+<span class="pc bpc" id="L79" title="1 of 2 branches missed.">		if (mpsrc.getPathSize(ipath) &lt; 2)</span>
+<span class="nc" id="L80">			return;</span>
+<span class="fc" id="L81">		int start = mpsrc.getPathStart(ipath);</span>
+<span class="fc" id="L82">		int end = mpsrc.getPathEnd(ipath) - 1;</span>
+<span class="fc" id="L83">		AttributeStreamOfDbl xy = (AttributeStreamOfDbl) mpsrc</span>
+<span class="fc" id="L84">				.getAttributeStreamRef(VertexDescription.Semantics.POSITION);</span>
+<span class="fc" id="L85">		boolean bClosed = mpsrc.isClosedPath(ipath);</span>
+
+<span class="fc" id="L87">		AttributeStreamOfInt32 stack = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L88">		stack.reserve(mpsrc.getPathSize(ipath) + 1);</span>
+<span class="fc" id="L89">		AttributeStreamOfInt32 resultStack = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L90">		resultStack.reserve(mpsrc.getPathSize(ipath) + 1);</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">		stack.add(bClosed ? start : end);</span>
+<span class="fc" id="L92">		stack.add(start);</span>
+<span class="fc" id="L93">		Point2D pt = new Point2D();</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">		while (stack.size() &gt; 1) {</span>
+<span class="fc" id="L95">			int i1 = stack.getLast();</span>
+<span class="fc" id="L96">			stack.removeLast();</span>
+<span class="fc" id="L97">			int i2 = stack.getLast();</span>
+<span class="fc" id="L98">			mpsrc.getXY(i1, pt);</span>
+<span class="fc" id="L99">			lineHelper.setStartXY(pt);</span>
+<span class="fc" id="L100">			mpsrc.getXY(i2, pt);</span>
+<span class="fc" id="L101">			lineHelper.setEndXY(pt);</span>
+<span class="fc" id="L102">			int mid = FindGreatestDistance(lineHelper, pt, xy, i1, i2, end);</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">			if (mid &gt;= 0) {</span>
+<span class="fc" id="L104">				stack.add(mid);</span>
+<span class="fc" id="L105">				stack.add(i1);</span>
+			} else {
+<span class="fc" id="L107">				resultStack.add(i1);</span>
+			}
+<span class="fc" id="L109">		}</span>
+
+<span class="fc bfc" id="L111" title="All 2 branches covered.">		if (!bClosed)</span>
+<span class="fc" id="L112">			resultStack.add(stack.get(0));</span>
+
+<span class="fc" id="L114">		int rs_size = resultStack.size();</span>
+<span class="fc" id="L115">		int path_size = mpsrc.getPathSize(ipath);</span>
+<span class="pc bpc" id="L116" title="1 of 4 branches missed.">		if (rs_size == path_size &amp;&amp; rs_size == stack.size()) {</span>
+<span class="nc" id="L117">			mpdst.addPath(mpsrc, ipath, true);</span>
+		} else {
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">			if (resultStack.size() &gt; 0) {</span>
+<span class="fc bfc" id="L120" title="All 4 branches covered.">				if (m_bRemoveDegenerateParts &amp;&amp; resultStack.size() &lt;= 2) {</span>
+<span class="pc bpc" id="L121" title="1 of 4 branches missed.">					if (bClosed || resultStack.size() == 1)</span>
+<span class="fc" id="L122">						return;</span>
+
+<span class="fc" id="L124">					double d = Point2D.distance(</span>
+<span class="fc" id="L125">							mpsrc.getXY(resultStack.get(0)),</span>
+<span class="fc" id="L126">							mpsrc.getXY(resultStack.get(1)));</span>
+<span class="pc bpc" id="L127" title="1 of 2 branches missed.">					if (d &lt;= m_maxDeviation)</span>
+<span class="nc" id="L128">						return;</span>
+				}
+
+<span class="fc" id="L131">				Point point = new Point();</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">				for (int i = 0, n = resultStack.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L133">					mpsrc.getPointByVal(resultStack.get(i), point);</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">					if (i == 0)</span>
+<span class="fc" id="L135">						mpdst.startPath(point);</span>
+					else
+<span class="fc" id="L137">						mpdst.lineTo(point);</span>
+				}
+
+<span class="fc bfc" id="L140" title="All 2 branches covered.">				if (bClosed) {</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">					for (int i = resultStack.size(); i &lt; 3; i++)</span>
+<span class="fc" id="L142">						mpdst.lineTo(point);</span>
+
+<span class="fc" id="L144">					mpdst.closePathWithLine();</span>
+				}
+			}
+		}
+<span class="fc" id="L148">	}</span>
+
+	private int FindGreatestDistance(Line line, Point2D ptHelper,
+			AttributeStreamOfDbl xy, int start, int end, int pathEnd) {
+<span class="fc" id="L152">		int to = end - 1;</span>
+<span class="fc bfc" id="L153" title="All 2 branches covered.">		if (end &lt;= start) {// closed path case. end is equal to the path start.</span>
+<span class="fc" id="L154">			to = pathEnd;</span>
+		}
+<span class="fc" id="L156">		int mid = -1;</span>
+<span class="fc" id="L157">		double maxd = -1.0;</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">		for (int i = start + 1; i &lt;= to; i++) {</span>
+<span class="fc" id="L159">			xy.read(2 * i, ptHelper);</span>
+<span class="fc" id="L160">			double x1 = ptHelper.x;</span>
+<span class="fc" id="L161">			double y1 = ptHelper.y;</span>
+<span class="fc" id="L162">			double t = line.getClosestCoordinate(ptHelper, false);</span>
+<span class="fc" id="L163">			line.getCoord2D(t, ptHelper);</span>
+<span class="fc" id="L164">			ptHelper.x -= x1;</span>
+<span class="fc" id="L165">			ptHelper.y -= y1;</span>
+<span class="fc" id="L166">			double dist = ptHelper.length();</span>
+<span class="fc bfc" id="L167" title="All 4 branches covered.">			if (dist &gt; m_maxDeviation &amp;&amp; dist &gt; maxd) {</span>
+<span class="fc" id="L168">				mid = i;</span>
+<span class="fc" id="L169">				maxd = dist;</span>
+			}
+		}
+<span class="fc" id="L172">		return mid;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

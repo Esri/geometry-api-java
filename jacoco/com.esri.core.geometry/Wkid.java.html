@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Wkid.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Wkid.java</span></div><h1>Wkid.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+
+<span class="nc" id="L34">public final class Wkid {</span>
+	static ArrayList&lt;Double&gt; readTolerances(String resourceName) {
+		try {
+<span class="fc" id="L37">			ArrayList&lt;Double&gt; tolerances = new ArrayList&lt;Double&gt;();</span>
+<span class="fc" id="L38">			InputStream input = Wkid.class.getResourceAsStream(resourceName);</span>
+<span class="fc" id="L39">			BufferedReader reader = new BufferedReader(new InputStreamReader(</span>
+					input));
+			while (true) {
+<span class="fc" id="L42">				String s = reader.readLine();</span>
+<span class="fc bfc" id="L43" title="All 2 branches covered.">				if (s == null)</span>
+<span class="fc" id="L44">					break;</span>
+<span class="fc" id="L45">				int sep = s.indexOf('\t', 0);</span>
+<span class="fc" id="L46">				String id_s = s.substring(0, sep);</span>
+<span class="fc" id="L47">				int tol_index = Integer.parseInt(id_s);</span>
+<span class="pc bpc" id="L48" title="1 of 2 branches missed.">				if (tol_index != tolerances.size())</span>
+<span class="nc" id="L49">					throw new IllegalArgumentException(&quot;Wkid.readTolerances&quot;);</span>
+<span class="fc" id="L50">				String tol_val = s.substring(sep + 1, s.length());</span>
+<span class="fc" id="L51">				tolerances.add(Double.parseDouble(tol_val));</span>
+<span class="fc" id="L52">			}</span>
+
+<span class="fc" id="L54">			return tolerances;</span>
+<span class="nc" id="L55">		} catch (IOException ex) {</span>
+
+		}
+<span class="nc" id="L58">		return null;</span>
+	}
+
+	static HashMap&lt;Integer, Integer&gt; readToleranceMap(String resourceName) {
+		try {
+<span class="fc" id="L63">			HashMap&lt;Integer, Integer&gt; hashMap = new HashMap&lt;Integer, Integer&gt;(</span>
+					600);
+<span class="fc" id="L65">			InputStream input = Wkid.class.getResourceAsStream(resourceName);</span>
+<span class="fc" id="L66">			BufferedReader reader = new BufferedReader(new InputStreamReader(</span>
+					input));
+			while (true) {
+<span class="fc" id="L69">				String s = reader.readLine();</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">				if (s == null)</span>
+<span class="fc" id="L71">					break;</span>
+<span class="fc" id="L72">				int sep = s.indexOf('\t', 0);</span>
+<span class="fc" id="L73">				String id_s = s.substring(0, sep);</span>
+<span class="fc" id="L74">				int wkid = Integer.parseInt(id_s);</span>
+<span class="fc" id="L75">				String id_t = s.substring(sep + 1, s.length());</span>
+<span class="fc" id="L76">				int tol = Integer.parseInt(id_t);</span>
+<span class="fc" id="L77">				hashMap.put(wkid, tol);</span>
+<span class="fc" id="L78">			}</span>
+<span class="fc" id="L79">			return hashMap;</span>
+<span class="nc" id="L80">		} catch (IOException ex) {</span>
+		}
+<span class="nc" id="L82">		return null;</span>
+
+	}
+
+<span class="fc" id="L86">	static ArrayList&lt;Double&gt; m_gcs_tolerances = readTolerances(&quot;gcs_tolerances.txt&quot;);</span>
+<span class="fc" id="L87">	static ArrayList&lt;Double&gt; m_pcs_tolerances = readTolerances(&quot;pcs_tolerances.txt&quot;);</span>
+<span class="fc" id="L88">	static HashMap&lt;Integer, Integer&gt; m_gcsToTol = readToleranceMap(&quot;gcs_id_to_tolerance.txt&quot;);</span>
+<span class="fc" id="L89">	static HashMap&lt;Integer, Integer&gt; m_pcsToTol = readToleranceMap(&quot;pcs_id_to_tolerance.txt&quot;);</span>
+	static HashMap&lt;Integer, Integer&gt; m_wkid_to_new;
+	static HashMap&lt;Integer, Integer&gt; m_wkid_to_old;
+	static {
+		try {
+<span class="fc" id="L94">			m_wkid_to_new = new HashMap&lt;Integer, Integer&gt;(100);</span>
+<span class="fc" id="L95">			m_wkid_to_old = new HashMap&lt;Integer, Integer&gt;(100);</span>
+			{
+<span class="fc" id="L97">				InputStream input = Wkid.class</span>
+<span class="fc" id="L98">						.getResourceAsStream(&quot;new_to_old_wkid.txt&quot;);</span>
+<span class="fc" id="L99">				BufferedReader reader = new BufferedReader(</span>
+						new InputStreamReader(input));
+				while (true) {
+<span class="fc" id="L102">					String s = reader.readLine();</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">					if (s == null)</span>
+<span class="fc" id="L104">						break;</span>
+<span class="fc" id="L105">					s = s.trim();</span>
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">					if (s.length() == 0)</span>
+<span class="nc" id="L107">						continue;</span>
+<span class="fc" id="L108">					int sep = s.indexOf('\t', 0);</span>
+<span class="fc" id="L109">					String id_s = s.substring(0, sep);</span>
+<span class="fc" id="L110">					int wkid_new = Integer.parseInt(id_s);</span>
+<span class="fc" id="L111">					String id_t = s.substring(sep + 1, s.length());</span>
+<span class="fc" id="L112">					int wkid_old = Integer.parseInt(id_t);</span>
+<span class="fc" id="L113">					m_wkid_to_new.put(wkid_old, wkid_new);</span>
+<span class="fc" id="L114">					m_wkid_to_old.put(wkid_new, wkid_old);</span>
+<span class="fc" id="L115">				}</span>
+			}
+			{
+<span class="fc" id="L118">				InputStream input = Wkid.class</span>
+<span class="fc" id="L119">						.getResourceAsStream(&quot;intermediate_to_old_wkid.txt&quot;);</span>
+<span class="fc" id="L120">				BufferedReader reader = new BufferedReader(</span>
+						new InputStreamReader(input));
+				while (true) {
+<span class="fc" id="L123">					String s = reader.readLine();</span>
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">					if (s == null)</span>
+<span class="fc" id="L125">						break;</span>
+<span class="nc" id="L126">					s = s.trim();</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">					if (s.length() == 0)</span>
+<span class="nc" id="L128">						continue;</span>
+<span class="nc" id="L129">					int sep = s.indexOf('\t', 0);</span>
+<span class="nc" id="L130">					String id_s = s.substring(0, sep);</span>
+<span class="nc" id="L131">					int wkid = Integer.parseInt(id_s);</span>
+<span class="nc" id="L132">					String id_t = s.substring(sep + 1, s.length());</span>
+<span class="nc" id="L133">					int wkid_old = Integer.parseInt(id_t);</span>
+<span class="nc" id="L134">					m_wkid_to_old.put(wkid, wkid_old);</span>
+<span class="nc" id="L135">					m_wkid_to_new.put(wkid, m_wkid_to_new.get(wkid_old));</span>
+<span class="nc" id="L136">				}</span>
+			}
+
+<span class="nc" id="L139">		} catch (IOException ex) {</span>
+
+<span class="fc" id="L141">		}</span>
+<span class="fc" id="L142">	}</span>
+
+	public static double find_tolerance_from_wkid(int wkid) {
+<span class="fc" id="L145">		double tol = find_tolerance_from_wkid_helper(wkid);</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">		if (tol == 1e38) {</span>
+<span class="fc" id="L147">			int old = wkid_to_old(wkid);</span>
+<span class="pc bpc" id="L148" title="1 of 2 branches missed.">			if (old != wkid)</span>
+<span class="fc" id="L149">				tol = find_tolerance_from_wkid_helper(old);</span>
+<span class="pc bpc" id="L150" title="1 of 2 branches missed.">			if (tol == 1e38)</span>
+<span class="nc" id="L151">				return 1e-10;</span>
+		}
+
+<span class="fc" id="L154">		return tol;</span>
+	}
+
+	private static double find_tolerance_from_wkid_helper(int wkid) {
+<span class="fc bfc" id="L158" title="All 2 branches covered.">		if (m_gcsToTol.containsKey(wkid)) {</span>
+<span class="fc" id="L159">			return m_gcs_tolerances.get(m_gcsToTol.get(wkid));</span>
+		}
+
+<span class="fc bfc" id="L162" title="All 2 branches covered.">		if (m_pcsToTol.containsKey(wkid)) {</span>
+<span class="fc" id="L163">			return m_pcs_tolerances.get(m_pcsToTol.get(wkid));</span>
+		}
+
+<span class="fc" id="L166">		return 1e38;</span>
+	}
+
+	public static int wkid_to_new(int wkid) {
+<span class="fc bfc" id="L170" title="All 2 branches covered.">		if (m_wkid_to_new.containsKey(wkid)) {</span>
+<span class="fc" id="L171">			return m_wkid_to_new.get(wkid);</span>
+		}
+<span class="fc" id="L173">		return wkid;</span>
+	}
+
+	public static int wkid_to_old(int wkid) {
+<span class="fc bfc" id="L177" title="All 2 branches covered.">		if (m_wkid_to_old.containsKey(wkid)) {</span>
+<span class="fc" id="L178">			return m_wkid_to_old.get(wkid);</span>
+		}
+<span class="fc" id="L180">		return wkid;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

@@ -1,0 +1,460 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OperatorExportToJsonCursor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">OperatorExportToJsonCursor.java</span></div><h1>OperatorExportToJsonCursor.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+import com.esri.core.geometry.VertexDescription.Semantics;
+
+import java.io.IOException;
+import java.util.Map;
+
+class OperatorExportToJsonCursor extends JsonCursor {
+
+	GeometryCursor m_inputGeometryCursor;
+	SpatialReference m_spatialReference;
+	int m_index;
+
+<span class="fc" id="L37">	public OperatorExportToJsonCursor(SpatialReference spatialReference, GeometryCursor geometryCursor) {</span>
+<span class="fc" id="L38">		m_index = -1;</span>
+<span class="pc bpc" id="L39" title="1 of 2 branches missed.">		if (geometryCursor == null) {</span>
+<span class="nc" id="L40">			throw new IllegalArgumentException();</span>
+		}
+
+<span class="fc" id="L43">		m_inputGeometryCursor = geometryCursor;</span>
+<span class="fc" id="L44">		m_spatialReference = spatialReference;</span>
+<span class="fc" id="L45">	}</span>
+
+	@Override
+	public int getID() {
+<span class="nc" id="L49">		return m_index;</span>
+	}
+
+	@Override
+	public String next() {
+		Geometry geometry;
+<span class="pc bpc" id="L55" title="1 of 2 branches missed.">		if ((geometry = m_inputGeometryCursor.next()) != null) {</span>
+<span class="fc" id="L56">			m_index = m_inputGeometryCursor.getGeometryID();</span>
+<span class="fc" id="L57">			return exportToString(geometry, m_spatialReference, null);</span>
+		}
+<span class="nc" id="L59">		return null;</span>
+	}
+
+	static String exportToString(Geometry geometry, SpatialReference spatialReference, Map&lt;String, Object&gt; exportProperties) {
+<span class="fc" id="L63">		JsonWriter jsonWriter = new JsonStringWriter();</span>
+<span class="fc" id="L64">		exportToJson_(geometry, spatialReference, jsonWriter, exportProperties);</span>
+<span class="fc" id="L65">		return (String) jsonWriter.getJson();</span>
+	}
+
+	private static void exportToJson_(Geometry geometry, SpatialReference spatialReference, JsonWriter jsonWriter, Map&lt;String, Object&gt; exportProperties) {
+		try {
+<span class="fc" id="L70">			int type = geometry.getType().value();</span>
+<span class="pc bpc" id="L71" title="1 of 6 branches missed.">			switch (type) {</span>
+			case Geometry.GeometryType.Point:
+<span class="fc" id="L73">				exportPointToJson((Point) geometry, spatialReference, jsonWriter, exportProperties);</span>
+<span class="fc" id="L74">				break;</span>
+
+			case Geometry.GeometryType.MultiPoint:
+<span class="fc" id="L77">				exportMultiPointToJson((MultiPoint) geometry, spatialReference, jsonWriter, exportProperties);</span>
+<span class="fc" id="L78">				break;</span>
+
+			case Geometry.GeometryType.Polyline:
+<span class="fc" id="L81">				exportPolylineToJson((Polyline) geometry, spatialReference, jsonWriter, exportProperties);</span>
+<span class="fc" id="L82">				break;</span>
+
+			case Geometry.GeometryType.Polygon:
+<span class="fc" id="L85">				exportPolygonToJson((Polygon) geometry, spatialReference, jsonWriter, exportProperties);</span>
+<span class="fc" id="L86">				break;</span>
+
+			case Geometry.GeometryType.Envelope:
+<span class="fc" id="L89">				exportEnvelopeToJson((Envelope) geometry, spatialReference, jsonWriter, exportProperties);</span>
+<span class="fc" id="L90">				break;</span>
+
+			default:
+<span class="nc" id="L93">				throw new RuntimeException(&quot;not implemented for this geometry type&quot;);</span>
+			}
+
+<span class="nc" id="L96">		} catch (Exception e) {</span>
+<span class="fc" id="L97">		}</span>
+
+<span class="fc" id="L99">	}</span>
+
+	private static void exportPolygonToJson(Polygon pp, SpatialReference spatialReference, JsonWriter jsonWriter, Map&lt;String, Object&gt; exportProperties) {
+<span class="fc" id="L102">		exportPolypathToJson(pp, &quot;rings&quot;, spatialReference, jsonWriter, exportProperties);</span>
+<span class="fc" id="L103">	}</span>
+
+	private static void exportPolylineToJson(Polyline pp, SpatialReference spatialReference, JsonWriter jsonWriter, Map&lt;String, Object&gt; exportProperties) {
+<span class="fc" id="L106">		exportPolypathToJson(pp, &quot;paths&quot;, spatialReference, jsonWriter, exportProperties);</span>
+<span class="fc" id="L107">	}</span>
+
+	private static void exportPolypathToJson(MultiPath pp, String name, SpatialReference spatialReference, JsonWriter jsonWriter, Map&lt;String, Object&gt; exportProperties) {
+<span class="fc" id="L110">		boolean bExportZs = pp.hasAttribute(Semantics.Z);</span>
+<span class="fc" id="L111">		boolean bExportMs = pp.hasAttribute(Semantics.M);</span>
+
+<span class="fc" id="L113">		boolean bPositionAsF = false;</span>
+<span class="fc" id="L114">		int decimals = 17;</span>
+
+<span class="pc bpc" id="L116" title="1 of 2 branches missed.">		if (exportProperties != null) {</span>
+<span class="nc" id="L117">			Object numberOfDecimalsXY = exportProperties.get(&quot;numberOfDecimalsXY&quot;);</span>
+<span class="nc bnc" id="L118" title="All 4 branches missed.">			if (numberOfDecimalsXY != null &amp;&amp; numberOfDecimalsXY instanceof Number) {</span>
+<span class="nc" id="L119">				bPositionAsF = true;</span>
+<span class="nc" id="L120">				decimals = ((Number) numberOfDecimalsXY).intValue();</span>
+			}
+		}
+
+<span class="fc" id="L124">		jsonWriter.startObject();</span>
+
+<span class="pc bpc" id="L126" title="1 of 2 branches missed.">		if (bExportZs) {</span>
+<span class="nc" id="L127">			jsonWriter.addPairBoolean(&quot;hasZ&quot;, true);</span>
+		}
+
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">		if (bExportMs) {</span>
+<span class="nc" id="L131">			jsonWriter.addPairBoolean(&quot;hasM&quot;, true);</span>
+		}
+
+<span class="fc" id="L134">		jsonWriter.addPairArray(name);</span>
+
+<span class="fc bfc" id="L136" title="All 2 branches covered.">		if (!pp.isEmpty()) {</span>
+<span class="fc" id="L137">			int n = pp.getPathCount(); // rings or paths</span>
+
+<span class="fc" id="L139">			MultiPathImpl mpImpl = (MultiPathImpl) pp._getImpl();// get impl for</span>
+			// faster
+			// access
+<span class="fc" id="L142">			AttributeStreamOfDbl zs = null;</span>
+<span class="fc" id="L143">			AttributeStreamOfDbl ms = null;</span>
+
+<span class="pc bpc" id="L145" title="1 of 2 branches missed.">			if (bExportZs) {</span>
+<span class="nc" id="L146">				zs = (AttributeStreamOfDbl) mpImpl.getAttributeStreamRef(Semantics.Z);</span>
+			}
+
+<span class="pc bpc" id="L149" title="1 of 2 branches missed.">			if (bExportMs) {</span>
+<span class="nc" id="L150">				ms = (AttributeStreamOfDbl) mpImpl.getAttributeStreamRef(Semantics.M);</span>
+			}
+
+<span class="fc" id="L153">			boolean bPolygon = pp instanceof Polygon;</span>
+<span class="fc" id="L154">			Point2D pt = new Point2D();</span>
+
+<span class="fc bfc" id="L156" title="All 2 branches covered.">			for (int i = 0; i &lt; n; i++) {</span>
+<span class="fc" id="L157">				jsonWriter.addValueArray();</span>
+<span class="fc" id="L158">				int startindex = pp.getPathStart(i);</span>
+<span class="fc" id="L159">				int numVertices = pp.getPathSize(i);</span>
+<span class="fc" id="L160">				double startx = 0.0, starty = 0.0, startz = NumberUtils.NaN(), startm = NumberUtils.NaN();</span>
+<span class="fc" id="L161">				double z = NumberUtils.NaN(), m = NumberUtils.NaN();</span>
+<span class="fc" id="L162">				boolean bClosed = pp.isClosedPath(i);</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">				for (int j = startindex; j &lt; startindex + numVertices; j++) {</span>
+<span class="fc" id="L164">					pp.getXY(j, pt);</span>
+
+<span class="fc" id="L166">					jsonWriter.addValueArray();</span>
+
+<span class="pc bpc" id="L168" title="1 of 2 branches missed.">					if (bPositionAsF) {</span>
+<span class="nc" id="L169">						jsonWriter.addValueDouble(pt.x, decimals, true);</span>
+<span class="nc" id="L170">						jsonWriter.addValueDouble(pt.y, decimals, true);</span>
+					} else {
+<span class="fc" id="L172">						jsonWriter.addValueDouble(pt.x);</span>
+<span class="fc" id="L173">						jsonWriter.addValueDouble(pt.y);</span>
+					}
+
+<span class="pc bpc" id="L176" title="1 of 2 branches missed.">					if (bExportZs) {</span>
+<span class="nc" id="L177">						z = zs.get(j);</span>
+<span class="nc" id="L178">						jsonWriter.addValueDouble(z);</span>
+					}
+
+<span class="pc bpc" id="L181" title="1 of 2 branches missed.">					if (bExportMs) {</span>
+<span class="nc" id="L182">						m = ms.get(j);</span>
+<span class="nc" id="L183">						jsonWriter.addValueDouble(m);</span>
+					}
+
+<span class="fc bfc" id="L186" title="All 4 branches covered.">					if (j == startindex &amp;&amp; bClosed) {</span>
+<span class="fc" id="L187">						startx = pt.x;</span>
+<span class="fc" id="L188">						starty = pt.y;</span>
+<span class="fc" id="L189">						startz = z;</span>
+<span class="fc" id="L190">						startm = m;</span>
+					}
+
+<span class="fc" id="L193">					jsonWriter.endArray();</span>
+				}
+
+				// Close the Path/Ring by writing the Point at the start index
+<span class="pc bpc" id="L197" title="19 of 22 branches missed.">				if (bClosed &amp;&amp; (startx != pt.x || starty != pt.y || (bExportZs &amp;&amp; !(NumberUtils.isNaN(startz) &amp;&amp; NumberUtils.isNaN(z)) &amp;&amp; startz != z) || (bExportMs &amp;&amp; !(NumberUtils.isNaN(startm) &amp;&amp; NumberUtils.isNaN(m)) &amp;&amp; startm != m))) {</span>
+<span class="fc" id="L198">					pp.getXY(startindex, pt);</span>
+					// getPoint(startindex);
+<span class="fc" id="L200">					jsonWriter.addValueArray();</span>
+
+<span class="pc bpc" id="L202" title="1 of 2 branches missed.">					if (bPositionAsF) {</span>
+<span class="nc" id="L203">						jsonWriter.addValueDouble(pt.x, decimals, true);</span>
+<span class="nc" id="L204">						jsonWriter.addValueDouble(pt.y, decimals, true);</span>
+					} else {
+<span class="fc" id="L206">						jsonWriter.addValueDouble(pt.x);</span>
+<span class="fc" id="L207">						jsonWriter.addValueDouble(pt.y);</span>
+					}
+
+<span class="pc bpc" id="L210" title="1 of 2 branches missed.">					if (bExportZs) {</span>
+<span class="nc" id="L211">						z = zs.get(startindex);</span>
+<span class="nc" id="L212">						jsonWriter.addValueDouble(z);</span>
+					}
+
+<span class="pc bpc" id="L215" title="1 of 2 branches missed.">					if (bExportMs) {</span>
+<span class="nc" id="L216">						m = ms.get(startindex);</span>
+<span class="nc" id="L217">						jsonWriter.addValueDouble(m);</span>
+					}
+
+<span class="fc" id="L220">					jsonWriter.endArray();</span>
+				}
+
+<span class="fc" id="L223">				jsonWriter.endArray();</span>
+			}
+		}
+
+<span class="fc" id="L227">		jsonWriter.endArray();</span>
+
+<span class="fc bfc" id="L229" title="All 2 branches covered.">		if (spatialReference != null) {</span>
+<span class="fc" id="L230">			writeSR(spatialReference, jsonWriter);</span>
+		}
+
+<span class="fc" id="L233">		jsonWriter.endObject();</span>
+<span class="fc" id="L234">	}</span>
+
+	private static void exportMultiPointToJson(MultiPoint mpt, SpatialReference spatialReference, JsonWriter jsonWriter, Map&lt;String, Object&gt; exportProperties) {
+<span class="fc" id="L237">		boolean bExportZs = mpt.hasAttribute(Semantics.Z);</span>
+<span class="fc" id="L238">		boolean bExportMs = mpt.hasAttribute(Semantics.M);</span>
+
+<span class="fc" id="L240">		boolean bPositionAsF = false;</span>
+<span class="fc" id="L241">		int decimals = 17;</span>
+
+<span class="pc bpc" id="L243" title="1 of 2 branches missed.">		if (exportProperties != null) {</span>
+<span class="nc" id="L244">			Object numberOfDecimalsXY = exportProperties.get(&quot;numberOfDecimalsXY&quot;);</span>
+<span class="nc bnc" id="L245" title="All 4 branches missed.">			if (numberOfDecimalsXY != null &amp;&amp; numberOfDecimalsXY instanceof Number) {</span>
+<span class="nc" id="L246">				bPositionAsF = true;</span>
+<span class="nc" id="L247">				decimals = ((Number) numberOfDecimalsXY).intValue();</span>
+			}
+		}
+
+<span class="fc" id="L251">		jsonWriter.startObject();</span>
+
+<span class="pc bpc" id="L253" title="1 of 2 branches missed.">		if (bExportZs) {</span>
+<span class="nc" id="L254">			jsonWriter.addPairBoolean(&quot;hasZ&quot;, true);</span>
+		}
+
+<span class="pc bpc" id="L257" title="1 of 2 branches missed.">		if (bExportMs) {</span>
+<span class="nc" id="L258">			jsonWriter.addPairBoolean(&quot;hasM&quot;, true);</span>
+		}
+
+<span class="fc" id="L261">		jsonWriter.addPairArray(&quot;points&quot;);</span>
+
+<span class="fc bfc" id="L263" title="All 2 branches covered.">		if (!mpt.isEmpty()) {</span>
+<span class="fc" id="L264">			MultiPointImpl mpImpl = (MultiPointImpl) mpt._getImpl();// get impl</span>
+			// for
+			// faster
+			// access
+<span class="fc" id="L268">			AttributeStreamOfDbl zs = null;</span>
+<span class="fc" id="L269">			AttributeStreamOfDbl ms = null;</span>
+
+<span class="pc bpc" id="L271" title="1 of 2 branches missed.">			if (bExportZs) {</span>
+<span class="nc" id="L272">				zs = (AttributeStreamOfDbl) mpImpl.getAttributeStreamRef(Semantics.Z);</span>
+			}
+
+<span class="pc bpc" id="L275" title="1 of 2 branches missed.">			if (bExportMs) {</span>
+<span class="nc" id="L276">				ms = (AttributeStreamOfDbl) mpImpl.getAttributeStreamRef(Semantics.M);</span>
+			}
+
+<span class="fc" id="L279">			Point2D pt = new Point2D();</span>
+<span class="fc" id="L280">			int n = mpt.getPointCount();</span>
+<span class="fc bfc" id="L281" title="All 2 branches covered.">			for (int i = 0; i &lt; n; i++) {</span>
+<span class="fc" id="L282">				mpt.getXY(i, pt);</span>
+
+<span class="fc" id="L284">				jsonWriter.addValueArray();</span>
+
+<span class="pc bpc" id="L286" title="1 of 2 branches missed.">				if (bPositionAsF) {</span>
+<span class="nc" id="L287">					jsonWriter.addValueDouble(pt.x, decimals, true);</span>
+<span class="nc" id="L288">					jsonWriter.addValueDouble(pt.y, decimals, true);</span>
+				} else {
+<span class="fc" id="L290">					jsonWriter.addValueDouble(pt.x);</span>
+<span class="fc" id="L291">					jsonWriter.addValueDouble(pt.y);</span>
+				}
+
+<span class="pc bpc" id="L294" title="1 of 2 branches missed.">				if (bExportZs) {</span>
+<span class="nc" id="L295">					double z = zs.get(i);</span>
+<span class="nc" id="L296">					jsonWriter.addValueDouble(z);</span>
+				}
+
+<span class="pc bpc" id="L299" title="1 of 2 branches missed.">				if (bExportMs) {</span>
+<span class="nc" id="L300">					double m = ms.get(i);</span>
+<span class="nc" id="L301">					jsonWriter.addValueDouble(m);</span>
+				}
+
+<span class="fc" id="L304">				jsonWriter.endArray();</span>
+			}
+		}
+
+<span class="fc" id="L308">		jsonWriter.endArray();</span>
+
+<span class="pc bpc" id="L310" title="1 of 2 branches missed.">		if (spatialReference != null) {</span>
+<span class="fc" id="L311">			writeSR(spatialReference, jsonWriter);</span>
+		}
+
+<span class="fc" id="L314">		jsonWriter.endObject();</span>
+<span class="fc" id="L315">	}</span>
+
+	private static void exportPointToJson(Point pt, SpatialReference spatialReference, JsonWriter jsonWriter, Map&lt;String, Object&gt; exportProperties) {
+<span class="fc" id="L318">		boolean bExportZs = pt.hasAttribute(Semantics.Z);</span>
+<span class="fc" id="L319">		boolean bExportMs = pt.hasAttribute(Semantics.M);</span>
+
+<span class="fc" id="L321">		boolean bPositionAsF = false;</span>
+<span class="fc" id="L322">		int decimals = 17;</span>
+
+<span class="pc bpc" id="L324" title="1 of 2 branches missed.">		if (exportProperties != null) {</span>
+<span class="nc" id="L325">			Object numberOfDecimalsXY = exportProperties.get(&quot;numberOfDecimalsXY&quot;);</span>
+<span class="nc bnc" id="L326" title="All 4 branches missed.">			if (numberOfDecimalsXY != null &amp;&amp; numberOfDecimalsXY instanceof Number) {</span>
+<span class="nc" id="L327">				bPositionAsF = true;</span>
+<span class="nc" id="L328">				decimals = ((Number) numberOfDecimalsXY).intValue();</span>
+			}
+		}
+
+<span class="fc" id="L332">		jsonWriter.startObject();</span>
+
+<span class="fc bfc" id="L334" title="All 2 branches covered.">		if (pt.isEmpty()) {</span>
+<span class="fc" id="L335">			jsonWriter.addPairNull(&quot;x&quot;);</span>
+<span class="fc" id="L336">			jsonWriter.addPairNull(&quot;y&quot;);</span>
+
+<span class="pc bpc" id="L338" title="1 of 2 branches missed.">			if (bExportZs) {</span>
+<span class="nc" id="L339">				jsonWriter.addPairNull(&quot;z&quot;);</span>
+			}
+
+<span class="pc bpc" id="L342" title="1 of 2 branches missed.">			if (bExportMs) {</span>
+<span class="nc" id="L343">				jsonWriter.addPairNull(&quot;m&quot;);</span>
+			}
+		} else {
+
+<span class="pc bpc" id="L347" title="1 of 2 branches missed.">			if (bPositionAsF) {</span>
+<span class="nc" id="L348">				jsonWriter.addPairDouble(&quot;x&quot;, pt.getX(), decimals, true);</span>
+<span class="nc" id="L349">				jsonWriter.addPairDouble(&quot;y&quot;, pt.getY(), decimals, true);</span>
+			} else {
+<span class="fc" id="L351">				jsonWriter.addPairDouble(&quot;x&quot;, pt.getX());</span>
+<span class="fc" id="L352">				jsonWriter.addPairDouble(&quot;y&quot;, pt.getY());</span>
+			}
+
+<span class="fc bfc" id="L355" title="All 2 branches covered.">			if (bExportZs) {</span>
+<span class="fc" id="L356">				jsonWriter.addPairDouble(&quot;z&quot;, pt.getZ());</span>
+			}
+
+<span class="pc bpc" id="L359" title="1 of 2 branches missed.">			if (bExportMs) {</span>
+<span class="nc" id="L360">				jsonWriter.addPairDouble(&quot;m&quot;, pt.getM());</span>
+			}
+		}
+
+<span class="fc bfc" id="L364" title="All 2 branches covered.">		if (spatialReference != null) {</span>
+<span class="fc" id="L365">			writeSR(spatialReference, jsonWriter);</span>
+		}
+
+<span class="fc" id="L368">		jsonWriter.endObject();</span>
+<span class="fc" id="L369">	}</span>
+
+	private static void exportEnvelopeToJson(Envelope env, SpatialReference spatialReference, JsonWriter jsonWriter, Map&lt;String, Object&gt; exportProperties) {
+<span class="fc" id="L372">		boolean bExportZs = env.hasAttribute(Semantics.Z);</span>
+<span class="fc" id="L373">		boolean bExportMs = env.hasAttribute(Semantics.M);</span>
+
+<span class="fc" id="L375">		boolean bPositionAsF = false;</span>
+<span class="fc" id="L376">		int decimals = 17;</span>
+
+<span class="pc bpc" id="L378" title="1 of 2 branches missed.">		if (exportProperties != null) {</span>
+<span class="nc" id="L379">			Object numberOfDecimalsXY = exportProperties.get(&quot;numberOfDecimalsXY&quot;);</span>
+<span class="nc bnc" id="L380" title="All 4 branches missed.">			if (numberOfDecimalsXY != null &amp;&amp; numberOfDecimalsXY instanceof Number) {</span>
+<span class="nc" id="L381">				bPositionAsF = true;</span>
+<span class="nc" id="L382">				decimals = ((Number) numberOfDecimalsXY).intValue();</span>
+			}
+		}
+
+<span class="fc" id="L386">		jsonWriter.startObject();</span>
+
+<span class="fc bfc" id="L388" title="All 2 branches covered.">		if (env.isEmpty()) {</span>
+<span class="fc" id="L389">			jsonWriter.addPairNull(&quot;xmin&quot;);</span>
+<span class="fc" id="L390">			jsonWriter.addPairNull(&quot;ymin&quot;);</span>
+<span class="fc" id="L391">			jsonWriter.addPairNull(&quot;xmax&quot;);</span>
+<span class="fc" id="L392">			jsonWriter.addPairNull(&quot;ymax&quot;);</span>
+
+<span class="pc bpc" id="L394" title="1 of 2 branches missed.">			if (bExportZs) {</span>
+<span class="nc" id="L395">				jsonWriter.addPairNull(&quot;zmin&quot;);</span>
+<span class="nc" id="L396">				jsonWriter.addPairNull(&quot;zmax&quot;);</span>
+			}
+
+<span class="pc bpc" id="L399" title="1 of 2 branches missed.">			if (bExportMs) {</span>
+<span class="nc" id="L400">				jsonWriter.addPairNull(&quot;mmin&quot;);</span>
+<span class="nc" id="L401">				jsonWriter.addPairNull(&quot;mmax&quot;);</span>
+			}
+		} else {
+
+<span class="pc bpc" id="L405" title="1 of 2 branches missed.">			if (bPositionAsF) {</span>
+<span class="nc" id="L406">				jsonWriter.addPairDouble(&quot;xmin&quot;, env.getXMin(), decimals, true);</span>
+<span class="nc" id="L407">				jsonWriter.addPairDouble(&quot;ymin&quot;, env.getYMin(), decimals, true);</span>
+<span class="nc" id="L408">				jsonWriter.addPairDouble(&quot;xmax&quot;, env.getXMax(), decimals, true);</span>
+<span class="nc" id="L409">				jsonWriter.addPairDouble(&quot;ymax&quot;, env.getYMax(), decimals, true);</span>
+			} else {
+<span class="fc" id="L411">				jsonWriter.addPairDouble(&quot;xmin&quot;, env.getXMin());</span>
+<span class="fc" id="L412">				jsonWriter.addPairDouble(&quot;ymin&quot;, env.getYMin());</span>
+<span class="fc" id="L413">				jsonWriter.addPairDouble(&quot;xmax&quot;, env.getXMax());</span>
+<span class="fc" id="L414">				jsonWriter.addPairDouble(&quot;ymax&quot;, env.getYMax());</span>
+			}
+
+<span class="pc bpc" id="L417" title="1 of 2 branches missed.">			if (bExportZs) {</span>
+<span class="nc" id="L418">				Envelope1D z = env.queryInterval(Semantics.Z, 0);</span>
+<span class="nc" id="L419">				jsonWriter.addPairDouble(&quot;zmin&quot;, z.vmin);</span>
+<span class="nc" id="L420">				jsonWriter.addPairDouble(&quot;zmax&quot;, z.vmax);</span>
+			}
+
+<span class="pc bpc" id="L423" title="1 of 2 branches missed.">			if (bExportMs) {</span>
+<span class="nc" id="L424">				Envelope1D m = env.queryInterval(Semantics.M, 0);</span>
+<span class="nc" id="L425">				jsonWriter.addPairDouble(&quot;mmin&quot;, m.vmin);</span>
+<span class="nc" id="L426">				jsonWriter.addPairDouble(&quot;mmax&quot;, m.vmax);</span>
+			}
+		}
+
+<span class="pc bpc" id="L430" title="1 of 2 branches missed.">		if (spatialReference != null) {</span>
+<span class="fc" id="L431">			writeSR(spatialReference, jsonWriter);</span>
+		}
+
+<span class="fc" id="L434">		jsonWriter.endObject();</span>
+<span class="fc" id="L435">	}</span>
+
+	private static void writeSR(SpatialReference spatialReference, JsonWriter jsonWriter) {
+<span class="fc" id="L438">		int wkid = spatialReference.getOldID();</span>
+<span class="fc bfc" id="L439" title="All 2 branches covered.">		if (wkid &gt; 0) {</span>
+<span class="fc" id="L440">			jsonWriter.addPairObject(&quot;spatialReference&quot;);</span>
+
+<span class="fc" id="L442">			jsonWriter.addPairInt(&quot;wkid&quot;, wkid);</span>
+
+<span class="fc" id="L444">			int latest_wkid = spatialReference.getLatestID();</span>
+<span class="pc bpc" id="L445" title="1 of 4 branches missed.">			if (latest_wkid &gt; 0 &amp;&amp; latest_wkid != wkid) {</span>
+<span class="fc" id="L446">				jsonWriter.addPairInt(&quot;latestWkid&quot;, latest_wkid);</span>
+			}
+
+<span class="fc" id="L449">			jsonWriter.endObject();</span>
+<span class="fc" id="L450">		} else {</span>
+<span class="fc" id="L451">			String wkt = spatialReference.getText();</span>
+<span class="pc bpc" id="L452" title="1 of 2 branches missed.">			if (wkt != null) {</span>
+<span class="fc" id="L453">				jsonWriter.addPairObject(&quot;spatialReference&quot;);</span>
+<span class="fc" id="L454">				jsonWriter.addPairString(&quot;wkt&quot;, wkt);</span>
+<span class="fc" id="L455">				jsonWriter.endObject();</span>
+			}
+		}
+<span class="fc" id="L458">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

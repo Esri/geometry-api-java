@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PointInPolygonHelper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">PointInPolygonHelper.java</span></div><h1>PointInPolygonHelper.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+final class PointInPolygonHelper {
+
+	private Point2D m_inputPoint;
+	private int m_windnum;
+<span class="fc" id="L31">	private SegmentBuffer[] m_monotoneParts = null;</span>
+<span class="fc" id="L32">	private double[] m_xOrds = null;</span>
+	private double m_tolerance;
+	private double m_toleranceSqr;
+	private double m_miny;
+	private double m_maxy;
+	private boolean m_bAlternate;
+	private boolean m_bTestBorder;
+	private boolean m_bBreak;
+	private boolean m_bPointInAnyOuterRingTest;
+
+	private int result() {
+<span class="fc bfc" id="L43" title="All 2 branches covered.">		return m_windnum != 0 ? 1 : 0;</span>
+	}
+
+	private boolean _testBorder(Segment seg) {
+<span class="fc" id="L47">		double t = seg.getClosestCoordinate(m_inputPoint, false);</span>
+<span class="fc" id="L48">		Point2D pt = seg.getCoord2D(t);</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">		if (Point2D.sqrDistance(pt, m_inputPoint) &lt;= m_toleranceSqr) {</span>
+<span class="fc" id="L50">			return true;</span>
+		}
+<span class="fc" id="L52">		return false;</span>
+	}
+
+	private void doOne(Segment seg) {
+<span class="fc bfc" id="L56" title="All 2 branches covered.">		if (!m_bTestBorder) {</span>
+			// test if point is on the boundary
+<span class="fc bfc" id="L58" title="All 4 branches covered.">			if (m_bAlternate &amp;&amp; m_inputPoint.isEqual(seg.getStartXY())</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">					|| m_inputPoint.isEqual(seg.getEndXY())) {// test if the</span>
+																// point
+																// coincides
+																// with a vertex
+<span class="fc" id="L63">				m_bBreak = true;</span>
+<span class="fc" id="L64">				return;</span>
+			}
+		}
+
+<span class="fc bfc" id="L68" title="All 2 branches covered.">		if (seg.getStartY() == m_inputPoint.y</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">				&amp;&amp; seg.getStartY() == seg.getEndY()) {// skip horizontal</span>
+														// segments. test if the
+														// point lies on a
+														// horizontal segment
+<span class="fc bfc" id="L73" title="All 4 branches covered.">			if (m_bAlternate &amp;&amp; !m_bTestBorder) {</span>
+<span class="fc" id="L74">				double minx = Math.min(seg.getStartX(), seg.getEndX());</span>
+<span class="fc" id="L75">				double maxx = Math.max(seg.getStartX(), seg.getEndX());</span>
+<span class="pc bpc" id="L76" title="1 of 4 branches missed.">				if (m_inputPoint.x &gt; minx &amp;&amp; m_inputPoint.x &lt; maxx)</span>
+<span class="fc" id="L77">					m_bBreak = true;</span>
+			}
+
+<span class="fc" id="L80">			return;// skip horizontal segments</span>
+		}
+
+<span class="fc" id="L83">		boolean bToTheRight = false;</span>
+<span class="fc" id="L84">		double maxx = Math.max(seg.getStartX(), seg.getEndX());</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">		if (m_inputPoint.x &gt; maxx) {</span>
+<span class="fc" id="L86">			bToTheRight = true;</span>
+		} else {
+<span class="fc bfc" id="L88" title="All 2 branches covered.">			if (m_inputPoint.x &gt;= Math.min(seg.getStartX(), seg.getEndX())) {</span>
+<span class="fc" id="L89">				int n = seg.intersectionWithAxis2D(true, m_inputPoint.y,</span>
+						m_xOrds, null);
+<span class="pc bpc" id="L91" title="1 of 4 branches missed.">				bToTheRight = n &gt; 0 &amp;&amp; m_xOrds[0] &lt;= m_inputPoint.x;</span>
+			}
+		}
+
+<span class="fc bfc" id="L95" title="All 2 branches covered.">		if (bToTheRight) {</span>
+			// to prevent double counting, when the ray crosses a vertex, count
+			// only the segments that are below the ray.
+<span class="fc bfc" id="L98" title="All 2 branches covered.">			if (m_inputPoint.y == seg.getStartXY().y) {</span>
+<span class="fc bfc" id="L99" title="All 2 branches covered.">				if (m_inputPoint.y &lt; seg.getEndXY().y)</span>
+<span class="fc" id="L100">					return;</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">			} else if (m_inputPoint.y == seg.getEndXY().y) {</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">				if (m_inputPoint.y &lt; seg.getStartXY().y)</span>
+<span class="fc" id="L103">					return;</span>
+			}
+
+<span class="fc bfc" id="L106" title="All 2 branches covered.">			if (m_bAlternate)</span>
+<span class="fc" id="L107">				m_windnum ^= 1;</span>
+			else
+<span class="fc bfc" id="L109" title="All 2 branches covered.">				m_windnum += (seg.getStartXY().y &gt; seg.getEndXY().y) ? 1 : -1;</span>
+		}
+<span class="fc" id="L111">	}</span>
+
+	public PointInPolygonHelper(boolean bFillRule_Alternate,
+<span class="fc" id="L114">			Point2D inputPoint, double tolerance) {</span>
+		// //_ASSERT(tolerance &gt;= 0);
+<span class="fc" id="L116">		m_inputPoint = inputPoint;</span>
+<span class="fc" id="L117">		m_miny = inputPoint.y - tolerance;</span>
+<span class="fc" id="L118">		m_maxy = inputPoint.y + tolerance;</span>
+<span class="fc" id="L119">		m_windnum = 0;</span>
+<span class="fc" id="L120">		m_bAlternate = bFillRule_Alternate;</span>
+<span class="fc" id="L121">		m_tolerance = tolerance;</span>
+<span class="fc" id="L122">		m_toleranceSqr = tolerance * tolerance;</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">		m_bTestBorder = tolerance != 0;//</span>
+<span class="fc" id="L124">		m_bBreak = false;</span>
+<span class="fc" id="L125">	}</span>
+
+	private boolean processSegment(Segment segment) {
+<span class="fc" id="L128">		Envelope1D yrange = segment.queryInterval(</span>
+				(int) VertexDescription.Semantics.POSITION, 1);
+<span class="fc bfc" id="L130" title="All 4 branches covered.">		if (yrange.vmin &gt; m_maxy || yrange.vmax &lt; m_miny) {</span>
+<span class="fc" id="L131">			return false;</span>
+		}
+
+<span class="fc bfc" id="L134" title="All 4 branches covered.">		if (m_bTestBorder &amp;&amp; _testBorder(segment))</span>
+<span class="fc" id="L135">			return true;</span>
+
+<span class="fc bfc" id="L137" title="All 4 branches covered.">		if (yrange.vmin &gt; m_inputPoint.y || yrange.vmax &lt; m_inputPoint.y) {</span>
+<span class="fc" id="L138">			return false;</span>
+		}
+
+<span class="fc bfc" id="L141" title="All 2 branches covered.">		if (m_monotoneParts == null)</span>
+<span class="fc" id="L142">			m_monotoneParts = new SegmentBuffer[5];</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">		if (m_xOrds == null)</span>
+<span class="fc" id="L144">			m_xOrds = new double[3];</span>
+
+<span class="fc" id="L146">		int nparts = segment.getYMonotonicParts(m_monotoneParts);</span>
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">		if (nparts &gt; 0) {// the segment is a curve and has been broken in</span>
+							// ymonotone parts
+<span class="nc bnc" id="L149" title="All 2 branches missed.">			for (int i = 0; i &lt; nparts; i++) {</span>
+<span class="nc" id="L150">				Segment part = m_monotoneParts[i].get();</span>
+<span class="nc" id="L151">				doOne(part);</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">				if (m_bBreak)</span>
+<span class="nc" id="L153">					return true;</span>
+			}
+		} else {// the segment is a line or it is y monotone curve
+<span class="fc" id="L156">			doOne(segment);</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">			if (m_bBreak)</span>
+<span class="fc" id="L158">				return true;</span>
+		}
+
+<span class="fc" id="L161">		return false;</span>
+	}
+
+	private static int _isPointInPolygonInternal(Polygon inputPolygon,
+			Point2D inputPoint, double tolerance) {
+
+<span class="fc bfc" id="L167" title="All 2 branches covered.">		boolean bAltenate = inputPolygon.getFillRule() == Polygon.FillRule.enumFillRuleOddEven;</span>
+<span class="fc" id="L168">		PointInPolygonHelper helper = new PointInPolygonHelper(bAltenate,</span>
+				inputPoint, tolerance);
+<span class="fc" id="L170">		MultiPathImpl mpImpl = (MultiPathImpl) inputPolygon._getImpl();</span>
+<span class="fc" id="L171">		SegmentIteratorImpl iter = mpImpl.querySegmentIterator();</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">		while (iter.nextPath()) {</span>
+<span class="fc bfc" id="L173" title="All 2 branches covered.">			while (iter.hasNextSegment()) {</span>
+<span class="fc" id="L174">				Segment segment = iter.nextSegment();</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">				if (helper.processSegment(segment))</span>
+<span class="fc" id="L176">					return -1; // point on boundary</span>
+<span class="fc" id="L177">			}</span>
+		}
+
+<span class="fc" id="L180">		return helper.result();</span>
+	}
+
+	private static int _isPointInPolygonInternalWithQuadTree(
+			Polygon inputPolygon, QuadTreeImpl quadTree, Point2D inputPoint,
+			double tolerance) {
+<span class="nc" id="L186">		Envelope2D envPoly = new Envelope2D();</span>
+<span class="nc" id="L187">		inputPolygon.queryLooseEnvelope(envPoly);</span>
+<span class="nc" id="L188">		envPoly.inflate(tolerance, tolerance);</span>
+
+<span class="nc bnc" id="L190" title="All 2 branches missed.">		boolean bAltenate = inputPolygon.getFillRule() == Polygon.FillRule.enumFillRuleOddEven;</span>
+<span class="nc" id="L191">		PointInPolygonHelper helper = new PointInPolygonHelper(bAltenate,</span>
+				inputPoint, tolerance);
+
+<span class="nc" id="L194">		MultiPathImpl mpImpl = (MultiPathImpl) inputPolygon._getImpl();</span>
+<span class="nc" id="L195">		SegmentIteratorImpl iter = mpImpl.querySegmentIterator();</span>
+<span class="nc" id="L196">		Envelope2D queryEnv = new Envelope2D();</span>
+<span class="nc" id="L197">		queryEnv.setCoords(envPoly);</span>
+<span class="nc" id="L198">		queryEnv.xmax = inputPoint.x + tolerance;// no need to query segments to</span>
+													// the right of the point.
+													// Only segments to the left
+													// matter.
+<span class="nc" id="L202">		queryEnv.ymin = inputPoint.y - tolerance;</span>
+<span class="nc" id="L203">		queryEnv.ymax = inputPoint.y + tolerance;</span>
+<span class="nc" id="L204">		QuadTreeImpl.QuadTreeIteratorImpl qiter = quadTree.getIterator(</span>
+				queryEnv, tolerance);
+<span class="nc bnc" id="L206" title="All 2 branches missed.">		for (int qhandle = qiter.next(); qhandle != -1; qhandle = qiter.next()) {</span>
+<span class="nc" id="L207">			iter.resetToVertex(quadTree.getElement(qhandle));</span>
+<span class="nc bnc" id="L208" title="All 2 branches missed.">			if (iter.hasNextSegment()) {</span>
+<span class="nc" id="L209">				Segment segment = iter.nextSegment();</span>
+<span class="nc bnc" id="L210" title="All 2 branches missed.">				if (helper.processSegment(segment))</span>
+<span class="nc" id="L211">					return -1; // point on boundary</span>
+			}
+		}
+
+<span class="nc" id="L215">		return helper.result();</span>
+	}
+
+	public static int isPointInPolygon(Polygon inputPolygon,
+			Point2D inputPoint, double tolerance) {
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">		if (inputPolygon.isEmpty())</span>
+<span class="nc" id="L221">			return 0;</span>
+
+<span class="fc" id="L223">		Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L224">		inputPolygon.queryLooseEnvelope(env);</span>
+<span class="fc" id="L225">		env.inflate(tolerance, tolerance);</span>
+<span class="fc bfc" id="L226" title="All 2 branches covered.">		if (!env.contains(inputPoint))</span>
+<span class="fc" id="L227">			return 0;</span>
+
+<span class="fc" id="L229">		MultiPathImpl mpImpl = (MultiPathImpl) inputPolygon._getImpl();</span>
+<span class="fc" id="L230">		GeometryAccelerators accel = mpImpl._getAccelerators();</span>
+<span class="fc bfc" id="L231" title="All 2 branches covered.">		if (accel != null) {</span>
+			// geometry has spatial indices built. Try using them.
+<span class="fc" id="L233">			RasterizedGeometry2D rgeom = accel.getRasterizedGeometry();</span>
+<span class="pc bpc" id="L234" title="1 of 2 branches missed.">			if (rgeom != null) {</span>
+<span class="fc" id="L235">				RasterizedGeometry2D.HitType hit = rgeom.queryPointInGeometry(</span>
+						inputPoint.x, inputPoint.y);
+<span class="fc bfc" id="L237" title="All 2 branches covered.">				if (hit == RasterizedGeometry2D.HitType.Inside)</span>
+<span class="fc" id="L238">					return 1;</span>
+<span class="fc bfc" id="L239" title="All 2 branches covered.">				else if (hit == RasterizedGeometry2D.HitType.Outside)</span>
+<span class="fc" id="L240">					return 0;</span>
+			}
+
+<span class="fc" id="L243">			QuadTreeImpl qtree = accel.getQuadTree();</span>
+<span class="pc bpc" id="L244" title="1 of 2 branches missed.">			if (qtree != null) {</span>
+<span class="nc" id="L245">				return _isPointInPolygonInternalWithQuadTree(inputPolygon,</span>
+						qtree, inputPoint, tolerance);
+			}
+		}
+
+<span class="fc" id="L250">		return _isPointInPolygonInternal(inputPolygon, inputPoint, tolerance);</span>
+	}
+
+	static int isPointInPolygon(Polygon inputPolygon, double inputPointXVal,
+			double inputPointYVal, double tolerance) {
+<span class="nc bnc" id="L255" title="All 2 branches missed.">		if (inputPolygon.isEmpty())</span>
+<span class="nc" id="L256">			return 0;</span>
+
+<span class="nc" id="L258">		Envelope2D env = new Envelope2D();</span>
+<span class="nc" id="L259">		inputPolygon.queryLooseEnvelope(env);</span>
+<span class="nc" id="L260">		env.inflate(tolerance, tolerance);</span>
+<span class="nc bnc" id="L261" title="All 2 branches missed.">		if (!env.contains(inputPointXVal, inputPointYVal))</span>
+<span class="nc" id="L262">			return 0;</span>
+
+<span class="nc" id="L264">		MultiPathImpl mpImpl = (MultiPathImpl) inputPolygon._getImpl();</span>
+<span class="nc" id="L265">		GeometryAccelerators accel = mpImpl._getAccelerators();</span>
+<span class="nc bnc" id="L266" title="All 2 branches missed.">		if (accel != null) {</span>
+<span class="nc" id="L267">			RasterizedGeometry2D rgeom = accel.getRasterizedGeometry();</span>
+<span class="nc bnc" id="L268" title="All 2 branches missed.">			if (rgeom != null) {</span>
+<span class="nc" id="L269">				RasterizedGeometry2D.HitType hit = rgeom.queryPointInGeometry(</span>
+						inputPointXVal, inputPointYVal);
+<span class="nc bnc" id="L271" title="All 2 branches missed.">				if (hit == RasterizedGeometry2D.HitType.Inside)</span>
+<span class="nc" id="L272">					return 1;</span>
+<span class="nc bnc" id="L273" title="All 2 branches missed.">				else if (hit == RasterizedGeometry2D.HitType.Outside)</span>
+<span class="nc" id="L274">					return 0;</span>
+			}
+		}
+
+<span class="nc" id="L278">		return _isPointInPolygonInternal(inputPolygon, new Point2D(</span>
+				inputPointXVal, inputPointYVal), tolerance);
+	}
+
+	public static int isPointInRing(MultiPathImpl inputPolygonImpl, int iRing,
+			Point2D inputPoint, double tolerance, QuadTree quadTree) {
+<span class="nc" id="L284">		Envelope2D env = new Envelope2D();</span>
+<span class="nc" id="L285">		inputPolygonImpl.queryLooseEnvelope2D(env);</span>
+<span class="nc" id="L286">		env.inflate(tolerance, tolerance);</span>
+<span class="nc bnc" id="L287" title="All 2 branches missed.">		if (!env.contains(inputPoint))</span>
+<span class="nc" id="L288">			return 0;</span>
+
+<span class="nc" id="L290">		boolean bAltenate = true;</span>
+<span class="nc" id="L291">		PointInPolygonHelper helper = new PointInPolygonHelper(bAltenate,</span>
+				inputPoint, tolerance);
+
+<span class="nc bnc" id="L294" title="All 2 branches missed.">		if (quadTree != null) {</span>
+<span class="nc" id="L295">			Envelope2D queryEnv = new Envelope2D();</span>
+<span class="nc" id="L296">			queryEnv.setCoords(env);</span>
+<span class="nc" id="L297">			queryEnv.xmax = inputPoint.x + tolerance;// no need to query</span>
+														// segments to
+														// the right of the
+														// point.
+														// Only segments to the
+														// left
+														// matter.
+<span class="nc" id="L304">			queryEnv.ymin = inputPoint.y - tolerance;</span>
+<span class="nc" id="L305">			queryEnv.ymax = inputPoint.y + tolerance;</span>
+<span class="nc" id="L306">			SegmentIteratorImpl iter = inputPolygonImpl.querySegmentIterator();</span>
+<span class="nc" id="L307">			QuadTree.QuadTreeIterator qiter = quadTree.getIterator(queryEnv,</span>
+					tolerance);
+
+<span class="nc bnc" id="L310" title="All 2 branches missed.">			for (int qhandle = qiter.next(); qhandle != -1; qhandle = qiter</span>
+<span class="nc" id="L311">					.next()) {</span>
+<span class="nc" id="L312">				iter.resetToVertex(quadTree.getElement(qhandle), iRing);</span>
+<span class="nc bnc" id="L313" title="All 2 branches missed.">				if (iter.hasNextSegment()) {</span>
+<span class="nc bnc" id="L314" title="All 2 branches missed.">					if (iter.getPathIndex() != iRing)</span>
+<span class="nc" id="L315">						continue;</span>
+
+<span class="nc" id="L317">					Segment segment = iter.nextSegment();</span>
+<span class="nc bnc" id="L318" title="All 2 branches missed.">					if (helper.processSegment(segment))</span>
+<span class="nc" id="L319">						return -1; // point on boundary</span>
+				}
+			}
+
+<span class="nc" id="L323">			return helper.result();</span>
+		} else {
+<span class="nc" id="L325">			SegmentIteratorImpl iter = inputPolygonImpl.querySegmentIterator();</span>
+<span class="nc" id="L326">			iter.resetToPath(iRing);</span>
+
+<span class="nc bnc" id="L328" title="All 2 branches missed.">			if (iter.nextPath()) {</span>
+<span class="nc bnc" id="L329" title="All 2 branches missed.">				while (iter.hasNextSegment()) {</span>
+<span class="nc" id="L330">					Segment segment = iter.nextSegment();</span>
+<span class="nc bnc" id="L331" title="All 2 branches missed.">					if (helper.processSegment(segment))</span>
+<span class="nc" id="L332">						return -1; // point on boundary</span>
+<span class="nc" id="L333">				}</span>
+			}
+
+<span class="nc" id="L336">			return helper.result();</span>
+		}
+	}
+
+	public static int isPointInPolygon(Polygon inputPolygon, Point inputPoint,
+			double tolerance) {
+<span class="pc bpc" id="L342" title="1 of 2 branches missed.">		if (inputPoint.isEmpty())</span>
+<span class="nc" id="L343">			return 0;</span>
+
+<span class="fc" id="L345">		return isPointInPolygon(inputPolygon, inputPoint.getXY(), tolerance);</span>
+	}
+
+	public static int isPointInAnyOuterRing(Polygon inputPolygon,
+			Point2D inputPoint, double tolerance) {
+<span class="fc" id="L350">		Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L351">		inputPolygon.queryLooseEnvelope(env);</span>
+<span class="fc" id="L352">		env.inflate(tolerance, tolerance);</span>
+<span class="pc bpc" id="L353" title="1 of 2 branches missed.">		if (!env.contains(inputPoint))</span>
+<span class="nc" id="L354">			return 0;</span>
+
+		// Note:
+		// Wolfgang had noted that this could be optimized if the exterior rings
+		// have positive area:
+		// Only test the positive rings and bail out immediately when in a
+		// positive ring.
+		// The worst case complexity is still O(n), but on average for polygons
+		// with holes, that would be faster.
+		// However, that method would not work if polygon is reversed, while the
+		// one here works fine same as PointInPolygon.
+
+<span class="fc" id="L366">		boolean bAltenate = false;// use winding in this test</span>
+<span class="fc" id="L367">		PointInPolygonHelper helper = new PointInPolygonHelper(bAltenate,</span>
+				inputPoint, tolerance);
+<span class="fc" id="L369">		MultiPathImpl mpImpl = (MultiPathImpl) inputPolygon._getImpl();</span>
+<span class="fc" id="L370">		SegmentIteratorImpl iter = mpImpl.querySegmentIterator();</span>
+<span class="fc bfc" id="L371" title="All 2 branches covered.">		while (iter.nextPath()) {</span>
+<span class="fc" id="L372">			double ringArea = mpImpl.calculateRingArea2D(iter.getPathIndex());</span>
+<span class="fc bfc" id="L373" title="All 2 branches covered.">			boolean bIsHole = ringArea &lt; 0;</span>
+<span class="fc bfc" id="L374" title="All 2 branches covered.">			if (!bIsHole) {</span>
+<span class="fc" id="L375">				helper.m_windnum = 0;</span>
+<span class="fc bfc" id="L376" title="All 2 branches covered.">				while (iter.hasNextSegment()) {</span>
+<span class="fc" id="L377">					Segment segment = iter.nextSegment();</span>
+<span class="pc bpc" id="L378" title="1 of 2 branches missed.">					if (helper.processSegment(segment))</span>
+<span class="nc" id="L379">						return -1; // point on boundary</span>
+<span class="fc" id="L380">				}</span>
+
+<span class="fc bfc" id="L382" title="All 2 branches covered.">				if (helper.m_windnum != 0)</span>
+<span class="fc" id="L383">					return 1;</span>
+			}
+<span class="fc" id="L385">		}</span>
+
+<span class="fc" id="L387">		return helper.result();</span>
+	}
+
+	// Tests if Ring1 is inside Ring2.
+	// We assume here that the Polygon is Weak Simple. That is if one point of
+	// Ring1 is found to be inside of Ring2, then
+	// we assume that all of Ring1 is inside Ring2.
+	static boolean _isRingInRing2D(MultiPath polygon, int iRing1, int iRing2,
+			double tolerance, QuadTree quadTree) {
+<span class="nc" id="L396">		MultiPathImpl polygonImpl = (MultiPathImpl) polygon._getImpl();</span>
+<span class="nc" id="L397">		SegmentIteratorImpl segIter = polygonImpl.querySegmentIterator();</span>
+<span class="nc" id="L398">		segIter.resetToPath(iRing1);</span>
+<span class="nc bnc" id="L399" title="All 4 branches missed.">		if (!segIter.nextPath() || !segIter.hasNextSegment())</span>
+<span class="nc" id="L400">			throw new GeometryException(&quot;corrupted geometry&quot;);</span>
+
+<span class="nc" id="L402">		int res = 2;</span>
+
+<span class="nc bnc" id="L404" title="All 4 branches missed.">		while (res == 2 &amp;&amp; segIter.hasNextSegment()) {</span>
+<span class="nc" id="L405">			Segment segment = segIter.nextSegment();</span>
+<span class="nc" id="L406">			Point2D point = segment.getCoord2D(0.5);</span>
+<span class="nc" id="L407">			res = PointInPolygonHelper.isPointInRing(polygonImpl, iRing2,</span>
+					point, tolerance, quadTree);
+<span class="nc" id="L409">		}</span>
+
+<span class="nc bnc" id="L411" title="All 2 branches missed.">		if (res == 2)</span>
+<span class="nc" id="L412">			throw GeometryException.GeometryInternalError();</span>
+<span class="nc bnc" id="L413" title="All 2 branches missed.">		if (res == 1)</span>
+<span class="nc" id="L414">			return true;</span>
+
+<span class="nc" id="L416">		return false;</span>
+	}
+
+    static boolean quadTreeWillHelp(Polygon polygon, int c_queries)
+    {
+<span class="fc" id="L421">        int n = polygon.getPointCount();</span>
+
+<span class="pc bpc" id="L423" title="1 of 2 branches missed.">        if (n &lt; 16)</span>
+<span class="fc" id="L424">            return false;</span>
+
+<span class="nc" id="L426">        double c_build_quad_tree = 2.0; // what's a good constant?</span>
+<span class="nc" id="L427">        double c_query_quad_tree = 1.0; // what's a good constant?</span>
+<span class="nc" id="L428">        double c_point_in_polygon_brute_force = 1.0; // what's a good constant?</span>
+
+<span class="nc" id="L430">        double c_quad_tree = c_build_quad_tree * n + c_query_quad_tree * (Math.log((double)n) / Math.log(2.0)) * c_queries;</span>
+<span class="nc" id="L431">        double c_brute_force = c_point_in_polygon_brute_force * n * c_queries;</span>
+
+<span class="nc bnc" id="L433" title="All 2 branches missed.">        return c_quad_tree &lt; c_brute_force;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

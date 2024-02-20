@@ -1,0 +1,782 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AttributeStreamOfInt32.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">AttributeStreamOfInt32.java</span></div><h1>AttributeStreamOfInt32.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2018 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+
+package com.esri.core.geometry;
+
+import com.esri.core.geometry.VertexDescription.Persistence;
+
+import java.io.IOException;
+import java.io.ObjectStreamException;
+import java.io.Serializable;
+import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
+import java.util.Arrays;
+
+import static com.esri.core.geometry.SizeOf.SIZE_OF_ATTRIBUTE_STREAM_OF_INT32;
+import static com.esri.core.geometry.SizeOf.sizeOfIntArray;
+
+<span class="fc" id="L40">final class AttributeStreamOfInt32 extends AttributeStreamBase implements Serializable {</span>
+	private static final long serialVersionUID = 1L;
+	
+<span class="pc" id="L43">	transient private int[] m_buffer = null;</span>
+	private int m_size;
+
+	public void reserve(int reserve)
+	{
+<span class="fc bfc" id="L48" title="All 2 branches covered.">		if (reserve &lt;= 0)</span>
+<span class="fc" id="L49">			return;</span>
+<span class="pc bpc" id="L50" title="1 of 2 branches missed.">		if (m_buffer == null)</span>
+<span class="nc" id="L51">			m_buffer = new int[reserve];</span>
+		else {
+<span class="fc bfc" id="L53" title="All 2 branches covered.">			if (reserve &lt;= m_buffer.length)</span>
+<span class="fc" id="L54">				return;</span>
+<span class="fc" id="L55">			int[] buf = new int[reserve];</span>
+<span class="fc" id="L56">			System.arraycopy(m_buffer, 0, buf, 0, m_buffer.length);</span>
+<span class="fc" id="L57">			m_buffer = buf;</span>
+		}
+
+<span class="fc" id="L60">	}</span>
+
+	public int size() {
+<span class="fc" id="L63">		return m_size;</span>
+	}
+
+	public int capacity() {
+<span class="nc bnc" id="L67" title="All 2 branches missed.">		return m_buffer != null ? m_buffer.length : 0;</span>
+	}
+	
+<span class="fc" id="L70">	public AttributeStreamOfInt32(int size) {</span>
+<span class="fc" id="L71">		int sz = size;</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">		if (sz &lt; 2)</span>
+<span class="fc" id="L73">			sz = 2;</span>
+<span class="fc" id="L74">		m_buffer = new int[sz];</span>
+<span class="fc" id="L75">		m_size = size;</span>
+<span class="fc" id="L76">	}</span>
+
+<span class="fc" id="L78">	public AttributeStreamOfInt32(int size, int defaultValue) {</span>
+<span class="fc" id="L79">		int sz = size;</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">		if (sz &lt; 2)</span>
+<span class="fc" id="L81">			sz = 2;</span>
+<span class="fc" id="L82">		m_buffer = new int[sz];</span>
+<span class="fc" id="L83">		m_size = size;</span>
+<span class="fc" id="L84">		Arrays.fill(m_buffer, 0, size, defaultValue);</span>
+		// for (int i = 0; i &lt; size; i++)
+		// m_buffer[i] = defaultValue;
+<span class="fc" id="L87">	}</span>
+
+<span class="fc" id="L89">	public AttributeStreamOfInt32(AttributeStreamOfInt32 other) {</span>
+<span class="fc" id="L90">		m_buffer = other.m_buffer.clone();</span>
+<span class="fc" id="L91">		m_size = other.m_size;</span>
+<span class="fc" id="L92">	}</span>
+
+<span class="nc" id="L94">	public AttributeStreamOfInt32(AttributeStreamOfInt32 other, int maxSize) {</span>
+<span class="nc" id="L95">		m_size = other.size();</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">		if (m_size &gt; maxSize)</span>
+<span class="nc" id="L97">			m_size = maxSize;</span>
+<span class="nc" id="L98">		int sz = m_size;</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">		if (sz &lt; 2)</span>
+<span class="nc" id="L100">			sz = 2;</span>
+<span class="nc" id="L101">		m_buffer = new int[sz];</span>
+<span class="nc" id="L102">		System.arraycopy(other.m_buffer, 0, m_buffer, 0, m_size);</span>
+<span class="nc" id="L103">	}</span>
+
+	/**
+	 * Reads a value from the buffer at given offset.
+	 * 
+	 * @param offset
+	 *            is the element number in the stream.
+	 */
+	public int read(int offset) {
+<span class="fc" id="L112">		return m_buffer[offset];</span>
+	}
+
+	public int get(int offset) {
+<span class="fc" id="L116">		return m_buffer[offset];</span>
+	}
+
+	/**
+	 * Overwrites given element with new value.
+	 * 
+	 * @param offset
+	 *            is the element number in the stream.
+	 * @param value
+	 *            is the value to write.
+	 */
+	public void write(int offset, int value) {
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">		if (m_bReadonly) {</span>
+<span class="nc" id="L129">			throw new RuntimeException(&quot;invalid_call&quot;);</span>
+		}
+<span class="fc" id="L131">		m_buffer[offset] = value;</span>
+<span class="fc" id="L132">	}</span>
+
+	public void set(int offset, int value) {
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">		if (m_bReadonly) {</span>
+<span class="nc" id="L136">			throw new RuntimeException(&quot;invalid_call&quot;);</span>
+		}
+<span class="fc" id="L138">		m_buffer[offset] = value;</span>
+<span class="fc" id="L139">	}</span>
+
+	/**
+	 * Adds a new value at the end of the stream.
+	 * 
+	 * @param offset
+	 *            is the element number in the stream.
+	 * @param value
+	 *            is the value to write.
+	 */
+	public void add(int v) {
+<span class="fc" id="L150">		resize(m_size + 1);</span>
+<span class="fc" id="L151">		m_buffer[m_size - 1] = v;</span>
+<span class="fc" id="L152">	}</span>
+
+	@Override
+	public AttributeStreamBase restrictedClone(int maxsize) {
+<span class="fc" id="L156">		int len = m_size;</span>
+<span class="pc bpc" id="L157" title="1 of 2 branches missed.">		int newSize = maxsize &lt; len ? maxsize : len;</span>
+<span class="fc" id="L158">		int[] newBuffer = new int[newSize];</span>
+<span class="fc" id="L159">		System.arraycopy(m_buffer, 0, newBuffer, 0, newSize);</span>
+<span class="fc" id="L160">		m_buffer = newBuffer;</span>
+<span class="fc" id="L161">		m_size = newSize;</span>
+<span class="fc" id="L162">		return this;</span>
+	}
+
+	@Override
+	public int virtualSize() {
+<span class="fc" id="L167">		return size();</span>
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+<span class="fc" id="L173">		return SIZE_OF_ATTRIBUTE_STREAM_OF_INT32 + sizeOfIntArray(m_buffer.length);</span>
+	}
+
+	@Override
+	public int getPersistence() {
+<span class="fc" id="L178">		return Persistence.enumInt32;</span>
+	}
+
+	@Override
+	public double readAsDbl(int offset) {
+<span class="fc" id="L183">		return read(offset);</span>
+	}
+
+	@Override
+	public int readAsInt(int offset) {
+<span class="nc" id="L188">		return (int) read(offset);</span>
+	}
+
+	@Override
+	public long readAsInt64(int offset) {
+<span class="nc" id="L193">		return (long) read(offset);</span>
+	}
+
+	@Override
+	public void resize(int newSize) {
+<span class="pc bpc" id="L198" title="1 of 2 branches missed.">		if (m_bLockedInSize)</span>
+<span class="nc" id="L199">			throw new GeometryException(</span>
+					&quot;invalid call. Attribute Stream is locked and cannot be resized.&quot;);
+
+<span class="fc bfc" id="L202" title="All 2 branches covered.">		if (newSize &lt;= m_size) {</span>
+<span class="fc bfc" id="L203" title="All 2 branches covered.">			if ((newSize * 5) / 4 &lt; m_buffer.length) {// decrease when the 25%</span>
+														// margin is exceeded
+<span class="fc" id="L205">				int[] newBuffer = new int[newSize];</span>
+<span class="fc" id="L206">				System.arraycopy(m_buffer, 0, newBuffer, 0, newSize);</span>
+<span class="fc" id="L207">				m_buffer = newBuffer;</span>
+			}
+<span class="fc" id="L209">			m_size = newSize;</span>
+		} else {
+<span class="fc bfc" id="L211" title="All 2 branches covered.">			if (newSize &gt; m_buffer.length) {</span>
+<span class="fc bfc" id="L212" title="All 2 branches covered.">				int sz = (newSize &lt; 64) ? Math.max(newSize * 2, 4)</span>
+<span class="fc" id="L213">						: (newSize * 5) / 4;</span>
+<span class="fc" id="L214">				int[] newBuffer = new int[sz];</span>
+<span class="fc" id="L215">				System.arraycopy(m_buffer, 0, newBuffer, 0, m_size);</span>
+<span class="fc" id="L216">				m_buffer = newBuffer;</span>
+			}
+
+<span class="fc" id="L219">			m_size = newSize;</span>
+		}
+<span class="fc" id="L221">	}</span>
+
+	@Override
+	public void resizePreserveCapacity(int newSize)// java only method
+	{
+<span class="pc bpc" id="L226" title="2 of 4 branches missed.">		if (m_buffer == null || newSize &gt; m_buffer.length)</span>
+<span class="nc" id="L227">			resize(newSize);</span>
+<span class="pc bpc" id="L228" title="1 of 2 branches missed.">		if (m_bLockedInSize)</span>
+<span class="nc" id="L229">			throw new GeometryException(</span>
+					&quot;invalid call. Attribute Stream is locked and cannot be resized.&quot;);
+
+<span class="fc" id="L232">		m_size = newSize;</span>
+<span class="fc" id="L233">	}</span>
+
+	@Override
+	public void resize(int newSize, double defaultValue) {
+<span class="pc bpc" id="L237" title="1 of 2 branches missed.">		if (m_bLockedInSize)</span>
+<span class="nc" id="L238">			throw new GeometryException(</span>
+					&quot;invalid call. Attribute Stream is locked and cannot be resized.&quot;);
+<span class="pc bpc" id="L240" title="1 of 2 branches missed.">		if (newSize &lt;= m_size) {</span>
+<span class="nc bnc" id="L241" title="All 2 branches missed.">			if ((newSize * 5) / 4 &lt; m_buffer.length) {// decrease when the 25%</span>
+														// margin is exceeded
+<span class="nc" id="L243">				int[] newBuffer = new int[newSize];</span>
+<span class="nc" id="L244">				System.arraycopy(m_buffer, 0, newBuffer, 0, newSize);</span>
+<span class="nc" id="L245">				m_buffer = newBuffer;</span>
+			}
+<span class="nc" id="L247">			m_size = newSize;</span>
+		} else {
+<span class="fc bfc" id="L249" title="All 2 branches covered.">			if (newSize &gt; m_buffer.length) {</span>
+<span class="fc bfc" id="L250" title="All 2 branches covered.">				int sz = (newSize &lt; 64) ? Math.max(newSize * 2, 4)</span>
+<span class="fc" id="L251">						: (newSize * 5) / 4;</span>
+<span class="fc" id="L252">				int[] newBuffer = new int[sz];</span>
+<span class="fc" id="L253">				System.arraycopy(m_buffer, 0, newBuffer, 0, m_size);</span>
+<span class="fc" id="L254">				m_buffer = newBuffer;</span>
+			}
+
+<span class="fc" id="L257">			Arrays.fill(m_buffer, m_size, newSize, (int) defaultValue);</span>
+			// for (int i = m_size; i &lt; newSize; i++)
+			// m_buffer[i] = (int)defaultValue;
+
+<span class="fc" id="L261">			m_size = newSize;</span>
+		}
+<span class="fc" id="L263">	}</span>
+
+	@Override
+	public void writeAsDbl(int offset, double d) {
+<span class="fc" id="L267">		write(offset, (int) d);</span>
+<span class="fc" id="L268">	}</span>
+
+	@Override
+	public void writeAsInt64(int offset, long d) {
+<span class="nc" id="L272">		write(offset, (int) d);</span>
+<span class="nc" id="L273">	}</span>
+
+	@Override
+	public void writeAsInt(int offset, int d) {
+<span class="fc" id="L277">		write(offset, (int) d);</span>
+<span class="fc" id="L278">	}</span>
+
+	// @Override
+	// public void writeRange(int srcStart, int count, ByteBuffer dst,
+	// int dstOffsetBytes) {
+	// // TODO Auto-generated method stub
+	//
+	// }
+
+	@Override
+	public int calculateHashImpl(int hashCode, int start, int end) {
+<span class="nc bnc" id="L289" title="All 4 branches missed.">		for (int i = start, n = size(); i &lt; n &amp;&amp; i &lt; end; i++)</span>
+<span class="nc" id="L290">			hashCode = NumberUtils.hash(hashCode, read(i));</span>
+
+<span class="nc" id="L292">		return hashCode;</span>
+	}
+
+	@Override
+	public boolean equals(AttributeStreamBase other, int start, int end) {
+<span class="pc bpc" id="L297" title="1 of 2 branches missed.">		if (other == null)</span>
+<span class="nc" id="L298">			return false;</span>
+
+<span class="pc bpc" id="L300" title="1 of 2 branches missed.">		if (!(other instanceof AttributeStreamOfInt32))</span>
+<span class="nc" id="L301">			return false;</span>
+
+<span class="fc" id="L303">		AttributeStreamOfInt32 _other = (AttributeStreamOfInt32) other;</span>
+
+<span class="fc" id="L305">		int size = size();</span>
+<span class="fc" id="L306">		int sizeOther = _other.size();</span>
+
+<span class="pc bpc" id="L308" title="4 of 6 branches missed.">		if (end &gt; size || end &gt; sizeOther &amp;&amp; (size != sizeOther))</span>
+<span class="nc" id="L309">			return false;</span>
+
+<span class="pc bpc" id="L311" title="1 of 2 branches missed.">		if (end &gt; size)</span>
+<span class="nc" id="L312">			end = size;</span>
+
+<span class="fc bfc" id="L314" title="All 2 branches covered.">		for (int i = start; i &lt; end; i++)</span>
+<span class="pc bpc" id="L315" title="1 of 2 branches missed.">			if (read(i) != _other.read(i))</span>
+<span class="nc" id="L316">				return false;</span>
+
+<span class="fc" id="L318">		return true;</span>
+	}
+
+	public int getLast() {
+<span class="fc" id="L322">		return m_buffer[m_size - 1];</span>
+	}
+
+	public void setLast(int v) {
+<span class="fc" id="L326">		m_buffer[m_size - 1] = v;</span>
+<span class="fc" id="L327">	}</span>
+	
+	public void removeLast() {
+<span class="fc" id="L330">		resize(m_size - 1);</span>
+<span class="fc" id="L331">	}</span>
+
+	// Finds element in the unsorted array and returns its index. Returns -1 if
+	// the element could not be found.
+	int findElement(int value) {
+<span class="fc bfc" id="L336" title="All 2 branches covered.">		for (int i = 0, n = m_size; i &lt; n; i++) {</span>
+<span class="fc bfc" id="L337" title="All 2 branches covered.">			if (m_buffer[i] == value)</span>
+<span class="fc" id="L338">				return i;</span>
+		}
+<span class="fc" id="L340">		return -1;</span>
+	}
+
+	// Returns True if element could be found in the array.
+	boolean hasElement(int value) {
+<span class="fc bfc" id="L345" title="All 2 branches covered.">		return findElement(value) &gt;= 0;</span>
+	}
+
+	// Removes the element from the array in constant time.
+	// It moves the last element of the array to the index and decrements the
+	// array size by 1.
+	void popElement(int index) {
+<span class="nc bnc" id="L352" title="All 4 branches missed.">		assert (index &gt;= 0 &amp;&amp; index &lt; m_size);</span>
+<span class="nc bnc" id="L353" title="All 2 branches missed.">		if (index &lt; m_size - 1) {</span>
+<span class="nc" id="L354">			m_buffer[index] = m_buffer[m_size - 1];</span>
+		}
+
+<span class="nc" id="L357">		resize(m_size - 1);</span>
+<span class="nc" id="L358">	}</span>
+
+	@Override
+	public void addRange(AttributeStreamBase src, int start, int count,
+			boolean bForward, int stride) {
+<span class="nc bnc" id="L363" title="All 2 branches missed.">		if (m_bReadonly)</span>
+<span class="nc" id="L364">			throw new GeometryException(&quot;invalid_call&quot;);</span>
+
+<span class="nc bnc" id="L366" title="All 6 branches missed.">		if (!bForward &amp;&amp; (stride &lt; 1 || count % stride != 0))</span>
+<span class="nc" id="L367">			throw new IllegalArgumentException();</span>
+
+<span class="nc" id="L369">		int oldSize = m_size;</span>
+<span class="nc" id="L370">		int newSize = oldSize + count;</span>
+<span class="nc" id="L371">		resize(newSize);</span>
+
+<span class="nc bnc" id="L373" title="All 2 branches missed.">		if (bForward) {</span>
+<span class="nc" id="L374">			System.arraycopy(((AttributeStreamOfInt32) src).m_buffer, start,</span>
+					m_buffer, oldSize, count);
+		} else {
+<span class="nc" id="L377">			int n = count;</span>
+
+<span class="nc bnc" id="L379" title="All 2 branches missed.">			for (int i = 0; i &lt; count; i += stride) {</span>
+<span class="nc" id="L380">				n -= stride;</span>
+
+<span class="nc bnc" id="L382" title="All 2 branches missed.">				for (int s = 0; s &lt; stride; s++) {</span>
+<span class="nc" id="L383">					m_buffer[oldSize + i + s] = ((AttributeStreamOfInt32) src).m_buffer[start</span>
+							+ n + s];
+				}
+			}
+		}
+<span class="nc" id="L388">	}</span>
+
+	@Override
+	public void insertRange(int start, AttributeStreamBase src, int srcStart,
+			int count, boolean bForward, int stride, int validSize) {
+<span class="pc bpc" id="L393" title="1 of 2 branches missed.">		if (m_bReadonly)</span>
+<span class="nc" id="L394">			throw new GeometryException(&quot;invalid_call&quot;);</span>
+
+<span class="pc bpc" id="L396" title="5 of 6 branches missed.">		if (!bForward &amp;&amp; (stride &lt; 1 || count % stride != 0))</span>
+<span class="nc" id="L397">			throw new IllegalArgumentException();</span>
+
+<span class="fc" id="L399">		System.arraycopy(m_buffer, start, m_buffer, start + count, validSize</span>
+				- start);
+
+<span class="pc bpc" id="L402" title="1 of 2 branches missed.">		if (m_buffer == ((AttributeStreamOfInt32) src).m_buffer) {</span>
+<span class="nc bnc" id="L403" title="All 2 branches missed.">			if (start &lt; srcStart)</span>
+<span class="nc" id="L404">				srcStart += count;</span>
+		}
+
+<span class="pc bpc" id="L407" title="1 of 2 branches missed.">		if (bForward) {</span>
+<span class="fc" id="L408">			System.arraycopy(((AttributeStreamOfInt32) src).m_buffer, srcStart,</span>
+					m_buffer, start, count);
+		} else {
+<span class="nc" id="L411">			int n = count;</span>
+
+<span class="nc bnc" id="L413" title="All 2 branches missed.">			for (int i = 0; i &lt; count; i += stride) {</span>
+<span class="nc" id="L414">				n -= stride;</span>
+
+<span class="nc bnc" id="L416" title="All 2 branches missed.">				for (int s = 0; s &lt; stride; s++) {</span>
+<span class="nc" id="L417">					m_buffer[start + i + s] = ((AttributeStreamOfInt32) src).m_buffer[srcStart</span>
+							+ n + s];
+				}
+			}
+		}
+<span class="fc" id="L422">	}</span>
+
+	@Override
+	public void insertRange(int start, double value, int count, int validSize) {
+<span class="nc bnc" id="L426" title="All 2 branches missed.">		if (m_bReadonly)</span>
+<span class="nc" id="L427">			throw new GeometryException(&quot;invalid_call&quot;);</span>
+
+<span class="nc" id="L429">		System.arraycopy(m_buffer, start, m_buffer, start + count, validSize</span>
+				- start);
+
+<span class="nc" id="L432">		int v = (int) value;</span>
+<span class="nc" id="L433">		Arrays.fill(m_buffer, start, start + count, v);</span>
+		// for (int i = 0; i &lt; count; i++)
+		// {
+		// m_buffer[start + i] = v;
+		// }
+<span class="nc" id="L438">	}</span>
+
+	@Override
+	public void insertAttributes(int start, Point pt, int semantics,
+			int validSize) {
+<span class="pc bpc" id="L443" title="1 of 2 branches missed.">		if (m_bReadonly)</span>
+<span class="nc" id="L444">			throw new GeometryException(&quot;invalid_call&quot;);</span>
+
+<span class="fc" id="L446">		int comp = VertexDescription.getComponentCount(semantics);</span>
+
+<span class="fc" id="L448">		System.arraycopy(m_buffer, start, m_buffer, start + comp, validSize</span>
+				- start);
+
+<span class="fc bfc" id="L451" title="All 2 branches covered.">		for (int c = 0; c &lt; comp; c++) {</span>
+<span class="fc" id="L452">			m_buffer[start + c] = (int) pt.getAttributeAsDbl(semantics, c);</span>
+		}
+<span class="fc" id="L454">	}</span>
+
+	@Override
+	public void eraseRange(int index, int count, int validSize) {
+<span class="nc bnc" id="L458" title="All 2 branches missed.">		if (m_bReadonly)</span>
+<span class="nc" id="L459">			throw new GeometryException(&quot;invalid_call&quot;);</span>
+
+<span class="nc bnc" id="L461" title="All 2 branches missed.">		if (index + count &gt; m_size)</span>
+<span class="nc" id="L462">			throw new GeometryException(&quot;invalid_call&quot;);</span>
+
+<span class="nc" id="L464">		System.arraycopy(m_buffer, index + count, m_buffer, index, validSize</span>
+				- (index + count));
+<span class="nc" id="L466">		m_size -= count;</span>
+<span class="nc" id="L467">	}</span>
+
+	@Override
+	public void readRange(int srcStart, int count, ByteBuffer dst,
+			int dstOffset, boolean bForward) {
+<span class="nc bnc" id="L472" title="All 6 branches missed.">		if (srcStart &lt; 0 || count &lt; 0 || dstOffset &lt; 0</span>
+<span class="nc bnc" id="L473" title="All 2 branches missed.">				|| size() &lt; count + srcStart)</span>
+<span class="nc" id="L474">			throw new IllegalArgumentException();</span>
+
+<span class="nc" id="L476">		final int elmSize = NumberUtils.sizeOf((double) 0);</span>
+
+<span class="nc bnc" id="L478" title="All 2 branches missed.">		if (dst.capacity() &lt; (int) (dstOffset + elmSize * count))</span>
+<span class="nc" id="L479">			throw new IllegalArgumentException();</span>
+
+<span class="nc bnc" id="L481" title="All 2 branches missed.">		if (count == 0)</span>
+<span class="nc" id="L482">			return;</span>
+
+<span class="nc" id="L484">		int j = srcStart;</span>
+<span class="nc bnc" id="L485" title="All 2 branches missed.">		if (!bForward)</span>
+<span class="nc" id="L486">			j += count - 1;</span>
+<span class="nc bnc" id="L487" title="All 2 branches missed.">		final int dj = bForward ? 1 : -1;</span>
+<span class="nc" id="L488">		int offset = dstOffset;</span>
+<span class="nc bnc" id="L489" title="All 2 branches missed.">		for (int i = 0; i &lt; count; i++, offset += elmSize) {</span>
+<span class="nc" id="L490">			dst.putInt(offset, m_buffer[j]);</span>
+<span class="nc" id="L491">			j += dj;</span>
+		}
+<span class="nc" id="L493">	}</span>
+
+	@Override
+	public void reverseRange(int index, int count, int stride) {
+<span class="nc bnc" id="L497" title="All 2 branches missed.">		if (m_bReadonly)</span>
+<span class="nc" id="L498">			throw new GeometryException(&quot;invalid_call&quot;);</span>
+
+<span class="nc bnc" id="L500" title="All 4 branches missed.">		if (stride &lt; 1 || count % stride != 0)</span>
+<span class="nc" id="L501">			throw new GeometryException(&quot;invalid_call&quot;);</span>
+
+<span class="nc" id="L503">		int cIterations = count &gt;&gt; 1;</span>
+<span class="nc" id="L504">		int n = count;</span>
+
+<span class="nc bnc" id="L506" title="All 2 branches missed.">		for (int i = 0; i &lt; cIterations; i += stride) {</span>
+<span class="nc" id="L507">			n -= stride;</span>
+
+<span class="nc bnc" id="L509" title="All 2 branches missed.">			for (int s = 0; s &lt; stride; s++) {</span>
+<span class="nc" id="L510">				int temp = m_buffer[index + i + s];</span>
+<span class="nc" id="L511">				m_buffer[index + i + s] = m_buffer[index + n + s];</span>
+<span class="nc" id="L512">				m_buffer[index + n + s] = temp;</span>
+			}
+		}
+<span class="nc" id="L515">	}</span>
+
+	@Override
+	public void setRange(double value, int start, int count) {
+<span class="pc bpc" id="L519" title="4 of 8 branches missed.">		if (start &lt; 0 || count &lt; 0 || start &lt; 0 || count + start &gt; size())</span>
+<span class="nc" id="L520">			throw new IllegalArgumentException();</span>
+
+<span class="fc" id="L522">		int v = (int) value;</span>
+<span class="fc" id="L523">		Arrays.fill(m_buffer, start, start + count, v);</span>
+		// for (int i = start, n = start + count; i &lt; n; i++)
+		// write(i, v);
+<span class="fc" id="L526">	}</span>
+
+	@Override
+	public void writeRange(int startElement, int count,
+			AttributeStreamBase _src, int srcStart, boolean bForward, int stride) {
+<span class="nc bnc" id="L531" title="All 6 branches missed.">		if (startElement &lt; 0 || count &lt; 0 || srcStart &lt; 0)</span>
+<span class="nc" id="L532">			throw new IllegalArgumentException();</span>
+
+<span class="nc bnc" id="L534" title="All 6 branches missed.">		if (!bForward &amp;&amp; (stride &lt;= 0 || (count % stride != 0)))</span>
+<span class="nc" id="L535">			throw new IllegalArgumentException();</span>
+
+<span class="nc" id="L537">		AttributeStreamOfInt32 src = (AttributeStreamOfInt32) _src; // the input</span>
+																	// type must
+																	// match
+
+<span class="nc bnc" id="L541" title="All 2 branches missed.">		if (src.size() &lt; (int) (srcStart + count))</span>
+<span class="nc" id="L542">			throw new IllegalArgumentException();</span>
+
+<span class="nc bnc" id="L544" title="All 2 branches missed.">		if (count == 0)</span>
+<span class="nc" id="L545">			return;</span>
+
+<span class="nc bnc" id="L547" title="All 2 branches missed.">		if (size() &lt; count + startElement)</span>
+<span class="nc" id="L548">			resize(count + startElement);</span>
+
+<span class="nc bnc" id="L550" title="All 2 branches missed.">		if (_src == (AttributeStreamBase) this) {</span>
+<span class="nc" id="L551">			_selfWriteRangeImpl(startElement, count, srcStart, bForward, stride);</span>
+<span class="nc" id="L552">			return;</span>
+		}
+
+<span class="nc bnc" id="L555" title="All 2 branches missed.">		if (bForward) {</span>
+<span class="nc" id="L556">			System.arraycopy(src.m_buffer, srcStart, m_buffer, startElement,</span>
+					count);
+			// int j = startElement;
+			// int offset = srcStart;
+			// for (int i = 0; i &lt; count; i++)
+			// {
+			// m_buffer[j] = src.m_buffer[offset];
+			// j++;
+			// offset++;
+			// }
+		} else {
+<span class="nc" id="L567">			int j = startElement;</span>
+<span class="nc" id="L568">			int offset = srcStart + count - stride;</span>
+<span class="nc bnc" id="L569" title="All 2 branches missed.">			if (stride == 1) {</span>
+<span class="nc bnc" id="L570" title="All 2 branches missed.">				for (int i = 0; i &lt; count; i++) {</span>
+<span class="nc" id="L571">					m_buffer[j] = src.m_buffer[offset];</span>
+<span class="nc" id="L572">					j++;</span>
+<span class="nc" id="L573">					offset--;</span>
+				}
+			} else {
+<span class="nc bnc" id="L576" title="All 2 branches missed.">				for (int i = 0, n = count / stride; i &lt; n; i++) {</span>
+<span class="nc bnc" id="L577" title="All 2 branches missed.">					for (int k = 0; k &lt; stride; k++)</span>
+<span class="nc" id="L578">						m_buffer[j + k] = src.m_buffer[offset + k];</span>
+
+<span class="nc" id="L580">					j += stride;</span>
+<span class="nc" id="L581">					offset -= stride;</span>
+				}
+			}
+		}
+<span class="nc" id="L585">	}</span>
+
+	private void _selfWriteRangeImpl(int toElement, int count, int fromElement,
+			boolean bForward, int stride) {
+
+		// writing from to this stream.
+<span class="nc bnc" id="L591" title="All 2 branches missed.">		if (bForward) {</span>
+<span class="nc bnc" id="L592" title="All 2 branches missed.">			if (toElement == fromElement)</span>
+<span class="nc" id="L593">				return;</span>
+		}
+
+<span class="nc" id="L596">		System.arraycopy(m_buffer, fromElement, m_buffer, toElement, count);</span>
+<span class="nc bnc" id="L597" title="All 2 branches missed.">		if (bForward)</span>
+<span class="nc" id="L598">			return;</span>
+
+		// reverse what we written
+<span class="nc" id="L601">		int j = toElement;</span>
+<span class="nc" id="L602">		int offset = toElement + count - stride;</span>
+<span class="nc bnc" id="L603" title="All 2 branches missed.">		for (int i = 0, n = count / 2; i &lt; n; i++) {</span>
+<span class="nc bnc" id="L604" title="All 2 branches missed.">			for (int k = 0; k &lt; stride; k++) {</span>
+<span class="nc" id="L605">				int v = m_buffer[j + k];</span>
+<span class="nc" id="L606">				m_buffer[j + k] = m_buffer[offset + k];</span>
+<span class="nc" id="L607">				m_buffer[offset + k] = v;</span>
+			}
+<span class="nc" id="L609">			j += stride;</span>
+<span class="nc" id="L610">			offset -= stride;</span>
+		}
+<span class="nc" id="L612">	}</span>
+
+	@Override
+	public void writeRange(int startElement, int count, ByteBuffer src,
+			int offsetBytes, boolean bForward) {
+<span class="nc bnc" id="L617" title="All 6 branches missed.">		if (startElement &lt; 0 || count &lt; 0 || offsetBytes &lt; 0)</span>
+<span class="nc" id="L618">			throw new IllegalArgumentException();</span>
+
+<span class="nc" id="L620">		final int elmSize = NumberUtils.sizeOf((double) 0);</span>
+<span class="nc bnc" id="L621" title="All 2 branches missed.">		if (src.capacity() &lt; (int) (offsetBytes + elmSize * count))</span>
+<span class="nc" id="L622">			throw new IllegalArgumentException();</span>
+
+<span class="nc bnc" id="L624" title="All 2 branches missed.">		if (count == 0)</span>
+<span class="nc" id="L625">			return;</span>
+
+<span class="nc bnc" id="L627" title="All 2 branches missed.">		if (size() &lt; count + startElement)</span>
+<span class="nc" id="L628">			resize(count + startElement);</span>
+
+<span class="nc" id="L630">		int j = startElement;</span>
+<span class="nc bnc" id="L631" title="All 2 branches missed.">		if (!bForward)</span>
+<span class="nc" id="L632">			j += count - 1;</span>
+
+<span class="nc bnc" id="L634" title="All 2 branches missed.">		final int dj = bForward ? 1 : -1;</span>
+
+<span class="nc" id="L636">		int offset = offsetBytes;</span>
+<span class="nc bnc" id="L637" title="All 2 branches missed.">		for (int i = 0; i &lt; count; i++, offset += elmSize) {</span>
+<span class="nc" id="L638">			m_buffer[j] = src.getInt(offset);</span>
+<span class="nc" id="L639">			j += dj;</span>
+		}
+
+<span class="nc" id="L642">	}</span>
+
+<span class="fc" id="L644">	static public abstract class IntComparator {</span>
+		public abstract int compare(int v1, int v2);
+	};
+
+	static class RandomSeed {
+		public int random;
+
+<span class="fc" id="L651">		public RandomSeed() {</span>
+<span class="fc" id="L652">			random = 1973;</span>
+<span class="fc" id="L653">		}</span>
+	}
+
+	public void Sort(int start, int end, IntComparator compare) {
+<span class="fc bfc" id="L657" title="All 2 branches covered.">		if (end - start &lt; 10)</span>
+<span class="fc" id="L658">			insertionsort(start, end, compare);</span>
+		else {
+<span class="fc" id="L660">			quicksort(start, end - 1, compare, new RandomSeed());</span>
+		}
+<span class="fc" id="L662">	}</span>
+
+	void insertionsort(int start, int end, IntComparator compare) {
+<span class="fc bfc" id="L665" title="All 2 branches covered.">		for (int j = start; j &lt; end; j++)// insertion sort</span>
+		{
+<span class="fc" id="L667">			int key = m_buffer[j];</span>
+<span class="fc" id="L668">			int i = j - 1;</span>
+<span class="fc bfc" id="L669" title="All 4 branches covered.">			while (i &gt;= start &amp;&amp; compare.compare(m_buffer[i], key) &gt; 0) {</span>
+<span class="fc" id="L670">				m_buffer[i + 1] = m_buffer[i];</span>
+<span class="fc" id="L671">				i--;</span>
+			}
+<span class="fc" id="L673">			m_buffer[i + 1] = key;</span>
+		}
+<span class="fc" id="L675">	}</span>
+
+	void swap(int left, int right) {
+<span class="fc" id="L678">		int tmp = m_buffer[right];</span>
+<span class="fc" id="L679">		m_buffer[right] = m_buffer[left];</span>
+<span class="fc" id="L680">		m_buffer[left] = tmp;</span>
+<span class="fc" id="L681">	}</span>
+
+	void quicksort(int leftIn, int rightIn, IntComparator compare,
+			RandomSeed seed) {
+<span class="fc bfc" id="L685" title="All 2 branches covered.">		if (leftIn &gt;= rightIn)</span>
+<span class="fc" id="L686">			return;</span>
+
+<span class="fc" id="L688">		int left = leftIn;</span>
+<span class="fc" id="L689">		int right = rightIn;</span>
+
+		while (true)// tail recursion loop
+		{
+<span class="fc bfc" id="L693" title="All 2 branches covered.">			if (right - left &lt; 9) {</span>
+<span class="fc" id="L694">				insertionsort(left, right + 1, compare);</span>
+<span class="fc" id="L695">				return;</span>
+			}
+			// Select random index for the pivot
+<span class="fc" id="L698">			seed.random = NumberUtils.nextRand(seed.random);</span>
+<span class="fc" id="L699">			long nom = ((long) (right - left)) * seed.random;</span>
+<span class="fc" id="L700">			int pivotIndex = (int) (nom / NumberUtils.intMax()) + left;</span>
+			// Get the pivot value
+<span class="fc" id="L702">			int pivotValue = m_buffer[pivotIndex];</span>
+
+			// Start partition
+			// Move pivot to the right
+<span class="fc" id="L706">			swap(pivotIndex, right);</span>
+<span class="fc" id="L707">			int storeIndex = left;</span>
+<span class="fc bfc" id="L708" title="All 2 branches covered.">			for (int i = left; i &lt; right; i++) {</span>
+<span class="fc" id="L709">				int elm = m_buffer[i];</span>
+<span class="fc bfc" id="L710" title="All 2 branches covered.">				if (compare.compare(elm, pivotValue) &lt;= 0) {</span>
+<span class="fc" id="L711">					swap(storeIndex, i);</span>
+<span class="fc" id="L712">					storeIndex = storeIndex + 1;</span>
+				}
+			}
+
+			// Move pivot to its final place
+<span class="fc" id="L717">			swap(storeIndex, right);</span>
+			// End partition
+
+			// Shorter part is regular recursion
+			// Longer part is tail recursion
+<span class="fc bfc" id="L722" title="All 2 branches covered.">			if (storeIndex - left &lt; right - storeIndex) {</span>
+<span class="fc" id="L723">				quicksort(left, storeIndex - 1, compare, seed);</span>
+<span class="fc" id="L724">				left = storeIndex + 1;</span>
+			} else {
+<span class="fc" id="L726">				quicksort(storeIndex + 1, right, compare, seed);</span>
+<span class="fc" id="L727">				right = storeIndex - 1;</span>
+			}
+
+<span class="fc" id="L730">		}</span>
+	}
+
+	public void sort(int start, int end) {
+<span class="fc" id="L734">		Arrays.sort(m_buffer, start, end);</span>
+<span class="fc" id="L735">	}</span>
+	
+	private void writeObject(java.io.ObjectOutputStream stream)
+			throws IOException {
+<span class="fc" id="L739">		stream.defaultWriteObject();</span>
+<span class="fc" id="L740">		IntBuffer intBuf = null;</span>
+<span class="fc" id="L741">		byte[] bytes = null;</span>
+<span class="fc bfc" id="L742" title="All 2 branches covered.">		for (int i = 0; i &lt; m_size;) {</span>
+<span class="fc" id="L743">			int n = Math.min(32, m_size - i);</span>
+<span class="fc bfc" id="L744" title="All 2 branches covered.">			if (bytes == null) {</span>
+<span class="fc" id="L745">				bytes = new byte[n * 4]; //32 elements at a time</span>
+<span class="fc" id="L746">				ByteBuffer buf = ByteBuffer.wrap(bytes);</span>
+<span class="fc" id="L747">				intBuf = buf.asIntBuffer();</span>
+			}
+<span class="fc" id="L749">			intBuf.rewind();</span>
+<span class="fc" id="L750">			intBuf.put(m_buffer, i, n);</span>
+<span class="fc" id="L751">			stream.write(bytes, 0, n * 4);</span>
+<span class="fc" id="L752">			i += n;</span>
+<span class="fc" id="L753">		}</span>
+<span class="fc" id="L754">	}</span>
+
+	private void readObject(java.io.ObjectInputStream stream)
+			throws IOException, ClassNotFoundException {
+<span class="fc" id="L758">		stream.defaultReadObject();</span>
+<span class="fc" id="L759">		m_buffer = new int[m_size];</span>
+<span class="fc" id="L760">		IntBuffer intBuf = null;</span>
+<span class="fc" id="L761">		byte[] bytes = null;</span>
+<span class="fc bfc" id="L762" title="All 2 branches covered.">		for (int i = 0; i &lt; m_size;) {</span>
+<span class="fc" id="L763">			int n = Math.min(32, m_size - i);</span>
+<span class="fc bfc" id="L764" title="All 2 branches covered.">			if (bytes == null) {</span>
+<span class="fc" id="L765">				bytes = new byte[n * 4]; //32 elements at a time</span>
+<span class="fc" id="L766">				ByteBuffer buf = ByteBuffer.wrap(bytes);</span>
+<span class="fc" id="L767">				intBuf = buf.asIntBuffer();</span>
+			}
+<span class="fc" id="L769">			stream.read(bytes, 0, n * 4);</span>
+<span class="fc" id="L770">			intBuf.rewind();</span>
+<span class="fc" id="L771">			intBuf.get(m_buffer, i, n);</span>
+<span class="fc" id="L772">			i += n;</span>
+<span class="fc" id="L773">		}</span>
+<span class="fc" id="L774">	}</span>
+	
+	@SuppressWarnings(&quot;unused&quot;)
+	private void readObjectNoData() throws ObjectStreamException {
+<span class="nc" id="L778">		m_buffer = new int[2];</span>
+<span class="nc" id="L779">		m_size = 0;</span>
+<span class="nc" id="L780">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

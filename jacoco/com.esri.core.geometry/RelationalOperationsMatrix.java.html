@@ -1,0 +1,2877 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RelationalOperationsMatrix.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">RelationalOperationsMatrix.java</span></div><h1>RelationalOperationsMatrix.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+<span class="fc" id="L26">class RelationalOperationsMatrix {</span>
+	private TopoGraph m_topo_graph;
+	private int[] m_matrix;
+    private int[] m_max_dim;
+	private boolean[] m_perform_predicates;
+	private String m_scl;
+	private int m_predicates_half_edge;
+    private int m_predicates_cluster;
+	private int m_predicate_count;
+	private int m_cluster_index_a;
+	private int m_cluster_index_b;
+	private int m_visited_index;
+
+	private interface MatrixPredicate {
+		static final int InteriorInterior = 0;
+		static final int InteriorBoundary = 1;
+		static final int InteriorExterior = 2;
+		static final int BoundaryInterior = 3;
+		static final int BoundaryBoundary = 4;
+		static final int BoundaryExterior = 5;
+		static final int ExteriorInterior = 6;
+		static final int ExteriorBoundary = 7;
+		static final int ExteriorExterior = 8;
+	}
+
+	private interface Predicates {
+		static final int AreaAreaPredicates = 0;
+		static final int AreaLinePredicates = 1;
+		static final int LineLinePredicates = 2;
+		static final int AreaPointPredicates = 3;
+		static final int LinePointPredicates = 4;
+		static final int PointPointPredicates = 5;
+	}
+
+	// Computes the necessary 9 intersection relationships of boundary,
+	// interior, and exterior of geometry_a vs geometry_b for the given scl
+	// string.
+	static boolean relate(Geometry geometry_a, Geometry geometry_b,
+			SpatialReference sr, String scl, ProgressTracker progress_tracker) {
+
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">        if (scl.length() != 9)</span>
+<span class="nc" id="L67">            throw new GeometryException(&quot;relation string length has to be 9 characters&quot;);</span>
+
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        for (int i = 0; i &lt; 9; i++)</span>
+        {
+<span class="fc" id="L71">            char c = scl.charAt(i);</span>
+
+<span class="pc bpc" id="L73" title="1 of 12 branches missed.">            if (c != '*' &amp;&amp; c != 'T' &amp;&amp; c != 'F' &amp;&amp; c != '0' &amp;&amp; c != '1' &amp;&amp; c != '2')</span>
+<span class="nc" id="L74">                throw new GeometryException(&quot;relation string&quot;);</span>
+        }
+
+<span class="fc" id="L77">        int relation = getPredefinedRelation_(scl, geometry_a.getDimension(),</span>
+<span class="fc" id="L78">				geometry_b.getDimension());</span>
+
+<span class="pc bpc" id="L80" title="1 of 2 branches missed.">		if (relation != RelationalOperations.Relation.unknown)</span>
+<span class="nc" id="L81">			return RelationalOperations.relate(geometry_a, geometry_b, sr,</span>
+					relation, progress_tracker);
+
+<span class="fc" id="L84">		Envelope2D env1 = new Envelope2D();</span>
+<span class="fc" id="L85">		geometry_a.queryEnvelope2D(env1);</span>
+<span class="fc" id="L86">		Envelope2D env2 = new Envelope2D();</span>
+<span class="fc" id="L87">		geometry_b.queryEnvelope2D(env2);</span>
+
+<span class="fc" id="L89">		Envelope2D envMerged = new Envelope2D();</span>
+<span class="fc" id="L90">		envMerged.setCoords(env1);</span>
+<span class="fc" id="L91">		envMerged.merge(env2);</span>
+<span class="fc" id="L92">		double tolerance = InternalUtils.calculateToleranceFromGeometry(sr,</span>
+				envMerged, false);
+
+<span class="fc" id="L95">		Geometry _geometryA = convertGeometry_(geometry_a, tolerance);</span>
+<span class="fc" id="L96">		Geometry _geometryB = convertGeometry_(geometry_b, tolerance);</span>
+
+<span class="pc bpc" id="L98" title="1 of 4 branches missed.">        if (_geometryA.isEmpty() || _geometryB.isEmpty())</span>
+<span class="fc" id="L99">            return relateEmptyGeometries_(_geometryA, _geometryB, scl);</span>
+
+<span class="fc" id="L101">		int typeA = _geometryA.getType().value();</span>
+<span class="fc" id="L102">		int typeB = _geometryB.getType().value();</span>
+
+<span class="fc" id="L104">		boolean bRelation = false;</span>
+
+<span class="pc bpc" id="L106" title="1 of 5 branches missed.">		switch (typeA) {</span>
+		case Geometry.GeometryType.Polygon:
+<span class="pc bpc" id="L108" title="1 of 5 branches missed.">			switch (typeB) {</span>
+			case Geometry.GeometryType.Polygon:
+<span class="fc" id="L110">				bRelation = polygonRelatePolygon_((Polygon) (_geometryA),</span>
+						(Polygon) (_geometryB), tolerance, scl,
+						progress_tracker);
+<span class="fc" id="L113">				break;</span>
+
+			case Geometry.GeometryType.Polyline:
+<span class="fc" id="L116">				bRelation = polygonRelatePolyline_((Polygon) (_geometryA),</span>
+						(Polyline) (_geometryB), tolerance, scl,
+						progress_tracker);
+<span class="fc" id="L119">				break;</span>
+
+			case Geometry.GeometryType.Point:
+<span class="fc" id="L122">				bRelation = polygonRelatePoint_((Polygon) (_geometryA),</span>
+						(Point) (_geometryB), tolerance, scl, progress_tracker);
+<span class="fc" id="L124">				break;</span>
+
+			case Geometry.GeometryType.MultiPoint:
+<span class="fc" id="L127">				bRelation = polygonRelateMultiPoint_((Polygon) (_geometryA),</span>
+						(MultiPoint) (_geometryB), tolerance, scl,
+						progress_tracker);
+<span class="fc" id="L130">				break;</span>
+
+			default:
+<span class="nc" id="L133">				break; // warning fix</span>
+			}
+			break;
+
+		case Geometry.GeometryType.Polyline:
+<span class="pc bpc" id="L138" title="2 of 5 branches missed.">			switch (typeB) {</span>
+			case Geometry.GeometryType.Polygon:
+<span class="nc" id="L140">				bRelation = polygonRelatePolyline_((Polygon) (_geometryB),</span>
+						(Polyline) (_geometryA), tolerance,
+<span class="nc" id="L142">						getTransposeMatrix_(scl), progress_tracker);</span>
+<span class="nc" id="L143">				break;</span>
+
+			case Geometry.GeometryType.Polyline:
+<span class="fc" id="L146">				bRelation = polylineRelatePolyline_((Polyline) (_geometryA),</span>
+						(Polyline) (_geometryB), tolerance, scl,
+						progress_tracker);
+<span class="fc" id="L149">				break;</span>
+
+			case Geometry.GeometryType.Point:
+<span class="fc" id="L152">				bRelation = polylineRelatePoint_((Polyline) (_geometryA),</span>
+						(Point) (_geometryB), tolerance, scl, progress_tracker);
+<span class="fc" id="L154">				break;</span>
+
+			case Geometry.GeometryType.MultiPoint:
+<span class="fc" id="L157">				bRelation = polylineRelateMultiPoint_((Polyline) (_geometryA),</span>
+						(MultiPoint) (_geometryB), tolerance, scl,
+						progress_tracker);
+<span class="fc" id="L160">				break;</span>
+
+			default:
+<span class="nc" id="L163">				break; // warning fix</span>
+			}
+			break;
+
+		case Geometry.GeometryType.Point:
+<span class="pc bpc" id="L168" title="4 of 5 branches missed.">			switch (typeB) {</span>
+			case Geometry.GeometryType.Polygon:
+<span class="nc" id="L170">				bRelation = polygonRelatePoint_((Polygon) (_geometryB),</span>
+						(Point) (_geometryA), tolerance,
+<span class="nc" id="L172">						getTransposeMatrix_(scl), progress_tracker);</span>
+<span class="nc" id="L173">				break;</span>
+
+			case Geometry.GeometryType.Polyline:
+<span class="nc" id="L176">				bRelation = polylineRelatePoint_((Polyline) (_geometryB),</span>
+						(Point) (_geometryA), tolerance,
+<span class="nc" id="L178">						getTransposeMatrix_(scl), progress_tracker);</span>
+<span class="nc" id="L179">				break;</span>
+
+			case Geometry.GeometryType.Point:
+<span class="fc" id="L182">				bRelation = pointRelatePoint_((Point) (_geometryA),</span>
+						(Point) (_geometryB), tolerance, scl, progress_tracker);
+<span class="fc" id="L184">				break;</span>
+
+			case Geometry.GeometryType.MultiPoint:
+<span class="nc" id="L187">				bRelation = multiPointRelatePoint_((MultiPoint) (_geometryB),</span>
+						(Point) (_geometryA), tolerance,
+<span class="nc" id="L189">						getTransposeMatrix_(scl), progress_tracker);</span>
+<span class="nc" id="L190">				break;</span>
+
+			default:
+<span class="nc" id="L193">				break; // warning fix</span>
+			}
+			break;
+
+		case Geometry.GeometryType.MultiPoint:
+<span class="pc bpc" id="L198" title="2 of 5 branches missed.">			switch (typeB) {</span>
+			case Geometry.GeometryType.Polygon:
+<span class="fc" id="L200">				bRelation = polygonRelateMultiPoint_((Polygon) (_geometryB),</span>
+						(MultiPoint) (_geometryA), tolerance,
+<span class="fc" id="L202">						getTransposeMatrix_(scl), progress_tracker);</span>
+<span class="fc" id="L203">				break;</span>
+
+			case Geometry.GeometryType.Polyline:
+<span class="nc" id="L206">				bRelation = polylineRelateMultiPoint_((Polyline) (_geometryB),</span>
+						(MultiPoint) (_geometryA), tolerance,
+<span class="nc" id="L208">						getTransposeMatrix_(scl), progress_tracker);</span>
+<span class="nc" id="L209">				break;</span>
+
+			case Geometry.GeometryType.MultiPoint:
+<span class="fc" id="L212">				bRelation = multiPointRelateMultiPoint_(</span>
+						(MultiPoint) (_geometryA), (MultiPoint) (_geometryB),
+						tolerance, scl, progress_tracker);
+<span class="fc" id="L215">				break;</span>
+
+			case Geometry.GeometryType.Point:
+<span class="fc" id="L218">				bRelation = multiPointRelatePoint_((MultiPoint) (_geometryA),</span>
+						(Point) (_geometryB), tolerance, scl, progress_tracker);
+<span class="fc" id="L220">				break;</span>
+
+			default:
+<span class="nc" id="L223">				break; // warning fix</span>
+			}
+			break;
+		default:
+<span class="nc" id="L227">			bRelation = false;</span>
+			break;
+		}
+
+<span class="fc" id="L231">		return bRelation;</span>
+	}
+
+<span class="fc" id="L234">	private RelationalOperationsMatrix() {</span>
+<span class="fc" id="L235">		m_predicate_count = 0;</span>
+<span class="fc" id="L236">		m_topo_graph = new TopoGraph();</span>
+<span class="fc" id="L237">		m_matrix = new int[9];</span>
+<span class="fc" id="L238">        m_max_dim = new int[9];</span>
+<span class="fc" id="L239">		m_perform_predicates = new boolean[9];</span>
+<span class="fc" id="L240">        m_predicates_half_edge = -1;</span>
+<span class="fc" id="L241">        m_predicates_cluster =  -1;</span>
+<span class="fc" id="L242">	}</span>
+
+	// Returns true if the relation holds.
+	static boolean polygonRelatePolygon_(Polygon polygon_a, Polygon polygon_b,
+			double tolerance, String scl, ProgressTracker progress_tracker) {
+<span class="fc" id="L247">		RelationalOperationsMatrix relOps = new RelationalOperationsMatrix();</span>
+<span class="fc" id="L248">		relOps.resetMatrix_();</span>
+<span class="fc" id="L249">		relOps.setPredicates_(scl);</span>
+<span class="fc" id="L250">		relOps.setAreaAreaPredicates_();</span>
+
+<span class="fc" id="L252">		Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D();</span>
+<span class="fc" id="L253">		polygon_a.queryEnvelope2D(env_a);</span>
+<span class="fc" id="L254">		polygon_b.queryEnvelope2D(env_b);</span>
+
+<span class="fc" id="L256">		boolean bRelationKnown = false;</span>
+<span class="fc" id="L257">		boolean b_disjoint = RelationalOperations.envelopeDisjointEnvelope_(</span>
+				env_a, env_b, tolerance, progress_tracker);
+
+<span class="fc bfc" id="L260" title="All 2 branches covered.">		if (b_disjoint) {</span>
+<span class="fc" id="L261">			relOps.areaAreaDisjointPredicates_(polygon_a, polygon_b);</span>
+<span class="fc" id="L262">			bRelationKnown = true;</span>
+		}
+
+<span class="fc bfc" id="L265" title="All 2 branches covered.">		if (!bRelationKnown) {</span>
+			// Quick rasterize test to see whether the the geometries are
+			// disjoint, or if one is contained in the other.
+<span class="fc" id="L268">			int relation = RelationalOperations</span>
+<span class="fc" id="L269">					.tryRasterizedContainsOrDisjoint_(polygon_a, polygon_b,</span>
+							tolerance, false);
+
+<span class="pc bpc" id="L272" title="1 of 2 branches missed.">			if (relation == RelationalOperations.Relation.disjoint) {</span>
+<span class="nc" id="L273">				relOps.areaAreaDisjointPredicates_(polygon_a, polygon_b);</span>
+<span class="nc" id="L274">				bRelationKnown = true;</span>
+<span class="fc bfc" id="L275" title="All 2 branches covered.">			} else if (relation == RelationalOperations.Relation.contains) {</span>
+<span class="fc" id="L276">				relOps.areaAreaContainsPredicates_(polygon_b);</span>
+<span class="fc" id="L277">				bRelationKnown = true;</span>
+<span class="pc bpc" id="L278" title="1 of 2 branches missed.">			} else if (relation == RelationalOperations.Relation.within) {</span>
+<span class="nc" id="L279">				relOps.areaAreaWithinPredicates_(polygon_a);</span>
+<span class="nc" id="L280">				bRelationKnown = true;</span>
+			}
+		}
+
+<span class="fc bfc" id="L284" title="All 2 branches covered.">		if (!bRelationKnown) {</span>
+<span class="fc" id="L285">			EditShape edit_shape = new EditShape();</span>
+<span class="fc" id="L286">			int geom_a = edit_shape.addGeometry(polygon_a);</span>
+<span class="fc" id="L287">			int geom_b = edit_shape.addGeometry(polygon_b);</span>
+<span class="fc" id="L288">			relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance,</span>
+					progress_tracker);
+<span class="fc" id="L290">			relOps.computeMatrixTopoGraphHalfEdges_(geom_a, geom_b);</span>
+<span class="fc" id="L291">			relOps.m_topo_graph.removeShape();</span>
+		}
+
+<span class="fc" id="L294">		boolean bRelation = relationCompare_(relOps.m_matrix, relOps.m_scl);</span>
+<span class="fc" id="L295">		return bRelation;</span>
+	}
+
+    // The relation is based on the simplified-Polygon A containing Polygon B, which may be non-simple.
+    static boolean polygonContainsPolygon_(Polygon polygon_a, Polygon polygon_b, double tolerance, ProgressTracker progress_tracker)
+    {
+<span class="pc bpc" id="L301" title="1 of 2 branches missed.">        assert(!polygon_a.isEmpty());</span>
+<span class="pc bpc" id="L302" title="1 of 2 branches missed.">        assert(!polygon_b.isEmpty());</span>
+
+<span class="fc" id="L304">        RelationalOperationsMatrix relOps = new RelationalOperationsMatrix();</span>
+<span class="fc" id="L305">        relOps.resetMatrix_();</span>
+<span class="fc" id="L306">        relOps.setPredicates_(&quot;T*****F**&quot;);</span>
+<span class="fc" id="L307">        relOps.setAreaAreaPredicates_();</span>
+
+<span class="fc" id="L309">        Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D();</span>
+<span class="fc" id="L310">        polygon_a.queryEnvelope2D(env_a);</span>
+<span class="fc" id="L311">        polygon_b.queryEnvelope2D(env_b);</span>
+
+<span class="fc" id="L313">        boolean bRelationKnown = false;</span>
+<span class="fc" id="L314">        boolean b_disjoint = RelationalOperations.envelopeDisjointEnvelope_(env_a, env_b, tolerance, progress_tracker);</span>
+
+<span class="pc bpc" id="L316" title="1 of 2 branches missed.">        if (b_disjoint)</span>
+        {
+<span class="nc" id="L318">            relOps.areaAreaDisjointPredicates_(polygon_a, polygon_b);</span>
+<span class="nc" id="L319">            bRelationKnown = true;</span>
+        }
+
+<span class="pc bpc" id="L322" title="1 of 2 branches missed.">        if (!bRelationKnown)</span>
+        {
+            // Quick rasterize test to see whether the the geometries are disjoint, or if one is contained in the other.
+<span class="fc" id="L325">            int relation = RelationalOperations.tryRasterizedContainsOrDisjoint_(polygon_a, polygon_b, tolerance, false);</span>
+
+<span class="pc bpc" id="L327" title="1 of 2 branches missed.">            if (relation == RelationalOperations.Relation.disjoint)</span>
+            {
+<span class="nc" id="L329">                relOps.areaAreaDisjointPredicates_(polygon_a, polygon_b);</span>
+<span class="nc" id="L330">                bRelationKnown = true;</span>
+            }
+<span class="pc bpc" id="L332" title="1 of 2 branches missed.">            else if (relation == RelationalOperations.Relation.contains)</span>
+            {
+<span class="nc" id="L334">                relOps.areaAreaContainsPredicates_(polygon_b);</span>
+<span class="nc" id="L335">                bRelationKnown = true;</span>
+            }
+<span class="pc bpc" id="L337" title="1 of 2 branches missed.">            else if (relation == RelationalOperations.Relation.within)</span>
+            {
+<span class="nc" id="L339">                relOps.areaAreaWithinPredicates_(polygon_a);</span>
+<span class="nc" id="L340">                bRelationKnown = true;</span>
+            }
+        }
+
+<span class="pc bpc" id="L344" title="1 of 2 branches missed.">        if (bRelationKnown)</span>
+        {
+<span class="nc" id="L346">            boolean bContains = relationCompare_(relOps.m_matrix, relOps.m_scl);</span>
+<span class="nc" id="L347">            return bContains;</span>
+        }
+
+<span class="fc" id="L350">        EditShape edit_shape = new EditShape();</span>
+<span class="fc" id="L351">        int geom_a = edit_shape.addGeometry(polygon_a);</span>
+<span class="fc" id="L352">        int geom_b = edit_shape.addGeometry(polygon_b);</span>
+
+<span class="fc" id="L354">        CrackAndCluster.execute(edit_shape, tolerance, progress_tracker, false);</span>
+<span class="fc" id="L355">        Polyline boundary_b = (Polyline)edit_shape.getGeometry(geom_b).getBoundary();</span>
+<span class="fc" id="L356">        edit_shape.filterClosePoints(0, true, true);</span>
+<span class="fc" id="L357">        Simplificator.execute(edit_shape, geom_a, -1, false, progress_tracker);</span>
+
+        // Make sure Polygon A has exterior
+        // If the simplified Polygon A does not have interior, then it cannot contain anything.
+<span class="pc bpc" id="L361" title="1 of 2 branches missed.">        if (edit_shape.getPointCount(geom_a) == 0)</span>
+<span class="nc" id="L362">            return false;</span>
+
+<span class="fc" id="L364">        Simplificator.execute(edit_shape, geom_b, -1, false, progress_tracker);</span>
+
+<span class="fc" id="L366">        relOps.setEditShape_(edit_shape, progress_tracker);</span>
+
+        // We see if the simplified Polygon A contains the simplified Polygon B.
+
+<span class="fc bfc" id="L370" title="All 2 branches covered.">        boolean b_empty = edit_shape.getPointCount(geom_b) == 0;</span>
+
+<span class="fc bfc" id="L372" title="All 2 branches covered.">        if (!b_empty)</span>
+        {//geom_b has interior
+<span class="fc" id="L374">            relOps.computeMatrixTopoGraphHalfEdges_(geom_a, geom_b);</span>
+<span class="fc" id="L375">            relOps.m_topo_graph.removeShape();</span>
+<span class="fc" id="L376">            boolean bContains = relationCompare_(relOps.m_matrix, relOps.m_scl);</span>
+
+<span class="fc bfc" id="L378" title="All 2 branches covered.">            if (!bContains)</span>
+<span class="fc" id="L379">                return bContains;</span>
+        }
+
+<span class="fc" id="L382">        Polygon polygon_simple_a = (Polygon)edit_shape.getGeometry(geom_a);</span>
+<span class="fc" id="L383">        edit_shape = new EditShape();</span>
+<span class="fc" id="L384">        geom_a = edit_shape.addGeometry(polygon_simple_a);</span>
+<span class="fc" id="L385">        geom_b = edit_shape.addGeometry(boundary_b);</span>
+<span class="fc" id="L386">        relOps.setEditShape_(edit_shape, progress_tracker);</span>
+
+        // Check no interior lines of the boundary intersect the exterior
+<span class="fc" id="L389">        relOps.m_predicate_count = 0;</span>
+<span class="fc" id="L390">        relOps.resetMatrix_();</span>
+<span class="fc bfc" id="L391" title="All 2 branches covered.">        relOps.setPredicates_(b_empty ? &quot;T*****F**&quot; : &quot;******F**&quot;);</span>
+<span class="fc" id="L392">        relOps.setAreaLinePredicates_();</span>
+
+<span class="fc" id="L394">        relOps.computeMatrixTopoGraphHalfEdges_(geom_a, geom_b);</span>
+<span class="fc" id="L395">        relOps.m_topo_graph.removeShape();</span>
+<span class="fc" id="L396">        boolean bContains = relationCompare_(relOps.m_matrix, relOps.m_scl);</span>
+<span class="fc" id="L397">        return bContains;</span>
+    }
+
+	// Returns true if the relation holds.
+	static boolean polygonRelatePolyline_(Polygon polygon_a,
+			Polyline polyline_b, double tolerance, String scl,
+			ProgressTracker progress_tracker) {
+<span class="fc" id="L404">		RelationalOperationsMatrix relOps = new RelationalOperationsMatrix();</span>
+<span class="fc" id="L405">		relOps.resetMatrix_();</span>
+<span class="fc" id="L406">		relOps.setPredicates_(scl);</span>
+<span class="fc" id="L407">		relOps.setAreaLinePredicates_();</span>
+
+<span class="fc" id="L409">		Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D();</span>
+<span class="fc" id="L410">		polygon_a.queryEnvelope2D(env_a);</span>
+<span class="fc" id="L411">		polyline_b.queryEnvelope2D(env_b);</span>
+
+<span class="fc" id="L413">		boolean bRelationKnown = false;</span>
+<span class="fc" id="L414">		boolean b_disjoint = RelationalOperations.envelopeDisjointEnvelope_(</span>
+				env_a, env_b, tolerance, progress_tracker);
+
+<span class="fc bfc" id="L417" title="All 2 branches covered.">		if (b_disjoint) {</span>
+<span class="fc" id="L418">			relOps.areaLineDisjointPredicates_(polygon_a, polyline_b); // passing polyline</span>
+															// to get boundary
+															// information
+<span class="fc" id="L421">			bRelationKnown = true;</span>
+		}
+
+<span class="fc bfc" id="L424" title="All 2 branches covered.">		if (!bRelationKnown) {</span>
+			// Quick rasterize test to see whether the the geometries are
+			// disjoint, or if one is contained in the other.
+<span class="fc" id="L427">			int relation = RelationalOperations</span>
+<span class="fc" id="L428">					.tryRasterizedContainsOrDisjoint_(polygon_a, polyline_b,</span>
+							tolerance, false);
+
+<span class="pc bpc" id="L431" title="1 of 2 branches missed.">			if (relation == RelationalOperations.Relation.disjoint) {</span>
+<span class="nc" id="L432">				relOps.areaLineDisjointPredicates_(polygon_a, polyline_b); // passing</span>
+																// polyline to
+																// get boundary
+																// information
+<span class="nc" id="L436">				bRelationKnown = true;</span>
+<span class="fc bfc" id="L437" title="All 2 branches covered.">			} else if (relation == RelationalOperations.Relation.contains) {</span>
+<span class="fc" id="L438">				relOps.areaLineContainsPredicates_(polygon_a, polyline_b); // passing</span>
+																// polyline to
+																// get boundary
+																// information
+<span class="fc" id="L442">				bRelationKnown = true;</span>
+			}
+		}
+
+<span class="fc bfc" id="L446" title="All 2 branches covered.">		if (!bRelationKnown) {</span>
+<span class="fc" id="L447">			EditShape edit_shape = new EditShape();</span>
+<span class="fc" id="L448">			int geom_a = edit_shape.addGeometry(polygon_a);</span>
+<span class="fc" id="L449">			int geom_b = edit_shape.addGeometry(polyline_b);</span>
+<span class="fc" id="L450">			relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance,</span>
+					progress_tracker);
+<span class="fc" id="L452">			relOps.m_cluster_index_b = relOps.m_topo_graph</span>
+<span class="fc" id="L453">					.createUserIndexForClusters();</span>
+<span class="fc" id="L454">			markClusterEndPoints_(geom_b, relOps.m_topo_graph,</span>
+					relOps.m_cluster_index_b);
+<span class="fc" id="L456">			relOps.computeMatrixTopoGraphHalfEdges_(geom_a, geom_b);</span>
+<span class="fc" id="L457">			relOps.m_topo_graph</span>
+<span class="fc" id="L458">					.deleteUserIndexForClusters(relOps.m_cluster_index_b);</span>
+<span class="fc" id="L459">			relOps.m_topo_graph.removeShape();</span>
+		}
+
+<span class="fc" id="L462">		boolean bRelation = relationCompare_(relOps.m_matrix, relOps.m_scl);</span>
+<span class="fc" id="L463">		return bRelation;</span>
+	}
+
+    static boolean polygonContainsPolyline_(Polygon polygon_a, Polyline polyline_b, double tolerance, ProgressTracker progress_tracker)
+    {
+<span class="fc" id="L468">        RelationalOperationsMatrix relOps = new RelationalOperationsMatrix();</span>
+<span class="fc" id="L469">        relOps.resetMatrix_();</span>
+<span class="fc" id="L470">        relOps.setPredicates_(&quot;T*****F**&quot;);</span>
+<span class="fc" id="L471">        relOps.setAreaLinePredicates_();</span>
+
+<span class="fc" id="L473">        Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D();</span>
+<span class="fc" id="L474">        polygon_a.queryEnvelope2D(env_a);</span>
+<span class="fc" id="L475">        polyline_b.queryEnvelope2D(env_b);</span>
+
+<span class="fc" id="L477">        boolean bRelationKnown = false;</span>
+<span class="fc" id="L478">        boolean b_disjoint = RelationalOperations.envelopeDisjointEnvelope_(env_a, env_b, tolerance, progress_tracker);</span>
+
+<span class="pc bpc" id="L480" title="1 of 2 branches missed.">        if (b_disjoint)</span>
+        {
+<span class="nc" id="L482">            relOps.areaLineDisjointPredicates_(polygon_a, polyline_b); // passing polyline to get boundary information</span>
+<span class="nc" id="L483">            bRelationKnown = true;</span>
+        }
+
+<span class="pc bpc" id="L486" title="1 of 2 branches missed.">        if (!bRelationKnown)</span>
+        {
+            // Quick rasterize test to see whether the the geometries are disjoint, or if one is contained in the other.
+<span class="fc" id="L489">            int relation = RelationalOperations.tryRasterizedContainsOrDisjoint_(polygon_a, polyline_b, tolerance, false);</span>
+
+<span class="pc bpc" id="L491" title="1 of 2 branches missed.">            if (relation == RelationalOperations.Relation.disjoint)</span>
+            {
+<span class="nc" id="L493">                relOps.areaLineDisjointPredicates_(polygon_a, polyline_b); // passing polyline to get boundary information</span>
+<span class="nc" id="L494">                bRelationKnown = true;</span>
+            }
+<span class="pc bpc" id="L496" title="1 of 2 branches missed.">            else if (relation == RelationalOperations.Relation.contains)</span>
+            {
+<span class="nc" id="L498">                relOps.areaLineContainsPredicates_(polygon_a, polyline_b); // passing polyline to get boundary information</span>
+<span class="nc" id="L499">                bRelationKnown = true;</span>
+            }
+        }
+
+<span class="pc bpc" id="L503" title="1 of 2 branches missed.">        if (bRelationKnown)</span>
+        {
+<span class="nc" id="L505">            boolean bContains = relationCompare_(relOps.m_matrix, relOps.m_scl);</span>
+<span class="nc" id="L506">            return bContains;</span>
+        }
+
+<span class="fc" id="L509">        EditShape edit_shape = new EditShape();</span>
+<span class="fc" id="L510">        int geom_a = edit_shape.addGeometry(polygon_a);</span>
+<span class="fc" id="L511">        int geom_b = edit_shape.addGeometry(polyline_b);</span>
+<span class="fc" id="L512">        relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance, progress_tracker);</span>
+
+        // Make sure Polygon A has exterior
+        // If the simplified Polygon A does not have interior, then it cannot contain anything.
+<span class="pc bpc" id="L516" title="1 of 2 branches missed.">        if (edit_shape.getPointCount(geom_a) == 0)</span>
+<span class="nc" id="L517">            return false;</span>
+
+<span class="fc" id="L519">        relOps.computeMatrixTopoGraphHalfEdges_(geom_a, geom_b);</span>
+<span class="fc" id="L520">        relOps.m_topo_graph.removeShape();</span>
+
+<span class="fc" id="L522">        boolean bContains = relationCompare_(relOps.m_matrix, relOps.m_scl);</span>
+<span class="fc" id="L523">        return bContains;</span>
+    }
+
+	// Returns true if the relation holds
+	static boolean polygonRelateMultiPoint_(Polygon polygon_a,
+			MultiPoint multipoint_b, double tolerance, String scl,
+			ProgressTracker progress_tracker) {
+<span class="fc" id="L530">		RelationalOperationsMatrix relOps = new RelationalOperationsMatrix();</span>
+<span class="fc" id="L531">		relOps.resetMatrix_();</span>
+<span class="fc" id="L532">		relOps.setPredicates_(scl);</span>
+<span class="fc" id="L533">		relOps.setAreaPointPredicates_();</span>
+
+<span class="fc" id="L535">		Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D();</span>
+<span class="fc" id="L536">		polygon_a.queryEnvelope2D(env_a);</span>
+<span class="fc" id="L537">		multipoint_b.queryEnvelope2D(env_b);</span>
+
+<span class="fc" id="L539">		boolean bRelationKnown = false;</span>
+<span class="fc" id="L540">		boolean b_disjoint = RelationalOperations.envelopeDisjointEnvelope_(</span>
+				env_a, env_b, tolerance, progress_tracker);
+
+<span class="pc bpc" id="L543" title="1 of 2 branches missed.">		if (b_disjoint) {</span>
+<span class="nc" id="L544">			relOps.areaPointDisjointPredicates_(polygon_a);</span>
+<span class="nc" id="L545">			bRelationKnown = true;</span>
+		}
+
+<span class="pc bpc" id="L548" title="1 of 2 branches missed.">		if (!bRelationKnown) {</span>
+			// Quick rasterize test to see whether the the geometries are
+			// disjoint, or if one is contained in the other.
+<span class="fc" id="L551">			int relation = RelationalOperations</span>
+<span class="fc" id="L552">					.tryRasterizedContainsOrDisjoint_(polygon_a, multipoint_b,</span>
+							tolerance, false);
+
+<span class="fc bfc" id="L555" title="All 2 branches covered.">			if (relation == RelationalOperations.Relation.disjoint) {</span>
+<span class="fc" id="L556">				relOps.areaPointDisjointPredicates_(polygon_a);</span>
+<span class="fc" id="L557">				bRelationKnown = true;</span>
+<span class="fc bfc" id="L558" title="All 2 branches covered.">			} else if (relation == RelationalOperations.Relation.contains) {</span>
+<span class="fc" id="L559">				relOps.areaPointContainsPredicates_(polygon_a);</span>
+<span class="fc" id="L560">				bRelationKnown = true;</span>
+			}
+		}
+
+<span class="fc bfc" id="L564" title="All 2 branches covered.">		if (!bRelationKnown) {</span>
+<span class="fc" id="L565">			EditShape edit_shape = new EditShape();</span>
+<span class="fc" id="L566">			int geom_a = edit_shape.addGeometry(polygon_a);</span>
+<span class="fc" id="L567">			int geom_b = edit_shape.addGeometry(multipoint_b);</span>
+<span class="fc" id="L568">			relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance,</span>
+					progress_tracker);
+<span class="fc" id="L570">			relOps.computeMatrixTopoGraphClusters_(geom_a, geom_b);</span>
+<span class="fc" id="L571">			relOps.m_topo_graph.removeShape();</span>
+		}
+
+<span class="fc" id="L574">		boolean bRelation = relationCompare_(relOps.m_matrix, relOps.m_scl);</span>
+<span class="fc" id="L575">		return bRelation;</span>
+	}
+
+	// Returns true if the relation holds.
+	static boolean polylineRelatePolyline_(Polyline polyline_a,
+			Polyline polyline_b, double tolerance, String scl,
+			ProgressTracker progress_tracker) {
+<span class="fc" id="L582">		RelationalOperationsMatrix relOps = new RelationalOperationsMatrix();</span>
+<span class="fc" id="L583">		relOps.resetMatrix_();</span>
+<span class="fc" id="L584">		relOps.setPredicates_(scl);</span>
+<span class="fc" id="L585">		relOps.setLineLinePredicates_();</span>
+
+<span class="fc" id="L587">		Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D();</span>
+<span class="fc" id="L588">		polyline_a.queryEnvelope2D(env_a);</span>
+<span class="fc" id="L589">		polyline_b.queryEnvelope2D(env_b);</span>
+
+<span class="fc" id="L591">		boolean bRelationKnown = false;</span>
+<span class="fc" id="L592">		boolean b_disjoint = RelationalOperations.envelopeDisjointEnvelope_(</span>
+				env_a, env_b, tolerance, progress_tracker);
+
+<span class="fc bfc" id="L595" title="All 2 branches covered.">		if (b_disjoint) {</span>
+<span class="fc" id="L596">			relOps.lineLineDisjointPredicates_(polyline_a, polyline_b);</span>
+<span class="fc" id="L597">			bRelationKnown = true;</span>
+		}
+
+<span class="fc bfc" id="L600" title="All 2 branches covered.">		if (!bRelationKnown) {</span>
+			// Quick rasterize test to see whether the the geometries are
+			// disjoint, or if one is contained in the other.
+<span class="fc" id="L603">			int relation = RelationalOperations</span>
+<span class="fc" id="L604">					.tryRasterizedContainsOrDisjoint_(polyline_a, polyline_b,</span>
+							tolerance, false);
+
+<span class="fc bfc" id="L607" title="All 2 branches covered.">			if (relation == RelationalOperations.Relation.disjoint) {</span>
+<span class="fc" id="L608">				relOps.lineLineDisjointPredicates_(polyline_a, polyline_b);</span>
+<span class="fc" id="L609">				bRelationKnown = true;</span>
+			}
+		}
+
+<span class="fc bfc" id="L613" title="All 2 branches covered.">		if (!bRelationKnown) {</span>
+<span class="fc" id="L614">			EditShape edit_shape = new EditShape();</span>
+<span class="fc" id="L615">			int geom_a = edit_shape.addGeometry(polyline_a);</span>
+<span class="fc" id="L616">			int geom_b = edit_shape.addGeometry(polyline_b);</span>
+<span class="fc" id="L617">			relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance,</span>
+					progress_tracker);
+<span class="fc" id="L619">			relOps.m_cluster_index_a = relOps.m_topo_graph</span>
+<span class="fc" id="L620">					.createUserIndexForClusters();</span>
+<span class="fc" id="L621">			relOps.m_cluster_index_b = relOps.m_topo_graph</span>
+<span class="fc" id="L622">					.createUserIndexForClusters();</span>
+<span class="fc" id="L623">			markClusterEndPoints_(geom_a, relOps.m_topo_graph,</span>
+					relOps.m_cluster_index_a);
+<span class="fc" id="L625">			markClusterEndPoints_(geom_b, relOps.m_topo_graph,</span>
+					relOps.m_cluster_index_b);
+<span class="fc" id="L627">			relOps.computeMatrixTopoGraphHalfEdges_(geom_a, geom_b);</span>
+<span class="fc" id="L628">			relOps.m_topo_graph</span>
+<span class="fc" id="L629">					.deleteUserIndexForClusters(relOps.m_cluster_index_a);</span>
+<span class="fc" id="L630">			relOps.m_topo_graph</span>
+<span class="fc" id="L631">					.deleteUserIndexForClusters(relOps.m_cluster_index_b);</span>
+<span class="fc" id="L632">			relOps.m_topo_graph.removeShape();</span>
+		}
+
+<span class="fc" id="L635">		boolean bRelation = relationCompare_(relOps.m_matrix, relOps.m_scl);</span>
+<span class="fc" id="L636">		return bRelation;</span>
+	}
+
+	// Returns true if the relation holds.
+	static boolean polylineRelateMultiPoint_(Polyline polyline_a,
+			MultiPoint multipoint_b, double tolerance, String scl,
+			ProgressTracker progress_tracker) {
+<span class="fc" id="L643">		RelationalOperationsMatrix relOps = new RelationalOperationsMatrix();</span>
+<span class="fc" id="L644">		relOps.resetMatrix_();</span>
+<span class="fc" id="L645">		relOps.setPredicates_(scl);</span>
+<span class="fc" id="L646">		relOps.setLinePointPredicates_();</span>
+
+<span class="fc" id="L648">		Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D();</span>
+<span class="fc" id="L649">		polyline_a.queryEnvelope2D(env_a);</span>
+<span class="fc" id="L650">		multipoint_b.queryEnvelope2D(env_b);</span>
+
+<span class="fc" id="L652">		boolean bRelationKnown = false;</span>
+<span class="fc" id="L653">		boolean b_disjoint = RelationalOperations.envelopeDisjointEnvelope_(</span>
+				env_a, env_b, tolerance, progress_tracker);
+
+<span class="fc bfc" id="L656" title="All 2 branches covered.">		if (b_disjoint) {</span>
+<span class="fc" id="L657">			relOps.linePointDisjointPredicates_(polyline_a);</span>
+<span class="fc" id="L658">			bRelationKnown = true;</span>
+		}
+
+<span class="fc bfc" id="L661" title="All 2 branches covered.">		if (!bRelationKnown) {</span>
+			// Quick rasterize test to see whether the the geometries are
+			// disjoint, or if one is contained in the other.
+<span class="fc" id="L664">			int relation = RelationalOperations</span>
+<span class="fc" id="L665">					.tryRasterizedContainsOrDisjoint_(polyline_a, multipoint_b,</span>
+							tolerance, false);
+
+<span class="fc bfc" id="L668" title="All 2 branches covered.">			if (relation == RelationalOperations.Relation.disjoint) {</span>
+<span class="fc" id="L669">				relOps.linePointDisjointPredicates_(polyline_a);</span>
+<span class="fc" id="L670">				bRelationKnown = true;</span>
+			}
+		}
+
+<span class="fc bfc" id="L674" title="All 2 branches covered.">		if (!bRelationKnown) {</span>
+<span class="fc" id="L675">			EditShape edit_shape = new EditShape();</span>
+<span class="fc" id="L676">			int geom_a = edit_shape.addGeometry(polyline_a);</span>
+<span class="fc" id="L677">			int geom_b = edit_shape.addGeometry(multipoint_b);</span>
+<span class="fc" id="L678">			relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance,</span>
+					progress_tracker);
+<span class="fc" id="L680">			relOps.m_cluster_index_a = relOps.m_topo_graph</span>
+<span class="fc" id="L681">					.createUserIndexForClusters();</span>
+<span class="fc" id="L682">			markClusterEndPoints_(geom_a, relOps.m_topo_graph,</span>
+					relOps.m_cluster_index_a);
+<span class="fc" id="L684">			relOps.computeMatrixTopoGraphClusters_(geom_a, geom_b);</span>
+<span class="fc" id="L685">			relOps.m_topo_graph</span>
+<span class="fc" id="L686">					.deleteUserIndexForClusters(relOps.m_cluster_index_a);</span>
+<span class="fc" id="L687">			relOps.m_topo_graph.removeShape();</span>
+		}
+
+<span class="fc" id="L690">		boolean bRelation = relationCompare_(relOps.m_matrix, relOps.m_scl);</span>
+<span class="fc" id="L691">		return bRelation;</span>
+	}
+
+	// Returns true if the relation holds.
+	static boolean multiPointRelateMultiPoint_(MultiPoint multipoint_a,
+			MultiPoint multipoint_b, double tolerance, String scl,
+			ProgressTracker progress_tracker) {
+<span class="fc" id="L698">		RelationalOperationsMatrix relOps = new RelationalOperationsMatrix();</span>
+<span class="fc" id="L699">		relOps.resetMatrix_();</span>
+<span class="fc" id="L700">		relOps.setPredicates_(scl);</span>
+<span class="fc" id="L701">		relOps.setPointPointPredicates_();</span>
+
+<span class="fc" id="L703">		Envelope2D env_a = new Envelope2D(), env_b = new Envelope2D();</span>
+<span class="fc" id="L704">		multipoint_a.queryEnvelope2D(env_a);</span>
+<span class="fc" id="L705">		multipoint_b.queryEnvelope2D(env_b);</span>
+
+<span class="fc" id="L707">		boolean bRelationKnown = false;</span>
+<span class="fc" id="L708">		boolean b_disjoint = RelationalOperations.envelopeDisjointEnvelope_(</span>
+				env_a, env_b, tolerance, progress_tracker);
+
+<span class="fc bfc" id="L711" title="All 2 branches covered.">		if (b_disjoint) {</span>
+<span class="fc" id="L712">			relOps.pointPointDisjointPredicates_();</span>
+<span class="fc" id="L713">			bRelationKnown = true;</span>
+		}
+
+<span class="fc bfc" id="L716" title="All 2 branches covered.">		if (!bRelationKnown) {</span>
+<span class="fc" id="L717">			EditShape edit_shape = new EditShape();</span>
+<span class="fc" id="L718">			int geom_a = edit_shape.addGeometry(multipoint_a);</span>
+<span class="fc" id="L719">			int geom_b = edit_shape.addGeometry(multipoint_b);</span>
+<span class="fc" id="L720">			relOps.setEditShapeCrackAndCluster_(edit_shape, tolerance,</span>
+					progress_tracker);
+<span class="fc" id="L722">			relOps.computeMatrixTopoGraphClusters_(geom_a, geom_b);</span>
+<span class="fc" id="L723">			relOps.m_topo_graph.removeShape();</span>
+		}
+
+<span class="fc" id="L726">		boolean bRelation = relationCompare_(relOps.m_matrix, relOps.m_scl);</span>
+<span class="fc" id="L727">		return bRelation;</span>
+	}
+
+	// Returns true if the relation holds.
+	static boolean polygonRelatePoint_(Polygon polygon_a, Point point_b,
+			double tolerance, String scl, ProgressTracker progress_tracker) {
+<span class="fc" id="L733">        RelationalOperationsMatrix relOps = new RelationalOperationsMatrix();</span>
+<span class="fc" id="L734">        relOps.resetMatrix_();</span>
+<span class="fc" id="L735">        relOps.setPredicates_(scl);</span>
+<span class="fc" id="L736">        relOps.setAreaPointPredicates_();</span>
+
+<span class="fc" id="L738">        Envelope2D env_a = new Envelope2D();</span>
+<span class="fc" id="L739">        polygon_a.queryEnvelope2D(env_a);</span>
+<span class="fc" id="L740">        Point2D pt_b = point_b.getXY();</span>
+
+<span class="fc" id="L742">        boolean bRelationKnown = false;</span>
+<span class="fc" id="L743">        boolean b_disjoint = RelationalOperations.pointDisjointEnvelope_(pt_b, env_a, tolerance, progress_tracker);</span>
+
+<span class="fc bfc" id="L745" title="All 2 branches covered.">        if (b_disjoint)</span>
+        {
+<span class="fc" id="L747">            relOps.areaPointDisjointPredicates_(polygon_a);</span>
+<span class="fc" id="L748">            bRelationKnown = true;</span>
+        }
+
+<span class="fc bfc" id="L751" title="All 2 branches covered.">        if (!bRelationKnown)</span>
+        {
+<span class="fc" id="L753">            PolygonUtils.PiPResult res = PolygonUtils.isPointInPolygon2D(polygon_a, pt_b, tolerance); // uses accelerator</span>
+
+<span class="pc bpc" id="L755" title="1 of 2 branches missed.">            if (res == PolygonUtils.PiPResult.PiPInside)</span>
+            {// polygon must have area
+<span class="nc" id="L757">                relOps.m_matrix[MatrixPredicate.InteriorInterior] = 0;</span>
+<span class="nc" id="L758">                relOps.m_matrix[MatrixPredicate.InteriorExterior] = 2;</span>
+<span class="nc" id="L759">                relOps.m_matrix[MatrixPredicate.BoundaryInterior] = -1;</span>
+<span class="nc" id="L760">                relOps.m_matrix[MatrixPredicate.BoundaryExterior] = 1;</span>
+<span class="nc" id="L761">                relOps.m_matrix[MatrixPredicate.ExteriorInterior] = -1;</span>
+            }
+<span class="pc bpc" id="L763" title="1 of 2 branches missed.">            else if (res == PolygonUtils.PiPResult.PiPBoundary)</span>
+            {
+<span class="fc" id="L765">                relOps.m_matrix[MatrixPredicate.ExteriorInterior] = -1;</span>
+
+<span class="fc" id="L767">                double area = polygon_a.calculateArea2D();</span>
+
+<span class="fc bfc" id="L769" title="All 2 branches covered.">                if (area != 0)</span>
+                {
+<span class="fc" id="L771">                    relOps.m_matrix[MatrixPredicate.InteriorInterior] = -1;</span>
+<span class="fc" id="L772">                    relOps.m_matrix[MatrixPredicate.BoundaryInterior] = 0;</span>
+<span class="fc" id="L773">                    relOps.m_matrix[MatrixPredicate.InteriorExterior] = 2;</span>
+<span class="fc" id="L774">                    relOps.m_matrix[MatrixPredicate.BoundaryExterior] = 1;</span>
+                }
+                else
+                {
+<span class="fc" id="L778">                    relOps.m_matrix[MatrixPredicate.InteriorInterior] = 0;</span>
+<span class="fc" id="L779">                    relOps.m_matrix[MatrixPredicate.BoundaryInterior] = -1;</span>
+<span class="fc" id="L780">                    relOps.m_matrix[MatrixPredicate.BoundaryExterior] = -1;</span>
+
+<span class="fc" id="L782">                    Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L783">                    polygon_a.queryEnvelope2D(env);</span>
+<span class="pc bpc" id="L784" title="1 of 4 branches missed.">                    relOps.m_matrix[MatrixPredicate.InteriorExterior] = (env.getHeight() == 0.0 &amp;&amp; env.getWidth() == 0.0 ? -1 : 1);</span>
+                }
+<span class="fc" id="L786">            }</span>
+            else
+            {
+<span class="nc" id="L789">                relOps.areaPointDisjointPredicates_(polygon_a);</span>
+            }
+        }
+
+<span class="fc" id="L793">        boolean bRelation = relationCompare_(relOps.m_matrix, scl);</span>
+<span class="fc" id="L794">        return bRelation;</span>
+	}
+
+	// Returns true if the relation holds.
+	static boolean polylineRelatePoint_(Polyline polyline_a, Point point_b,
+			double tolerance, String scl, ProgressTracker progress_tracker) {
+<span class="fc" id="L800">        RelationalOperationsMatrix relOps = new RelationalOperationsMatrix();</span>
+<span class="fc" id="L801">        relOps.resetMatrix_();</span>
+<span class="fc" id="L802">        relOps.setPredicates_(scl);</span>
+<span class="fc" id="L803">        relOps.setLinePointPredicates_();</span>
+
+<span class="fc" id="L805">        Envelope2D env_a = new Envelope2D();</span>
+<span class="fc" id="L806">        polyline_a.queryEnvelope2D(env_a);</span>
+<span class="fc" id="L807">        Point2D pt_b = point_b.getXY();</span>
+
+<span class="fc" id="L809">        boolean bRelationKnown = false;</span>
+<span class="fc" id="L810">        boolean b_disjoint = RelationalOperations.pointDisjointEnvelope_(pt_b, env_a, tolerance, progress_tracker);</span>
+
+<span class="fc bfc" id="L812" title="All 2 branches covered.">        if (b_disjoint)</span>
+        {
+<span class="fc" id="L814">            relOps.linePointDisjointPredicates_(polyline_a);</span>
+<span class="fc" id="L815">            bRelationKnown = true;</span>
+        }
+
+<span class="fc bfc" id="L818" title="All 2 branches covered.">        if (!bRelationKnown)</span>
+        {
+<span class="fc" id="L820">            MultiPoint boundary_a = null;</span>
+<span class="fc" id="L821">            boolean b_boundary_contains_point_known = false;</span>
+<span class="fc" id="L822">            boolean b_boundary_contains_point = false;</span>
+
+<span class="pc bpc" id="L824" title="3 of 4 branches missed.">            if (relOps.m_perform_predicates[MatrixPredicate.InteriorInterior] || relOps.m_perform_predicates[MatrixPredicate.ExteriorInterior])</span>
+            {
+<span class="fc" id="L826">                boolean b_intersects = RelationalOperations.linearPathIntersectsPoint_(polyline_a, pt_b, tolerance);</span>
+
+<span class="fc bfc" id="L828" title="All 2 branches covered.">                if (b_intersects)</span>
+                {
+<span class="pc bpc" id="L830" title="1 of 2 branches missed.">                    if (relOps.m_perform_predicates[MatrixPredicate.InteriorInterior])</span>
+                    {
+<span class="fc" id="L832">                        boundary_a = (MultiPoint)Boundary.calculate(polyline_a, progress_tracker);</span>
+<span class="pc bpc" id="L833" title="1 of 2 branches missed.">                        b_boundary_contains_point = !RelationalOperations.multiPointDisjointPointImpl_(boundary_a, pt_b, tolerance, progress_tracker);</span>
+<span class="fc" id="L834">                        b_boundary_contains_point_known = true;</span>
+
+<span class="pc bpc" id="L836" title="1 of 2 branches missed.">                        if (b_boundary_contains_point)</span>
+<span class="nc" id="L837">                            relOps.m_matrix[MatrixPredicate.InteriorInterior] = -1;</span>
+                        else
+<span class="fc" id="L839">                            relOps.m_matrix[MatrixPredicate.InteriorInterior] = 0;</span>
+                    }
+
+<span class="fc" id="L842">                    relOps.m_matrix[MatrixPredicate.ExteriorInterior] = -1;</span>
+                }
+                else
+                {
+<span class="fc" id="L846">                    relOps.m_matrix[MatrixPredicate.InteriorInterior] = -1;</span>
+<span class="fc" id="L847">                    relOps.m_matrix[MatrixPredicate.ExteriorInterior] = 0;</span>
+                }
+            }
+
+<span class="pc bpc" id="L851" title="1 of 2 branches missed.">            if (relOps.m_perform_predicates[MatrixPredicate.BoundaryInterior])</span>
+            {
+<span class="fc bfc" id="L853" title="All 4 branches covered.">                if (boundary_a != null &amp;&amp; boundary_a.isEmpty())</span>
+                {
+<span class="fc" id="L855">                    relOps.m_matrix[MatrixPredicate.BoundaryInterior] = -1;</span>
+                }
+                else
+                {
+<span class="fc bfc" id="L859" title="All 2 branches covered.">                    if (!b_boundary_contains_point_known)</span>
+                    {
+<span class="pc bpc" id="L861" title="1 of 2 branches missed.">                        if (boundary_a == null)</span>
+<span class="fc" id="L862">                            boundary_a = (MultiPoint)Boundary.calculate(polyline_a, progress_tracker);</span>
+
+<span class="pc bpc" id="L864" title="1 of 2 branches missed.">                        b_boundary_contains_point = !RelationalOperations.multiPointDisjointPointImpl_(boundary_a, pt_b, tolerance, progress_tracker);</span>
+<span class="fc" id="L865">                        b_boundary_contains_point_known = true;</span>
+                    }
+
+<span class="pc bpc" id="L868" title="1 of 2 branches missed.">                    relOps.m_matrix[MatrixPredicate.BoundaryInterior] = (b_boundary_contains_point ? 0 : -1);</span>
+                }
+            }
+
+<span class="pc bpc" id="L872" title="1 of 2 branches missed.">            if (relOps.m_perform_predicates[MatrixPredicate.BoundaryExterior])</span>
+            {
+<span class="pc bpc" id="L874" title="1 of 4 branches missed.">                if (boundary_a != null &amp;&amp; boundary_a.isEmpty())</span>
+                {
+<span class="fc" id="L876">                    relOps.m_matrix[MatrixPredicate.BoundaryExterior] = -1;</span>
+                }
+                else
+                {
+<span class="pc bpc" id="L880" title="2 of 4 branches missed.">                    if (b_boundary_contains_point_known &amp;&amp; !b_boundary_contains_point)</span>
+                    {
+<span class="fc" id="L882">                        relOps.m_matrix[MatrixPredicate.BoundaryExterior] = 0;</span>
+                    }
+                    else
+                    {
+<span class="nc bnc" id="L886" title="All 2 branches missed.">                        if (boundary_a == null)</span>
+<span class="nc" id="L887">                            boundary_a = (MultiPoint)Boundary.calculate(polyline_a, progress_tracker);</span>
+
+<span class="nc" id="L889">                        boolean b_boundary_equals_point = RelationalOperations.multiPointEqualsPoint_(boundary_a, point_b, tolerance, progress_tracker);</span>
+<span class="nc bnc" id="L890" title="All 2 branches missed.">                        relOps.m_matrix[MatrixPredicate.BoundaryExterior] = (b_boundary_equals_point ? -1 : 0);</span>
+                    }
+                }
+            }
+
+<span class="pc bpc" id="L895" title="1 of 2 branches missed.">            if (relOps.m_perform_predicates[MatrixPredicate.InteriorExterior])</span>
+            {
+<span class="fc bfc" id="L897" title="All 2 branches covered.">                boolean b_has_length = polyline_a.calculateLength2D() != 0;</span>
+
+<span class="fc bfc" id="L899" title="All 2 branches covered.">                if (b_has_length)</span>
+                {
+<span class="fc" id="L901">                    relOps.m_matrix[MatrixPredicate.InteriorExterior] = 1;</span>
+                }
+                else
+                {
+                    // all points are interior
+<span class="fc" id="L906">                    MultiPoint interior_a = new MultiPoint(polyline_a.getDescription());</span>
+<span class="fc" id="L907">                    interior_a.add(polyline_a, 0, polyline_a.getPointCount());</span>
+<span class="fc" id="L908">                    boolean b_interior_equals_point = RelationalOperations.multiPointEqualsPoint_(interior_a, point_b, tolerance, progress_tracker);</span>
+<span class="fc bfc" id="L909" title="All 2 branches covered.">                    relOps.m_matrix[MatrixPredicate.InteriorExterior] = (b_interior_equals_point ? -1 : 0);</span>
+                }
+            }
+        }
+
+<span class="fc" id="L914">        boolean bRelation = relationCompare_(relOps.m_matrix, relOps.m_scl);</span>
+<span class="fc" id="L915">        return bRelation;</span>
+	}
+
+	// Returns true if the relation holds.
+	static boolean multiPointRelatePoint_(MultiPoint multipoint_a,
+			Point point_b, double tolerance, String scl,
+			ProgressTracker progress_tracker) {
+<span class="fc" id="L922">		RelationalOperationsMatrix relOps = new RelationalOperationsMatrix();</span>
+<span class="fc" id="L923">		relOps.resetMatrix_();</span>
+<span class="fc" id="L924">		relOps.setPredicates_(scl);</span>
+<span class="fc" id="L925">		relOps.setPointPointPredicates_();</span>
+
+<span class="fc" id="L927">		Envelope2D env_a = new Envelope2D();</span>
+<span class="fc" id="L928">		multipoint_a.queryEnvelope2D(env_a);</span>
+<span class="fc" id="L929">		Point2D pt_b = point_b.getXY();</span>
+
+<span class="fc" id="L931">		boolean bRelationKnown = false;</span>
+<span class="fc" id="L932">		boolean b_disjoint = RelationalOperations.pointDisjointEnvelope_(pt_b,</span>
+				env_a, tolerance, progress_tracker);
+
+<span class="fc bfc" id="L935" title="All 2 branches covered.">		if (b_disjoint) {</span>
+<span class="fc" id="L936">			relOps.pointPointDisjointPredicates_();</span>
+<span class="fc" id="L937">			bRelationKnown = true;</span>
+		}
+
+<span class="fc bfc" id="L940" title="All 2 branches covered.">		if (!bRelationKnown) {</span>
+<span class="fc" id="L941">			boolean b_intersects = false;</span>
+<span class="fc" id="L942">			boolean b_multipoint_contained = true;</span>
+<span class="fc" id="L943">			double tolerance_sq = tolerance * tolerance;</span>
+
+<span class="fc bfc" id="L945" title="All 2 branches covered.">			for (int i = 0; i &lt; multipoint_a.getPointCount(); i++) {</span>
+<span class="fc" id="L946">				Point2D pt_a = multipoint_a.getXY(i);</span>
+
+<span class="fc bfc" id="L948" title="All 2 branches covered.">				if (Point2D.sqrDistance(pt_a, pt_b) &lt;= tolerance_sq)</span>
+<span class="fc" id="L949">					b_intersects = true;</span>
+				else
+<span class="fc" id="L951">					b_multipoint_contained = false;</span>
+
+<span class="pc bpc" id="L953" title="1 of 4 branches missed.">				if (b_intersects &amp;&amp; !b_multipoint_contained)</span>
+<span class="fc" id="L954">					break;</span>
+			}
+
+<span class="pc bpc" id="L957" title="1 of 2 branches missed.">			if (b_intersects) {</span>
+<span class="fc" id="L958">				relOps.m_matrix[MatrixPredicate.InteriorInterior] = 0;</span>
+
+<span class="fc bfc" id="L960" title="All 2 branches covered.">				if (!b_multipoint_contained)</span>
+<span class="fc" id="L961">					relOps.m_matrix[MatrixPredicate.InteriorExterior] = 0;</span>
+				else
+<span class="fc" id="L963">					relOps.m_matrix[MatrixPredicate.InteriorExterior] = -1;</span>
+
+<span class="fc" id="L965">				relOps.m_matrix[MatrixPredicate.ExteriorInterior] = -1;</span>
+			} else {
+<span class="nc" id="L967">				relOps.m_matrix[MatrixPredicate.InteriorInterior] = -1;</span>
+<span class="nc" id="L968">				relOps.m_matrix[MatrixPredicate.InteriorExterior] = 0;</span>
+<span class="nc" id="L969">				relOps.m_matrix[MatrixPredicate.ExteriorInterior] = 0;</span>
+			}
+		}
+
+<span class="fc" id="L973">		boolean bRelation = relationCompare_(relOps.m_matrix, scl);</span>
+<span class="fc" id="L974">		return bRelation;</span>
+	}
+
+	// Returns true if the relation holds.
+	static boolean pointRelatePoint_(Point point_a, Point point_b,
+			double tolerance, String scl, ProgressTracker progress_tracker) {
+<span class="fc" id="L980">		Point2D pt_a = point_a.getXY();</span>
+<span class="fc" id="L981">		Point2D pt_b = point_b.getXY();</span>
+<span class="fc" id="L982">		int[] matrix = new int[9];</span>
+
+<span class="fc bfc" id="L984" title="All 2 branches covered.">		for (int i = 0; i &lt; 9; i++)</span>
+<span class="fc" id="L985">			matrix[i] = -1;</span>
+
+<span class="fc bfc" id="L987" title="All 2 branches covered.">		if (Point2D.sqrDistance(pt_a, pt_b) &lt;= tolerance * tolerance) {</span>
+<span class="fc" id="L988">			matrix[MatrixPredicate.InteriorInterior] = 0;</span>
+		} else {
+<span class="fc" id="L990">			matrix[MatrixPredicate.InteriorExterior] = 0;</span>
+<span class="fc" id="L991">			matrix[MatrixPredicate.ExteriorInterior] = 0;</span>
+		}
+
+<span class="fc" id="L994">		matrix[MatrixPredicate.ExteriorExterior] = 2;</span>
+
+<span class="fc" id="L996">		boolean bRelation = relationCompare_(matrix, scl);</span>
+<span class="fc" id="L997">		return bRelation;</span>
+	}
+
+	// Compares the DE-9I matrix against the scl string.
+	private static boolean relationCompare_(int[] matrix, String scl) {
+<span class="fc bfc" id="L1002" title="All 2 branches covered.">		for (int i = 0; i &lt; 9; i++) {</span>
+<span class="fc bfc" id="L1003" title="All 6 branches covered.">			switch (scl.charAt(i)) {</span>
+			case 'T':
+<span class="pc bpc" id="L1005" title="1 of 2 branches missed.">				assert (matrix[i] != -2);</span>
+<span class="fc bfc" id="L1006" title="All 2 branches covered.">				if (matrix[i] == -1)</span>
+<span class="fc" id="L1007">					return false;</span>
+				break;
+
+			case 'F':
+<span class="pc bpc" id="L1011" title="1 of 2 branches missed.">				assert (matrix[i] != -2);</span>
+<span class="fc bfc" id="L1012" title="All 2 branches covered.">				if (matrix[i] != -1)</span>
+<span class="fc" id="L1013">					return false;</span>
+				break;
+
+			case '0':
+<span class="pc bpc" id="L1017" title="1 of 2 branches missed.">				assert (matrix[i] != -2);</span>
+<span class="fc bfc" id="L1018" title="All 2 branches covered.">				if (matrix[i] != 0)</span>
+<span class="fc" id="L1019">					return false;</span>
+				break;
+
+			case '1':
+<span class="pc bpc" id="L1023" title="1 of 2 branches missed.">				assert (matrix[i] != -2);</span>
+<span class="fc bfc" id="L1024" title="All 2 branches covered.">				if (matrix[i] != 1)</span>
+<span class="fc" id="L1025">					return false;</span>
+				break;
+
+			case '2':
+<span class="pc bpc" id="L1029" title="1 of 2 branches missed.">				assert (matrix[i] != -2);</span>
+<span class="pc bpc" id="L1030" title="1 of 2 branches missed.">				if (matrix[i] != 2)</span>
+<span class="nc" id="L1031">					return false;</span>
+				break;
+
+			default:
+				break;
+			}
+		}
+
+<span class="fc" id="L1039">		return true;</span>
+	}
+
+    static boolean relateEmptyGeometries_(Geometry geometry_a, Geometry geometry_b, String scl)
+    {
+<span class="fc" id="L1044">        int[] matrix = new int[9];</span>
+
+<span class="pc bpc" id="L1046" title="2 of 4 branches missed.">        if (geometry_a.isEmpty() &amp;&amp; geometry_b.isEmpty())</span>
+        {
+<span class="fc bfc" id="L1048" title="All 2 branches covered.">            for (int i = 0; i &lt; 9; i++)</span>
+<span class="fc" id="L1049">                matrix[i] = -1;</span>
+
+<span class="fc" id="L1051">            return relationCompare_(matrix, scl);</span>
+        }
+
+<span class="nc" id="L1054">        boolean b_transpose = false;</span>
+
+        Geometry g_a;
+        Geometry g_b;
+
+<span class="nc bnc" id="L1059" title="All 2 branches missed.">        if (!geometry_a.isEmpty())</span>
+        {
+<span class="nc" id="L1061">            g_a = geometry_a;</span>
+<span class="nc" id="L1062">            g_b = geometry_b;</span>
+        }
+        else
+        {
+<span class="nc" id="L1066">            g_a = geometry_b;</span>
+<span class="nc" id="L1067">            g_b = geometry_a;</span>
+<span class="nc" id="L1068">            b_transpose = true;</span>
+        }
+
+<span class="nc" id="L1071">        matrix[MatrixPredicate.InteriorInterior] = -1;</span>
+<span class="nc" id="L1072">        matrix[MatrixPredicate.InteriorBoundary] = -1;</span>
+<span class="nc" id="L1073">        matrix[MatrixPredicate.BoundaryInterior] = -1;</span>
+<span class="nc" id="L1074">        matrix[MatrixPredicate.BoundaryBoundary] = -1;</span>
+<span class="nc" id="L1075">        matrix[MatrixPredicate.ExteriorInterior] = -1;</span>
+<span class="nc" id="L1076">        matrix[MatrixPredicate.ExteriorBoundary] = -1;</span>
+
+<span class="nc" id="L1078">        matrix[MatrixPredicate.ExteriorExterior] = 2;</span>
+
+<span class="nc" id="L1080">        int type = g_a.getType().value();</span>
+
+<span class="nc bnc" id="L1082" title="All 2 branches missed.">        if (Geometry.isMultiPath(type))</span>
+        {
+<span class="nc bnc" id="L1084" title="All 2 branches missed.">            if (type == Geometry.GeometryType.Polygon)</span>
+            {
+<span class="nc" id="L1086">                double area = ((Polygon)g_a).calculateArea2D();</span>
+
+<span class="nc bnc" id="L1088" title="All 2 branches missed.">                if (area != 0)</span>
+                {
+<span class="nc" id="L1090">                    matrix[MatrixPredicate.InteriorExterior] = 2;</span>
+<span class="nc" id="L1091">                    matrix[MatrixPredicate.BoundaryExterior] = 1;</span>
+                }
+                else
+                {
+<span class="nc" id="L1095">                    matrix[MatrixPredicate.BoundaryExterior] = -1;</span>
+
+<span class="nc" id="L1097">                    Envelope2D env = new Envelope2D();</span>
+<span class="nc" id="L1098">                    g_a.queryEnvelope2D(env);</span>
+<span class="nc bnc" id="L1099" title="All 4 branches missed.">                    matrix[MatrixPredicate.InteriorExterior] = (env.getHeight() == 0.0 &amp;&amp; env.getWidth() == 0.0 ? 0 : 1);</span>
+                }
+<span class="nc" id="L1101">            }</span>
+            else
+            {
+<span class="nc bnc" id="L1104" title="All 2 branches missed.">                boolean b_has_length = ((Polyline)g_a).calculateLength2D() != 0;</span>
+<span class="nc bnc" id="L1105" title="All 2 branches missed.">                matrix[MatrixPredicate.InteriorExterior] = (b_has_length ? 1 : 0);</span>
+<span class="nc bnc" id="L1106" title="All 2 branches missed.">                matrix[MatrixPredicate.BoundaryExterior] = (Boundary.hasNonEmptyBoundary((Polyline)g_a, null) ? 0 : -1);</span>
+<span class="nc" id="L1107">            }</span>
+        }
+        else
+        {
+<span class="nc" id="L1111">            matrix[MatrixPredicate.InteriorExterior] = 0;</span>
+<span class="nc" id="L1112">            matrix[MatrixPredicate.BoundaryExterior] = -1;</span>
+        }
+
+<span class="nc bnc" id="L1115" title="All 2 branches missed.">        if (b_transpose)</span>
+<span class="nc" id="L1116">            transposeMatrix_(matrix);</span>
+
+<span class="nc" id="L1118">        return relationCompare_(matrix, scl);</span>
+    }
+
+	// Checks whether scl string is a predefined relation.
+	private static int getPredefinedRelation_(String scl, int dim_a, int dim_b) {
+<span class="pc bpc" id="L1123" title="1 of 2 branches missed.">		if (equals_(scl))</span>
+<span class="nc" id="L1124">			return RelationalOperations.Relation.equals;</span>
+
+<span class="pc bpc" id="L1126" title="1 of 2 branches missed.">		if (disjoint_(scl))</span>
+<span class="nc" id="L1127">			return RelationalOperations.Relation.disjoint;</span>
+
+<span class="pc bpc" id="L1129" title="1 of 2 branches missed.">		if (touches_(scl, dim_a, dim_b))</span>
+<span class="nc" id="L1130">			return RelationalOperations.Relation.touches;</span>
+
+<span class="pc bpc" id="L1132" title="1 of 2 branches missed.">		if (crosses_(scl, dim_a, dim_b))</span>
+<span class="nc" id="L1133">			return RelationalOperations.Relation.crosses;</span>
+
+<span class="pc bpc" id="L1135" title="1 of 2 branches missed.">		if (contains_(scl))</span>
+<span class="nc" id="L1136">			return RelationalOperations.Relation.contains;</span>
+
+<span class="pc bpc" id="L1138" title="1 of 2 branches missed.">		if (overlaps_(scl, dim_a, dim_b))</span>
+<span class="nc" id="L1139">			return RelationalOperations.Relation.overlaps;</span>
+
+<span class="fc" id="L1141">		return RelationalOperations.Relation.unknown;</span>
+	}
+
+	// Checks whether the scl string is the equals relation.
+	private static boolean equals_(String scl) {
+		// Valid for all
+<span class="fc bfc" id="L1147" title="All 4 branches covered.">		if (scl.charAt(0) == 'T' &amp;&amp; scl.charAt(1) == '*'</span>
+<span class="pc bpc" id="L1148" title="1 of 4 branches missed.">				&amp;&amp; scl.charAt(2) == 'F' &amp;&amp; scl.charAt(3) == '*'</span>
+<span class="pc bpc" id="L1149" title="2 of 4 branches missed.">				&amp;&amp; scl.charAt(4) == '*' &amp;&amp; scl.charAt(5) == 'F'</span>
+<span class="nc bnc" id="L1150" title="All 4 branches missed.">				&amp;&amp; scl.charAt(6) == 'F' &amp;&amp; scl.charAt(7) == 'F'</span>
+<span class="nc bnc" id="L1151" title="All 2 branches missed.">				&amp;&amp; scl.charAt(8) == '*')</span>
+<span class="nc" id="L1152">			return true;</span>
+
+<span class="fc" id="L1154">		return false;</span>
+	}
+
+	// Checks whether the scl string is the disjoint relation.
+	private static boolean disjoint_(String scl) {
+<span class="fc bfc" id="L1159" title="All 4 branches covered.">		if (scl.charAt(0) == 'F' &amp;&amp; scl.charAt(1) == 'F'</span>
+<span class="pc bpc" id="L1160" title="3 of 4 branches missed.">				&amp;&amp; scl.charAt(2) == '*' &amp;&amp; scl.charAt(3) == 'F'</span>
+<span class="nc bnc" id="L1161" title="All 4 branches missed.">				&amp;&amp; scl.charAt(4) == 'F' &amp;&amp; scl.charAt(5) == '*'</span>
+<span class="nc bnc" id="L1162" title="All 4 branches missed.">				&amp;&amp; scl.charAt(6) == '*' &amp;&amp; scl.charAt(7) == '*'</span>
+<span class="nc bnc" id="L1163" title="All 2 branches missed.">				&amp;&amp; scl.charAt(8) == '*')</span>
+<span class="nc" id="L1164">			return true;</span>
+
+<span class="fc" id="L1166">		return false;</span>
+	}
+
+	// Checks whether the scl string is the touches relation.
+	private static boolean touches_(String scl, int dim_a, int dim_b) {
+		// Points cant touch
+<span class="fc bfc" id="L1172" title="All 4 branches covered.">		if (dim_a == 0 &amp;&amp; dim_b == 0)</span>
+<span class="fc" id="L1173">			return false;</span>
+
+<span class="fc bfc" id="L1175" title="All 4 branches covered.">		if (!(dim_a == 2 &amp;&amp; dim_b == 2)) {</span>
+			// Valid for area-Line, Line-Line, area-Point, and Line-Point
+<span class="fc bfc" id="L1177" title="All 4 branches covered.">			if (scl.charAt(0) == 'F' &amp;&amp; scl.charAt(1) == '*'</span>
+<span class="pc bpc" id="L1178" title="1 of 4 branches missed.">					&amp;&amp; scl.charAt(2) == '*' &amp;&amp; scl.charAt(3) == 'T'</span>
+<span class="nc bnc" id="L1179" title="All 4 branches missed.">					&amp;&amp; scl.charAt(4) == '*' &amp;&amp; scl.charAt(5) == '*'</span>
+<span class="nc bnc" id="L1180" title="All 4 branches missed.">					&amp;&amp; scl.charAt(6) == '*' &amp;&amp; scl.charAt(7) == '*'</span>
+<span class="nc bnc" id="L1181" title="All 2 branches missed.">					&amp;&amp; scl.charAt(8) == '*')</span>
+<span class="nc" id="L1182">				return true;</span>
+
+<span class="fc bfc" id="L1184" title="All 4 branches covered.">			if (dim_a == 1 &amp;&amp; dim_b == 1) {</span>
+				// Valid for Line-Line
+<span class="fc bfc" id="L1186" title="All 4 branches covered.">				if (scl.charAt(0) == 'F' &amp;&amp; scl.charAt(1) == 'T'</span>
+<span class="pc bpc" id="L1187" title="3 of 4 branches missed.">						&amp;&amp; scl.charAt(2) == '*' &amp;&amp; scl.charAt(3) == '*'</span>
+<span class="nc bnc" id="L1188" title="All 4 branches missed.">						&amp;&amp; scl.charAt(4) == '*' &amp;&amp; scl.charAt(5) == '*'</span>
+<span class="nc bnc" id="L1189" title="All 4 branches missed.">						&amp;&amp; scl.charAt(6) == '*' &amp;&amp; scl.charAt(7) == '*'</span>
+<span class="nc bnc" id="L1190" title="All 2 branches missed.">						&amp;&amp; scl.charAt(8) == '*')</span>
+<span class="nc" id="L1191">					return true;</span>
+			}
+		}
+
+		// Valid for area-area, area-Line, Line-Line
+
+<span class="fc bfc" id="L1197" title="All 2 branches covered.">		if (dim_b != 0) {</span>
+<span class="fc bfc" id="L1198" title="All 4 branches covered.">			if (scl.charAt(0) == 'F' &amp;&amp; scl.charAt(1) == '*'</span>
+<span class="fc bfc" id="L1199" title="All 4 branches covered.">					&amp;&amp; scl.charAt(2) == '*' &amp;&amp; scl.charAt(3) == '*'</span>
+<span class="pc bpc" id="L1200" title="3 of 4 branches missed.">					&amp;&amp; scl.charAt(4) == 'T' &amp;&amp; scl.charAt(5) == '*'</span>
+<span class="nc bnc" id="L1201" title="All 4 branches missed.">					&amp;&amp; scl.charAt(6) == '*' &amp;&amp; scl.charAt(7) == '*'</span>
+<span class="nc bnc" id="L1202" title="All 2 branches missed.">					&amp;&amp; scl.charAt(8) == '*')</span>
+<span class="nc" id="L1203">				return true;</span>
+		}
+
+<span class="fc" id="L1206">		return false;</span>
+	}
+
+	// Checks whether the scl string is the crosses relation.
+	private static boolean crosses_(String scl, int dim_a, int dim_b) {
+<span class="fc bfc" id="L1211" title="All 2 branches covered.">		if (dim_a &gt; dim_b) {</span>
+			// Valid for area-Line, area-Point, Line-Point
+<span class="fc bfc" id="L1213" title="All 4 branches covered.">			if (scl.charAt(0) == 'T' &amp;&amp; scl.charAt(1) == '*'</span>
+<span class="pc bpc" id="L1214" title="2 of 4 branches missed.">					&amp;&amp; scl.charAt(2) == '*' &amp;&amp; scl.charAt(3) == '*'</span>
+<span class="pc bpc" id="L1215" title="3 of 4 branches missed.">					&amp;&amp; scl.charAt(4) == '*' &amp;&amp; scl.charAt(5) == '*'</span>
+<span class="nc bnc" id="L1216" title="All 4 branches missed.">					&amp;&amp; scl.charAt(6) == 'T' &amp;&amp; scl.charAt(7) == '*'</span>
+<span class="nc bnc" id="L1217" title="All 2 branches missed.">					&amp;&amp; scl.charAt(8) == '*')</span>
+<span class="nc" id="L1218">				return true;</span>
+
+<span class="fc" id="L1220">			return false;</span>
+		}
+
+<span class="pc bpc" id="L1223" title="1 of 4 branches missed.">		if (dim_a == 1 &amp;&amp; dim_b == 1) {</span>
+			// Valid for Line-Line
+<span class="pc bpc" id="L1225" title="1 of 4 branches missed.">			if (scl.charAt(0) == '0' &amp;&amp; scl.charAt(1) == '*'</span>
+<span class="nc bnc" id="L1226" title="All 4 branches missed.">					&amp;&amp; scl.charAt(2) == '*' &amp;&amp; scl.charAt(3) == '*'</span>
+<span class="nc bnc" id="L1227" title="All 4 branches missed.">					&amp;&amp; scl.charAt(4) == '*' &amp;&amp; scl.charAt(5) == '*'</span>
+<span class="nc bnc" id="L1228" title="All 4 branches missed.">					&amp;&amp; scl.charAt(6) == '*' &amp;&amp; scl.charAt(7) == '*'</span>
+<span class="nc bnc" id="L1229" title="All 2 branches missed.">					&amp;&amp; scl.charAt(8) == '*')</span>
+<span class="nc" id="L1230">				return true;</span>
+		}
+
+<span class="fc" id="L1233">		return false;</span>
+	}
+
+	// Checks whether the scl string is the contains relation.
+	private static boolean contains_(String scl) {
+		// Valid for all
+<span class="fc bfc" id="L1239" title="All 4 branches covered.">		if (scl.charAt(0) == 'T' &amp;&amp; scl.charAt(1) == '*'</span>
+<span class="pc bpc" id="L1240" title="1 of 4 branches missed.">				&amp;&amp; scl.charAt(2) == '*' &amp;&amp; scl.charAt(3) == '*'</span>
+<span class="pc bpc" id="L1241" title="1 of 4 branches missed.">				&amp;&amp; scl.charAt(4) == '*' &amp;&amp; scl.charAt(5) == '*'</span>
+<span class="pc bpc" id="L1242" title="3 of 4 branches missed.">				&amp;&amp; scl.charAt(6) == 'F' &amp;&amp; scl.charAt(7) == 'F'</span>
+<span class="nc bnc" id="L1243" title="All 2 branches missed.">				&amp;&amp; scl.charAt(8) == '*')</span>
+<span class="nc" id="L1244">			return true;</span>
+
+<span class="fc" id="L1246">		return false;</span>
+	}
+
+	// Checks whether the scl string is the overlaps relation.
+	private static boolean overlaps_(String scl, int dim_a, int dim_b) {
+<span class="fc bfc" id="L1251" title="All 2 branches covered.">		if (dim_a == dim_b) {</span>
+<span class="fc bfc" id="L1252" title="All 2 branches covered.">			if (dim_a != 1) {</span>
+				// Valid for area-area, Point-Point
+<span class="fc bfc" id="L1254" title="All 4 branches covered.">				if (scl.charAt(0) == 'T' &amp;&amp; scl.charAt(1) == '*'</span>
+<span class="pc bpc" id="L1255" title="1 of 4 branches missed.">						&amp;&amp; scl.charAt(2) == 'T' &amp;&amp; scl.charAt(3) == '*'</span>
+<span class="pc bpc" id="L1256" title="2 of 4 branches missed.">						&amp;&amp; scl.charAt(4) == '*' &amp;&amp; scl.charAt(5) == '*'</span>
+<span class="pc bpc" id="L1257" title="3 of 4 branches missed.">						&amp;&amp; scl.charAt(6) == 'T' &amp;&amp; scl.charAt(7) == '*'</span>
+<span class="nc bnc" id="L1258" title="All 2 branches missed.">						&amp;&amp; scl.charAt(8) == '*')</span>
+<span class="nc" id="L1259">					return true;</span>
+
+<span class="fc" id="L1261">				return false;</span>
+			}
+
+			// Valid for Line-Line
+<span class="fc bfc" id="L1265" title="All 4 branches covered.">			if (scl.charAt(0) == '1' &amp;&amp; scl.charAt(1) == '*'</span>
+<span class="pc bpc" id="L1266" title="2 of 4 branches missed.">					&amp;&amp; scl.charAt(2) == 'T' &amp;&amp; scl.charAt(3) == '*'</span>
+<span class="pc bpc" id="L1267" title="3 of 4 branches missed.">					&amp;&amp; scl.charAt(4) == '*' &amp;&amp; scl.charAt(5) == '*'</span>
+<span class="nc bnc" id="L1268" title="All 4 branches missed.">					&amp;&amp; scl.charAt(6) == 'T' &amp;&amp; scl.charAt(7) == '*'</span>
+<span class="nc bnc" id="L1269" title="All 2 branches missed.">					&amp;&amp; scl.charAt(8) == '*')</span>
+<span class="nc" id="L1270">				return true;</span>
+		}
+
+<span class="fc" id="L1273">		return false;</span>
+	}
+
+	// Marks each cluster of the topoGraph as belonging to an interior vertex of
+	// the geometry and/or a boundary index of the geometry.
+	private static void markClusterEndPoints_(int geometry,
+			TopoGraph topoGraph, int clusterIndex) {
+<span class="fc" id="L1280">        int id = topoGraph.getGeometryID(geometry);</span>
+
+<span class="fc bfc" id="L1282" title="All 2 branches covered.">        for (int cluster = topoGraph.getFirstCluster(); cluster != -1; cluster = topoGraph.getNextCluster(cluster))</span>
+        {
+<span class="fc" id="L1284">            int cluster_parentage = topoGraph.getClusterParentage(cluster);</span>
+
+<span class="fc bfc" id="L1286" title="All 2 branches covered.">            if ((cluster_parentage &amp; id) == 0)</span>
+<span class="fc" id="L1287">                continue;</span>
+
+<span class="fc" id="L1289">            int first_half_edge = topoGraph.getClusterHalfEdge(cluster);</span>
+<span class="fc bfc" id="L1290" title="All 2 branches covered.">            if (first_half_edge == -1)</span>
+            {
+<span class="fc" id="L1292">                topoGraph.setClusterUserIndex(cluster, clusterIndex, 0);</span>
+<span class="fc" id="L1293">                continue;</span>
+            }
+
+<span class="fc" id="L1296">            int next_half_edge = first_half_edge;</span>
+<span class="fc" id="L1297">            int index = 0;</span>
+
+            do
+            {
+<span class="fc" id="L1301">                int half_edge = next_half_edge;</span>
+<span class="fc" id="L1302">                int half_edge_parentage = topoGraph.getHalfEdgeParentage(half_edge);</span>
+
+<span class="fc bfc" id="L1304" title="All 2 branches covered.">                if ((half_edge_parentage &amp; id) != 0)</span>
+<span class="fc" id="L1305">                    index++;</span>
+
+<span class="fc" id="L1307">                next_half_edge = topoGraph.getHalfEdgeNext(topoGraph.getHalfEdgeTwin(half_edge));</span>
+
+<span class="fc bfc" id="L1309" title="All 2 branches covered.">            } while (next_half_edge != first_half_edge);</span>
+
+<span class="fc" id="L1311">            topoGraph.setClusterUserIndex(cluster, clusterIndex, index);</span>
+        }
+
+<span class="fc" id="L1314">        return;</span>
+	}
+
+	private static String getTransposeMatrix_(String scl) {
+<span class="fc" id="L1318">		String transpose = new String();</span>
+<span class="fc" id="L1319">		transpose += scl.charAt(0);</span>
+<span class="fc" id="L1320">		transpose += scl.charAt(3);</span>
+<span class="fc" id="L1321">		transpose += scl.charAt(6);</span>
+<span class="fc" id="L1322">		transpose += scl.charAt(1);</span>
+<span class="fc" id="L1323">		transpose += scl.charAt(4);</span>
+<span class="fc" id="L1324">		transpose += scl.charAt(7);</span>
+<span class="fc" id="L1325">		transpose += scl.charAt(2);</span>
+<span class="fc" id="L1326">		transpose += scl.charAt(5);</span>
+<span class="fc" id="L1327">		transpose += scl.charAt(8);</span>
+<span class="fc" id="L1328">		return transpose;</span>
+	}
+
+	// Allocates the matrix array if need be, and sets all entries to -2.
+	// -2: Not Computed
+	// -1: No intersection
+	// 0: 0-dimension intersection
+	// 1: 1-dimension intersection
+	// 2: 2-dimension intersection
+	private void resetMatrix_() {
+<span class="fc bfc" id="L1338" title="All 2 branches covered.">		for (int i = 0; i &lt; 9; i++)</span>
+        {
+<span class="fc" id="L1340">            m_matrix[i] = -2;</span>
+<span class="fc" id="L1341">            m_max_dim[i] = -2;</span>
+        }
+<span class="fc" id="L1343">	}</span>
+
+	private static void transposeMatrix_(int[] matrix) {
+<span class="nc" id="L1346">		int temp1 = matrix[1];</span>
+<span class="nc" id="L1347">		int temp2 = matrix[2];</span>
+<span class="nc" id="L1348">		int temp5 = matrix[5];</span>
+
+<span class="nc" id="L1350">		matrix[1] = matrix[3];</span>
+<span class="nc" id="L1351">		matrix[2] = matrix[6];</span>
+<span class="nc" id="L1352">		matrix[5] = matrix[7];</span>
+
+<span class="nc" id="L1354">		matrix[3] = temp1;</span>
+<span class="nc" id="L1355">		matrix[6] = temp2;</span>
+<span class="nc" id="L1356">		matrix[7] = temp5;</span>
+<span class="nc" id="L1357">	}</span>
+
+	// Sets the relation predicates from the scl string.
+	private void setPredicates_(String scl) {
+<span class="fc" id="L1361">		m_scl = scl;</span>
+
+<span class="fc bfc" id="L1363" title="All 2 branches covered.">		for (int i = 0; i &lt; 9; i++) {</span>
+<span class="fc bfc" id="L1364" title="All 2 branches covered.">			if (m_scl.charAt(i) != '*') {</span>
+<span class="fc" id="L1365">				m_perform_predicates[i] = true;</span>
+<span class="fc" id="L1366">				m_predicate_count++;</span>
+			} else
+<span class="fc" id="L1368">				m_perform_predicates[i] = false;</span>
+		}
+<span class="fc" id="L1370">	}</span>
+
+	// Sets the remaining predicates to false
+	private void setRemainingPredicatesToFalse_() {
+<span class="fc bfc" id="L1374" title="All 2 branches covered.">		for (int i = 0; i &lt; 9; i++) {</span>
+<span class="fc bfc" id="L1375" title="All 4 branches covered.">			if (m_perform_predicates[i] &amp;&amp; m_matrix[i] == -2) {</span>
+<span class="fc" id="L1376">				m_matrix[i] = -1;</span>
+<span class="fc" id="L1377">				m_perform_predicates[i] = false;</span>
+			}
+		}
+<span class="fc" id="L1380">	}</span>
+
+	// Checks whether the predicate is known.
+	private boolean isPredicateKnown_(int predicate) {
+<span class="pc bpc" id="L1384" title="1 of 2 branches missed.">        assert(m_scl.charAt(predicate) != '*');</span>
+
+<span class="fc bfc" id="L1386" title="All 2 branches covered.">        if (m_matrix[predicate] == -2)</span>
+<span class="fc" id="L1387">            return false;</span>
+
+<span class="pc bpc" id="L1389" title="1 of 2 branches missed.">        if (m_matrix[predicate] == -1)</span>
+        {
+<span class="nc" id="L1391">            m_perform_predicates[predicate] = false;</span>
+<span class="nc" id="L1392">            m_predicate_count--;</span>
+<span class="nc" id="L1393">            return true;</span>
+        }
+
+<span class="fc bfc" id="L1396" title="All 4 branches covered.">        if (m_scl.charAt(predicate) != 'T' &amp;&amp; m_scl.charAt(predicate) != 'F')</span>
+        {
+<span class="fc bfc" id="L1398" title="All 2 branches covered.">            if (m_matrix[predicate] &lt; m_max_dim[predicate])</span>
+            {
+<span class="fc" id="L1400">                return false;</span>
+            }
+            else
+            {
+<span class="fc" id="L1404">                m_perform_predicates[predicate] = false;</span>
+<span class="fc" id="L1405">                m_predicate_count--;</span>
+<span class="fc" id="L1406">                return true;</span>
+            }
+        }
+        else
+        {
+<span class="fc" id="L1411">            m_perform_predicates[predicate] = false;</span>
+<span class="fc" id="L1412">            m_predicate_count--;</span>
+<span class="fc" id="L1413">            return true;</span>
+        }
+	}
+
+	// Sets the area-area predicates function.
+	private void setAreaAreaPredicates_() {
+<span class="fc" id="L1419">        m_predicates_half_edge = Predicates.AreaAreaPredicates;</span>
+
+<span class="fc" id="L1421">        m_max_dim[MatrixPredicate.InteriorInterior] = 2;</span>
+<span class="fc" id="L1422">        m_max_dim[MatrixPredicate.InteriorBoundary] = 1;</span>
+<span class="fc" id="L1423">        m_max_dim[MatrixPredicate.InteriorExterior] = 2;</span>
+<span class="fc" id="L1424">        m_max_dim[MatrixPredicate.BoundaryInterior] = 1;</span>
+<span class="fc" id="L1425">        m_max_dim[MatrixPredicate.BoundaryBoundary] = 1;</span>
+<span class="fc" id="L1426">        m_max_dim[MatrixPredicate.BoundaryExterior] = 1;</span>
+<span class="fc" id="L1427">        m_max_dim[MatrixPredicate.ExteriorInterior] = 2;</span>
+<span class="fc" id="L1428">        m_max_dim[MatrixPredicate.ExteriorBoundary] = 1;</span>
+<span class="fc" id="L1429">        m_max_dim[MatrixPredicate.ExteriorExterior] = 2;</span>
+
+        // set predicates that are always true/false
+<span class="fc bfc" id="L1432" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.ExteriorExterior])</span>
+        {
+<span class="fc" id="L1434">            m_matrix[MatrixPredicate.ExteriorExterior] = 2; // Always true</span>
+<span class="fc" id="L1435">            m_perform_predicates[MatrixPredicate.ExteriorExterior] = false;</span>
+<span class="fc" id="L1436">            m_predicate_count--;</span>
+        }
+<span class="fc" id="L1438">	}</span>
+
+	// Sets the area-line predicate function.
+	private void setAreaLinePredicates_() {
+<span class="fc" id="L1442">        m_predicates_half_edge = Predicates.AreaLinePredicates;</span>
+<span class="fc" id="L1443">        m_predicates_cluster = Predicates.AreaPointPredicates;</span>
+
+<span class="fc" id="L1445">        m_max_dim[MatrixPredicate.InteriorInterior] = 1;</span>
+<span class="fc" id="L1446">        m_max_dim[MatrixPredicate.InteriorBoundary] = 0;</span>
+<span class="fc" id="L1447">        m_max_dim[MatrixPredicate.InteriorExterior] = 2;</span>
+<span class="fc" id="L1448">        m_max_dim[MatrixPredicate.BoundaryInterior] = 1;</span>
+<span class="fc" id="L1449">        m_max_dim[MatrixPredicate.BoundaryBoundary] = 0;</span>
+<span class="fc" id="L1450">        m_max_dim[MatrixPredicate.BoundaryExterior] = 1;</span>
+<span class="fc" id="L1451">        m_max_dim[MatrixPredicate.ExteriorInterior] = 1;</span>
+<span class="fc" id="L1452">        m_max_dim[MatrixPredicate.ExteriorBoundary] = 0;</span>
+<span class="fc" id="L1453">        m_max_dim[MatrixPredicate.ExteriorExterior] = 2;</span>
+
+<span class="fc bfc" id="L1455" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.ExteriorExterior])</span>
+        {
+<span class="fc" id="L1457">            m_matrix[MatrixPredicate.ExteriorExterior] = 2; // Always true</span>
+<span class="fc" id="L1458">            m_perform_predicates[MatrixPredicate.ExteriorExterior] = false;</span>
+<span class="fc" id="L1459">            m_predicate_count--;</span>
+        }
+<span class="fc" id="L1461">	}</span>
+
+	// Sets the line-line predicates function.
+	private void setLineLinePredicates_() {
+<span class="fc" id="L1465">        m_predicates_half_edge = Predicates.LineLinePredicates;</span>
+<span class="fc" id="L1466">        m_predicates_cluster = Predicates.LinePointPredicates;</span>
+
+<span class="fc" id="L1468">        m_max_dim[MatrixPredicate.InteriorInterior] = 1;</span>
+<span class="fc" id="L1469">        m_max_dim[MatrixPredicate.InteriorBoundary] = 0;</span>
+<span class="fc" id="L1470">        m_max_dim[MatrixPredicate.InteriorExterior] = 1;</span>
+<span class="fc" id="L1471">        m_max_dim[MatrixPredicate.BoundaryInterior] = 0;</span>
+<span class="fc" id="L1472">        m_max_dim[MatrixPredicate.BoundaryBoundary] = 0;</span>
+<span class="fc" id="L1473">        m_max_dim[MatrixPredicate.BoundaryExterior] = 0;</span>
+<span class="fc" id="L1474">        m_max_dim[MatrixPredicate.ExteriorInterior] = 1;</span>
+<span class="fc" id="L1475">        m_max_dim[MatrixPredicate.ExteriorBoundary] = 0;</span>
+<span class="fc" id="L1476">        m_max_dim[MatrixPredicate.ExteriorExterior] = 2;</span>
+
+        // set predicates that are always true/false
+<span class="fc bfc" id="L1479" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.ExteriorExterior])</span>
+        {
+<span class="fc" id="L1481">            m_matrix[MatrixPredicate.ExteriorExterior] = 2; // Always true</span>
+<span class="fc" id="L1482">            m_perform_predicates[MatrixPredicate.ExteriorExterior] = false;</span>
+<span class="fc" id="L1483">            m_predicate_count--;</span>
+        }
+<span class="fc" id="L1485">	}</span>
+
+	// Sets the area-point predicate function.
+	private void setAreaPointPredicates_() {
+<span class="fc" id="L1489">        m_predicates_cluster = Predicates.AreaPointPredicates;</span>
+
+<span class="fc" id="L1491">        m_max_dim[MatrixPredicate.InteriorInterior] = 0;</span>
+<span class="fc" id="L1492">        m_max_dim[MatrixPredicate.InteriorBoundary] = -1;</span>
+<span class="fc" id="L1493">        m_max_dim[MatrixPredicate.InteriorExterior] = 2;</span>
+<span class="fc" id="L1494">        m_max_dim[MatrixPredicate.BoundaryInterior] = 0;</span>
+<span class="fc" id="L1495">        m_max_dim[MatrixPredicate.BoundaryBoundary] = -1;</span>
+<span class="fc" id="L1496">        m_max_dim[MatrixPredicate.BoundaryExterior] = 1;</span>
+<span class="fc" id="L1497">        m_max_dim[MatrixPredicate.ExteriorInterior] = 0;</span>
+<span class="fc" id="L1498">        m_max_dim[MatrixPredicate.ExteriorBoundary] = -1;</span>
+<span class="fc" id="L1499">        m_max_dim[MatrixPredicate.ExteriorExterior] = 2;</span>
+
+        // set predicates that are always true/false
+<span class="pc bpc" id="L1502" title="1 of 2 branches missed.">        if (m_perform_predicates[MatrixPredicate.InteriorBoundary])</span>
+        {
+<span class="fc" id="L1504">            m_matrix[MatrixPredicate.InteriorBoundary] = -1; // Always false</span>
+<span class="fc" id="L1505">            m_perform_predicates[MatrixPredicate.InteriorBoundary] = false;</span>
+<span class="fc" id="L1506">            m_predicate_count--;</span>
+        }
+
+<span class="pc bpc" id="L1509" title="1 of 2 branches missed.">        if (m_perform_predicates[MatrixPredicate.BoundaryBoundary])</span>
+        {
+<span class="fc" id="L1511">            m_matrix[MatrixPredicate.BoundaryBoundary] = -1; // Always false</span>
+<span class="fc" id="L1512">            m_perform_predicates[MatrixPredicate.BoundaryBoundary] = false;</span>
+<span class="fc" id="L1513">            m_predicate_count--;</span>
+        }
+
+<span class="fc bfc" id="L1516" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.ExteriorBoundary])</span>
+        {
+<span class="fc" id="L1518">            m_matrix[MatrixPredicate.ExteriorBoundary] = -1; // Always false</span>
+<span class="fc" id="L1519">            m_perform_predicates[MatrixPredicate.ExteriorBoundary] = false;</span>
+<span class="fc" id="L1520">            m_predicate_count--;</span>
+        }
+
+<span class="fc bfc" id="L1523" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.ExteriorExterior])</span>
+        {
+<span class="fc" id="L1525">            m_matrix[MatrixPredicate.ExteriorExterior] = 2; // Always true</span>
+<span class="fc" id="L1526">            m_perform_predicates[MatrixPredicate.ExteriorExterior] = false;</span>
+<span class="fc" id="L1527">            m_predicate_count--;</span>
+        }
+<span class="fc" id="L1529">	}</span>
+
+	// Sets the line-point predicates function.
+	private void setLinePointPredicates_() {
+<span class="fc" id="L1533">        m_predicates_cluster = Predicates.LinePointPredicates;</span>
+
+<span class="fc" id="L1535">        m_max_dim[MatrixPredicate.InteriorInterior] = 0;</span>
+<span class="fc" id="L1536">        m_max_dim[MatrixPredicate.InteriorBoundary] = -1;</span>
+<span class="fc" id="L1537">        m_max_dim[MatrixPredicate.InteriorExterior] = 1;</span>
+<span class="fc" id="L1538">        m_max_dim[MatrixPredicate.BoundaryInterior] = 0;</span>
+<span class="fc" id="L1539">        m_max_dim[MatrixPredicate.BoundaryBoundary] = -1;</span>
+<span class="fc" id="L1540">        m_max_dim[MatrixPredicate.BoundaryExterior] = 0;</span>
+<span class="fc" id="L1541">        m_max_dim[MatrixPredicate.ExteriorInterior] = 0;</span>
+<span class="fc" id="L1542">        m_max_dim[MatrixPredicate.ExteriorBoundary] = -1;</span>
+<span class="fc" id="L1543">        m_max_dim[MatrixPredicate.ExteriorExterior] = 2;</span>
+
+        // set predicates that are always true/false
+<span class="pc bpc" id="L1546" title="1 of 2 branches missed.">        if (m_perform_predicates[MatrixPredicate.InteriorBoundary])</span>
+        {
+<span class="fc" id="L1548">            m_matrix[MatrixPredicate.InteriorBoundary] = -1; // Always false</span>
+<span class="fc" id="L1549">            m_perform_predicates[MatrixPredicate.InteriorBoundary] = false;</span>
+<span class="fc" id="L1550">            m_predicate_count--;</span>
+        }
+
+<span class="pc bpc" id="L1553" title="1 of 2 branches missed.">        if (m_perform_predicates[MatrixPredicate.BoundaryBoundary])</span>
+        {
+<span class="fc" id="L1555">            m_matrix[MatrixPredicate.BoundaryBoundary] = -1; // Always false</span>
+<span class="fc" id="L1556">            m_perform_predicates[MatrixPredicate.BoundaryBoundary] = false;</span>
+<span class="fc" id="L1557">            m_predicate_count--;</span>
+        }
+
+<span class="pc bpc" id="L1560" title="1 of 2 branches missed.">        if (m_perform_predicates[MatrixPredicate.ExteriorBoundary])</span>
+        {
+<span class="fc" id="L1562">            m_matrix[MatrixPredicate.ExteriorBoundary] = -1; // Always false</span>
+<span class="fc" id="L1563">            m_perform_predicates[MatrixPredicate.ExteriorBoundary] = false;</span>
+<span class="fc" id="L1564">            m_predicate_count--;</span>
+        }
+
+<span class="pc bpc" id="L1567" title="1 of 2 branches missed.">        if (m_perform_predicates[MatrixPredicate.ExteriorExterior])</span>
+        {
+<span class="fc" id="L1569">            m_matrix[MatrixPredicate.ExteriorExterior] = 2; // Always true</span>
+<span class="fc" id="L1570">            m_perform_predicates[MatrixPredicate.ExteriorExterior] = false;</span>
+<span class="fc" id="L1571">            m_predicate_count--;</span>
+        }
+<span class="fc" id="L1573">	}</span>
+
+	// Sets the point-point predicates function.
+	private void setPointPointPredicates_() {
+<span class="fc" id="L1577">        m_predicates_cluster = Predicates.PointPointPredicates;</span>
+
+<span class="fc" id="L1579">        m_max_dim[MatrixPredicate.InteriorInterior] = 0;</span>
+<span class="fc" id="L1580">        m_max_dim[MatrixPredicate.InteriorBoundary] = -1;</span>
+<span class="fc" id="L1581">        m_max_dim[MatrixPredicate.InteriorExterior] = 0;</span>
+<span class="fc" id="L1582">        m_max_dim[MatrixPredicate.BoundaryInterior] = -1;</span>
+<span class="fc" id="L1583">        m_max_dim[MatrixPredicate.BoundaryBoundary] = -1;</span>
+<span class="fc" id="L1584">        m_max_dim[MatrixPredicate.BoundaryExterior] = -1;</span>
+<span class="fc" id="L1585">        m_max_dim[MatrixPredicate.ExteriorInterior] = 0;</span>
+<span class="fc" id="L1586">        m_max_dim[MatrixPredicate.ExteriorBoundary] = -1;</span>
+<span class="fc" id="L1587">        m_max_dim[MatrixPredicate.ExteriorExterior] = 2;</span>
+
+        // set predicates that are always true/false
+<span class="fc bfc" id="L1590" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.InteriorBoundary])</span>
+        {
+<span class="fc" id="L1592">            m_matrix[MatrixPredicate.InteriorBoundary] = -1; // Always false</span>
+<span class="fc" id="L1593">            m_perform_predicates[MatrixPredicate.InteriorBoundary] = false;</span>
+<span class="fc" id="L1594">            m_predicate_count--;</span>
+        }
+
+<span class="fc bfc" id="L1597" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.BoundaryInterior])</span>
+        {
+<span class="fc" id="L1599">            m_matrix[MatrixPredicate.BoundaryInterior] = -1; // Always false</span>
+<span class="fc" id="L1600">            m_perform_predicates[MatrixPredicate.BoundaryInterior] = false;</span>
+<span class="fc" id="L1601">            m_predicate_count--;</span>
+        }
+
+<span class="fc bfc" id="L1604" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.BoundaryBoundary])</span>
+        {
+<span class="fc" id="L1606">            m_matrix[MatrixPredicate.BoundaryBoundary] = -1; // Always false</span>
+<span class="fc" id="L1607">            m_perform_predicates[MatrixPredicate.BoundaryBoundary] = false;</span>
+<span class="fc" id="L1608">            m_predicate_count--;</span>
+        }
+
+<span class="fc bfc" id="L1611" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.BoundaryExterior])</span>
+        {
+<span class="fc" id="L1613">            m_matrix[MatrixPredicate.BoundaryExterior] = -1; // Always false</span>
+<span class="fc" id="L1614">            m_perform_predicates[MatrixPredicate.BoundaryExterior] = false;</span>
+<span class="fc" id="L1615">            m_predicate_count--;</span>
+        }
+
+<span class="fc bfc" id="L1618" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.ExteriorBoundary])</span>
+        {
+<span class="fc" id="L1620">            m_matrix[MatrixPredicate.ExteriorBoundary] = -1; // Always false</span>
+<span class="fc" id="L1621">            m_perform_predicates[MatrixPredicate.ExteriorBoundary] = false;</span>
+<span class="fc" id="L1622">            m_predicate_count--;</span>
+        }
+
+<span class="fc bfc" id="L1625" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.ExteriorExterior])</span>
+        {
+<span class="fc" id="L1627">            m_matrix[MatrixPredicate.ExteriorExterior] = 2; // Always true</span>
+<span class="fc" id="L1628">            m_perform_predicates[MatrixPredicate.ExteriorExterior] = false;</span>
+<span class="fc" id="L1629">            m_predicate_count--;</span>
+        }
+<span class="fc" id="L1631">	}</span>
+
+	// Invokes the 9 relational predicates of area vs area.
+	private boolean areaAreaPredicates_(int half_edge, int id_a, int id_b) {
+<span class="fc" id="L1635">		boolean bRelationKnown = true;</span>
+
+<span class="fc bfc" id="L1637" title="All 2 branches covered.">		if (m_perform_predicates[MatrixPredicate.InteriorInterior]) {</span>
+<span class="fc" id="L1638">			interiorAreaInteriorArea_(half_edge, id_a, id_b);</span>
+<span class="fc" id="L1639">			bRelationKnown &amp;= isPredicateKnown_(</span>
+					MatrixPredicate.InteriorInterior);
+		}
+
+<span class="fc bfc" id="L1643" title="All 2 branches covered.">		if (m_perform_predicates[MatrixPredicate.InteriorBoundary]) {</span>
+<span class="fc" id="L1644">			interiorAreaBoundaryArea_(half_edge, id_a,</span>
+					MatrixPredicate.InteriorBoundary);
+<span class="fc" id="L1646">			bRelationKnown &amp;= isPredicateKnown_(</span>
+					MatrixPredicate.InteriorBoundary);
+		}
+
+<span class="fc bfc" id="L1650" title="All 2 branches covered.">		if (m_perform_predicates[MatrixPredicate.InteriorExterior]) {</span>
+<span class="fc" id="L1651">			interiorAreaExteriorArea_(half_edge, id_a, id_b,</span>
+					MatrixPredicate.InteriorExterior);
+<span class="fc" id="L1653">			bRelationKnown &amp;= isPredicateKnown_(</span>
+					MatrixPredicate.InteriorExterior);
+		}
+
+<span class="fc bfc" id="L1657" title="All 2 branches covered.">		if (m_perform_predicates[MatrixPredicate.BoundaryInterior]) {</span>
+<span class="fc" id="L1658">			interiorAreaBoundaryArea_(half_edge, id_b,</span>
+					MatrixPredicate.BoundaryInterior);
+<span class="fc" id="L1660">			bRelationKnown &amp;= isPredicateKnown_(</span>
+					MatrixPredicate.BoundaryInterior);
+		}
+
+<span class="fc bfc" id="L1664" title="All 2 branches covered.">		if (m_perform_predicates[MatrixPredicate.BoundaryBoundary]) {</span>
+<span class="fc" id="L1665">			boundaryAreaBoundaryArea_(half_edge, id_a, id_b);</span>
+<span class="fc" id="L1666">			bRelationKnown &amp;= isPredicateKnown_(</span>
+					MatrixPredicate.BoundaryBoundary);
+		}
+
+<span class="fc bfc" id="L1670" title="All 2 branches covered.">		if (m_perform_predicates[MatrixPredicate.BoundaryExterior]) {</span>
+<span class="fc" id="L1671">			boundaryAreaExteriorArea_(half_edge, id_a, id_b,</span>
+					MatrixPredicate.BoundaryExterior);
+<span class="fc" id="L1673">			bRelationKnown &amp;= isPredicateKnown_(</span>
+					MatrixPredicate.BoundaryExterior);
+		}
+
+<span class="fc bfc" id="L1677" title="All 2 branches covered.">		if (m_perform_predicates[MatrixPredicate.ExteriorInterior]) {</span>
+<span class="fc" id="L1678">			interiorAreaExteriorArea_(half_edge, id_b, id_a,</span>
+					MatrixPredicate.ExteriorInterior);
+<span class="fc" id="L1680">			bRelationKnown &amp;= isPredicateKnown_(</span>
+					MatrixPredicate.ExteriorInterior);
+		}
+
+<span class="fc bfc" id="L1684" title="All 2 branches covered.">		if (m_perform_predicates[MatrixPredicate.ExteriorBoundary]) {</span>
+<span class="fc" id="L1685">			boundaryAreaExteriorArea_(half_edge, id_b, id_a,</span>
+					MatrixPredicate.ExteriorBoundary);
+<span class="fc" id="L1687">			bRelationKnown &amp;= isPredicateKnown_(</span>
+					MatrixPredicate.ExteriorBoundary);
+		}
+
+<span class="fc" id="L1691">		return bRelationKnown;</span>
+	}
+
+	private void areaAreaDisjointPredicates_(Polygon polygon_a, Polygon polygon_b) {
+<span class="fc" id="L1695">        m_matrix[MatrixPredicate.InteriorInterior] = -1;</span>
+<span class="fc" id="L1696">        m_matrix[MatrixPredicate.InteriorBoundary] = -1;</span>
+<span class="fc" id="L1697">        m_matrix[MatrixPredicate.BoundaryInterior] = -1;</span>
+<span class="fc" id="L1698">        m_matrix[MatrixPredicate.BoundaryBoundary] = -1;</span>
+
+<span class="pc bpc" id="L1700" title="2 of 4 branches missed.">        areaGeomContainsOrDisjointPredicates_(polygon_a, m_perform_predicates[MatrixPredicate.InteriorExterior] ? MatrixPredicate.InteriorExterior : -1, m_scl.charAt(MatrixPredicate.InteriorExterior), m_perform_predicates[MatrixPredicate.BoundaryExterior] ? MatrixPredicate.BoundaryExterior : -1, m_scl.charAt(MatrixPredicate.BoundaryExterior));</span>
+<span class="pc bpc" id="L1701" title="2 of 4 branches missed.">        areaGeomContainsOrDisjointPredicates_(polygon_b, m_perform_predicates[MatrixPredicate.ExteriorInterior] ? MatrixPredicate.ExteriorInterior : -1, m_scl.charAt(MatrixPredicate.ExteriorInterior), m_perform_predicates[MatrixPredicate.ExteriorBoundary] ? MatrixPredicate.ExteriorBoundary : -1, m_scl.charAt(MatrixPredicate.ExteriorBoundary));</span>
+<span class="fc" id="L1702">	}</span>
+
+    private void areaGeomContainsOrDisjointPredicates_(Polygon polygon, int matrix_interior, char c1, int matrix_boundary, char c2)
+    {
+<span class="pc bpc" id="L1706" title="3 of 4 branches missed.">        if (matrix_interior != -1 || matrix_boundary != -1)</span>
+        {
+<span class="pc bpc" id="L1708" title="7 of 14 branches missed.">            boolean has_area = ((c1 != 'T' &amp;&amp; c1 != 'F' &amp;&amp; matrix_interior != -1) || (c2 != 'T' &amp;&amp; c2 != 'F' &amp;&amp; matrix_boundary != -1) ? polygon.calculateArea2D() != 0 : true);</span>
+
+<span class="fc bfc" id="L1710" title="All 2 branches covered.">            if (has_area)</span>
+            {
+<span class="pc bpc" id="L1712" title="1 of 2 branches missed.">                if (matrix_interior != -1)</span>
+<span class="fc" id="L1713">                  m_matrix[matrix_interior] = 2;</span>
+<span class="pc bpc" id="L1714" title="1 of 2 branches missed.">                if (matrix_boundary != -1)</span>
+<span class="fc" id="L1715">                  m_matrix[matrix_boundary] = 1;</span>
+            }
+            else
+            {
+<span class="fc bfc" id="L1719" title="All 2 branches covered.">                if (matrix_boundary != -1)</span>
+<span class="fc" id="L1720">                  m_matrix[matrix_boundary] = -1;</span>
+
+<span class="pc bpc" id="L1722" title="1 of 2 branches missed.">                if (matrix_interior != -1)</span>
+                {
+<span class="fc" id="L1724">                    Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L1725">                    polygon.queryEnvelope2D(env);</span>
+<span class="fc bfc" id="L1726" title="All 4 branches covered.">                    m_matrix[matrix_interior] = (env.getHeight() == 0.0 &amp;&amp; env.getWidth() == 0.0 ? 0 : 1);</span>
+                }
+            }
+        }
+<span class="fc" id="L1730">    }</span>
+
+	private void areaAreaContainsPredicates_(Polygon polygon_b) {
+<span class="fc" id="L1733">        m_matrix[MatrixPredicate.InteriorExterior] = 2; // im assuming its a proper contains.</span>
+<span class="fc" id="L1734">        m_matrix[MatrixPredicate.BoundaryInterior] = -1;</span>
+<span class="fc" id="L1735">        m_matrix[MatrixPredicate.BoundaryBoundary] = -1;</span>
+<span class="fc" id="L1736">        m_matrix[MatrixPredicate.BoundaryExterior] = 1;</span>
+<span class="fc" id="L1737">        m_matrix[MatrixPredicate.ExteriorInterior] = -1;</span>
+<span class="fc" id="L1738">        m_matrix[MatrixPredicate.ExteriorBoundary] = -1;</span>
+
+<span class="pc bpc" id="L1740" title="2 of 4 branches missed.">        areaGeomContainsOrDisjointPredicates_(polygon_b, m_perform_predicates[MatrixPredicate.InteriorInterior] ? MatrixPredicate.InteriorInterior : -1, m_scl.charAt(MatrixPredicate.InteriorInterior), m_perform_predicates[MatrixPredicate.InteriorBoundary] ? MatrixPredicate.InteriorBoundary : -1, m_scl.charAt(MatrixPredicate.InteriorBoundary));</span>
+
+        // all other predicates should already be set by set_area_area_predicates
+<span class="fc" id="L1743">    }</span>
+
+	private void areaAreaWithinPredicates_(Polygon polygon_a) {
+<span class="nc" id="L1746">		areaAreaContainsPredicates_(polygon_a);</span>
+<span class="nc" id="L1747">		transposeMatrix_(m_matrix);</span>
+<span class="nc" id="L1748">	}</span>
+
+	private void areaLineDisjointPredicates_(Polygon polygon, Polyline polyline) {
+<span class="fc" id="L1751">        m_matrix[MatrixPredicate.InteriorInterior] = -1;</span>
+<span class="fc" id="L1752">        m_matrix[MatrixPredicate.InteriorBoundary] = -1;</span>
+<span class="fc" id="L1753">        m_matrix[MatrixPredicate.BoundaryInterior] = -1;</span>
+<span class="fc" id="L1754">        m_matrix[MatrixPredicate.BoundaryBoundary] = -1;</span>
+
+<span class="pc bpc" id="L1756" title="1 of 2 branches missed.">        if (m_perform_predicates[MatrixPredicate.ExteriorInterior])</span>
+        {
+<span class="nc" id="L1758">            char c = m_scl.charAt(MatrixPredicate.ExteriorInterior);</span>
+<span class="nc bnc" id="L1759" title="All 6 branches missed.">            boolean b_has_length = (c != 'T' &amp;&amp; c != 'F' ? polyline.calculateLength2D() != 0 : true);</span>
+<span class="nc bnc" id="L1760" title="All 2 branches missed.">            m_matrix[MatrixPredicate.ExteriorInterior] = (b_has_length ? 1 : 0);</span>
+        }
+
+<span class="pc bpc" id="L1763" title="1 of 2 branches missed.">        if (m_perform_predicates[MatrixPredicate.ExteriorBoundary])</span>
+        {
+<span class="nc" id="L1765">            boolean has_non_empty_boundary = Boundary.hasNonEmptyBoundary(polyline, null);</span>
+<span class="nc bnc" id="L1766" title="All 2 branches missed.">            m_matrix[MatrixPredicate.ExteriorBoundary] = has_non_empty_boundary ? 0 : -1;</span>
+        }
+
+<span class="pc bpc" id="L1769" title="1 of 4 branches missed.">        areaGeomContainsOrDisjointPredicates_(polygon, m_perform_predicates[MatrixPredicate.InteriorExterior] ? MatrixPredicate.InteriorExterior : -1, m_scl.charAt(MatrixPredicate.InteriorExterior), m_perform_predicates[MatrixPredicate.BoundaryExterior] ? MatrixPredicate.BoundaryExterior : -1, m_scl.charAt(MatrixPredicate.BoundaryExterior));</span>
+<span class="fc" id="L1770">	}</span>
+
+	private void areaLineContainsPredicates_(Polygon polygon, Polyline polyline) {
+<span class="pc bpc" id="L1773" title="1 of 2 branches missed.">        if (m_perform_predicates[MatrixPredicate.InteriorInterior])</span>
+        {
+<span class="fc" id="L1775">            char c = m_scl.charAt(MatrixPredicate.InteriorInterior);</span>
+<span class="pc bpc" id="L1776" title="5 of 6 branches missed.">            boolean b_has_length = (c != 'T' &amp;&amp; c != 'F' ? polyline.calculateLength2D() != 0 : true);</span>
+<span class="pc bpc" id="L1777" title="1 of 2 branches missed.">            m_matrix[MatrixPredicate.InteriorInterior] = (b_has_length ? 1 : 0);</span>
+        }
+
+<span class="pc bpc" id="L1780" title="1 of 2 branches missed.">        if (m_perform_predicates[MatrixPredicate.InteriorBoundary])</span>
+        {
+<span class="fc" id="L1782">            boolean has_non_empty_boundary = Boundary.hasNonEmptyBoundary(polyline, null);</span>
+<span class="pc bpc" id="L1783" title="1 of 2 branches missed.">            m_matrix[MatrixPredicate.InteriorBoundary] = has_non_empty_boundary ? 0 : -1;</span>
+        }
+
+<span class="fc" id="L1786">        m_matrix[MatrixPredicate.InteriorExterior] = 2; //assume polygon has area</span>
+<span class="fc" id="L1787">        m_matrix[MatrixPredicate.BoundaryInterior] = -1;</span>
+<span class="fc" id="L1788">        m_matrix[MatrixPredicate.BoundaryBoundary] = -1;</span>
+<span class="fc" id="L1789">        m_matrix[MatrixPredicate.BoundaryExterior] = 1; //assume polygon has area</span>
+<span class="fc" id="L1790">        m_matrix[MatrixPredicate.ExteriorInterior] = -1;</span>
+<span class="fc" id="L1791">        m_matrix[MatrixPredicate.ExteriorBoundary] = -1;</span>
+<span class="fc" id="L1792">	}</span>
+
+	private void areaPointDisjointPredicates_(Polygon polygon) {
+<span class="fc" id="L1795">        m_matrix[MatrixPredicate.InteriorInterior] = -1;</span>
+<span class="fc" id="L1796">        m_matrix[MatrixPredicate.BoundaryInterior] = -1;</span>
+<span class="fc" id="L1797">        m_matrix[MatrixPredicate.ExteriorInterior] = 0;</span>
+
+<span class="pc bpc" id="L1799" title="2 of 4 branches missed.">        areaGeomContainsOrDisjointPredicates_(polygon, m_perform_predicates[MatrixPredicate.InteriorExterior] ? MatrixPredicate.InteriorExterior : -1, m_scl.charAt(MatrixPredicate.InteriorExterior), m_perform_predicates[MatrixPredicate.BoundaryExterior] ? MatrixPredicate.BoundaryExterior : -1, m_scl.charAt(MatrixPredicate.BoundaryExterior));</span>
+<span class="fc" id="L1800">	}</span>
+
+	private void areaPointContainsPredicates_(Polygon polygon) {
+<span class="fc" id="L1803">        m_matrix[MatrixPredicate.InteriorInterior] = 0;</span>
+<span class="fc" id="L1804">        m_matrix[MatrixPredicate.InteriorExterior] = 2; //assume polygon has area</span>
+<span class="fc" id="L1805">        m_matrix[MatrixPredicate.BoundaryInterior] = -1;</span>
+<span class="fc" id="L1806">        m_matrix[MatrixPredicate.BoundaryExterior] = 1; //assume polygon has area</span>
+<span class="fc" id="L1807">        m_matrix[MatrixPredicate.ExteriorInterior] = -1;</span>
+<span class="fc" id="L1808">    }</span>
+
+	private void lineLineDisjointPredicates_(Polyline polyline_a,
+			Polyline polyline_b) {
+<span class="fc" id="L1812">        m_matrix[MatrixPredicate.InteriorInterior] = -1;</span>
+<span class="fc" id="L1813">        m_matrix[MatrixPredicate.InteriorBoundary] = -1;</span>
+<span class="fc" id="L1814">        m_matrix[MatrixPredicate.BoundaryInterior] = -1;</span>
+<span class="fc" id="L1815">        m_matrix[MatrixPredicate.BoundaryBoundary] = -1;</span>
+
+<span class="pc bpc" id="L1817" title="1 of 2 branches missed.">        if (m_perform_predicates[MatrixPredicate.InteriorExterior])</span>
+        {
+<span class="fc" id="L1819">            char c = m_scl.charAt(MatrixPredicate.InteriorExterior);</span>
+<span class="pc bpc" id="L1820" title="2 of 6 branches missed.">            boolean b_has_length = (c != 'T' &amp;&amp; c != 'F' ? polyline_a.calculateLength2D() != 0 : true);</span>
+<span class="fc bfc" id="L1821" title="All 2 branches covered.">            m_matrix[MatrixPredicate.InteriorExterior] = (b_has_length ? 1 : 0);</span>
+        }
+
+<span class="pc bpc" id="L1824" title="1 of 2 branches missed.">        if (m_perform_predicates[MatrixPredicate.BoundaryExterior])</span>
+        {
+<span class="fc" id="L1826">            boolean has_non_empty_boundary_a = Boundary.hasNonEmptyBoundary(polyline_a, null);</span>
+<span class="fc bfc" id="L1827" title="All 2 branches covered.">            m_matrix[MatrixPredicate.BoundaryExterior] = has_non_empty_boundary_a ? 0 : -1;</span>
+        }
+
+<span class="pc bpc" id="L1830" title="1 of 2 branches missed.">        if (m_perform_predicates[MatrixPredicate.ExteriorInterior])</span>
+        {
+<span class="fc" id="L1832">            char c = m_scl.charAt(MatrixPredicate.ExteriorInterior);</span>
+<span class="pc bpc" id="L1833" title="2 of 6 branches missed.">            boolean b_has_length = (c != 'T' &amp;&amp; c != 'F' ? polyline_b.calculateLength2D() != 0 : true);</span>
+<span class="fc bfc" id="L1834" title="All 2 branches covered.">            m_matrix[MatrixPredicate.ExteriorInterior] = (b_has_length ? 1 : 0);</span>
+        }
+
+<span class="pc bpc" id="L1837" title="1 of 2 branches missed.">        if (m_perform_predicates[MatrixPredicate.ExteriorBoundary])</span>
+        {
+<span class="fc" id="L1839">            boolean has_non_empty_boundary_b = Boundary.hasNonEmptyBoundary(polyline_b, null);</span>
+<span class="fc bfc" id="L1840" title="All 2 branches covered.">            m_matrix[MatrixPredicate.ExteriorBoundary] = has_non_empty_boundary_b ? 0 : -1;</span>
+        }
+<span class="fc" id="L1842">	}</span>
+
+	private void linePointDisjointPredicates_(Polyline polyline) {
+<span class="fc" id="L1845">        m_matrix[MatrixPredicate.InteriorInterior] = -1;</span>
+<span class="fc" id="L1846">        m_matrix[MatrixPredicate.BoundaryInterior] = -1;</span>
+
+<span class="pc bpc" id="L1848" title="1 of 2 branches missed.">        if (m_perform_predicates[MatrixPredicate.InteriorExterior])</span>
+        {
+<span class="fc" id="L1850">            char c = m_scl.charAt(MatrixPredicate.InteriorExterior);</span>
+<span class="pc bpc" id="L1851" title="2 of 6 branches missed.">            boolean b_has_length = (c != 'T' &amp;&amp; c != 'F' ? polyline.calculateLength2D() != 0 : true);</span>
+<span class="fc bfc" id="L1852" title="All 2 branches covered.">            m_matrix[MatrixPredicate.InteriorExterior] = (b_has_length ? 1 : 0);</span>
+        }
+
+<span class="pc bpc" id="L1855" title="1 of 2 branches missed.">        if (m_perform_predicates[MatrixPredicate.BoundaryExterior])</span>
+        {
+<span class="fc" id="L1857">            boolean has_non_empty_boundary = Boundary.hasNonEmptyBoundary(polyline, null);</span>
+<span class="fc bfc" id="L1858" title="All 2 branches covered.">            m_matrix[MatrixPredicate.BoundaryExterior] = (has_non_empty_boundary ? 0 : -1);</span>
+        }
+
+<span class="fc" id="L1861">        m_matrix[MatrixPredicate.ExteriorInterior] = 0;</span>
+<span class="fc" id="L1862">	}</span>
+
+	private void pointPointDisjointPredicates_() {
+<span class="fc" id="L1865">		m_matrix[MatrixPredicate.InteriorInterior] = -1;</span>
+<span class="fc" id="L1866">		m_matrix[MatrixPredicate.InteriorExterior] = 0;</span>
+<span class="fc" id="L1867">		m_matrix[MatrixPredicate.ExteriorInterior] = 0;</span>
+<span class="fc" id="L1868">	}</span>
+
+	// Invokes the 9 relational predicates of area vs Line.
+	private boolean areaLinePredicates_(int half_edge, int id_a, int id_b) {
+<span class="fc" id="L1872">        boolean bRelationKnown = true;</span>
+
+<span class="fc bfc" id="L1874" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.InteriorInterior])</span>
+        {
+<span class="fc" id="L1876">            interiorAreaInteriorLine_(half_edge, id_a, id_b);</span>
+<span class="fc" id="L1877">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.InteriorInterior);</span>
+        }
+
+<span class="fc bfc" id="L1880" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.InteriorBoundary])</span>
+        {
+<span class="fc" id="L1882">            interiorAreaBoundaryLine_(half_edge, id_a, id_b, m_cluster_index_b);</span>
+<span class="fc" id="L1883">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.InteriorBoundary);</span>
+        }
+
+<span class="fc bfc" id="L1886" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.InteriorExterior])</span>
+        {
+<span class="fc" id="L1888">            interiorAreaExteriorLine_(half_edge, id_a, id_b);</span>
+<span class="fc" id="L1889">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.InteriorExterior);</span>
+        }
+
+<span class="fc bfc" id="L1892" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.BoundaryInterior])</span>
+        {
+<span class="fc" id="L1894">            boundaryAreaInteriorLine_(half_edge, id_a, id_b, m_cluster_index_b);</span>
+<span class="fc" id="L1895">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.BoundaryInterior);</span>
+        }
+
+<span class="fc bfc" id="L1898" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.BoundaryBoundary])</span>
+        {
+<span class="fc" id="L1900">            boundaryAreaBoundaryLine_(half_edge, id_a, id_b, m_cluster_index_b);</span>
+<span class="fc" id="L1901">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.BoundaryBoundary);</span>
+        }
+
+<span class="fc bfc" id="L1904" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.BoundaryExterior])</span>
+        {
+<span class="fc" id="L1906">            boundaryAreaExteriorLine_(half_edge, id_a, id_b);</span>
+<span class="fc" id="L1907">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.BoundaryExterior);</span>
+        }
+
+<span class="fc bfc" id="L1910" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.ExteriorInterior])</span>
+        {
+<span class="fc" id="L1912">            exteriorAreaInteriorLine_(half_edge, id_a);</span>
+<span class="fc" id="L1913">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.ExteriorInterior);</span>
+        }
+
+<span class="fc bfc" id="L1916" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.ExteriorBoundary])</span>
+        {
+<span class="fc" id="L1918">            exteriorAreaBoundaryLine_(half_edge, id_a, id_b, m_cluster_index_b);</span>
+<span class="fc" id="L1919">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.ExteriorBoundary);</span>
+        }
+
+<span class="fc" id="L1922">        return bRelationKnown;</span>
+	}
+
+	// Invokes the 9 relational predicates of Line vs Line.
+	private boolean lineLinePredicates_(int half_edge, int id_a, int id_b) {
+<span class="fc" id="L1927">        boolean bRelationKnown = true;</span>
+
+<span class="fc bfc" id="L1929" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.InteriorInterior])</span>
+        {
+<span class="fc" id="L1931">            interiorLineInteriorLine_(half_edge, id_a, id_b, m_cluster_index_a, m_cluster_index_b);</span>
+<span class="fc" id="L1932">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.InteriorInterior);</span>
+        }
+
+<span class="fc bfc" id="L1935" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.InteriorBoundary])</span>
+        {
+<span class="fc" id="L1937">            interiorLineBoundaryLine_(half_edge, id_a, id_b, m_cluster_index_a, m_cluster_index_b, MatrixPredicate.InteriorBoundary);</span>
+<span class="fc" id="L1938">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.InteriorBoundary);</span>
+        }
+
+<span class="fc bfc" id="L1941" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.InteriorExterior])</span>
+        {
+<span class="fc" id="L1943">            interiorLineExteriorLine_(half_edge, id_a, id_b, MatrixPredicate.InteriorExterior);</span>
+<span class="fc" id="L1944">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.InteriorExterior);</span>
+        }
+
+<span class="fc bfc" id="L1947" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.BoundaryInterior])</span>
+        {
+<span class="fc" id="L1949">            interiorLineBoundaryLine_(half_edge, id_b, id_a, m_cluster_index_b, m_cluster_index_a, MatrixPredicate.BoundaryInterior);</span>
+<span class="fc" id="L1950">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.BoundaryInterior);</span>
+        }
+
+<span class="fc bfc" id="L1953" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.BoundaryBoundary])</span>
+        {
+<span class="fc" id="L1955">            boundaryLineBoundaryLine_(half_edge, id_a, id_b, m_cluster_index_a, m_cluster_index_b);</span>
+<span class="fc" id="L1956">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.BoundaryBoundary);</span>
+        }
+
+<span class="fc bfc" id="L1959" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.BoundaryExterior])</span>
+        {
+<span class="fc" id="L1961">            boundaryLineExteriorLine_(half_edge, id_a, id_b, m_cluster_index_a, MatrixPredicate.BoundaryExterior);</span>
+<span class="fc" id="L1962">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.BoundaryExterior);</span>
+        }
+
+<span class="fc bfc" id="L1965" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.ExteriorInterior])</span>
+        {
+<span class="fc" id="L1967">            interiorLineExteriorLine_(half_edge, id_b, id_a, MatrixPredicate.ExteriorInterior);</span>
+<span class="fc" id="L1968">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.ExteriorInterior);</span>
+        }
+
+<span class="fc bfc" id="L1971" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.ExteriorBoundary])</span>
+        {
+<span class="fc" id="L1973">            boundaryLineExteriorLine_(half_edge, id_b, id_a, m_cluster_index_b, MatrixPredicate.ExteriorBoundary);</span>
+<span class="fc" id="L1974">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.ExteriorBoundary);</span>
+        }
+
+<span class="fc" id="L1977">        return bRelationKnown;</span>
+	}
+
+	// Invokes the 9 relational predicates of area vs Point.
+	private boolean areaPointPredicates_(int cluster, int id_a, int id_b) {
+<span class="fc" id="L1982">        boolean bRelationKnown = true;</span>
+
+<span class="fc bfc" id="L1984" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.InteriorInterior])</span>
+        {
+<span class="fc" id="L1986">            interiorAreaInteriorPoint_(cluster, id_a);</span>
+<span class="fc" id="L1987">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.InteriorInterior);</span>
+        }
+
+<span class="fc bfc" id="L1990" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.InteriorExterior])</span>
+        {
+<span class="fc" id="L1992">            interiorAreaExteriorPoint_(cluster, id_a);</span>
+<span class="fc" id="L1993">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.InteriorExterior);</span>
+        }
+
+<span class="fc bfc" id="L1996" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.BoundaryInterior])</span>
+        {
+<span class="fc" id="L1998">            boundaryAreaInteriorPoint_(cluster, id_a, id_b);</span>
+<span class="fc" id="L1999">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.BoundaryInterior);</span>
+        }
+
+<span class="fc bfc" id="L2002" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.BoundaryExterior])</span>
+        {
+<span class="fc" id="L2004">            boundaryAreaExteriorPoint_(cluster, id_a);</span>
+<span class="fc" id="L2005">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.BoundaryExterior);</span>
+        }
+
+<span class="pc bpc" id="L2008" title="1 of 2 branches missed.">        if (m_perform_predicates[MatrixPredicate.ExteriorInterior])</span>
+        {
+<span class="fc" id="L2010">            exteriorAreaInteriorPoint_(cluster, id_a);</span>
+<span class="fc" id="L2011">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.ExteriorInterior);</span>
+        }
+
+<span class="fc" id="L2014">        return bRelationKnown;</span>
+	}
+
+	// Invokes the 9 relational predicates of Line vs Point.
+	private boolean linePointPredicates_(int cluster, int id_a, int id_b) {
+<span class="fc" id="L2019">        boolean bRelationKnown = true;</span>
+
+<span class="fc bfc" id="L2021" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.InteriorInterior])</span>
+        {
+<span class="fc" id="L2023">            interiorLineInteriorPoint_(cluster, id_a, id_b, m_cluster_index_a);</span>
+<span class="fc" id="L2024">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.InteriorInterior);</span>
+        }
+
+<span class="fc bfc" id="L2027" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.InteriorExterior])</span>
+        {
+<span class="fc" id="L2029">            interiorLineExteriorPoint_(cluster, id_a, id_b, m_cluster_index_a);</span>
+<span class="fc" id="L2030">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.InteriorExterior);</span>
+        }
+
+<span class="fc bfc" id="L2033" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.BoundaryInterior])</span>
+        {
+<span class="fc" id="L2035">            boundaryLineInteriorPoint_(cluster, id_a, id_b, m_cluster_index_a);</span>
+<span class="fc" id="L2036">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.BoundaryInterior);</span>
+        }
+
+<span class="fc bfc" id="L2039" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.BoundaryExterior])</span>
+        {
+<span class="fc" id="L2041">            boundaryLineExteriorPoint_(cluster, id_a, id_b, m_cluster_index_a);</span>
+<span class="fc" id="L2042">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.BoundaryExterior);</span>
+        }
+
+<span class="fc bfc" id="L2045" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.ExteriorInterior])</span>
+        {
+<span class="fc" id="L2047">            exteriorLineInteriorPoint_(cluster, id_a, id_b);</span>
+<span class="fc" id="L2048">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.ExteriorInterior);</span>
+        }
+
+<span class="fc" id="L2051">        return bRelationKnown;</span>
+	}
+
+	// Invokes the 9 relational predicates of Point vs Point.
+	private boolean pointPointPredicates_(int cluster, int id_a, int id_b) {
+<span class="fc" id="L2056">        boolean bRelationKnown = true;</span>
+
+<span class="fc bfc" id="L2058" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.InteriorInterior])</span>
+        {
+<span class="fc" id="L2060">            interiorPointInteriorPoint_(cluster, id_a, id_b);</span>
+<span class="fc" id="L2061">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.InteriorInterior);</span>
+        }
+
+<span class="fc bfc" id="L2064" title="All 2 branches covered.">        if (m_perform_predicates[MatrixPredicate.InteriorExterior])</span>
+        {
+<span class="fc" id="L2066">            interiorPointExteriorPoint_(cluster, id_a, id_b, MatrixPredicate.InteriorExterior);</span>
+<span class="fc" id="L2067">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.InteriorExterior);</span>
+        }
+
+<span class="pc bpc" id="L2070" title="1 of 2 branches missed.">        if (m_perform_predicates[MatrixPredicate.ExteriorInterior])</span>
+        {
+<span class="fc" id="L2072">            interiorPointExteriorPoint_(cluster, id_b, id_a, MatrixPredicate.ExteriorInterior);</span>
+<span class="fc" id="L2073">            bRelationKnown &amp;= isPredicateKnown_(MatrixPredicate.ExteriorInterior);</span>
+        }
+
+<span class="fc" id="L2076">        return bRelationKnown;</span>
+	}
+
+	// Relational predicate to determine if the interior of area A intersects
+	// with the interior of area B.
+	private void interiorAreaInteriorArea_(int half_edge, int id_a, int id_b) {
+<span class="pc bpc" id="L2082" title="1 of 2 branches missed.">		if (m_matrix[MatrixPredicate.InteriorInterior] == 2)</span>
+<span class="nc" id="L2083">			return;</span>
+
+<span class="fc" id="L2085">		int faceParentage = m_topo_graph.getHalfEdgeFaceParentage(half_edge);</span>
+
+<span class="fc bfc" id="L2087" title="All 4 branches covered.">		if ((faceParentage &amp; id_a) != 0 &amp;&amp; (faceParentage &amp; id_b) != 0)</span>
+<span class="fc" id="L2088">			m_matrix[MatrixPredicate.InteriorInterior] = 2;</span>
+<span class="fc" id="L2089">	}</span>
+
+	// Relational predicate to determine if the interior of area A intersects
+	// with the boundary of area B.
+	private void interiorAreaBoundaryArea_(int half_edge, int id_a,
+			int predicate) {
+<span class="pc bpc" id="L2095" title="1 of 2 branches missed.">		if (m_matrix[predicate] == 1)</span>
+<span class="nc" id="L2096">			return;</span>
+
+<span class="fc" id="L2098">		int faceParentage = m_topo_graph.getHalfEdgeFaceParentage(half_edge);</span>
+<span class="fc" id="L2099">		int twinFaceParentage = m_topo_graph</span>
+<span class="fc" id="L2100">				.getHalfEdgeFaceParentage(m_topo_graph</span>
+<span class="fc" id="L2101">						.getHalfEdgeTwin(half_edge));</span>
+
+<span class="fc bfc" id="L2103" title="All 4 branches covered.">		if ((faceParentage &amp; id_a) != 0 &amp;&amp; (twinFaceParentage &amp; id_a) != 0)</span>
+<span class="fc" id="L2104">			m_matrix[predicate] = 1;</span>
+<span class="fc" id="L2105">	}</span>
+
+	// Relational predicate to determine if the interior of area A intersects
+	// with the exterior of area B.
+	private void interiorAreaExteriorArea_(int half_edge, int id_a, int id_b,
+			int predicate) {
+<span class="pc bpc" id="L2111" title="1 of 2 branches missed.">		if (m_matrix[predicate] == 2)</span>
+<span class="nc" id="L2112">			return;</span>
+
+<span class="fc" id="L2114">		int faceParentage = m_topo_graph.getHalfEdgeFaceParentage(half_edge);</span>
+
+<span class="fc bfc" id="L2116" title="All 4 branches covered.">		if ((faceParentage &amp; id_a) != 0 &amp;&amp; (faceParentage &amp; id_b) == 0)</span>
+<span class="fc" id="L2117">			m_matrix[predicate] = 2;</span>
+
+<span class="fc" id="L2119">	}</span>
+
+	// Relational predicate to determine if the boundary of area A intersects
+	// with the boundary of area B.
+	private void boundaryAreaBoundaryArea_(int half_edge, int id_a, int id_b) {
+<span class="pc bpc" id="L2124" title="1 of 2 branches missed.">		if (m_matrix[MatrixPredicate.BoundaryBoundary] == 1)</span>
+<span class="nc" id="L2125">			return;</span>
+
+<span class="fc" id="L2127">		int parentage = m_topo_graph.getHalfEdgeParentage(half_edge);</span>
+
+<span class="fc bfc" id="L2129" title="All 4 branches covered.">		if ((parentage &amp; id_a) != 0 &amp;&amp; (parentage &amp; id_b) != 0) {</span>
+<span class="fc" id="L2130">			m_matrix[MatrixPredicate.BoundaryBoundary] = 1;</span>
+<span class="fc" id="L2131">			return;</span>
+		}
+
+<span class="pc bpc" id="L2134" title="1 of 2 branches missed.">		if (m_matrix[MatrixPredicate.BoundaryBoundary] != 0) {</span>
+<span class="fc bfc" id="L2135" title="All 2 branches covered.">			if (m_topo_graph.getHalfEdgeUserIndex(m_topo_graph</span>
+<span class="fc" id="L2136">					.getHalfEdgePrev(m_topo_graph.getHalfEdgeTwin(half_edge)),</span>
+					m_visited_index) != 1) {
+<span class="fc" id="L2138">				int cluster = m_topo_graph.getHalfEdgeTo(half_edge);</span>
+<span class="fc" id="L2139">				int clusterParentage = m_topo_graph</span>
+<span class="fc" id="L2140">						.getClusterParentage(cluster);</span>
+
+<span class="fc bfc" id="L2142" title="All 4 branches covered.">				if ((clusterParentage &amp; id_a) != 0</span>
+						&amp;&amp; (clusterParentage &amp; id_b) != 0) {
+<span class="fc" id="L2144">					m_matrix[MatrixPredicate.BoundaryBoundary] = 0;</span>
+				}
+			}
+		}
+<span class="fc" id="L2148">	}</span>
+
+	// Relational predicate to determine if the boundary of area A intersects
+	// with the exterior of area B.
+	private void boundaryAreaExteriorArea_(int half_edge, int id_a, int id_b,
+			int predicate) {
+<span class="pc bpc" id="L2154" title="1 of 2 branches missed.">		if (m_matrix[predicate] == 1)</span>
+<span class="nc" id="L2155">			return;</span>
+
+<span class="fc" id="L2157">		int faceParentage = m_topo_graph.getHalfEdgeFaceParentage(half_edge);</span>
+<span class="fc" id="L2158">		int twinFaceParentage = m_topo_graph</span>
+<span class="fc" id="L2159">				.getHalfEdgeFaceParentage(m_topo_graph</span>
+<span class="fc" id="L2160">						.getHalfEdgeTwin(half_edge));</span>
+
+<span class="fc bfc" id="L2162" title="All 4 branches covered.">		if ((faceParentage &amp; id_b) == 0 &amp;&amp; (twinFaceParentage &amp; id_b) == 0)</span>
+<span class="fc" id="L2163">			m_matrix[predicate] = 1;</span>
+<span class="fc" id="L2164">	}</span>
+
+	// Relational predicate to determine if the interior of area A intersects
+	// with the interior of Line B.
+	private void interiorAreaInteriorLine_(int half_edge, int id_a, int id_b) {
+<span class="pc bpc" id="L2169" title="1 of 2 branches missed.">		if (m_matrix[MatrixPredicate.InteriorInterior] == 1)</span>
+<span class="nc" id="L2170">			return;</span>
+
+<span class="fc" id="L2172">		int faceParentage = m_topo_graph.getHalfEdgeFaceParentage(half_edge);</span>
+<span class="fc" id="L2173">		int twinFaceParentage = m_topo_graph</span>
+<span class="fc" id="L2174">				.getHalfEdgeFaceParentage(m_topo_graph</span>
+<span class="fc" id="L2175">						.getHalfEdgeTwin(half_edge));</span>
+
+<span class="fc bfc" id="L2177" title="All 4 branches covered.">		if ((faceParentage &amp; id_a) != 0 &amp;&amp; (twinFaceParentage &amp; id_a) != 0)</span>
+<span class="fc" id="L2178">			m_matrix[MatrixPredicate.InteriorInterior] = 1;</span>
+<span class="fc" id="L2179">	}</span>
+
+	// Relational predicate to determine if the interior of area A intersects
+	// with the boundary of Line B.
+	private void interiorAreaBoundaryLine_(int half_edge, int id_a, int id_b,
+			int cluster_index_b) {
+<span class="pc bpc" id="L2185" title="1 of 2 branches missed.">		if (m_matrix[MatrixPredicate.InteriorBoundary] == 0)</span>
+<span class="nc" id="L2186">			return;</span>
+
+<span class="fc bfc" id="L2188" title="All 2 branches covered.">		if (m_topo_graph.getHalfEdgeUserIndex(m_topo_graph</span>
+<span class="fc" id="L2189">				.getHalfEdgePrev(m_topo_graph.getHalfEdgeTwin(half_edge)),</span>
+				m_visited_index) != 1) {
+<span class="fc" id="L2191">			int cluster = m_topo_graph.getHalfEdgeTo(half_edge);</span>
+<span class="fc" id="L2192">			int clusterParentage = m_topo_graph.getClusterParentage(cluster);</span>
+
+<span class="fc bfc" id="L2194" title="All 2 branches covered.">			if ((clusterParentage &amp; id_a) == 0) {</span>
+<span class="fc" id="L2195">				int faceParentage = m_topo_graph</span>
+<span class="fc" id="L2196">						.getHalfEdgeFaceParentage(half_edge);</span>
+
+<span class="fc bfc" id="L2198" title="All 2 branches covered.">				if ((faceParentage &amp; id_a) != 0) {</span>
+<span class="fc" id="L2199">					int index = m_topo_graph.getClusterUserIndex(cluster,</span>
+							cluster_index_b);
+
+<span class="pc bpc" id="L2202" title="2 of 4 branches missed.">					if ((clusterParentage &amp; id_b) != 0 &amp;&amp; (index % 2 != 0)) {</span>
+<span class="pc bpc" id="L2203" title="1 of 2 branches missed.">						assert (index != -1);</span>
+<span class="fc" id="L2204">						m_matrix[MatrixPredicate.InteriorBoundary] = 0;</span>
+					}
+				}
+			}
+		}
+<span class="fc" id="L2209">	}</span>
+
+    private void interiorAreaExteriorLine_(int half_edge, int id_a, int id_b)
+    {
+<span class="pc bpc" id="L2213" title="1 of 2 branches missed.">        if (m_matrix[MatrixPredicate.InteriorExterior] == 2)</span>
+<span class="nc" id="L2214">            return;</span>
+
+<span class="fc" id="L2216">        int half_edge_parentage = m_topo_graph.getHalfEdgeParentage(half_edge);</span>
+
+<span class="fc bfc" id="L2218" title="All 2 branches covered.">        if ((half_edge_parentage &amp; id_a) != 0)</span>
+        {//half edge of polygon
+<span class="fc" id="L2220">            m_matrix[MatrixPredicate.InteriorExterior] = 2;</span>
+        }
+<span class="fc" id="L2222">    }</span>
+
+	// Relational predicate to determine if the boundary of area A intersects
+	// with the interior of Line B.
+	private void boundaryAreaInteriorLine_(int half_edge, int id_a, int id_b,
+			int cluster_index_b) {
+<span class="pc bpc" id="L2228" title="1 of 2 branches missed.">		if (m_matrix[MatrixPredicate.BoundaryInterior] == 1)</span>
+<span class="nc" id="L2229">			return;</span>
+
+<span class="fc" id="L2231">		int parentage = m_topo_graph.getHalfEdgeParentage(half_edge);</span>
+
+<span class="fc bfc" id="L2233" title="All 4 branches covered.">		if ((parentage &amp; id_a) != 0 &amp;&amp; (parentage &amp; id_b) != 0) {</span>
+<span class="fc" id="L2234">			m_matrix[MatrixPredicate.BoundaryInterior] = 1;</span>
+<span class="fc" id="L2235">			return;</span>
+		}
+
+<span class="fc bfc" id="L2238" title="All 2 branches covered.">		if (m_matrix[MatrixPredicate.BoundaryInterior] != 0) {</span>
+<span class="fc bfc" id="L2239" title="All 2 branches covered.">			if (m_topo_graph.getHalfEdgeUserIndex(m_topo_graph</span>
+<span class="fc" id="L2240">					.getHalfEdgePrev(m_topo_graph.getHalfEdgeTwin(half_edge)),</span>
+					m_visited_index) != 1) {
+<span class="fc" id="L2242">				int cluster = m_topo_graph.getHalfEdgeTo(half_edge);</span>
+<span class="fc" id="L2243">				int clusterParentage = m_topo_graph</span>
+<span class="fc" id="L2244">						.getClusterParentage(cluster);</span>
+
+<span class="fc bfc" id="L2246" title="All 2 branches covered.">				if ((clusterParentage &amp; id_a) != 0) {</span>
+<span class="fc" id="L2247">					int index = m_topo_graph.getClusterUserIndex(cluster,</span>
+							cluster_index_b);
+
+<span class="fc bfc" id="L2250" title="All 4 branches covered.">					if ((clusterParentage &amp; id_b) != 0 &amp;&amp; (index % 2 == 0)) {</span>
+<span class="pc bpc" id="L2251" title="1 of 2 branches missed.">						assert (index != -1);</span>
+<span class="fc" id="L2252">						m_matrix[MatrixPredicate.BoundaryInterior] = 0;</span>
+					}
+				}
+			}
+		}
+<span class="fc" id="L2257">	}</span>
+
+	// Relational predicate to determine if the boundary of area A intersects
+	// with the boundary of Line B.
+	private void boundaryAreaBoundaryLine_(int half_edge, int id_a, int id_b,
+			int cluster_index_b) {
+<span class="pc bpc" id="L2263" title="1 of 2 branches missed.">		if (m_matrix[MatrixPredicate.BoundaryBoundary] == 0)</span>
+<span class="nc" id="L2264">			return;</span>
+
+<span class="fc bfc" id="L2266" title="All 2 branches covered.">		if (m_topo_graph.getHalfEdgeUserIndex(m_topo_graph</span>
+<span class="fc" id="L2267">				.getHalfEdgePrev(m_topo_graph.getHalfEdgeTwin(half_edge)),</span>
+				m_visited_index) != 1) {
+<span class="fc" id="L2269">			int cluster = m_topo_graph.getHalfEdgeTo(half_edge);</span>
+<span class="fc" id="L2270">			int clusterParentage = m_topo_graph.getClusterParentage(cluster);</span>
+
+<span class="fc bfc" id="L2272" title="All 2 branches covered.">			if ((clusterParentage &amp; id_a) != 0) {</span>
+<span class="fc" id="L2273">				int index = m_topo_graph.getClusterUserIndex(cluster,</span>
+						cluster_index_b);
+
+<span class="fc bfc" id="L2276" title="All 4 branches covered.">				if ((clusterParentage &amp; id_b) != 0 &amp;&amp; (index % 2 != 0)) {</span>
+<span class="pc bpc" id="L2277" title="1 of 2 branches missed.">					assert (index != -1);</span>
+<span class="fc" id="L2278">					m_matrix[MatrixPredicate.BoundaryBoundary] = 0;</span>
+				}
+			}
+		}
+<span class="fc" id="L2282">	}</span>
+
+	// Relational predicate to determine if the boundary of area A intersects
+	// with the exterior of Line B.
+	private void boundaryAreaExteriorLine_(int half_edge, int id_a, int id_b) {
+<span class="pc bpc" id="L2287" title="1 of 2 branches missed.">		if (m_matrix[MatrixPredicate.BoundaryExterior] == 1)</span>
+<span class="nc" id="L2288">			return;</span>
+
+<span class="fc" id="L2290">		int parentage = m_topo_graph.getHalfEdgeParentage(half_edge);</span>
+
+<span class="fc bfc" id="L2292" title="All 4 branches covered.">		if ((parentage &amp; id_a) != 0 &amp;&amp; (parentage &amp; id_b) == 0)</span>
+<span class="fc" id="L2293">			m_matrix[MatrixPredicate.BoundaryExterior] = 1;</span>
+
+<span class="fc" id="L2295">	}</span>
+
+	// Relational predicate to determine if the exterior of area A intersects
+	// with the interior of Line B.
+	private void exteriorAreaInteriorLine_(int half_edge, int id_a) {
+<span class="pc bpc" id="L2300" title="1 of 2 branches missed.">		if (m_matrix[MatrixPredicate.ExteriorInterior] == 1)</span>
+<span class="nc" id="L2301">			return;</span>
+
+<span class="fc" id="L2303">		int faceParentage = m_topo_graph.getHalfEdgeFaceParentage(half_edge);</span>
+<span class="fc" id="L2304">		int twinFaceParentage = m_topo_graph</span>
+<span class="fc" id="L2305">				.getHalfEdgeFaceParentage(m_topo_graph</span>
+<span class="fc" id="L2306">						.getHalfEdgeTwin(half_edge));</span>
+
+<span class="fc bfc" id="L2308" title="All 4 branches covered.">		if ((faceParentage &amp; id_a) == 0 &amp;&amp; (twinFaceParentage &amp; id_a) == 0)</span>
+<span class="fc" id="L2309">			m_matrix[MatrixPredicate.ExteriorInterior] = 1;</span>
+<span class="fc" id="L2310">	}</span>
+
+	// Relational predicate to determine if the exterior of area A intersects
+	// with the boundary of Line B.
+	private void exteriorAreaBoundaryLine_(int half_edge, int id_a, int id_b,
+			int cluster_index_b) {
+<span class="pc bpc" id="L2316" title="1 of 2 branches missed.">		if (m_matrix[MatrixPredicate.ExteriorBoundary] == 0)</span>
+<span class="nc" id="L2317">			return;</span>
+
+<span class="fc bfc" id="L2319" title="All 2 branches covered.">		if (m_topo_graph.getHalfEdgeUserIndex(m_topo_graph</span>
+<span class="fc" id="L2320">				.getHalfEdgePrev(m_topo_graph.getHalfEdgeTwin(half_edge)),</span>
+				m_visited_index) != 1) {
+<span class="fc" id="L2322">			int cluster = m_topo_graph.getHalfEdgeTo(half_edge);</span>
+<span class="fc" id="L2323">			int clusterParentage = m_topo_graph.getClusterParentage(cluster);</span>
+
+<span class="fc bfc" id="L2325" title="All 2 branches covered.">			if ((clusterParentage &amp; id_a) == 0) {</span>
+<span class="fc" id="L2326">				int faceParentage = m_topo_graph</span>
+<span class="fc" id="L2327">						.getHalfEdgeFaceParentage(half_edge);</span>
+
+<span class="fc bfc" id="L2329" title="All 2 branches covered.">				if ((faceParentage &amp; id_a) == 0) {</span>
+<span class="pc bpc" id="L2330" title="1 of 2 branches missed.">					assert ((m_topo_graph.getHalfEdgeParentage(m_topo_graph</span>
+<span class="fc" id="L2331">							.getHalfEdgeTwin(half_edge)) &amp; id_a) == 0);</span>
+
+<span class="fc" id="L2333">					int index = m_topo_graph.getClusterUserIndex(cluster,</span>
+							cluster_index_b);
+
+<span class="pc bpc" id="L2336" title="2 of 4 branches missed.">					if ((clusterParentage &amp; id_b) != 0 &amp;&amp; (index % 2 != 0)) {</span>
+<span class="pc bpc" id="L2337" title="1 of 2 branches missed.">						assert (index != -1);</span>
+<span class="fc" id="L2338">						m_matrix[MatrixPredicate.ExteriorBoundary] = 0;</span>
+					}
+				}
+			}
+		}
+<span class="fc" id="L2343">	}</span>
+
+	// Relational predicate to determine if the interior of Line A intersects
+	// with the interior of Line B.
+	private void interiorLineInteriorLine_(int half_edge, int id_a, int id_b,
+			int cluster_index_a, int cluster_index_b) {
+<span class="pc bpc" id="L2349" title="1 of 2 branches missed.">		if (m_matrix[MatrixPredicate.InteriorInterior] == 1)</span>
+<span class="nc" id="L2350">			return;</span>
+
+<span class="fc" id="L2352">		int parentage = m_topo_graph.getHalfEdgeParentage(half_edge);</span>
+
+<span class="fc bfc" id="L2354" title="All 4 branches covered.">		if ((parentage &amp; id_a) != 0 &amp;&amp; (parentage &amp; id_b) != 0) {</span>
+<span class="fc" id="L2355">			m_matrix[MatrixPredicate.InteriorInterior] = 1;</span>
+<span class="fc" id="L2356">			return;</span>
+		}
+
+<span class="fc bfc" id="L2359" title="All 2 branches covered.">		if (m_matrix[MatrixPredicate.InteriorInterior] != 0) {</span>
+<span class="fc bfc" id="L2360" title="All 2 branches covered.">			if (m_topo_graph.getHalfEdgeUserIndex(m_topo_graph</span>
+<span class="fc" id="L2361">					.getHalfEdgePrev(m_topo_graph.getHalfEdgeTwin(half_edge)),</span>
+					m_visited_index) != 1) {
+<span class="fc" id="L2363">				int cluster = m_topo_graph.getHalfEdgeTo(half_edge);</span>
+<span class="fc" id="L2364">				int clusterParentage = m_topo_graph</span>
+<span class="fc" id="L2365">						.getClusterParentage(cluster);</span>
+
+<span class="fc bfc" id="L2367" title="All 4 branches covered.">				if ((clusterParentage &amp; id_a) != 0</span>
+						&amp;&amp; (clusterParentage &amp; id_b) != 0) {
+<span class="fc" id="L2369">					int index_a = m_topo_graph.getClusterUserIndex(cluster,</span>
+							cluster_index_a);
+<span class="fc" id="L2371">					int index_b = m_topo_graph.getClusterUserIndex(cluster,</span>
+							cluster_index_b);
+<span class="pc bpc" id="L2373" title="1 of 2 branches missed.">					assert (index_a != -1);</span>
+<span class="pc bpc" id="L2374" title="1 of 2 branches missed.">					assert (index_b != -1);</span>
+
+<span class="pc bpc" id="L2376" title="1 of 4 branches missed.">					if ((index_a % 2 == 0) &amp;&amp; (index_b % 2 == 0)) {</span>
+<span class="pc bpc" id="L2377" title="1 of 2 branches missed.">						assert ((m_topo_graph.getClusterParentage(cluster) &amp; id_a) != 0 &amp;&amp; (m_topo_graph</span>
+<span class="pc bpc" id="L2378" title="1 of 2 branches missed.">								.getClusterParentage(cluster) &amp; id_b) != 0);</span>
+<span class="fc" id="L2379">						m_matrix[MatrixPredicate.InteriorInterior] = 0;</span>
+					}
+				}
+			}
+		}
+<span class="fc" id="L2384">	}</span>
+
+	// Relational predicate to determine of the interior of LineA intersects
+	// with the boundary of Line B.
+	private void interiorLineBoundaryLine_(int half_edge, int id_a, int id_b,
+			int cluster_index_a, int cluster_index_b, int predicate) {
+<span class="pc bpc" id="L2390" title="1 of 2 branches missed.">		if (m_matrix[predicate] == 0)</span>
+<span class="nc" id="L2391">			return;</span>
+
+<span class="fc bfc" id="L2393" title="All 2 branches covered.">		if (m_topo_graph.getHalfEdgeUserIndex(m_topo_graph</span>
+<span class="fc" id="L2394">				.getHalfEdgePrev(m_topo_graph.getHalfEdgeTwin(half_edge)),</span>
+				m_visited_index) != 1) {
+<span class="fc" id="L2396">			int cluster = m_topo_graph.getHalfEdgeTo(half_edge);</span>
+<span class="fc" id="L2397">			int clusterParentage = m_topo_graph.getClusterParentage(cluster);</span>
+
+<span class="fc bfc" id="L2399" title="All 4 branches covered.">			if ((clusterParentage &amp; id_a) != 0</span>
+					&amp;&amp; (clusterParentage &amp; id_b) != 0) {
+<span class="fc" id="L2401">				int index_a = m_topo_graph.getClusterUserIndex(cluster,</span>
+						cluster_index_a);
+<span class="fc" id="L2403">				int index_b = m_topo_graph.getClusterUserIndex(cluster,</span>
+						cluster_index_b);
+<span class="pc bpc" id="L2405" title="1 of 2 branches missed.">				assert (index_a != -1);</span>
+<span class="pc bpc" id="L2406" title="1 of 2 branches missed.">				assert (index_b != -1);</span>
+
+<span class="fc bfc" id="L2408" title="All 4 branches covered.">				if ((index_a % 2 == 0) &amp;&amp; (index_b % 2 != 0)) {</span>
+<span class="pc bpc" id="L2409" title="1 of 2 branches missed.">					assert ((m_topo_graph.getClusterParentage(cluster) &amp; id_a) != 0 &amp;&amp; (m_topo_graph</span>
+<span class="pc bpc" id="L2410" title="1 of 2 branches missed.">							.getClusterParentage(cluster) &amp; id_b) != 0);</span>
+<span class="fc" id="L2411">					m_matrix[predicate] = 0;</span>
+				}
+			}
+		}
+<span class="fc" id="L2415">	}</span>
+
+	// Relational predicate to determine if the interior of Line A intersects
+	// with the exterior of Line B.
+	private void interiorLineExteriorLine_(int half_edge, int id_a, int id_b,
+			int predicate) {
+<span class="pc bpc" id="L2421" title="1 of 2 branches missed.">		if (m_matrix[predicate] == 1)</span>
+<span class="nc" id="L2422">			return;</span>
+
+<span class="fc" id="L2424">		int parentage = m_topo_graph.getHalfEdgeParentage(half_edge);</span>
+
+<span class="fc bfc" id="L2426" title="All 4 branches covered.">		if ((parentage &amp; id_a) != 0 &amp;&amp; (parentage &amp; id_b) == 0)</span>
+<span class="fc" id="L2427">			m_matrix[predicate] = 1;</span>
+<span class="fc" id="L2428">	}</span>
+
+	// Relational predicate to determine if the boundary of Line A intersects
+	// with the boundary of Line B.
+	private void boundaryLineBoundaryLine_(int half_edge, int id_a, int id_b,
+			int cluster_index_a, int cluster_index_b) {
+<span class="pc bpc" id="L2434" title="1 of 2 branches missed.">		if (m_matrix[MatrixPredicate.BoundaryBoundary] == 0)</span>
+<span class="nc" id="L2435">			return;</span>
+
+<span class="fc bfc" id="L2437" title="All 2 branches covered.">		if (m_topo_graph.getHalfEdgeUserIndex(m_topo_graph</span>
+<span class="fc" id="L2438">				.getHalfEdgePrev(m_topo_graph.getHalfEdgeTwin(half_edge)),</span>
+				m_visited_index) != 1) {
+<span class="fc" id="L2440">			int cluster = m_topo_graph.getHalfEdgeTo(half_edge);</span>
+<span class="fc" id="L2441">			int clusterParentage = m_topo_graph.getClusterParentage(cluster);</span>
+
+<span class="fc bfc" id="L2443" title="All 4 branches covered.">			if ((clusterParentage &amp; id_a) != 0</span>
+					&amp;&amp; (clusterParentage &amp; id_b) != 0) {
+<span class="fc" id="L2445">				int index_a = m_topo_graph.getClusterUserIndex(cluster,</span>
+						cluster_index_a);
+<span class="fc" id="L2447">				int index_b = m_topo_graph.getClusterUserIndex(cluster,</span>
+						cluster_index_b);
+<span class="pc bpc" id="L2449" title="1 of 2 branches missed.">				assert (index_a != -1);</span>
+<span class="pc bpc" id="L2450" title="1 of 2 branches missed.">				assert (index_b != -1);</span>
+
+<span class="fc bfc" id="L2452" title="All 4 branches covered.">				if ((index_a % 2 != 0) &amp;&amp; (index_b % 2 != 0)) {</span>
+<span class="pc bpc" id="L2453" title="1 of 2 branches missed.">					assert ((m_topo_graph.getClusterParentage(cluster) &amp; id_a) != 0 &amp;&amp; (m_topo_graph</span>
+<span class="pc bpc" id="L2454" title="1 of 2 branches missed.">							.getClusterParentage(cluster) &amp; id_b) != 0);</span>
+<span class="fc" id="L2455">					m_matrix[MatrixPredicate.BoundaryBoundary] = 0;</span>
+				}
+			}
+		}
+<span class="fc" id="L2459">	}</span>
+
+	// Relational predicate to determine if the boundary of Line A intersects
+	// with the exterior of Line B.
+	private void boundaryLineExteriorLine_(int half_edge, int id_a, int id_b,
+			int cluster_index_a, int predicate) {
+<span class="pc bpc" id="L2465" title="1 of 2 branches missed.">		if (m_matrix[predicate] == 0)</span>
+<span class="nc" id="L2466">			return;</span>
+
+<span class="fc bfc" id="L2468" title="All 2 branches covered.">		if (m_topo_graph.getHalfEdgeUserIndex(m_topo_graph</span>
+<span class="fc" id="L2469">				.getHalfEdgePrev(m_topo_graph.getHalfEdgeTwin(half_edge)),</span>
+				m_visited_index) != 1) {
+<span class="fc" id="L2471">			int cluster = m_topo_graph.getHalfEdgeTo(half_edge);</span>
+<span class="fc" id="L2472">			int clusterParentage = m_topo_graph.getClusterParentage(cluster);</span>
+
+<span class="fc bfc" id="L2474" title="All 2 branches covered.">			if ((clusterParentage &amp; id_b) == 0) {</span>
+<span class="fc" id="L2475">				int index = m_topo_graph.getClusterUserIndex(cluster,</span>
+						cluster_index_a);
+<span class="pc bpc" id="L2477" title="1 of 2 branches missed.">				assert (index != -1);</span>
+
+<span class="pc bpc" id="L2479" title="1 of 2 branches missed.">				if (index % 2 != 0) {</span>
+<span class="pc bpc" id="L2480" title="1 of 2 branches missed.">					assert ((m_topo_graph.getClusterParentage(cluster) &amp; id_a) != 0);</span>
+<span class="fc" id="L2481">					m_matrix[predicate] = 0;</span>
+				}
+			}
+		}
+<span class="fc" id="L2485">	}</span>
+
+	// Relational predicate to determine if the interior of area A intersects
+	// with the interior of Point B.
+	private void interiorAreaInteriorPoint_(int cluster, int id_a) {
+<span class="pc bpc" id="L2490" title="1 of 2 branches missed.">		if (m_matrix[MatrixPredicate.InteriorInterior] == 0)</span>
+<span class="nc" id="L2491">			return;</span>
+
+<span class="fc" id="L2493">		int clusterParentage = m_topo_graph.getClusterParentage(cluster);</span>
+
+<span class="fc bfc" id="L2495" title="All 2 branches covered.">		if ((clusterParentage &amp; id_a) == 0) {</span>
+<span class="fc" id="L2496">			int chain = m_topo_graph.getClusterChain(cluster);</span>
+<span class="fc" id="L2497">			int chainParentage = m_topo_graph.getChainParentage(chain);</span>
+
+<span class="pc bpc" id="L2499" title="1 of 2 branches missed.">			if ((chainParentage &amp; id_a) != 0) {</span>
+<span class="fc" id="L2500">				m_matrix[MatrixPredicate.InteriorInterior] = 0;</span>
+			}
+		}
+<span class="fc" id="L2503">	}</span>
+
+    private void interiorAreaExteriorPoint_(int cluster, int id_a)
+    {
+<span class="pc bpc" id="L2507" title="1 of 2 branches missed.">        if (m_matrix[MatrixPredicate.InteriorExterior] == 2)</span>
+<span class="nc" id="L2508">            return;</span>
+
+<span class="fc" id="L2510">        int cluster_parentage = m_topo_graph.getClusterParentage(cluster);</span>
+
+<span class="pc bpc" id="L2512" title="1 of 2 branches missed.">        if ((cluster_parentage &amp; id_a) != 0)</span>
+        {
+<span class="fc" id="L2514">            m_matrix[MatrixPredicate.InteriorExterior] = 2;</span>
+        }
+<span class="fc" id="L2516">    }</span>
+
+	// Relational predicate to determine if the boundary of area A intersects
+	// with the interior of Point B.
+	private void boundaryAreaInteriorPoint_(int cluster, int id_a, int id_b) {
+<span class="pc bpc" id="L2521" title="1 of 2 branches missed.">		if (m_matrix[MatrixPredicate.BoundaryInterior] == 0)</span>
+<span class="nc" id="L2522">			return;</span>
+
+<span class="fc" id="L2524">		int clusterParentage = m_topo_graph.getClusterParentage(cluster);</span>
+
+<span class="pc bpc" id="L2526" title="2 of 4 branches missed.">		if ((clusterParentage &amp; id_a) != 0 &amp;&amp; (clusterParentage &amp; id_b) != 0) {</span>
+<span class="fc" id="L2527">			m_matrix[MatrixPredicate.BoundaryInterior] = 0;</span>
+		}
+<span class="fc" id="L2529">	}</span>
+
+    private void boundaryAreaExteriorPoint_(int cluster, int id_a)
+    {
+<span class="pc bpc" id="L2533" title="1 of 2 branches missed.">        if (m_matrix[MatrixPredicate.BoundaryExterior] == 1)</span>
+<span class="nc" id="L2534">            return;</span>
+
+<span class="fc" id="L2536">        int cluster_parentage = m_topo_graph.getClusterParentage(cluster);</span>
+
+<span class="pc bpc" id="L2538" title="1 of 2 branches missed.">        if ((cluster_parentage &amp; id_a) != 0)</span>
+        {
+<span class="fc" id="L2540">            m_matrix[MatrixPredicate.BoundaryExterior] = 1;</span>
+        }
+<span class="fc" id="L2542">    }</span>
+
+	// Relational predicate to determine if the exterior of area A intersects
+	// with the interior of Point B.
+	private void exteriorAreaInteriorPoint_(int cluster, int id_a) {
+<span class="pc bpc" id="L2547" title="1 of 2 branches missed.">		if (m_matrix[MatrixPredicate.ExteriorInterior] == 0)</span>
+<span class="nc" id="L2548">			return;</span>
+
+<span class="fc" id="L2550">		int clusterParentage = m_topo_graph.getClusterParentage(cluster);</span>
+
+<span class="fc bfc" id="L2552" title="All 2 branches covered.">		if ((clusterParentage &amp; id_a) == 0) {</span>
+<span class="fc" id="L2553">			int chain = m_topo_graph.getClusterChain(cluster);</span>
+<span class="fc" id="L2554">			int chainParentage = m_topo_graph.getChainParentage(chain);</span>
+
+<span class="fc bfc" id="L2556" title="All 2 branches covered.">			if ((chainParentage &amp; id_a) == 0) {</span>
+<span class="fc" id="L2557">				m_matrix[MatrixPredicate.ExteriorInterior] = 0;</span>
+			}
+		}
+<span class="fc" id="L2560">	}</span>
+
+	// Relational predicate to determine if the interior of Line A intersects
+	// with the interior of Point B.
+	private void interiorLineInteriorPoint_(int cluster, int id_a, int id_b,
+			int cluster_index_a) {
+<span class="pc bpc" id="L2566" title="1 of 2 branches missed.">		if (m_matrix[MatrixPredicate.InteriorInterior] == 0)</span>
+<span class="nc" id="L2567">			return;</span>
+
+<span class="fc" id="L2569">		int clusterParentage = m_topo_graph.getClusterParentage(cluster);</span>
+
+<span class="fc bfc" id="L2571" title="All 4 branches covered.">		if ((clusterParentage &amp; id_a) != 0 &amp;&amp; (clusterParentage &amp; id_b) != 0) {</span>
+<span class="fc" id="L2572">			int index = m_topo_graph.getClusterUserIndex(cluster,</span>
+					cluster_index_a);
+
+<span class="fc bfc" id="L2575" title="All 2 branches covered.">			if (index % 2 == 0) {</span>
+<span class="fc" id="L2576">				m_matrix[MatrixPredicate.InteriorInterior] = 0;</span>
+			}
+		}
+<span class="fc" id="L2579">	}</span>
+
+    private void interiorLineExteriorPoint_(int cluster, int id_a, int id_b, int cluster_index_a)
+    {
+<span class="pc bpc" id="L2583" title="1 of 2 branches missed.">        if (m_matrix[MatrixPredicate.InteriorExterior] == 1)</span>
+<span class="nc" id="L2584">            return;</span>
+
+<span class="fc" id="L2586">        int half_edge_a = m_topo_graph.getClusterHalfEdge(cluster);</span>
+
+<span class="fc bfc" id="L2588" title="All 2 branches covered.">        if (half_edge_a != -1)</span>
+        {
+<span class="fc" id="L2590">            m_matrix[MatrixPredicate.InteriorExterior] = 1;</span>
+<span class="fc" id="L2591">            return;</span>
+        }
+
+<span class="fc bfc" id="L2594" title="All 2 branches covered.">        if (m_matrix[MatrixPredicate.InteriorExterior] != 0)</span>
+        {
+<span class="fc" id="L2596">            int clusterParentage = m_topo_graph.getClusterParentage(cluster);</span>
+
+<span class="fc bfc" id="L2598" title="All 2 branches covered.">            if ((clusterParentage &amp; id_b) == 0)</span>
+            {
+<span class="pc bpc" id="L2600" title="1 of 2 branches missed.">                assert(m_topo_graph.getClusterUserIndex(cluster, cluster_index_a) % 2 == 0);</span>
+<span class="fc" id="L2601">                m_matrix[MatrixPredicate.InteriorExterior] = 0;</span>
+<span class="fc" id="L2602">                return;</span>
+            }
+        }
+
+<span class="fc" id="L2606">        return;</span>
+    }
+
+	// Relational predicate to determine if the boundary of Line A intersects
+	// with the interior of Point B.
+	private void boundaryLineInteriorPoint_(int cluster, int id_a, int id_b,
+			int cluster_index_a) {
+<span class="pc bpc" id="L2613" title="1 of 2 branches missed.">		if (m_matrix[MatrixPredicate.BoundaryInterior] == 0)</span>
+<span class="nc" id="L2614">			return;</span>
+
+<span class="fc" id="L2616">		int clusterParentage = m_topo_graph.getClusterParentage(cluster);</span>
+
+<span class="fc bfc" id="L2618" title="All 4 branches covered.">		if ((clusterParentage &amp; id_a) != 0 &amp;&amp; (clusterParentage &amp; id_b) != 0) {</span>
+<span class="fc" id="L2619">			int index = m_topo_graph.getClusterUserIndex(cluster,</span>
+					cluster_index_a);
+
+<span class="fc bfc" id="L2622" title="All 2 branches covered.">			if (index % 2 != 0) {</span>
+<span class="fc" id="L2623">				m_matrix[MatrixPredicate.BoundaryInterior] = 0;</span>
+			}
+		}
+<span class="fc" id="L2626">	}</span>
+
+	// Relational predicate to determine if the boundary of Line A intersects
+	// with the exterior of Point B.
+	private void boundaryLineExteriorPoint_(int cluster, int id_a, int id_b,
+			int cluster_index_a) {
+<span class="pc bpc" id="L2632" title="1 of 2 branches missed.">		if (m_matrix[MatrixPredicate.BoundaryExterior] == 0)</span>
+<span class="nc" id="L2633">			return;</span>
+
+<span class="fc" id="L2635">		int clusterParentage = m_topo_graph.getClusterParentage(cluster);</span>
+
+<span class="fc bfc" id="L2637" title="All 4 branches covered.">		if ((clusterParentage &amp; id_a) != 0 &amp;&amp; (clusterParentage &amp; id_b) == 0) {</span>
+<span class="fc" id="L2638">			int index = m_topo_graph.getClusterUserIndex(cluster,</span>
+					cluster_index_a);
+
+<span class="fc bfc" id="L2641" title="All 2 branches covered.">			if (index % 2 != 0) {</span>
+<span class="fc" id="L2642">				m_matrix[MatrixPredicate.BoundaryExterior] = 0;</span>
+			}
+		}
+<span class="fc" id="L2645">	}</span>
+
+	// Relational predicate to determine if the exterior of Line A intersects
+	// with the interior of Point B.
+	private void exteriorLineInteriorPoint_(int cluster, int id_a, int id_b) {
+<span class="pc bpc" id="L2650" title="1 of 2 branches missed.">		if (m_matrix[MatrixPredicate.ExteriorInterior] == 0)</span>
+<span class="nc" id="L2651">			return;</span>
+
+<span class="fc" id="L2653">		int clusterParentage = m_topo_graph.getClusterParentage(cluster);</span>
+
+<span class="pc bpc" id="L2655" title="1 of 4 branches missed.">		if ((clusterParentage &amp; id_a) == 0 &amp;&amp; (clusterParentage &amp; id_b) != 0) {</span>
+<span class="fc" id="L2656">			m_matrix[MatrixPredicate.ExteriorInterior] = 0;</span>
+		}
+<span class="fc" id="L2658">	}</span>
+
+	// Relational predicate to determine if the interior of Point A intersects
+	// with the interior of Point B.
+	private void interiorPointInteriorPoint_(int cluster, int id_a, int id_b) {
+<span class="pc bpc" id="L2663" title="1 of 2 branches missed.">		if (m_matrix[MatrixPredicate.InteriorInterior] == 0)</span>
+<span class="nc" id="L2664">			return;</span>
+
+<span class="fc" id="L2666">		int clusterParentage = m_topo_graph.getClusterParentage(cluster);</span>
+
+<span class="pc bpc" id="L2668" title="1 of 4 branches missed.">		if ((clusterParentage &amp; id_a) != 0 &amp;&amp; (clusterParentage &amp; id_b) != 0) {</span>
+<span class="fc" id="L2669">			m_matrix[MatrixPredicate.InteriorInterior] = 0;</span>
+		}
+<span class="fc" id="L2671">	}</span>
+
+	// Relational predicate to determine if the interior of Point A intersects
+	// with the exterior of Point B.
+	private void interiorPointExteriorPoint_(int cluster, int id_a, int id_b,
+			int predicate) {
+<span class="pc bpc" id="L2677" title="1 of 2 branches missed.">		if (m_matrix[predicate] == 0)</span>
+<span class="nc" id="L2678">			return;</span>
+
+<span class="fc" id="L2680">		int clusterParentage = m_topo_graph.getClusterParentage(cluster);</span>
+
+<span class="fc bfc" id="L2682" title="All 4 branches covered.">		if ((clusterParentage &amp; id_a) != 0 &amp;&amp; (clusterParentage &amp; id_b) == 0) {</span>
+<span class="fc" id="L2683">			m_matrix[predicate] = 0;</span>
+		}
+<span class="fc" id="L2685">	}</span>
+
+	// Computes the 9 intersection relationships of boundary, interior, and
+	// exterior of geometry_a vs geometry_b using the Topo_graph for area/area,
+	// area/Line, and Line/Line relations
+	private void computeMatrixTopoGraphHalfEdges_(int geometry_a, int geometry_b) {
+<span class="fc" id="L2691">		boolean bRelationKnown = false;</span>
+
+<span class="fc" id="L2693">		int id_a = m_topo_graph.getGeometryID(geometry_a);</span>
+<span class="fc" id="L2694">		int id_b = m_topo_graph.getGeometryID(geometry_b);</span>
+
+<span class="fc" id="L2696">		m_visited_index = m_topo_graph.createUserIndexForHalfEdges();</span>
+
+<span class="fc bfc" id="L2698" title="All 2 branches covered.">		for (int cluster = m_topo_graph.getFirstCluster(); cluster != -1; cluster = m_topo_graph</span>
+<span class="fc" id="L2699">				.getNextCluster(cluster)) {</span>
+<span class="fc" id="L2700">			int first_half_edge = m_topo_graph.getClusterHalfEdge(cluster);</span>
+<span class="fc bfc" id="L2701" title="All 2 branches covered.">            if (first_half_edge == -1)</span>
+            {
+<span class="pc bpc" id="L2703" title="1 of 2 branches missed.">                if (m_predicates_cluster != -1)</span>
+                {
+                    // Treat cluster as an interior point
+<span class="pc bpc" id="L2706" title="1 of 3 branches missed.">                    switch (m_predicates_cluster)</span>
+                    {
+                        case Predicates.AreaPointPredicates:
+<span class="fc" id="L2709">                            bRelationKnown = areaPointPredicates_(cluster, id_a, id_b);</span>
+<span class="fc" id="L2710">                            break;</span>
+                        case Predicates.LinePointPredicates:
+<span class="fc" id="L2712">                            bRelationKnown = linePointPredicates_(cluster, id_a, id_b);</span>
+<span class="fc" id="L2713">                            break;</span>
+                        default:
+<span class="nc" id="L2715">                            throw GeometryException.GeometryInternalError();</span>
+                    }
+                }
+
+                continue;
+            }
+
+<span class="fc" id="L2722">			int next_half_edge = first_half_edge;</span>
+
+			do {
+<span class="fc" id="L2725">				int half_edge = next_half_edge;</span>
+<span class="fc" id="L2726">				int visited = m_topo_graph.getHalfEdgeUserIndex(half_edge,</span>
+						m_visited_index);
+
+<span class="fc bfc" id="L2729" title="All 2 branches covered.">				if (visited != 1) {</span>
+					do {
+						// Invoke relational predicates
+<span class="pc bpc" id="L2732" title="1 of 4 branches missed.">						switch (m_predicates_half_edge) {</span>
+						case Predicates.AreaAreaPredicates:
+<span class="fc" id="L2734">							bRelationKnown = areaAreaPredicates_(half_edge,</span>
+									id_a, id_b);
+<span class="fc" id="L2736">							break;</span>
+						case Predicates.AreaLinePredicates:
+<span class="fc" id="L2738">							bRelationKnown = areaLinePredicates_(half_edge,</span>
+									id_a, id_b);
+<span class="fc" id="L2740">							break;</span>
+						case Predicates.LineLinePredicates:
+<span class="fc" id="L2742">							bRelationKnown = lineLinePredicates_(half_edge,</span>
+									id_a, id_b);
+<span class="fc" id="L2744">							break;</span>
+						default:
+<span class="nc" id="L2746">							throw GeometryException.GeometryInternalError();</span>
+						}
+
+<span class="fc bfc" id="L2749" title="All 2 branches covered.">						if (bRelationKnown)</span>
+<span class="fc" id="L2750">							break;</span>
+
+<span class="fc" id="L2752">						m_topo_graph.setHalfEdgeUserIndex(half_edge,</span>
+								m_visited_index, 1);
+<span class="fc" id="L2754">						half_edge = m_topo_graph.getHalfEdgeNext(half_edge);</span>
+<span class="pc bpc" id="L2755" title="1 of 4 branches missed.">					} while (half_edge != next_half_edge &amp;&amp; !bRelationKnown);</span>
+				}
+
+<span class="fc bfc" id="L2758" title="All 2 branches covered.">				if (bRelationKnown)</span>
+<span class="fc" id="L2759">					break;</span>
+
+<span class="fc" id="L2761">				next_half_edge = m_topo_graph.getHalfEdgeNext(m_topo_graph</span>
+<span class="fc" id="L2762">						.getHalfEdgeTwin(half_edge));</span>
+<span class="fc bfc" id="L2763" title="All 2 branches covered.">			} while (next_half_edge != first_half_edge);</span>
+
+<span class="fc bfc" id="L2765" title="All 2 branches covered.">			if (bRelationKnown)</span>
+<span class="fc" id="L2766">				break;</span>
+		}
+
+<span class="fc bfc" id="L2769" title="All 2 branches covered.">		if (!bRelationKnown)</span>
+<span class="fc" id="L2770">			setRemainingPredicatesToFalse_();</span>
+
+<span class="fc" id="L2772">		m_topo_graph.deleteUserIndexForHalfEdges(m_visited_index);</span>
+<span class="fc" id="L2773">	}</span>
+
+	// Computes the 9 intersection relationships of boundary, interior, and
+	// exterior of geometry_a vs geometry_b using the Topo_graph for area/Point,
+	// Line/Point, and Point/Point relations
+	private void computeMatrixTopoGraphClusters_(int geometry_a, int geometry_b) {
+<span class="fc" id="L2779">		boolean bRelationKnown = false;</span>
+
+<span class="fc" id="L2781">		int id_a = m_topo_graph.getGeometryID(geometry_a);</span>
+<span class="fc" id="L2782">		int id_b = m_topo_graph.getGeometryID(geometry_b);</span>
+
+<span class="fc bfc" id="L2784" title="All 2 branches covered.">		for (int cluster = m_topo_graph.getFirstCluster(); cluster != -1; cluster = m_topo_graph</span>
+<span class="fc" id="L2785">				.getNextCluster(cluster)) {</span>
+			// Invoke relational predicates
+<span class="pc bpc" id="L2787" title="1 of 4 branches missed.">			switch (m_predicates_cluster) {</span>
+			case Predicates.AreaPointPredicates:
+<span class="fc" id="L2789">				bRelationKnown = areaPointPredicates_(cluster, id_a, id_b);</span>
+<span class="fc" id="L2790">				break;</span>
+			case Predicates.LinePointPredicates:
+<span class="fc" id="L2792">				bRelationKnown = linePointPredicates_(cluster, id_a, id_b);</span>
+<span class="fc" id="L2793">				break;</span>
+			case Predicates.PointPointPredicates:
+<span class="fc" id="L2795">				bRelationKnown = pointPointPredicates_(cluster, id_a, id_b);</span>
+<span class="fc" id="L2796">				break;</span>
+			default:
+<span class="nc" id="L2798">				throw GeometryException.GeometryInternalError();</span>
+			}
+
+<span class="fc bfc" id="L2801" title="All 2 branches covered.">			if (bRelationKnown)</span>
+<span class="fc" id="L2802">				break;</span>
+		}
+
+<span class="fc bfc" id="L2805" title="All 2 branches covered.">		if (!bRelationKnown)</span>
+<span class="fc" id="L2806">			setRemainingPredicatesToFalse_();</span>
+<span class="fc" id="L2807">	}</span>
+
+	// Call this method to set the edit shape, if the edit shape has been
+	// cracked and clustered already.
+	private void setEditShape_(EditShape shape, ProgressTracker progressTracker) {
+<span class="fc" id="L2812">		m_topo_graph.setEditShape(shape, progressTracker);</span>
+<span class="fc" id="L2813">	}</span>
+
+	private void setEditShapeCrackAndCluster_(EditShape shape,
+			double tolerance, ProgressTracker progress_tracker) {
+<span class="fc" id="L2817">		editShapeCrackAndCluster_(shape, tolerance, progress_tracker);</span>
+<span class="fc" id="L2818">		setEditShape_(shape, progress_tracker);</span>
+<span class="fc" id="L2819">	}</span>
+
+	private void editShapeCrackAndCluster_(EditShape shape, double tolerance,
+			ProgressTracker progress_tracker) {
+<span class="fc" id="L2823">		CrackAndCluster.execute(shape, tolerance, progress_tracker, false); //do not filter degenerate segments.</span>
+<span class="fc" id="L2824">        shape.filterClosePoints(0, true, true);//remove degeneracies from polygon geometries.</span>
+<span class="fc bfc" id="L2825" title="All 2 branches covered.">		for (int geometry = shape.getFirstGeometry(); geometry != -1; geometry = shape</span>
+<span class="fc" id="L2826">				.getNextGeometry(geometry)) {</span>
+<span class="fc" id="L2827">			if (shape.getGeometryType(geometry) == Geometry.Type.Polygon</span>
+<span class="fc bfc" id="L2828" title="All 2 branches covered.">					.value())</span>
+<span class="fc" id="L2829">				Simplificator.execute(shape, geometry, -1, false, progress_tracker);</span>
+		}
+<span class="fc" id="L2831">	}</span>
+
+	// Upgrades the geometry to a feature geometry.
+	private static Geometry convertGeometry_(Geometry geometry, double tolerance) {
+<span class="fc" id="L2835">		int gt = geometry.getType().value();</span>
+
+<span class="pc bpc" id="L2837" title="1 of 2 branches missed.">		if (Geometry.isSegment(gt)) {</span>
+<span class="nc" id="L2838">			Polyline polyline = new Polyline(geometry.getDescription());</span>
+<span class="nc" id="L2839">			polyline.addSegment((Segment) geometry, true);</span>
+<span class="nc" id="L2840">			return polyline;</span>
+		}
+
+<span class="pc bpc" id="L2843" title="1 of 2 branches missed.">		if (gt == Geometry.GeometryType.Envelope) {</span>
+<span class="nc" id="L2844">			Envelope envelope = (Envelope) (geometry);</span>
+<span class="nc" id="L2845">			Envelope2D env = new Envelope2D();</span>
+<span class="nc" id="L2846">			geometry.queryEnvelope2D(env);</span>
+
+<span class="nc bnc" id="L2848" title="All 4 branches missed.">			if (env.getHeight() &lt;= tolerance &amp;&amp; env.getWidth() &lt;= tolerance) {// treat</span>
+																				// as
+																				// point
+<span class="nc" id="L2851">				Point point = new Point(geometry.getDescription());</span>
+<span class="nc" id="L2852">				envelope.getCenter(point);</span>
+<span class="nc" id="L2853">				return point;</span>
+			}
+
+<span class="nc bnc" id="L2856" title="All 4 branches missed.">			if (env.getHeight() &lt;= tolerance || env.getWidth() &lt;= tolerance) {// treat</span>
+																				// as
+																				// line
+<span class="nc" id="L2859">				Polyline polyline = new Polyline(geometry.getDescription());</span>
+<span class="nc" id="L2860">				Point p = new Point();</span>
+<span class="nc" id="L2861">				envelope.queryCornerByVal(0, p);</span>
+<span class="nc" id="L2862">				polyline.startPath(p);</span>
+<span class="nc" id="L2863">				envelope.queryCornerByVal(2, p);</span>
+<span class="nc" id="L2864">				polyline.lineTo(p);</span>
+<span class="nc" id="L2865">				return polyline;</span>
+			}
+
+			// treat as polygon
+<span class="nc" id="L2869">			Polygon polygon = new Polygon(geometry.getDescription());</span>
+<span class="nc" id="L2870">			polygon.addEnvelope(envelope, false);</span>
+<span class="nc" id="L2871">			return polygon;</span>
+		}
+
+<span class="fc" id="L2874">		return geometry;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

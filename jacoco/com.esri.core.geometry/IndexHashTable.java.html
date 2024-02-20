@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IndexHashTable.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">IndexHashTable.java</span></div><h1>IndexHashTable.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+import java.util.Arrays;
+
+final class IndexHashTable {
+	// The hash function abstract class that user need to define to use the
+	// IndexHashTable.
+<span class="fc" id="L31">	public static abstract class HashFunction {</span>
+		public abstract int getHash(int element);
+
+		public abstract boolean equal(int element1, int element2);
+
+		public abstract int getHash(Object elementDescriptor);
+
+		public abstract boolean equal(Object elementDescriptor, int element);
+	}
+
+	int m_random;
+	AttributeStreamOfInt32 m_hashBuckets;
+	int [] m_bit_filter; //this is aimed to speedup the find 
+					     //operation and allows to have less buckets.
+	IndexMultiList m_lists;
+	HashFunction m_hash;
+
+	// Create hash table. size is the bin count in the table. The hashFunction
+	// is the function to use.
+<span class="fc" id="L50">	public IndexHashTable(int size, HashFunction hashFunction) {</span>
+<span class="fc" id="L51">		m_hashBuckets = new AttributeStreamOfInt32(size, nullNode());</span>
+<span class="fc" id="L52">		m_lists = new IndexMultiList();</span>
+<span class="fc" id="L53">		m_hash = hashFunction;</span>
+<span class="fc" id="L54">		m_bit_filter = new int[(size*10+31) &gt;&gt; 5]; //10 times more bits than buckets</span>
+<span class="fc" id="L55">	}</span>
+
+	public void reserveElements(int capacity) {
+<span class="fc" id="L58">		m_lists.reserveLists(Math.min(m_hashBuckets.size(), capacity));</span>
+<span class="fc" id="L59">		m_lists.reserveNodes(capacity);</span>
+<span class="fc" id="L60">	}</span>
+
+	// Adds new element to the hash table.
+	public int addElement(int element, int hash) {
+<span class="fc" id="L64">		int bit_bucket = hash % (m_bit_filter.length &lt;&lt; 5);</span>
+<span class="fc" id="L65">		m_bit_filter[(bit_bucket &gt;&gt; 5)] |= (1 &lt;&lt; (bit_bucket &amp; 0x1F));</span>
+<span class="fc" id="L66">		int bucket = hash % m_hashBuckets.size();</span>
+<span class="fc" id="L67">		int list = m_hashBuckets.get(bucket);</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">		if (list == -1) {</span>
+<span class="fc" id="L69">			list = m_lists.createList();</span>
+<span class="fc" id="L70">			m_hashBuckets.set(bucket, list);</span>
+		}
+<span class="fc" id="L72">		int node = m_lists.addElement(list, element);</span>
+<span class="fc" id="L73">		return node;</span>
+	}
+	
+	public int addElement(int element) {
+<span class="nc" id="L77">		int hash = m_hash.getHash(element);</span>
+<span class="nc" id="L78">		int bit_bucket = hash % (m_bit_filter.length &lt;&lt; 5);</span>
+<span class="nc" id="L79">		m_bit_filter[(bit_bucket &gt;&gt; 5)] |= (1 &lt;&lt; (bit_bucket &amp; 0x1F));</span>
+<span class="nc" id="L80">		int bucket = hash % m_hashBuckets.size();</span>
+<span class="nc" id="L81">		int list = m_hashBuckets.get(bucket);</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">		if (list == -1) {</span>
+<span class="nc" id="L83">			list = m_lists.createList();</span>
+<span class="nc" id="L84">			m_hashBuckets.set(bucket, list);</span>
+		}
+<span class="nc" id="L86">		int node = m_lists.addElement(list, element);</span>
+<span class="nc" id="L87">		return node;</span>
+	}
+
+	public void deleteElement(int element, int hash) {
+<span class="fc" id="L91">		int bucket = hash % m_hashBuckets.size();</span>
+<span class="fc" id="L92">		int list = m_hashBuckets.get(bucket);</span>
+<span class="pc bpc" id="L93" title="1 of 2 branches missed.">		if (list == -1)</span>
+<span class="nc" id="L94">			throw new IllegalArgumentException();</span>
+
+<span class="fc" id="L96">		int ptr = m_lists.getFirst(list);</span>
+<span class="fc" id="L97">		int prev = -1;</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">		while (ptr != -1) {</span>
+<span class="fc" id="L99">			int e = m_lists.getElement(ptr);</span>
+<span class="fc" id="L100">			int nextptr = m_lists.getNext(ptr);</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">			if (e == element) {</span>
+<span class="fc" id="L102">				m_lists.deleteElement(list, prev, ptr);</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">				if (m_lists.getFirst(list) == -1) {</span>
+<span class="fc" id="L104">					m_lists.deleteList(list);// do not keep empty lists</span>
+<span class="fc" id="L105">					m_hashBuckets.set(bucket, -1);</span>
+				}
+			} else {
+<span class="fc" id="L108">				prev = ptr;</span>
+			}
+<span class="fc" id="L110">			ptr = nextptr;</span>
+<span class="fc" id="L111">		}</span>
+
+<span class="fc" id="L113">	}</span>
+	
+	// Removes element from the hash table.
+	public void deleteElement(int element) {
+<span class="nc" id="L117">		int hash = m_hash.getHash(element);</span>
+<span class="nc" id="L118">		int bucket = hash % m_hashBuckets.size();</span>
+<span class="nc" id="L119">		int list = m_hashBuckets.get(bucket);</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">		if (list == -1)</span>
+<span class="nc" id="L121">			throw new IllegalArgumentException();</span>
+
+<span class="nc" id="L123">		int ptr = m_lists.getFirst(list);</span>
+<span class="nc" id="L124">		int prev = -1;</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">		while (ptr != -1) {</span>
+<span class="nc" id="L126">			int e = m_lists.getElement(ptr);</span>
+<span class="nc" id="L127">			int nextptr = m_lists.getNext(ptr);</span>
+<span class="nc bnc" id="L128" title="All 2 branches missed.">			if (e == element) {</span>
+<span class="nc" id="L129">				m_lists.deleteElement(list, prev, ptr);</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">				if (m_lists.getFirst(list) == -1) {</span>
+<span class="nc" id="L131">					m_lists.deleteList(list);// do not keep empty lists</span>
+<span class="nc" id="L132">					m_hashBuckets.set(bucket, -1);</span>
+				}
+			} else {
+<span class="nc" id="L135">				prev = ptr;</span>
+			}
+<span class="nc" id="L137">			ptr = nextptr;</span>
+<span class="nc" id="L138">		}</span>
+
+<span class="nc" id="L140">	}</span>
+
+	// Returns the first node in the hash table bucket defined by the given
+	// hashValue.
+	public int getFirstInBucket(int hashValue) {
+<span class="fc" id="L145">		  int bit_bucket = hashValue % (m_bit_filter.length &lt;&lt; 5);</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">		  if ((m_bit_filter[(bit_bucket &gt;&gt; 5)] &amp; (1 &lt;&lt; (bit_bucket &amp; 0x1F))) == 0)</span>
+<span class="fc" id="L147">		    return -1;</span>
+		
+<span class="fc" id="L149">		int bucket = hashValue % m_hashBuckets.size();</span>
+<span class="fc" id="L150">		int list = m_hashBuckets.get(bucket);</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">		if (list == -1)</span>
+<span class="fc" id="L152">			return -1;</span>
+
+<span class="fc" id="L154">		return m_lists.getFirst(list);</span>
+
+	}
+
+	// Returns next node in a bucket. Can be used together with GetFirstInBucket
+	// only.
+	public int getNextInBucket(int elementHandle) {
+<span class="fc" id="L161">		return m_lists.getNext(elementHandle);</span>
+	}
+
+	// Returns a node of the first element in the hash table, that is equal to
+	// the given one.
+	public int findNode(int element) {
+<span class="nc" id="L167">		int hash = m_hash.getHash(element);</span>
+<span class="nc" id="L168">		int ptr = getFirstInBucket(hash);</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">		while (ptr != -1) {</span>
+<span class="nc" id="L170">			int e = m_lists.getElement(ptr);</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">			if (m_hash.equal(e, element)) {</span>
+<span class="nc" id="L172">				return ptr;</span>
+			}
+<span class="nc" id="L174">			ptr = m_lists.getNext(ptr);</span>
+<span class="nc" id="L175">		}</span>
+
+<span class="nc" id="L177">		return -1;</span>
+
+	}
+
+	// Returns a node to the first element in the hash table, that is equal to
+	// the given element descriptor.
+	public int findNode(Object elementDescriptor) {
+<span class="nc" id="L184">		int hash = m_hash.getHash(elementDescriptor);</span>
+<span class="nc" id="L185">		int ptr = getFirstInBucket(hash);;</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">		while (ptr != -1) {</span>
+<span class="nc" id="L187">			int e = m_lists.getElement(ptr);</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">			if (m_hash.equal(elementDescriptor, e)) {</span>
+<span class="nc" id="L189">				return ptr;</span>
+			}
+<span class="nc" id="L191">			ptr = m_lists.getNext(ptr);</span>
+<span class="nc" id="L192">		}</span>
+
+<span class="nc" id="L194">		return -1;</span>
+
+	}
+
+	// Gets next equal node.
+	public int getNextNode(int elementHandle) {
+<span class="nc" id="L200">		int element = m_lists.getElement(elementHandle);</span>
+<span class="nc" id="L201">		int ptr = m_lists.getNext(elementHandle);</span>
+<span class="nc bnc" id="L202" title="All 2 branches missed.">		while (ptr != -1) {</span>
+<span class="nc" id="L203">			int e = m_lists.getElement(ptr);</span>
+<span class="nc bnc" id="L204" title="All 2 branches missed.">			if (m_hash.equal(e, element)) {</span>
+<span class="nc" id="L205">				return ptr;</span>
+			}
+<span class="nc" id="L207">			ptr = m_lists.getNext(ptr);</span>
+<span class="nc" id="L208">		}</span>
+
+<span class="nc" id="L210">		return -1;</span>
+
+	}
+
+	// Removes a node.
+	public void deleteNode(int node) {
+<span class="fc" id="L216">		int element = getElement(node);</span>
+<span class="fc" id="L217">		int hash = m_hash.getHash(element);</span>
+<span class="fc" id="L218">		int bucket = hash % m_hashBuckets.size();</span>
+<span class="fc" id="L219">		int list = m_hashBuckets.get(bucket);</span>
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">		if (list == -1)</span>
+<span class="nc" id="L221">			throw new IllegalArgumentException();</span>
+
+<span class="fc" id="L223">		int ptr = m_lists.getFirst(list);</span>
+<span class="fc" id="L224">		int prev = -1;</span>
+<span class="pc bpc" id="L225" title="1 of 2 branches missed.">		while (ptr != -1) {</span>
+<span class="fc bfc" id="L226" title="All 2 branches covered.">			if (ptr == node) {</span>
+<span class="fc" id="L227">				m_lists.deleteElement(list, prev, ptr);</span>
+<span class="fc bfc" id="L228" title="All 2 branches covered.">				if (m_lists.getFirst(list) == -1) {</span>
+<span class="fc" id="L229">					m_lists.deleteList(list);// do not keep empty lists</span>
+<span class="fc" id="L230">					m_hashBuckets.set(bucket, -1);</span>
+				}
+<span class="fc" id="L232">				return;</span>
+			}
+<span class="fc" id="L234">			prev = ptr;</span>
+<span class="fc" id="L235">			ptr = m_lists.getNext(ptr);</span>
+		}
+
+<span class="nc" id="L238">		throw new IllegalArgumentException();</span>
+
+	}
+
+	// Returns a value of the element stored in the given node.
+	public int getElement(int elementHandle) {
+<span class="fc" id="L244">		return m_lists.getElement(elementHandle);</span>
+	}
+
+	// Returns any existing element from the hash table. Throws if the table is
+	// empty.
+	public int getAnyElement() {
+<span class="nc" id="L250">		return m_lists.getFirstElement(m_lists.getFirstList());</span>
+	}
+
+	// Returns a node for any existing element from the hash table or NullNode
+	// if the table is empty.
+	public int getAnyNode() {
+<span class="nc" id="L256">		return m_lists.getFirst(m_lists.getFirstList());</span>
+	}
+
+	public static int nullNode() {
+<span class="fc" id="L260">		return -1;</span>
+	}
+
+	// Removes all elements from the hash table.
+	public void clear() {
+<span class="nc" id="L265">		Arrays.fill(m_bit_filter, 0);</span>
+<span class="nc" id="L266">		m_hashBuckets = new AttributeStreamOfInt32(m_hashBuckets.size(),</span>
+<span class="nc" id="L267">				nullNode());</span>
+<span class="nc" id="L268">		m_lists.clear();</span>
+
+<span class="nc" id="L270">	}</span>
+
+	// Returns the number of elements in the hash table
+	public int size() {
+<span class="nc" id="L274">		return m_lists.getNodeCount();</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

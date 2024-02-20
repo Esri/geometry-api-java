@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SizeOf.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">SizeOf.java</span></div><h1>SizeOf.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2018 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+import static sun.misc.Unsafe.ARRAY_BYTE_BASE_OFFSET;
+import static sun.misc.Unsafe.ARRAY_BYTE_INDEX_SCALE;
+import static sun.misc.Unsafe.ARRAY_CHAR_BASE_OFFSET;
+import static sun.misc.Unsafe.ARRAY_CHAR_INDEX_SCALE;
+import static sun.misc.Unsafe.ARRAY_DOUBLE_BASE_OFFSET;
+import static sun.misc.Unsafe.ARRAY_DOUBLE_INDEX_SCALE;
+import static sun.misc.Unsafe.ARRAY_FLOAT_BASE_OFFSET;
+import static sun.misc.Unsafe.ARRAY_FLOAT_INDEX_SCALE;
+import static sun.misc.Unsafe.ARRAY_INT_BASE_OFFSET;
+import static sun.misc.Unsafe.ARRAY_INT_INDEX_SCALE;
+import static sun.misc.Unsafe.ARRAY_LONG_BASE_OFFSET;
+import static sun.misc.Unsafe.ARRAY_LONG_INDEX_SCALE;
+import static sun.misc.Unsafe.ARRAY_OBJECT_BASE_OFFSET;
+import static sun.misc.Unsafe.ARRAY_OBJECT_INDEX_SCALE;
+import static sun.misc.Unsafe.ARRAY_SHORT_BASE_OFFSET;
+import static sun.misc.Unsafe.ARRAY_SHORT_INDEX_SCALE;
+
+public final class SizeOf {
+	public static final int SIZE_OF_ATTRIBUTE_STREAM_OF_FLOAT = 24;
+
+	public static final int SIZE_OF_ATTRIBUTE_STREAM_OF_DBL = 24;
+
+	public static final int SIZE_OF_ATTRIBUTE_STREAM_OF_INT8 = 24;
+
+	public static final int SIZE_OF_ATTRIBUTE_STREAM_OF_INT16 = 24;
+
+	public static final int SIZE_OF_ATTRIBUTE_STREAM_OF_INT32 = 24;
+
+	public static final int SIZE_OF_ATTRIBUTE_STREAM_OF_INT64 = 24;
+
+	public static final int SIZE_OF_ENVELOPE = 32;
+
+	public static final int SIZE_OF_ENVELOPE2D = 48;
+
+	public static final int SIZE_OF_LINE = 56;
+
+	public static final int SIZE_OF_MULTI_PATH = 24;
+
+	public static final int SIZE_OF_MULTI_PATH_IMPL = 112;
+
+	public static final int SIZE_OF_MULTI_POINT = 24;
+
+	public static final int SIZE_OF_MULTI_POINT_IMPL = 56;
+
+	public static final int SIZE_OF_POINT = 40;
+
+	public static final int SIZE_OF_POLYGON = 24;
+
+	public static final int SIZE_OF_POLYLINE = 24;
+
+	public static final int SIZE_OF_OGC_CONCRETE_GEOMETRY_COLLECTION = 24;
+
+	public static final int SIZE_OF_OGC_LINE_STRING = 24;
+
+	public static final int SIZE_OF_OGC_MULTI_LINE_STRING = 24;
+
+	public static final int SIZE_OF_OGC_MULTI_POINT = 24;
+
+	public static final int SIZE_OF_OGC_MULTI_POLYGON = 24;
+
+	public static final int SIZE_OF_OGC_POINT = 24;
+
+	public static final int SIZE_OF_OGC_POLYGON = 24;
+	
+	public static final int SIZE_OF_MAPGEOMETRY = 24;
+
+	public static final int SIZE_OF_RASTERIZED_GEOMETRY_2D_IMPL = 112;
+
+	public static final int SIZE_OF_SCAN_CALLBACK_IMPL = 32;
+
+	public static final int SIZE_OF_TRANSFORMATION_2D = 64;
+
+	public static final int SIZE_OF_SIMPLE_RASTERIZER = 64;
+
+	public static final int SIZE_OF_EDGE = 48;
+
+	public static final int SIZE_OF_QUAD_TREE_IMPL = 48;
+
+	public static final int SIZE_OF_DATA = 24;
+
+	public static final int SIZE_OF_STRIDED_INDEX_TYPE_COLLECTION = 48;
+
+	public static long sizeOfByteArray(int length) {
+<span class="fc" id="L110">		return ARRAY_BYTE_BASE_OFFSET + (((long) ARRAY_BYTE_INDEX_SCALE) * length);</span>
+	}
+
+	public static long sizeOfShortArray(int length) {
+<span class="nc" id="L114">		return ARRAY_SHORT_BASE_OFFSET + (((long) ARRAY_SHORT_INDEX_SCALE) * length);</span>
+	}
+
+	public static long sizeOfCharArray(int length) {
+<span class="nc" id="L118">		return ARRAY_CHAR_BASE_OFFSET + (((long) ARRAY_CHAR_INDEX_SCALE) * length);</span>
+	}
+
+	public static long sizeOfIntArray(int length) {
+<span class="fc" id="L122">		return ARRAY_INT_BASE_OFFSET + (((long) ARRAY_INT_INDEX_SCALE) * length);</span>
+	}
+
+	public static long sizeOfLongArray(int length) {
+<span class="nc" id="L126">		return ARRAY_LONG_BASE_OFFSET + (((long) ARRAY_LONG_INDEX_SCALE) * length);</span>
+	}
+
+	public static long sizeOfFloatArray(int length) {
+<span class="nc" id="L130">		return ARRAY_FLOAT_BASE_OFFSET + (((long) ARRAY_FLOAT_INDEX_SCALE) * length);</span>
+	}
+
+	public static long sizeOfDoubleArray(int length) {
+<span class="fc" id="L134">		return ARRAY_DOUBLE_BASE_OFFSET + (((long) ARRAY_DOUBLE_INDEX_SCALE) * length);</span>
+	}
+
+	public static long sizeOfObjectArray(int length)
+	{
+<span class="fc" id="L139">		return ARRAY_OBJECT_BASE_OFFSET + (((long) ARRAY_OBJECT_INDEX_SCALE) * length);</span>
+	}
+
+	private SizeOf() {
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

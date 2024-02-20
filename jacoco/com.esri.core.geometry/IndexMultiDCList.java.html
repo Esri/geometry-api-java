@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IndexMultiDCList.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">IndexMultiDCList.java</span></div><h1>IndexMultiDCList.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+<span class="fc" id="L26">class IndexMultiDCList {</span>
+
+	StridedIndexTypeCollection m_list_nodes; // stores lists and list elements.
+												// Each list element is Index,
+												// Prev, next.
+	StridedIndexTypeCollection m_lists; // stores lists. Each list is Head,
+										// Tail, PrevList, NextList, NodeCount,
+										// ListData.
+	int m_list_of_lists;
+	boolean m_b_store_list_index_with_node;
+
+	void freeNode_(int node) {
+<span class="fc" id="L38">		m_list_nodes.deleteElement(node);</span>
+<span class="fc" id="L39">	}</span>
+
+	int newNode_() {
+<span class="fc" id="L42">		int node = m_list_nodes.newElement();</span>
+<span class="fc" id="L43">		return node;</span>
+	}
+
+	void freeList_(int list) {
+<span class="nc" id="L47">		m_lists.deleteElement(list);</span>
+<span class="nc" id="L48">	}</span>
+
+	int newList_() {
+<span class="fc" id="L51">		int list = m_lists.newElement();</span>
+<span class="fc" id="L52">		return list;</span>
+	}
+
+	void setPrev_(int node, int prev) {
+<span class="fc" id="L56">		m_list_nodes.setField(node, 1, prev);</span>
+<span class="fc" id="L57">	}</span>
+
+	void setNext_(int node, int next) {
+<span class="fc" id="L60">		m_list_nodes.setField(node, 2, next);</span>
+<span class="fc" id="L61">	}</span>
+
+	void setData_(int node, int data) {
+<span class="nc" id="L64">		m_list_nodes.setField(node, 0, data);</span>
+<span class="nc" id="L65">	}</span>
+
+	void setList_(int node, int list) {
+<span class="nc" id="L68">		m_list_nodes.setField(node, 3, list);</span>
+<span class="nc" id="L69">	}</span>
+
+	void setListSize_(int list, int newsize) {
+<span class="fc" id="L72">		m_lists.setField(list, 4, newsize);</span>
+<span class="fc" id="L73">	}</span>
+
+	void setNextList_(int list, int next) {
+<span class="nc" id="L76">		m_lists.setField(list, 3, next);</span>
+<span class="nc" id="L77">	}</span>
+
+	void setPrevList_(int list, int prev) {
+<span class="fc" id="L80">		m_lists.setField(list, 2, prev);</span>
+<span class="fc" id="L81">	}</span>
+
+	// Same as Index_multi_dc_list(true).
+<span class="fc" id="L84">	IndexMultiDCList() {</span>
+<span class="fc" id="L85">		m_list_nodes = new StridedIndexTypeCollection(3);</span>
+<span class="fc" id="L86">		m_lists = new StridedIndexTypeCollection(6);</span>
+<span class="fc" id="L87">		m_b_store_list_index_with_node = false;</span>
+<span class="fc" id="L88">		m_list_of_lists = nullNode();</span>
+<span class="fc" id="L89">	}</span>
+
+	// When bStoreListIndexWithNode is true, the each node stores a pointer to
+	// the list. Otherwise it does not.
+	// The get_list() method cannot be used if bStoreListIndexWithNode is false.
+<span class="fc" id="L94">	IndexMultiDCList(boolean b_store_list_index_with_node) {</span>
+<span class="fc" id="L95">		m_list_nodes = new StridedIndexTypeCollection(3);</span>
+<span class="fc" id="L96">		m_lists = new StridedIndexTypeCollection(6);</span>
+<span class="fc" id="L97">		m_b_store_list_index_with_node = false;</span>
+<span class="fc" id="L98">		m_list_of_lists = nullNode();</span>
+<span class="fc" id="L99">	}</span>
+
+	// Creates new list and returns it's handle.
+	// listData is user's info associated with the list
+	int createList(int listData) {
+<span class="fc" id="L104">		int list = newList_();</span>
+		// m_lists.set_field(list, 0, null_node());//head
+		// m_lists.set_field(list, 1, null_node());//tail
+		// m_lists.set_field(list, 2, null_node());//prev list
+<span class="fc" id="L108">		m_lists.setField(list, 3, m_list_of_lists); // next list</span>
+<span class="fc" id="L109">		m_lists.setField(list, 4, 0);// node count in the list</span>
+<span class="fc" id="L110">		m_lists.setField(list, 5, listData);</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">		if (m_list_of_lists != nullNode())</span>
+<span class="fc" id="L112">			setPrevList_(m_list_of_lists, list);</span>
+
+<span class="fc" id="L114">		m_list_of_lists = list;</span>
+<span class="fc" id="L115">		return list;</span>
+	}
+
+	// Deletes a list and returns the index of the next list.
+	int deleteList(int list) {
+<span class="nc" id="L120">		clear(list);</span>
+<span class="nc" id="L121">		int prevList = m_lists.getField(list, 2);</span>
+<span class="nc" id="L122">		int nextList = m_lists.getField(list, 3);</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">		if (prevList != nullNode())</span>
+<span class="nc" id="L124">			setNextList_(prevList, nextList);</span>
+		else
+<span class="nc" id="L126">			m_list_of_lists = nextList;</span>
+
+<span class="nc bnc" id="L128" title="All 2 branches missed.">		if (nextList != nullNode())</span>
+<span class="nc" id="L129">			setPrevList_(nextList, prevList);</span>
+
+<span class="nc" id="L131">		freeList_(list);</span>
+<span class="nc" id="L132">		return nextList;</span>
+	}
+
+	// Reserves memory for the given number of lists.
+	void reserveLists(int listCount) {
+<span class="nc" id="L137">		m_lists.setCapacity(listCount);</span>
+<span class="nc" id="L138">	}</span>
+
+	// returns user's data associated with the list
+	int getListData(int list) {
+<span class="fc" id="L142">		return m_lists.getField(list, 5);</span>
+	}
+
+	// returns the list associated with the node_index. Do not use if list is
+	// created with bStoreListIndexWithNode == false.
+	int getList(int node_index) {
+<span class="nc bnc" id="L148" title="All 2 branches missed.">		assert (m_b_store_list_index_with_node);</span>
+<span class="nc" id="L149">		return m_list_nodes.getField(node_index, 3);</span>
+	}
+
+	// sets the user data to the list
+	void setListData(int list, int data) {
+<span class="fc" id="L154">		m_lists.setField(list, 5, data);</span>
+<span class="fc" id="L155">	}</span>
+
+	// Adds element to a given list. The element is added to the end. Returns
+	// the new
+	int addElement(int list, int data) {
+<span class="fc" id="L160">		return insertElement(list, -1, data);</span>
+	}
+
+	// Inserts a new node before the given one .
+	int insertElement(int list, int beforeNode, int data) {
+<span class="fc" id="L165">		int node = newNode_();</span>
+<span class="fc" id="L166">		int prev = -1;</span>
+<span class="pc bpc" id="L167" title="1 of 2 branches missed.">		if (beforeNode != nullNode()) {</span>
+<span class="nc" id="L168">			prev = getPrev(beforeNode);</span>
+<span class="nc" id="L169">			setPrev_(beforeNode, node);</span>
+		}
+
+<span class="fc" id="L172">		setNext_(node, beforeNode);</span>
+<span class="pc bpc" id="L173" title="1 of 2 branches missed.">		if (prev != nullNode())</span>
+<span class="nc" id="L174">			setNext_(prev, node);</span>
+
+<span class="fc" id="L176">		int head = m_lists.getField(list, 0);</span>
+
+<span class="fc bfc" id="L178" title="All 2 branches covered.">		if (beforeNode == head)</span>
+<span class="fc" id="L179">			m_lists.setField(list, 0, node);</span>
+<span class="pc bpc" id="L180" title="1 of 2 branches missed.">		if (beforeNode == nullNode()) {</span>
+<span class="fc" id="L181">			int tail = m_lists.getField(list, 1);</span>
+<span class="fc" id="L182">			setPrev_(node, tail);</span>
+<span class="fc bfc" id="L183" title="All 2 branches covered.">			if (tail != -1)</span>
+<span class="fc" id="L184">				setNext_(tail, node);</span>
+
+<span class="fc" id="L186">			m_lists.setField(list, 1, node);</span>
+		}
+
+<span class="fc" id="L189">		setData(node, data);</span>
+<span class="fc" id="L190">		setListSize_(list, getListSize(list) + 1);</span>
+
+<span class="pc bpc" id="L192" title="1 of 2 branches missed.">		if (m_b_store_list_index_with_node)</span>
+<span class="nc" id="L193">			setList_(node, list);</span>
+
+<span class="fc" id="L195">		return node;</span>
+	}
+
+	// Deletes a node from a list. Returns the next node after the deleted one.
+	int deleteElement(int list, int node) {
+<span class="fc" id="L200">		int prev = getPrev(node);</span>
+<span class="fc" id="L201">		int next = getNext(node);</span>
+<span class="fc bfc" id="L202" title="All 2 branches covered.">		if (prev != nullNode())</span>
+<span class="fc" id="L203">			setNext_(prev, next);</span>
+		else
+<span class="fc" id="L205">			m_lists.setField(list, 0, next);// change head</span>
+<span class="fc bfc" id="L206" title="All 2 branches covered.">		if (next != nullNode())</span>
+<span class="fc" id="L207">			setPrev_(next, prev);</span>
+		else
+<span class="fc" id="L209">			m_lists.setField(list, 1, prev);// change tail</span>
+
+<span class="fc" id="L211">		freeNode_(node);</span>
+<span class="fc" id="L212">		setListSize_(list, getListSize(list) - 1);</span>
+<span class="fc" id="L213">		return next;</span>
+	}
+
+	// Reserves memory for the given number of nodes.
+	void reserveNodes(int nodeCount) {
+<span class="fc" id="L218">		m_list_nodes.setCapacity(nodeCount);</span>
+<span class="fc" id="L219">	}</span>
+
+	// Returns the data from the given list node.
+	int getData(int node_index) {
+<span class="fc" id="L223">		return m_list_nodes.getField(node_index, 0);</span>
+	}
+
+	// Sets the data to the given list node.
+	void setData(int node_index, int element) {
+<span class="fc" id="L228">		m_list_nodes.setField(node_index, 0, element);</span>
+<span class="fc" id="L229">	}</span>
+
+	// Returns index of next node for the give node.
+	int getNext(int node_index) {
+<span class="fc" id="L233">		return m_list_nodes.getField(node_index, 2);</span>
+	}
+
+	// Returns index of previous node for the give node.
+	int getPrev(int node_index) {
+<span class="fc" id="L238">		return m_list_nodes.getField(node_index, 1);</span>
+	}
+
+	// Returns the first node in the list
+	int getFirst(int list) {
+<span class="fc" id="L243">		return m_lists.getField(list, 0);</span>
+	}
+
+	// Returns the last node in the list
+	int getLast(int list) {
+<span class="fc" id="L248">		return m_lists.getField(list, 1);</span>
+	}
+
+	// Check if the node is Null (does not exist)
+	static int nullNode() {
+<span class="fc" id="L253">		return -1;</span>
+	}
+
+	// Clears all nodes and removes all lists.
+	void clear() {
+<span class="nc bnc" id="L258" title="All 2 branches missed.">		for (int list = getFirstList(); list != -1;) {</span>
+<span class="nc" id="L259">			list = deleteList(list);</span>
+		}
+<span class="nc" id="L261">	}</span>
+
+	// Clears all nodes from the list.
+	void clear(int list) {
+<span class="fc" id="L265">		int last = getLast(list);</span>
+<span class="fc bfc" id="L266" title="All 2 branches covered.">		while (last != nullNode()) {</span>
+<span class="fc" id="L267">			int n = last;</span>
+<span class="fc" id="L268">			last = getPrev(n);</span>
+<span class="fc" id="L269">			freeNode_(n);</span>
+<span class="fc" id="L270">		}</span>
+<span class="fc" id="L271">		m_lists.setField(list, 0, -1);</span>
+<span class="fc" id="L272">		m_lists.setField(list, 1, -1);</span>
+<span class="fc" id="L273">		setListSize_(list, 0);</span>
+<span class="fc" id="L274">	}</span>
+
+	// Returns True if the given list is empty.
+	boolean isEmpty(int list) {
+<span class="nc bnc" id="L278" title="All 2 branches missed.">		return m_lists.getField(list, 0) == -1;</span>
+	}
+
+	// Returns True if the multilist is empty
+	boolean isEmpty() {
+<span class="nc bnc" id="L283" title="All 2 branches missed.">		return m_list_nodes.size() == 0;</span>
+	}
+
+	// Returns node count in all lists
+	int getNodeCount() {
+<span class="fc" id="L288">		return m_list_nodes.size();</span>
+	}
+
+	// returns the number of lists
+	int getListCount() {
+<span class="nc" id="L293">		return m_lists.size();</span>
+	}
+
+	// Returns the node count in the given list
+	int getListSize(int list) {
+<span class="fc" id="L298">		return m_lists.getField(list, 4);</span>
+	}
+
+	// returns the first list
+	int getFirstList() {
+<span class="fc" id="L303">		return m_list_of_lists;</span>
+	}
+
+	// returns the next list
+	int getNextList(int list) {
+<span class="fc" id="L308">		return m_lists.getField(list, 3);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

@@ -1,0 +1,1085 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MultiVertexGeometryImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">MultiVertexGeometryImpl.java</span></div><h1>MultiVertexGeometryImpl.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+
+package com.esri.core.geometry;
+
+import com.esri.core.geometry.Geometry.GeometryAccelerationDegree;
+import com.esri.core.geometry.VertexDescription.Semantics;
+
+/**
+ * This class is a base for geometries with many vertices.
+ * 
+ * The vertex attributes are stored in separate arrays of corresponding type.
+ * There are as many arrays as there are attributes in the vertex. It uses lazy
+ * allocation for the vertex attributes. This means, the actual AttributeStream
+ * is allocated only when the users asks for it, or sets a non-default value.
+ * 
+ */
+abstract class MultiVertexGeometryImpl extends MultiVertexGeometry {
+
+	// HEADER DEFINED
+	public interface GeometryXSimple {
+		final int Unknown = -1; // not know if simple or not
+		final int Not = 0; // not simple
+		final int Weak = 1; // weak simple (no self intersections, ring
+							// orientation is correct, but ring order is not)
+		final int Strong = 2; // same as weak simple + OGC ring order.
+	}
+
+	// TODO Remove?
+	/**
+	 * \internal CHildren implement this method to copy additional information
+	 */
+	abstract void _copyToImpl(MultiVertexGeometryImpl mvg);
+
+	protected abstract void _notifyModifiedAllImpl();
+
+	/**
+	 * \internal Called inside of the VerifyAllStreams to get a child class a
+	 * chance to do additional verify.
+	 */
+	protected abstract void _verifyStreamsImpl();
+
+	public interface DirtyFlags {
+		/**0 when IsWeakSimple flag is valid*/
+		int DirtyIsKnownSimple = 1;
+		/**when DirtyIsKnownSimple is 0, this flag indicates whether the geometry is weak simple or not*/
+		int IsWeakSimple = 2; 
+		int IsStrongSimple = 4;
+		/**OGCFlags are set by Simplify or WKB/WKT import.*/		
+		int DirtyOGCFlags = 8; 
+		/** At least one stream is unverified*/
+		int DirtyVerifiedStreams = 32;
+		/** exact envelope is dirty*/
+		int DirtyExactIntervals = 64;
+		/** loose envelope is dirty*/
+		int DirtyLooseIntervals = 128;
+		/** loose and dirty envelopes are dirty */
+		int DirtyIntervals = DirtyExactIntervals
+				| DirtyLooseIntervals;
+		/**the geometry is not known to be an envelope*/		
+		int DirtyIsEnvelope = 256;
+		/** The geometry length needs update*/		
+		int DirtyLength2D = 512; 
+		/** m_cachedRingAreas2D need update*/		
+		int DirtyRingAreas2D = 1024; 
+		int DirtyCoordinates = DirtyIsKnownSimple
+				| DirtyIntervals | DirtyIsEnvelope | DirtyLength2D
+				| DirtyRingAreas2D | DirtyOGCFlags;
+		int DirtyAllInternal = 0xFFFF;
+		/** There has been a change to one of attribute streams from the outside.*/
+		int DirtyAll = 0xFFFFFF; 
+	}
+
+	/**
+	 * Returns the total vertex count in this Geometry.
+	 * 
+	 * @return total vertex count in this Geometry.
+	 */
+	@Override
+	public int getPointCount() {
+<span class="fc" id="L103">		return m_pointCount;</span>
+	}
+
+	@Override
+	public boolean isEmpty() {
+<span class="fc" id="L108">		return isEmptyImpl();</span>
+	}
+
+	public VertexDescription getDescriptionImpl() {
+<span class="nc" id="L112">		return m_description;</span>
+	}
+
+	boolean isEmptyImpl() {
+<span class="fc bfc" id="L116" title="All 2 branches covered.">		return m_pointCount == 0;</span>
+	}
+
+	protected boolean _hasDirtyFlag(int flag) {
+<span class="fc bfc" id="L120" title="All 2 branches covered.">		return (m_flagsMask &amp; flag) != 0;</span>
+	}
+
+	protected void _setDirtyFlag(int flag, boolean bYesNo) {
+<span class="fc bfc" id="L124" title="All 2 branches covered.">		if (bYesNo)</span>
+<span class="fc" id="L125">			m_flagsMask |= flag;</span>
+		else
+<span class="fc" id="L127">			m_flagsMask &amp;= ~flag;</span>
+<span class="fc" id="L128">	}</span>
+
+	protected void _verifyAllStreams() {
+<span class="fc bfc" id="L131" title="All 2 branches covered.">		if (_hasDirtyFlag(DirtyFlags.DirtyVerifiedStreams))</span>
+<span class="fc" id="L132">			_verifyAllStreamsImpl();</span>
+<span class="fc" id="L133">	}</span>
+
+	protected void throwIfEmpty() {
+<span class="pc bpc" id="L136" title="1 of 2 branches missed.">		if (isEmptyImpl())</span>
+			// TODO fix exceptions
+<span class="nc" id="L138">			throw new GeometryException(</span>
+					&quot;This operation was performed on an Empty Geometry.&quot;);
+<span class="fc" id="L140">	}</span>
+
+	private static final long serialVersionUID = 1L;
+
+	AttributeStreamBase[] m_vertexAttributes;
+	// TODO implement accelerators
+	GeometryAccelerators m_accelerators;
+	Envelope m_envelope; // the BBOX for all attributes
+	protected int m_pointCount;
+	protected int m_reservedPointCount;// the number of vertices reserved and
+										// initialized to default value.
+	protected int m_flagsMask;
+	protected double m_simpleTolerance;
+
+<span class="fc" id="L154">	public MultiVertexGeometryImpl() {</span>
+<span class="fc" id="L155">		m_flagsMask = DirtyFlags.DirtyAllInternal;</span>
+<span class="fc" id="L156">		m_pointCount = 0;</span>
+<span class="fc" id="L157">		m_reservedPointCount = -1;</span>
+<span class="fc" id="L158">		m_accelerators = null;</span>
+<span class="fc" id="L159">	}</span>
+
+	@Override
+	public void getPointByVal(int index, Point dst) {
+<span class="pc bpc" id="L163" title="2 of 4 branches missed.">		if (index &lt; 0 || index &gt;= m_pointCount)</span>
+			// TODO
+<span class="nc" id="L165">			throw new GeometryException(&quot;index out of bounds&quot;);</span>
+
+<span class="fc" id="L167">		_verifyAllStreams();</span>
+
+<span class="fc" id="L169">		Point outPoint = dst;</span>
+<span class="fc" id="L170">		outPoint.assignVertexDescription(m_description);</span>
+
+<span class="fc" id="L172">		for (int attributeIndex = 0; attributeIndex &lt; m_description</span>
+<span class="fc bfc" id="L173" title="All 2 branches covered.">				.getAttributeCount(); attributeIndex++) {</span>
+			// fix semantics
+<span class="fc" id="L175">			int semantics = m_description._getSemanticsImpl(attributeIndex);</span>
+
+			// VertexDescription.getComponentCount(semantics);
+<span class="fc" id="L178">			for (int icomp = 0, ncomp = VertexDescription</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">					.getComponentCount(semantics); icomp &lt; ncomp; icomp++) {</span>
+<span class="fc" id="L180">				double v = m_vertexAttributes[attributeIndex].readAsDbl(ncomp</span>
+						* index + icomp);
+<span class="fc" id="L182">				outPoint.setAttribute(semantics, icomp, v);</span>
+			}
+		}
+<span class="fc" id="L185">	}</span>
+
+	@Override
+	public void setPointByVal(int index, Point src) {
+<span class="pc bpc" id="L189" title="2 of 4 branches missed.">		if (index &lt; 0 || index &gt;= m_pointCount)</span>
+<span class="nc" id="L190">			throw new GeometryException(&quot;index out of bounds&quot;);</span>
+
+<span class="fc" id="L192">		Point point = src;</span>
+
+<span class="pc bpc" id="L194" title="1 of 2 branches missed.">		if (src.isEmpty())// can not assign an empty point to a multipoint</span>
+							// vertex
+<span class="nc" id="L196">			throw new IllegalArgumentException();</span>
+
+<span class="fc" id="L198">		_verifyAllStreams();// verify all allocated streams are of necessary</span>
+							// size.
+<span class="fc" id="L200">		VertexDescription vdin = point.getDescription();</span>
+<span class="fc bfc" id="L201" title="All 2 branches covered.">		for (int attributeIndex = 0; attributeIndex &lt; vdin.getAttributeCount(); attributeIndex++) {</span>
+<span class="fc" id="L202">			int semantics = vdin._getSemanticsImpl(attributeIndex);</span>
+<span class="fc" id="L203">			int ncomp = VertexDescription.getComponentCount(semantics);</span>
+<span class="fc bfc" id="L204" title="All 2 branches covered.">			for (int icomp = 0; icomp &lt; ncomp; icomp++) {</span>
+<span class="fc" id="L205">				double v = point.getAttributeAsDbl(semantics, icomp);</span>
+<span class="fc" id="L206">				setAttribute(semantics, index, icomp, v);</span>
+			}
+		}
+<span class="fc" id="L209">	}</span>
+
+	// Checked vs. Jan 11, 2011
+	@Override
+	public Point2D getXY(int index) {
+<span class="fc" id="L214">		Point2D pt = new Point2D();</span>
+<span class="fc" id="L215">		getXY(index, pt);</span>
+<span class="fc" id="L216">		return pt;</span>
+	}
+
+	@Override
+	public void getXY(int index, Point2D pt) {
+<span class="pc bpc" id="L221" title="2 of 4 branches missed.">		if (index &lt; 0 || index &gt;= getPointCount())</span>
+<span class="nc" id="L222">			throw new IndexOutOfBoundsException();</span>
+
+<span class="fc" id="L224">		_verifyAllStreams();</span>
+		// AttributeStreamOfDbl v = (AttributeStreamOfDbl)
+		// m_vertexAttributes[0];
+<span class="fc" id="L227">		AttributeStreamOfDbl v = (AttributeStreamOfDbl) m_vertexAttributes[0];</span>
+<span class="fc" id="L228">		v.read(index * 2, pt);</span>
+<span class="fc" id="L229">	}</span>
+
+	// Checked vs. Jan 11, 2011
+	@Override
+	public void setXY(int index, Point2D pt) {
+<span class="pc bpc" id="L234" title="2 of 4 branches missed.">		if (index &lt; 0 || index &gt;= m_pointCount)</span>
+			// TODO exception
+<span class="nc" id="L236">			throw new IndexOutOfBoundsException();</span>
+
+<span class="fc" id="L238">		_verifyAllStreams();</span>
+		// AttributeStreamOfDbl v = (AttributeStreamOfDbl)
+		// m_vertexAttributes[0];
+<span class="fc" id="L241">		AttributeStreamOfDbl v = (AttributeStreamOfDbl) m_vertexAttributes[0];</span>
+<span class="fc" id="L242">		v.write(index * 2, pt);</span>
+<span class="fc" id="L243">		notifyModified(DirtyFlags.DirtyCoordinates);</span>
+<span class="fc" id="L244">	}</span>
+
+	// Checked vs. Jan 11, 2011
+	public void setXY(int index, double x, double y) {
+<span class="pc bpc" id="L248" title="2 of 4 branches missed.">		if (index &lt; 0 || index &gt;= m_pointCount)</span>
+			// TODO exc
+<span class="nc" id="L250">			throw new IndexOutOfBoundsException();</span>
+
+<span class="fc" id="L252">		_verifyAllStreams();</span>
+		// AttributeStreamOfDbl v = (AttributeStreamOfDbl)
+		// m_vertexAttributes[0];
+		// TODO ask sergey about casts
+<span class="fc" id="L256">		AttributeStreamOfDbl v = (AttributeStreamOfDbl) m_vertexAttributes[0];</span>
+<span class="fc" id="L257">		v.write(index * 2, x);</span>
+<span class="fc" id="L258">		v.write(index * 2 + 1, y);</span>
+<span class="fc" id="L259">		notifyModified(DirtyFlags.DirtyCoordinates);</span>
+<span class="fc" id="L260">	}</span>
+
+	// Checked vs. Jan 11, 2011
+	@Override
+	public Point3D getXYZ(int index) {
+<span class="pc bpc" id="L265" title="2 of 4 branches missed.">		if (index &lt; 0 || index &gt;= getPointCount())</span>
+<span class="nc" id="L266">			throw new IndexOutOfBoundsException();</span>
+
+<span class="fc" id="L268">		_verifyAllStreams();</span>
+<span class="fc" id="L269">		AttributeStreamOfDbl v = (AttributeStreamOfDbl) m_vertexAttributes[0];</span>
+<span class="fc" id="L270">		Point3D pt = new Point3D();</span>
+<span class="fc" id="L271">		pt.x = v.read(index * 2);</span>
+<span class="fc" id="L272">		pt.y = v.read(index * 2 + 1);</span>
+
+		// TODO check excluded if statement componenet
+<span class="pc bpc" id="L275" title="1 of 2 branches missed.">		if (hasAttribute(Semantics.Z))// &amp;&amp; (m_vertexAttributes[1] != null))</span>
+<span class="fc" id="L276">			pt.z = m_vertexAttributes[1].readAsDbl(index);</span>
+		else
+<span class="nc" id="L278">			pt.z = VertexDescription.getDefaultValue(Semantics.Z);</span>
+
+<span class="fc" id="L280">		return pt;</span>
+	}
+
+	// Checked vs. Jan 11, 2011
+	@Override
+	public void setXYZ(int index, Point3D pt) {
+<span class="pc bpc" id="L286" title="2 of 4 branches missed.">		if (index &lt; 0 || index &gt;= getPointCount())</span>
+<span class="nc" id="L287">			throw new IndexOutOfBoundsException();</span>
+
+<span class="fc" id="L289">		addAttribute(Semantics.Z);</span>
+
+<span class="fc" id="L291">		_verifyAllStreams();</span>
+<span class="fc" id="L292">		notifyModified(DirtyFlags.DirtyCoordinates);</span>
+<span class="fc" id="L293">		AttributeStreamOfDbl v = (AttributeStreamOfDbl) m_vertexAttributes[0];</span>
+<span class="fc" id="L294">		v.write(index * 2, pt.x);</span>
+<span class="fc" id="L295">		v.write(index * 2 + 1, pt.y);</span>
+<span class="fc" id="L296">		m_vertexAttributes[1].writeAsDbl(index, pt.z);</span>
+<span class="fc" id="L297">	}</span>
+
+	// Checked vs. Jan 11, 2011
+	@Override
+	public double getAttributeAsDbl(int semantics, int offset, int ordinate) {
+<span class="pc bpc" id="L302" title="2 of 4 branches missed.">		if (offset &lt; 0 || offset &gt;= m_pointCount)</span>
+<span class="nc" id="L303">			throw new IndexOutOfBoundsException();</span>
+
+<span class="fc" id="L305">		int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="pc bpc" id="L306" title="1 of 2 branches missed.">		if (ordinate &gt;= ncomps)</span>
+<span class="nc" id="L307">			throw new IndexOutOfBoundsException();</span>
+
+<span class="fc" id="L309">		_verifyAllStreams();</span>
+<span class="fc" id="L310">		int attributeIndex = m_description.getAttributeIndex(semantics);</span>
+		// TODO check if statement
+<span class="fc bfc" id="L312" title="All 2 branches covered.">		if (attributeIndex &gt;= 0)// &amp;&amp; m_vertexAttributes[attributeIndex] !=</span>
+								// null) {
+		{
+<span class="fc" id="L315">			return m_vertexAttributes[attributeIndex].readAsDbl(offset * ncomps</span>
+					+ ordinate);
+		}
+<span class="fc" id="L318">		return VertexDescription.getDefaultValue(semantics);</span>
+	}
+
+	// Checked vs. Jan 11, 2011
+	@Override
+	public int getAttributeAsInt(int semantics, int offset, int ordinate) {
+<span class="fc" id="L324">		return (int) getAttributeAsDbl(semantics, offset, ordinate);</span>
+	}
+
+	// Checked vs. Jan 11, 2011
+	@Override
+	public void setAttribute(int semantics, int offset, int ordinate,
+			double value) {
+<span class="pc bpc" id="L331" title="2 of 4 branches missed.">		if (offset &lt; 0 || offset &gt;= m_pointCount)</span>
+<span class="nc" id="L332">			throw new IndexOutOfBoundsException();</span>
+
+<span class="fc" id="L334">		int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="pc bpc" id="L335" title="1 of 2 branches missed.">		if (ordinate &gt;= ncomps)</span>
+<span class="nc" id="L336">			throw new IndexOutOfBoundsException();</span>
+
+<span class="fc" id="L338">		addAttribute(semantics);</span>
+<span class="fc" id="L339">		_verifyAllStreams();</span>
+<span class="fc" id="L340">		int attributeIndex = m_description.getAttributeIndex(semantics);</span>
+<span class="fc" id="L341">		notifyModified(DirtyFlags.DirtyCoordinates);</span>
+<span class="fc" id="L342">		m_vertexAttributes[attributeIndex].writeAsDbl(offset * ncomps</span>
+				+ ordinate, value);
+<span class="fc" id="L344">	}</span>
+
+	// Checked vs. Jan 11, 2011
+	@Override
+	public void setAttribute(int semantics, int offset, int ordinate, int value) {
+<span class="fc" id="L349">		setAttribute(semantics, offset, ordinate, (double) value);</span>
+<span class="fc" id="L350">	}</span>
+
+	public AttributeStreamBase getAttributeStreamRef(int semantics) {
+<span class="fc" id="L353">		throwIfEmpty();</span>
+
+<span class="fc" id="L355">		addAttribute(semantics);</span>
+<span class="fc" id="L356">		_verifyAllStreams();</span>
+
+<span class="fc" id="L358">		int attributeIndex = m_description.getAttributeIndex(semantics);</span>
+<span class="fc" id="L359">		return m_vertexAttributes[attributeIndex];</span>
+	}
+
+	/**
+	 * Sets a reference to the given AttributeStream of the Geometry. Once the
+	 * buffer has been obtained, the vertices of the Geometry can be manipulated
+	 * directly. The AttributeStream parameters are not checked for the size. &lt;br&gt;
+	 * If the attribute is missing, it will be added. &lt;br&gt;
+	 * Note, that this method does not change the vertex count in the Geometry. &lt;br&gt;
+	 * The stream can have more elements, than the Geometry point count, but
+	 * only necessary part will be saved when exporting to a ESRI shape or other
+	 * format. @param semantics Semantics of the attribute to assign the stream
+	 * to. @param stream The input AttributeStream that will be assigned by
+	 * reference. If one changes the stream later through the reference, one has
+	 * to call NotifyStreamChanged. \exception Throws invalid_argument exception
+	 * if the input stream type does not match that of the semantics
+	 * persistence.
+	 */
+	public void setAttributeStreamRef(int semantics, AttributeStreamBase stream) {
+		// int test1 = VertexDescription.getPersistence(semantics);
+		// int test2 = stream.getPersistence();
+
+<span class="pc bpc" id="L381" title="1 of 2 branches missed.">		if ((stream != null)</span>
+<span class="fc" id="L382">				&amp;&amp; VertexDescription.getPersistence(semantics) != stream</span>
+<span class="pc bpc" id="L383" title="1 of 2 branches missed.">						.getPersistence())// input stream has wrong persistence</span>
+<span class="nc" id="L384">			throw new IllegalArgumentException();</span>
+
+		// Do not check for the stream size here to allow several streams to be
+		// attached before the point count is changed.
+<span class="fc" id="L388">		addAttribute(semantics);</span>
+<span class="fc" id="L389">		int attributeIndex = m_description.getAttributeIndex(semantics);</span>
+<span class="fc bfc" id="L390" title="All 2 branches covered.">		if (m_vertexAttributes == null)</span>
+<span class="fc" id="L391">			m_vertexAttributes = new AttributeStreamBase[m_description</span>
+<span class="fc" id="L392">					.getAttributeCount()];</span>
+
+<span class="fc" id="L394">		m_vertexAttributes[attributeIndex] = stream;</span>
+<span class="fc" id="L395">		notifyModified(DirtyFlags.DirtyAll);</span>
+<span class="fc" id="L396">	}</span>
+
+	@Override
+	protected void _assignVertexDescriptionImpl(VertexDescription newDescription) {
+<span class="fc" id="L400">		AttributeStreamBase[] newAttributes = null;</span>
+		
+<span class="fc bfc" id="L402" title="All 2 branches covered.">		if (m_vertexAttributes != null) {</span>
+<span class="fc" id="L403">			int[] mapping = VertexDescriptionDesignerImpl.mapAttributes(</span>
+					newDescription, m_description);
+			
+<span class="fc" id="L406">			newAttributes = new AttributeStreamBase[newDescription</span>
+<span class="fc" id="L407">			                    					.getAttributeCount()];</span>
+
+<span class="fc bfc" id="L409" title="All 2 branches covered.">			for (int i = 0, n = newDescription.getAttributeCount(); i &lt; n; i++) {</span>
+<span class="fc bfc" id="L410" title="All 2 branches covered.">				if (mapping[i] != -1) {</span>
+<span class="fc" id="L411">					int m = mapping[i];</span>
+<span class="fc" id="L412">					newAttributes[i] = m_vertexAttributes[m];</span>
+				}
+
+			}
+		}
+		else {
+			//if there are no streams we do not create them
+		}
+		
+<span class="fc" id="L421">		m_description = newDescription;</span>
+<span class="fc" id="L422">		m_vertexAttributes = newAttributes; // late assignment to try to stay</span>
+<span class="fc" id="L423">		m_reservedPointCount = -1;// we need to recreate the new attribute then</span>
+<span class="fc" id="L424">		notifyModified(DirtyFlags.DirtyAll);</span>
+<span class="fc" id="L425">	}</span>
+	
+	// Checked vs. Jan 11, 2011
+	protected void _updateEnvelope(Envelope2D env) {
+<span class="fc" id="L429">		_updateAllDirtyIntervals(true);</span>
+<span class="fc" id="L430">		m_envelope.queryEnvelope2D(env);</span>
+<span class="fc" id="L431">	} // note: overload for polylines/polygons with curves</span>
+
+	// Checked vs. Jan 11, 2011
+	protected void _updateEnvelope(Envelope3D env) {
+<span class="nc" id="L435">		_updateAllDirtyIntervals(true);</span>
+<span class="nc" id="L436">		m_envelope.queryEnvelope3D(env);</span>
+<span class="nc" id="L437">	} // note: overload for polylines/polygons with curves</span>
+
+	// Checked vs. Jan 11, 2011
+	protected void _updateLooseEnvelope(Envelope2D env) {
+		// TODO ROHIT has this set to true?
+<span class="fc" id="L442">		_updateAllDirtyIntervals(false);</span>
+<span class="fc" id="L443">		m_envelope.queryEnvelope2D(env);</span>
+<span class="fc" id="L444">	} // note: overload for polylines/polygons with curves</span>
+
+	// Checked vs. Jan 11, 2011
+	/**
+	 * \internal Calculates loose envelope. Returns True if the calculation
+	 * renders exact envelope.
+	 */
+	protected void _updateLooseEnvelope(Envelope3D env) {
+		// TODO ROHIT has this set to true?
+<span class="nc" id="L453">		_updateAllDirtyIntervals(false);</span>
+<span class="nc" id="L454">		m_envelope.queryEnvelope3D(env);</span>
+<span class="nc" id="L455">	} // note: overload for polylines/polygons with curves</span>
+
+	// Checked vs. Jan 11, 2011
+	@Override
+	public void queryEnvelope(Envelope env) {
+<span class="fc" id="L460">		_updateAllDirtyIntervals(true);</span>
+<span class="fc" id="L461">		m_envelope.copyTo(env);</span>
+<span class="fc" id="L462">	}</span>
+
+	// TODO rename to remove 2D
+	// Checked vs. Jan 11, 2011
+	@Override
+	public void queryEnvelope2D(Envelope2D env) {
+<span class="fc" id="L468">		_updateEnvelope(env);</span>
+<span class="fc" id="L469">	}</span>
+
+	// Checked vs. Jan 11, 2011
+	// TODO rename to remove 3D
+	@Override
+	public void queryEnvelope3D(Envelope3D env) {
+<span class="nc" id="L475">		_updateEnvelope(env);</span>
+<span class="nc" id="L476">	}</span>
+
+	// Checked vs. Jan 11, 2011
+	// TODO rename to remove 2D
+	@Override
+	public void queryLooseEnvelope2D(Envelope2D env) {
+<span class="fc" id="L482">		_updateLooseEnvelope(env);</span>
+<span class="fc" id="L483">	}</span>
+
+	// Checked vs. Jan 11, 2011
+	// TODO rename to remove 3D
+	@Override
+	public void queryLooseEnvelope3D(Envelope3D env) {
+<span class="nc" id="L489">		_updateLooseEnvelope(env);</span>
+<span class="nc" id="L490">	}</span>
+
+	// Checked vs. Jan 11, 2011
+	@Override
+	public Envelope1D queryInterval(int semantics, int ordinate) {
+<span class="fc" id="L495">		Envelope1D env = new Envelope1D();</span>
+<span class="pc bpc" id="L496" title="1 of 2 branches missed.">		if (isEmptyImpl()) {</span>
+<span class="nc" id="L497">			env.setEmpty();</span>
+<span class="nc" id="L498">			return env;</span>
+		}
+
+<span class="fc" id="L501">		_updateAllDirtyIntervals(true);</span>
+<span class="fc" id="L502">		return m_envelope.queryInterval(semantics, ordinate);</span>
+	}
+
+	// Checked vs. Jan 11, 2011
+	// TODO Rename to getHashCode
+	@Override
+	public int hashCode() {
+<span class="fc" id="L509">		int hashCode = m_description.hashCode();</span>
+
+<span class="pc bpc" id="L511" title="1 of 2 branches missed.">		if (!isEmptyImpl()) {</span>
+<span class="nc" id="L512">			int pointCount = getPointCount();</span>
+<span class="nc bnc" id="L513" title="All 2 branches missed.">			for (int i = 0, n = m_description.getAttributeCount(); i &lt; n; i++) {</span>
+<span class="nc" id="L514">				int components = VertexDescription</span>
+<span class="nc" id="L515">						.getComponentCount(m_description._getSemanticsImpl(i));</span>
+<span class="nc" id="L516">				AttributeStreamBase stream = m_vertexAttributes[i];</span>
+<span class="nc" id="L517">				hashCode = stream.calculateHashImpl(hashCode, 0, pointCount</span>
+						* components);
+			}
+		}
+
+<span class="fc" id="L522">		return hashCode;</span>
+	}
+
+	// Checked vs. Jan 11, 2011
+	@Override
+	public boolean equals(Object other) {
+		// Java checks
+<span class="pc bpc" id="L529" title="1 of 2 branches missed.">		if (other == this)</span>
+<span class="nc" id="L530">			return true;</span>
+
+<span class="pc bpc" id="L532" title="1 of 2 branches missed.">		if (!(other instanceof MultiVertexGeometryImpl))</span>
+<span class="nc" id="L533">			return false;</span>
+
+<span class="fc" id="L535">		MultiVertexGeometryImpl otherMulti = (MultiVertexGeometryImpl) other;</span>
+
+<span class="pc bpc" id="L537" title="1 of 2 branches missed.">		if (!(m_description.equals(otherMulti.m_description)))</span>
+<span class="nc" id="L538">			return false;</span>
+
+<span class="pc bpc" id="L540" title="1 of 2 branches missed.">		if (isEmptyImpl() != otherMulti.isEmptyImpl())</span>
+<span class="nc" id="L541">			return false;</span>
+
+<span class="fc bfc" id="L543" title="All 2 branches covered.">		if (isEmptyImpl())</span>
+<span class="fc" id="L544">			return true; // both geometries are empty</span>
+
+<span class="fc" id="L546">		int pointCount = getPointCount();</span>
+<span class="fc" id="L547">		int pointCountOther = otherMulti.getPointCount();</span>
+
+<span class="fc bfc" id="L549" title="All 2 branches covered.">		if (pointCount != pointCountOther)</span>
+<span class="fc" id="L550">			return false;</span>
+
+<span class="fc bfc" id="L552" title="All 2 branches covered.">		for (int i = 0; i &lt; m_description.getAttributeCount(); i++) {</span>
+<span class="fc" id="L553">			int semantics = m_description.getSemantics(i);</span>
+
+<span class="fc" id="L555">			AttributeStreamBase stream = getAttributeStreamRef(semantics);</span>
+<span class="fc" id="L556">			AttributeStreamBase streamOther = otherMulti</span>
+<span class="fc" id="L557">					.getAttributeStreamRef(semantics);</span>
+
+<span class="fc" id="L559">			int components = VertexDescription.getComponentCount(semantics);</span>
+
+<span class="pc bpc" id="L561" title="1 of 2 branches missed.">			if (!stream.equals(streamOther, 0, pointCount * components))</span>
+<span class="nc" id="L562">				return false;</span>
+		}
+
+<span class="fc" id="L565">		return true;</span>
+	}
+
+	// Checked vs. Jan 11, 2011
+	/**
+	 * Sets the envelope of the Geometry. The Envelope description must match
+	 * that of the Geometry.
+	 */
+	public void setEnvelope(Envelope env) {
+<span class="pc bpc" id="L574" title="1 of 2 branches missed.">		if (!m_description.equals(env.getDescription()))</span>
+<span class="nc" id="L575">			throw new IllegalArgumentException();</span>
+
+		// m_envelope = (Envelope) env.clone();
+<span class="fc" id="L578">		m_envelope = (Envelope) env.createInstance();</span>
+<span class="fc" id="L579">		env.copyTo(m_envelope);</span>
+<span class="fc" id="L580">		_setDirtyFlag(DirtyFlags.DirtyIntervals, false);</span>
+<span class="fc" id="L581">	}</span>
+
+	@Override
+	public void copyTo(Geometry dstGeom) {
+<span class="fc" id="L585">		MultiVertexGeometryImpl dst = (MultiVertexGeometryImpl) dstGeom;</span>
+<span class="pc bpc" id="L586" title="1 of 2 branches missed.">		if (dst.getType() != getType())</span>
+<span class="nc" id="L587">			throw new IllegalArgumentException();</span>
+		
+<span class="fc" id="L589">		_copyToUnsafe(dst);</span>
+<span class="fc" id="L590">	}</span>
+	
+	//Does not check geometry type. Used to copy Polygon to Polyline
+	void _copyToUnsafe(MultiVertexGeometryImpl dst) {
+<span class="fc" id="L594">		_verifyAllStreams();</span>
+<span class="fc" id="L595">		dst.m_description = m_description;</span>
+<span class="fc" id="L596">		dst.m_vertexAttributes = null;</span>
+<span class="fc" id="L597">		int nattrib = m_description.getAttributeCount();</span>
+<span class="fc" id="L598">		AttributeStreamBase[] cloneAttributes = null;</span>
+<span class="pc bpc" id="L599" title="1 of 2 branches missed.">		if (m_vertexAttributes != null) {</span>
+<span class="fc" id="L600">			cloneAttributes = new AttributeStreamBase[nattrib];</span>
+<span class="fc bfc" id="L601" title="All 2 branches covered.">			for (int i = 0; i &lt; nattrib; i++) {</span>
+<span class="pc bpc" id="L602" title="1 of 2 branches missed.">				if (m_vertexAttributes[i] != null) {</span>
+<span class="fc" id="L603">					int ncomps = VertexDescription</span>
+<span class="fc" id="L604">							.getComponentCount(m_description</span>
+<span class="fc" id="L605">									._getSemanticsImpl(i));</span>
+<span class="fc" id="L606">					cloneAttributes[i] = m_vertexAttributes[i]</span>
+<span class="fc" id="L607">							.restrictedClone(getPointCount() * ncomps);</span>
+				}
+			}
+		}
+
+<span class="fc bfc" id="L612" title="All 2 branches covered.">		if (m_envelope != null) {</span>
+<span class="fc" id="L613">			dst.m_envelope = (Envelope) m_envelope.createInstance();</span>
+<span class="fc" id="L614">			m_envelope.copyTo(dst.m_envelope);</span>
+			// dst.m_envelope = (Envelope) m_envelope.clone();
+		} else
+<span class="fc" id="L617">			dst.m_envelope = null;</span>
+
+<span class="fc" id="L619">		dst.m_pointCount = m_pointCount;</span>
+<span class="fc" id="L620">		dst.m_flagsMask = m_flagsMask;</span>
+<span class="fc" id="L621">		dst.m_vertexAttributes = cloneAttributes;</span>
+
+		try {
+<span class="fc" id="L624">			_copyToImpl(dst); // copy child props</span>
+<span class="nc" id="L625">		} catch (Exception ex) {</span>
+<span class="nc" id="L626">			dst.setEmpty();</span>
+<span class="nc" id="L627">			throw new RuntimeException(ex);</span>
+<span class="fc" id="L628">		}</span>
+<span class="fc" id="L629">	}</span>
+
+	// Checked vs. Jan 11, 2011
+	public boolean _attributeStreamIsAllocated(int semantics) {
+<span class="fc" id="L633">		throwIfEmpty();</span>
+
+<span class="fc" id="L635">		int attributeIndex = m_description.getAttributeIndex(semantics);</span>
+
+<span class="pc bpc" id="L637" title="2 of 4 branches missed.">		if (attributeIndex &gt;= 0 &amp;&amp; m_vertexAttributes[attributeIndex] != null)</span>
+<span class="fc" id="L638">			return true;</span>
+
+<span class="nc" id="L640">		return false;</span>
+	}
+
+	// Checked vs. Jan 11, 2011
+	void _setEmptyImpl() {
+<span class="fc" id="L645">		m_pointCount = 0;</span>
+<span class="fc" id="L646">		m_reservedPointCount = -1;</span>
+<span class="fc" id="L647">		m_vertexAttributes = null;// release it all streams.</span>
+<span class="fc" id="L648">		notifyModified(DirtyFlags.DirtyAll);</span>
+<span class="fc" id="L649">	}</span>
+
+	// Checked vs. Jan 11, 2011
+	/**
+	 * Notifies the Geometry of changes made to the vertices so that it could
+	 * reset cached structures.
+	 */
+	public void notifyModified(int flags) {
+<span class="fc bfc" id="L657" title="All 2 branches covered.">		if (flags == DirtyFlags.DirtyAll) {</span>
+<span class="fc" id="L658">			m_reservedPointCount = -1;// forget the reserved point number</span>
+<span class="fc" id="L659">			_notifyModifiedAllImpl();</span>
+		}
+<span class="fc" id="L661">		m_flagsMask |= flags;</span>
+
+<span class="fc" id="L663">		_clearAccelerators();</span>
+<span class="fc" id="L664">		_touch();</span>
+<span class="fc" id="L665">	}</span>
+
+	// Checked vs. Jan 11, 2011
+	/**
+	 * @param bExact
+	 *            True, when the exact envelope need to be calculated and false
+	 *            for the loose one.
+	 */
+	protected void _updateAllDirtyIntervals(boolean bExact) {
+<span class="fc" id="L674">		_verifyAllStreams();</span>
+<span class="fc bfc" id="L675" title="All 2 branches covered.">		if (_hasDirtyFlag(DirtyFlags.DirtyIntervals)) {</span>
+<span class="fc bfc" id="L676" title="All 2 branches covered.">			if (null == m_envelope)</span>
+<span class="fc" id="L677">				m_envelope = new Envelope(m_description);</span>
+			else
+<span class="fc" id="L679">				m_envelope.assignVertexDescription(m_description);</span>
+
+<span class="fc bfc" id="L681" title="All 2 branches covered.">			if (isEmpty()) {</span>
+<span class="fc" id="L682">				m_envelope.setEmpty();</span>
+<span class="fc" id="L683">				return;</span>
+			}
+
+<span class="fc" id="L686">			_updateXYImpl(bExact);// efficient method for xy's</span>
+			// now go through other attribues.
+<span class="fc" id="L688">			for (int attributeIndex = 1; attributeIndex &lt; m_description</span>
+<span class="fc bfc" id="L689" title="All 2 branches covered.">					.getAttributeCount(); attributeIndex++) {</span>
+<span class="fc" id="L690">				int semantics = m_description._getSemanticsImpl(attributeIndex);</span>
+<span class="fc" id="L691">				int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="fc" id="L692">				AttributeStreamBase stream = m_vertexAttributes[attributeIndex];</span>
+<span class="fc bfc" id="L693" title="All 2 branches covered.">				for (int iord = 0; iord &lt; ncomps; iord++) {</span>
+<span class="fc" id="L694">					Envelope1D interval = new Envelope1D();</span>
+<span class="fc" id="L695">					interval.setEmpty();</span>
+<span class="fc bfc" id="L696" title="All 2 branches covered.">					for (int i = 0; i &lt; m_pointCount; i++) {</span>
+<span class="fc" id="L697">						double value = stream.readAsDbl(i * ncomps + iord);// some</span>
+																			// optimization
+																			// is
+																			// possible
+																			// if
+																			// non-virtual
+																			// method
+																			// is
+																			// used
+<span class="fc" id="L706">						interval.merge(value);</span>
+					}
+<span class="fc" id="L708">					m_envelope.setInterval(semantics, iord, interval);</span>
+				}
+			}
+<span class="fc bfc" id="L711" title="All 2 branches covered.">			if (bExact)</span>
+<span class="fc" id="L712">				_setDirtyFlag(DirtyFlags.DirtyIntervals, false);</span>
+		}
+<span class="fc" id="L714">	}</span>
+
+	// Checked vs. Jan 11, 2011
+	/**
+	 * \internal Updates x, y intervals.
+	 */
+	public void _updateXYImpl(boolean bExact) {
+<span class="fc" id="L721">		m_envelope.setEmpty();</span>
+<span class="fc" id="L722">		AttributeStreamOfDbl stream = (AttributeStreamOfDbl) m_vertexAttributes[0];</span>
+<span class="fc" id="L723">		Point2D pt = new Point2D();</span>
+<span class="fc bfc" id="L724" title="All 2 branches covered.">		for (int i = 0; i &lt; m_pointCount; i++) {</span>
+<span class="fc" id="L725">			stream.read(2 * i, pt);</span>
+<span class="fc" id="L726">			m_envelope.merge(pt);</span>
+		}
+<span class="fc" id="L728">	}</span>
+
+	void calculateEnvelope2D(Envelope2D env, boolean bExact) {
+<span class="nc" id="L731">		env.setEmpty();</span>
+<span class="nc" id="L732">		AttributeStreamOfDbl stream = (AttributeStreamOfDbl) m_vertexAttributes[0];</span>
+<span class="nc" id="L733">		Point2D pt = new Point2D();</span>
+<span class="nc bnc" id="L734" title="All 2 branches missed.">		for (int i = 0; i &lt; m_pointCount; i++) {</span>
+<span class="nc" id="L735">			stream.read(2 * i, pt);</span>
+<span class="nc" id="L736">			env.merge(pt);</span>
+		}
+<span class="nc" id="L738">	}</span>
+
+	// Checked vs. Jan 11, 2011 lots of changes
+	/**
+	 * \internal Verifies all streams (calls _VerifyStream for every attribute).
+	 */
+	protected void _verifyAllStreamsImpl() {
+		// This method checks that the streams are of correct size.
+		// It resizes the streams to ensure they are not shorter than
+		// m_PointCount
+		// _ASSERT(_HasDirtyFlag(enum_value1(DirtyFlags,
+		// DirtyVerifiedStreams)));
+<span class="fc bfc" id="L750" title="All 2 branches covered.">		if (m_reservedPointCount &lt; m_pointCount) // an optimization to skip this</span>
+													// expensive loop when
+													// adding point by point
+		{
+<span class="fc bfc" id="L754" title="All 2 branches covered.">			if (m_vertexAttributes == null)</span>
+<span class="fc" id="L755">				m_vertexAttributes = new AttributeStreamBase[m_description</span>
+<span class="fc" id="L756">						.getAttributeCount()];</span>
+
+<span class="fc" id="L758">			m_reservedPointCount = NumberUtils.intMax();</span>
+<span class="fc" id="L759">			for (int attributeIndex = 0; attributeIndex &lt; m_description</span>
+<span class="fc bfc" id="L760" title="All 2 branches covered.">					.getAttributeCount(); attributeIndex++) {</span>
+<span class="fc" id="L761">				int semantics = m_description._getSemanticsImpl(attributeIndex);</span>
+<span class="fc bfc" id="L762" title="All 2 branches covered.">				if (m_vertexAttributes[attributeIndex] != null) {</span>
+<span class="fc" id="L763">					int ncomp = VertexDescription.getComponentCount(semantics);</span>
+<span class="fc" id="L764">					int size = m_vertexAttributes[attributeIndex].virtualSize()</span>
+							/ ncomp;
+<span class="fc bfc" id="L766" title="All 2 branches covered.">					if (size &lt; m_pointCount) {</span>
+<span class="fc bfc" id="L767" title="All 2 branches covered.">						size = (m_reservedPointCount &gt; m_pointCount + 5) ? (m_pointCount * 5 + 3) / 4</span>
+<span class="fc" id="L768">								: m_pointCount;// reserve 25% more than user</span>
+												// asks
+<span class="fc" id="L770">						m_vertexAttributes[attributeIndex].resize(size * ncomp,</span>
+<span class="fc" id="L771">								VertexDescription.getDefaultValue(semantics));</span>
+					}
+
+<span class="fc bfc" id="L774" title="All 2 branches covered.">					if (size &lt; m_reservedPointCount)</span>
+<span class="fc" id="L775">						m_reservedPointCount = size;</span>
+<span class="fc" id="L776">				} else {</span>
+<span class="fc" id="L777">					m_vertexAttributes[attributeIndex] = AttributeStreamBase</span>
+<span class="fc" id="L778">							.createAttributeStreamWithSemantics(semantics,</span>
+									m_pointCount);
+<span class="fc" id="L780">					m_reservedPointCount = m_pointCount;</span>
+				}
+			}
+		}
+<span class="fc" id="L784">		_verifyStreamsImpl();</span>
+
+<span class="fc" id="L786">		_setDirtyFlag(DirtyFlags.DirtyVerifiedStreams, false);</span>
+<span class="fc" id="L787">	}</span>
+
+	// Checked vs. Jan 11, 2011
+	void _resizeImpl(int pointCount) {
+<span class="pc bpc" id="L791" title="1 of 2 branches missed.">		if (pointCount &lt; 0)</span>
+<span class="nc" id="L792">			throw new IllegalArgumentException();</span>
+
+<span class="fc bfc" id="L794" title="All 2 branches covered.">		if (pointCount == m_pointCount)</span>
+<span class="fc" id="L795">			return;</span>
+
+<span class="fc" id="L797">		m_pointCount = pointCount;</span>
+<span class="fc" id="L798">		notifyModified(DirtyFlags.DirtyAllInternal);</span>
+<span class="fc" id="L799">	}</span>
+
+	// Checked vs. Jan 11, 2011
+	int queryCoordinates(Point2D[] dst, int dstSize, int beginIndex,
+			int endIndex) {
+<span class="nc bnc" id="L804" title="All 2 branches missed.">		int endIndexC = endIndex &lt; 0 ? m_pointCount : endIndex;</span>
+<span class="nc" id="L805">		endIndexC = Math.min(endIndexC, beginIndex + dstSize);</span>
+
+<span class="nc bnc" id="L807" title="All 6 branches missed.">		if (beginIndex &lt; 0 || beginIndex &gt;= m_pointCount</span>
+				|| endIndexC &lt; beginIndex)
+<span class="nc" id="L809">			throw new IllegalArgumentException();</span>
+
+<span class="nc" id="L811">		AttributeStreamOfDbl xy = (AttributeStreamOfDbl) getAttributeStreamRef(VertexDescription.Semantics.POSITION);</span>
+<span class="nc" id="L812">		int j = 0;</span>
+<span class="nc" id="L813">		double[] dstArray = new double[dst.length * 2];</span>
+<span class="nc" id="L814">		xy.readRange(2 * beginIndex, (endIndexC - beginIndex) * 2, dstArray, j, true);</span>
+
+<span class="nc bnc" id="L816" title="All 2 branches missed.">		for (int i = 0; i &lt; dst.length; i++) {</span>
+<span class="nc" id="L817">			dst[i] = new Point2D(dstArray[i * 2], dstArray[i * 2 + 1]);</span>
+		}
+
+		// for (int i = beginIndex; i &lt; endIndexC; i++, j++)
+		// {
+		// xy.read(2 * i, dst[j]);
+		// }
+
+<span class="nc" id="L825">		return endIndexC;</span>
+	}
+
+	// Checked vs. Jan 11, 2011
+	int QueryCoordinates(Point3D[] dst, int dstSize, int beginIndex,
+			int endIndex) {
+<span class="nc bnc" id="L831" title="All 2 branches missed.">		int endIndexC = endIndex &lt; 0 ? m_pointCount : endIndex;</span>
+<span class="nc" id="L832">		endIndexC = Math.min(endIndexC, beginIndex + dstSize);</span>
+
+<span class="nc bnc" id="L834" title="All 6 branches missed.">		if (beginIndex &lt; 0 || beginIndex &gt;= m_pointCount</span>
+				|| endIndexC &lt; beginIndex)
+			// TODO replace geometry exc
+<span class="nc" id="L837">			throw new IllegalArgumentException();</span>
+
+<span class="nc" id="L839">		AttributeStreamOfDbl xy = (AttributeStreamOfDbl) getAttributeStreamRef(VertexDescription.Semantics.POSITION);</span>
+<span class="nc" id="L840">		AttributeStreamOfDbl z = null;</span>
+<span class="nc" id="L841">		double v = VertexDescription</span>
+<span class="nc" id="L842">				.getDefaultValue(VertexDescription.Semantics.Z);</span>
+<span class="nc" id="L843">		boolean bHasZ = hasAttribute(VertexDescription.Semantics.Z);</span>
+<span class="nc bnc" id="L844" title="All 2 branches missed.">		if (bHasZ)</span>
+<span class="nc" id="L845">			z = (AttributeStreamOfDbl) getAttributeStreamRef(VertexDescription.Semantics.Z);</span>
+<span class="nc" id="L846">		int j = 0;</span>
+<span class="nc bnc" id="L847" title="All 2 branches missed.">		for (int i = beginIndex; i &lt; endIndexC; i++, j++) {</span>
+<span class="nc" id="L848">			dst[j].x = xy.read(2 * i);</span>
+<span class="nc" id="L849">			dst[j].y = xy.read(2 * i + 1);</span>
+<span class="nc bnc" id="L850" title="All 2 branches missed.">			dst[j].z = bHasZ ? z.read(i) : v;</span>
+
+<span class="nc" id="L852">			dst[j] = getXYZ(i);</span>
+		}
+
+<span class="nc" id="L855">		return endIndexC;</span>
+	}
+
+	// Checked vs. Jan 11, 2011
+	// -1 : DirtySimple is true (whether or not the MultiPath is Simple is
+	// unknown)
+	// 0 : DirtySimple is false and the MultiPath is not Weak Simple
+	// 1 : DirtySimple is false and the MultiPath is Weak Simple but not ring
+	// ordering may be invalid
+	// 2 : DirtySimple is false and the MultiPath is Strong Simple (Weak Simple
+	// and valid ring ordering)
+	public int getIsSimple(double tolerance) {
+<span class="fc bfc" id="L867" title="All 2 branches covered.">		if (!_hasDirtyFlag(DirtyFlags.DirtyIsKnownSimple)) {</span>
+<span class="fc bfc" id="L868" title="All 2 branches covered.">			if (!_hasDirtyFlag(DirtyFlags.IsWeakSimple)) {</span>
+<span class="fc" id="L869">				return 0;</span>
+			}
+<span class="fc bfc" id="L871" title="All 2 branches covered.">			if (m_simpleTolerance &gt;= tolerance) {</span>
+<span class="fc bfc" id="L872" title="All 2 branches covered.">				if (!_hasDirtyFlag(DirtyFlags.DirtyOGCFlags))</span>
+<span class="fc" id="L873">					return 2;</span>
+
+<span class="fc" id="L875">				return 1;</span>
+			}
+
+<span class="fc" id="L878">			return -1;</span>
+		}
+<span class="fc" id="L880">		return -1;</span>
+	}
+
+	void setIsSimple(int isSimpleRes, double tolerance, boolean ogc_known) {
+<span class="fc" id="L884">		m_simpleTolerance = tolerance;</span>
+<span class="fc bfc" id="L885" title="All 2 branches covered.">		if (isSimpleRes == GeometryXSimple.Unknown) {</span>
+<span class="fc" id="L886">			_setDirtyFlag(DirtyFlags.DirtyIsKnownSimple, true);</span>
+<span class="fc" id="L887">			_setDirtyFlag(DirtyFlags.DirtyOGCFlags, true);</span>
+<span class="fc" id="L888">			return;</span>
+		}
+<span class="fc" id="L890">		_setDirtyFlag(DirtyFlags.DirtyIsKnownSimple, false);</span>
+
+<span class="pc bpc" id="L892" title="1 of 2 branches missed.">		if (!ogc_known)</span>
+<span class="fc" id="L893">			_setDirtyFlag(DirtyFlags.DirtyOGCFlags, true);</span>
+
+<span class="fc bfc" id="L895" title="All 2 branches covered.">		if (isSimpleRes == GeometryXSimple.Not) {</span>
+<span class="fc" id="L896">			_setDirtyFlag(DirtyFlags.IsWeakSimple, false);</span>
+<span class="fc" id="L897">			_setDirtyFlag(DirtyFlags.IsStrongSimple, false);</span>
+<span class="fc bfc" id="L898" title="All 2 branches covered.">		} else if (isSimpleRes == GeometryXSimple.Weak) {</span>
+<span class="fc" id="L899">			_setDirtyFlag(DirtyFlags.IsWeakSimple, true);</span>
+<span class="fc" id="L900">			_setDirtyFlag(DirtyFlags.IsStrongSimple, false);</span>
+<span class="pc bpc" id="L901" title="1 of 2 branches missed.">		} else if (isSimpleRes == GeometryXSimple.Strong) {</span>
+<span class="fc" id="L902">			_setDirtyFlag(DirtyFlags.IsWeakSimple, true);</span>
+<span class="fc" id="L903">			_setDirtyFlag(DirtyFlags.IsStrongSimple, true);</span>
+		} else
+<span class="nc" id="L905">			throw GeometryException.GeometryInternalError();// what?</span>
+<span class="fc" id="L906">	}</span>
+
+	double _getSimpleTolerance() {
+<span class="nc" id="L909">		return m_simpleTolerance;</span>
+	}
+
+	public GeometryAccelerators _getAccelerators() {
+<span class="fc" id="L913">		return m_accelerators;</span>
+	}
+
+	void _clearAccelerators() {
+<span class="fc bfc" id="L917" title="All 2 branches covered.">		if (m_accelerators != null)</span>
+<span class="fc" id="L918">			m_accelerators = null;</span>
+<span class="fc" id="L919">	}</span>
+
+	void _interpolateTwoVertices(int vertex1, int vertex2, double f,
+			Point outPoint) {
+<span class="pc bpc" id="L923" title="2 of 4 branches missed.">		if (vertex1 &lt; 0 || vertex1 &gt;= m_pointCount)</span>
+<span class="nc" id="L924">			throw new GeometryException(&quot;index out of bounds.&quot;);</span>
+<span class="pc bpc" id="L925" title="2 of 4 branches missed.">		if (vertex2 &lt; 0 || vertex2 &gt;= m_pointCount)</span>
+<span class="nc" id="L926">			throw new GeometryException(&quot;index out of bounds.&quot;);</span>
+
+		// _ASSERT(!IsEmpty());
+		// _ASSERT(m_vertexAttributes != NULLPTR);
+
+<span class="fc" id="L931">		_verifyAllStreams();</span>
+
+<span class="fc" id="L933">		outPoint.assignVertexDescription(m_description);</span>
+<span class="fc" id="L934">		for (int attributeIndex = 0; attributeIndex &lt; m_description</span>
+<span class="fc bfc" id="L935" title="All 2 branches covered.">				.getAttributeCount(); attributeIndex++) {</span>
+<span class="fc" id="L936">			int semantics = m_description._getSemanticsImpl(attributeIndex);</span>
+<span class="fc" id="L937">			for (int icomp = 0, ncomp = VertexDescription</span>
+<span class="fc bfc" id="L938" title="All 2 branches covered.">					.getComponentCount(semantics); icomp &lt; ncomp; icomp++) {</span>
+<span class="fc" id="L939">				double v1 = m_vertexAttributes[attributeIndex].readAsDbl(ncomp</span>
+						* vertex1 + icomp);
+<span class="fc" id="L941">				double v2 = m_vertexAttributes[attributeIndex].readAsDbl(ncomp</span>
+						* vertex2 + icomp);
+<span class="fc" id="L943">				outPoint.setAttribute(semantics, icomp, MathUtils.lerp(v1,  v2,  f));</span>
+			}
+		}
+<span class="fc" id="L946">	}</span>
+
+	double _getShortestDistance(int vertex1, int vertex2) {
+<span class="fc" id="L949">		Point2D pt = getXY(vertex1);</span>
+<span class="fc" id="L950">		pt.sub(getXY(vertex2));</span>
+<span class="fc" id="L951">		return pt.length();</span>
+	}
+
+	// ////////////////// METHODS To REMOVE ///////////////////////
+	@Override
+	public Point getPoint(int index) {
+<span class="pc bpc" id="L957" title="2 of 4 branches missed.">		if (index &lt; 0 || index &gt;= m_pointCount)</span>
+<span class="nc" id="L958">			throw new IndexOutOfBoundsException();</span>
+
+<span class="fc" id="L960">		_verifyAllStreams();</span>
+
+<span class="fc" id="L962">		Point outPoint = new Point();</span>
+<span class="fc" id="L963">		outPoint.assignVertexDescription(m_description);</span>
+
+<span class="fc" id="L965">		for (int attributeIndex = 0; attributeIndex &lt; m_description</span>
+<span class="fc bfc" id="L966" title="All 2 branches covered.">				.getAttributeCount(); attributeIndex++) {</span>
+<span class="fc" id="L967">			int semantics = m_description.getSemantics(attributeIndex);</span>
+<span class="fc" id="L968">			for (int icomp = 0, ncomp = VertexDescription</span>
+<span class="fc bfc" id="L969" title="All 2 branches covered.">					.getComponentCount(semantics); icomp &lt; ncomp; icomp++) {</span>
+<span class="fc" id="L970">				double v = m_vertexAttributes[attributeIndex].readAsDbl(ncomp</span>
+						* index + icomp);
+<span class="fc" id="L972">				outPoint.setAttribute(semantics, icomp, v);</span>
+			}
+		}
+<span class="fc" id="L975">		return outPoint;</span>
+	}
+
+	@Override
+	public void setPoint(int index, Point src) {
+<span class="pc bpc" id="L980" title="2 of 4 branches missed.">		if (index &lt; 0 || index &gt;= m_pointCount)</span>
+<span class="nc" id="L981">			throw new IndexOutOfBoundsException();</span>
+
+<span class="fc" id="L983">		Point point = src;</span>
+
+<span class="pc bpc" id="L985" title="1 of 2 branches missed.">		if (src.isEmpty())// can not assign an empty point to a multipoint</span>
+							// vertex
+<span class="nc" id="L987">			throw new IllegalArgumentException();</span>
+
+<span class="fc" id="L989">		_verifyAllStreams();// verify all allocated streams are of necessary</span>
+							// size.
+<span class="fc" id="L991">		VertexDescription vdin = point.getDescription();</span>
+<span class="fc bfc" id="L992" title="All 2 branches covered.">		for (int attributeIndex = 0; attributeIndex &lt; vdin.getAttributeCount(); attributeIndex++) {</span>
+<span class="fc" id="L993">			int semantics = vdin.getSemantics(attributeIndex);</span>
+<span class="fc" id="L994">			int ncomp = VertexDescription.getComponentCount(semantics);</span>
+<span class="fc bfc" id="L995" title="All 2 branches covered.">			for (int icomp = 0; icomp &lt; ncomp; icomp++) {</span>
+<span class="fc" id="L996">				double v = point.getAttributeAsDbl(semantics, icomp);</span>
+<span class="fc" id="L997">				setAttribute(semantics, index, icomp, v);</span>
+			}
+		}
+<span class="fc" id="L1000">	}</span>
+
+	@Override
+	public void queryCoordinates(Point[] dst) {
+<span class="nc" id="L1004">		int sz = m_pointCount;</span>
+<span class="nc bnc" id="L1005" title="All 2 branches missed.">		if (dst.length &lt; sz)</span>
+<span class="nc" id="L1006">			throw new IllegalArgumentException();</span>
+
+		// TODO: refactor to a better AttributeAray call (ReadRange?)
+<span class="nc bnc" id="L1009" title="All 2 branches missed.">		for (int i = 0; i &lt; sz; i++) {</span>
+<span class="nc" id="L1010">			dst[i] = getPoint(i);</span>
+		}
+<span class="nc" id="L1012">	}</span>
+
+	@Override
+	public void queryCoordinates(Point2D[] dst) {
+<span class="fc" id="L1016">		int sz = m_pointCount;</span>
+<span class="pc bpc" id="L1017" title="1 of 2 branches missed.">		if (dst.length &lt; sz)</span>
+<span class="nc" id="L1018">			throw new IllegalArgumentException();</span>
+
+		// TODO: refactor to a better AttributeAray call (ReadRange?)
+<span class="fc bfc" id="L1021" title="All 2 branches covered.">		for (int i = 0; i &lt; sz; i++) {</span>
+<span class="fc" id="L1022">			dst[i] = getXY(i);</span>
+		}
+<span class="fc" id="L1024">	}</span>
+
+	@Override
+	public void queryCoordinates(Point3D[] dst) {
+<span class="nc" id="L1028">		int sz = m_pointCount;</span>
+<span class="nc bnc" id="L1029" title="All 2 branches missed.">		if (dst.length &lt; sz)</span>
+<span class="nc" id="L1030">			throw new IllegalArgumentException();</span>
+
+		// TODO: refactor to a better AttributeAray call (ReadRange?)
+<span class="nc bnc" id="L1033" title="All 2 branches missed.">		for (int i = 0; i &lt; sz; i++) {</span>
+<span class="nc" id="L1034">			dst[i] = getXYZ(i);</span>
+		}
+<span class="nc" id="L1036">	}</span>
+	
+    @Override
+    public void replaceNaNs(int semantics, double value) {
+<span class="fc" id="L1040">    	addAttribute(semantics);</span>
+<span class="pc bpc" id="L1041" title="1 of 2 branches missed.">    	if (isEmpty())</span>
+<span class="nc" id="L1042">    		return;</span>
+    	
+<span class="fc" id="L1044">    	boolean modified = false;</span>
+<span class="fc" id="L1045">    	int ncomps = VertexDescription.getComponentCount(semantics);</span>
+<span class="fc bfc" id="L1046" title="All 2 branches covered.">    	for (int i = 0; i &lt; ncomps; i++) {</span>
+<span class="fc" id="L1047">    		AttributeStreamBase streamBase = getAttributeStreamRef(semantics);</span>
+<span class="pc bpc" id="L1048" title="1 of 2 branches missed.">    		if (streamBase instanceof AttributeStreamOfDbl)	{</span>
+<span class="fc" id="L1049">    			AttributeStreamOfDbl dblStream = (AttributeStreamOfDbl)streamBase;</span>
+<span class="fc bfc" id="L1050" title="All 2 branches covered.">    			for (int ivert = 0, n = m_pointCount * ncomps; ivert &lt; n; ivert++) {</span>
+<span class="fc" id="L1051">    				double v = dblStream.read(ivert);</span>
+<span class="fc bfc" id="L1052" title="All 2 branches covered.">    				if (Double.isNaN(v)) {</span>
+<span class="fc" id="L1053">    					dblStream.write(ivert, value);</span>
+<span class="fc" id="L1054">    					modified = true;</span>
+    				}
+    			}
+<span class="fc" id="L1057">    		}</span>
+    		else {
+<span class="nc bnc" id="L1059" title="All 2 branches missed.">    			for (int ivert = 0, n = m_pointCount * ncomps; ivert &lt; n; ivert++) {</span>
+<span class="nc" id="L1060">    				double v = streamBase.readAsDbl(ivert);</span>
+<span class="nc bnc" id="L1061" title="All 2 branches missed.">    				if (Double.isNaN(v)) {</span>
+<span class="nc" id="L1062">    					streamBase.writeAsDbl(ivert, value);</span>
+<span class="nc" id="L1063">    					modified = true;</span>
+    				}
+    			}
+    		}
+    	}
+    	
+<span class="pc bpc" id="L1069" title="1 of 2 branches missed.">    	if (modified) {</span>
+<span class="fc" id="L1070">    		notifyModified(DirtyFlags.DirtyCoordinates);</span>
+    	}
+<span class="fc" id="L1072">    }</span>
+
+	public abstract boolean _buildRasterizedGeometryAccelerator(
+			double toleranceXY, GeometryAccelerationDegree accelDegree);
+
+	public abstract boolean _buildQuadTreeAccelerator(
+			GeometryAccelerationDegree d);
+
+	@Override
+	public String toString() {
+<span class="nc" id="L1082">		return &quot;MultiVertexGeometryImpl&quot;;</span>
+	}	
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

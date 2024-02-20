@@ -1,0 +1,678 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SweepComparator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">SweepComparator.java</span></div><h1>SweepComparator.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package com.esri.core.geometry;
+
+import java.util.ArrayList;
+
+<span class="fc" id="L32">class SweepComparator extends Treap.Comparator {</span>
+	static final class SimpleEdge {
+		int m_value;
+		Line m_line;
+		Segment m_segment;
+		Envelope1D m_env;
+		double m_dxdy;
+		boolean m_b_horizontal;
+		boolean m_b_curve;
+
+<span class="fc" id="L42">		SimpleEdge() {</span>
+<span class="fc" id="L43">			m_value = -1;</span>
+<span class="fc" id="L44">			m_line = new Line();</span>
+<span class="fc" id="L45">			m_dxdy = 55555555;</span>
+<span class="fc" id="L46">			m_b_horizontal = false;</span>
+<span class="fc" id="L47">			m_b_curve = false;</span>
+
+<span class="fc" id="L49">			m_env = new Envelope1D();</span>
+<span class="fc" id="L50">			m_env.setCoordsNoNaN_(0, 0);</span>
+<span class="fc" id="L51">		}</span>
+	}
+
+	private EditShape m_shape;
+	boolean m_b_intersection_detected;
+	NonSimpleResult m_non_simple_result;
+	// Index 1 corresponds to the left segments, index 2 - right, e.g. m_line_1,
+	// m_line_2
+	SimpleEdge m_temp_simple_edge_1;
+	SimpleEdge m_temp_simple_edge_2;
+
+	int m_prev_1;
+	int m_prev_2;
+	int m_vertex_1;
+	int m_vertex_2;
+	int m_current_node;
+	double m_prevx_1;
+	double m_prevx_2;
+	double m_prev_y;
+	double m_prev_x;
+	double m_sweep_y;
+	double m_sweep_x;
+	double m_tolerance;
+	double m_tolerance_10;
+	boolean m_b_is_simple;
+
+	ArrayList&lt;SimpleEdge&gt; m_simple_edges_cache;
+	ArrayList&lt;SimpleEdge&gt; m_simple_edges_recycle;
+	ArrayList&lt;SimpleEdge&gt; m_simple_edges_buffer;
+
+	// Returns a cached edge for the given value. May return NULL.
+	SimpleEdge tryGetCachedEdge_(int value) {
+<span class="fc" id="L83">		SimpleEdge se = m_simple_edges_cache.get((value &amp; NumberUtils.intMax())</span>
+<span class="fc" id="L84">				% m_simple_edges_cache.size());</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">		if (se != null) {</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">			if (se.m_value == value)</span>
+<span class="fc" id="L87">				return se;</span>
+			else {
+				// int i = 0;
+				// cache collision
+			}
+		}
+<span class="fc" id="L93">		return null;</span>
+	}
+
+	// Removes cached edge from the cache for the given value.
+	void tryDeleteCachedEdge_(int value) {
+<span class="fc" id="L98">		int ind = (value &amp; NumberUtils.intMax()) % m_simple_edges_cache.size();</span>
+<span class="fc" id="L99">		SimpleEdge se = m_simple_edges_cache.get(ind);</span>
+<span class="fc bfc" id="L100" title="All 4 branches covered.">		if (se != null &amp;&amp; se.m_value == value) {// this value is cached</span>
+<span class="fc" id="L101">			m_simple_edges_recycle.add(se);</span>
+<span class="fc" id="L102">			m_simple_edges_cache.set(ind, null);</span>
+		} else {
+			// The value has not been cached
+		}
+<span class="fc" id="L106">	}</span>
+
+	// Creates a cached edge. May fail and return NULL.
+	SimpleEdge tryCreateCachedEdge_(int value) {
+<span class="fc" id="L110">		int ind = (value &amp; NumberUtils.intMax()) % m_simple_edges_cache.size();</span>
+<span class="fc" id="L111">		SimpleEdge se = m_simple_edges_cache.get(ind);</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">		if (se == null) {</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">			if (m_simple_edges_recycle.isEmpty()) {</span>
+				// assert(m_simple_edges_buffer.size() &lt;
+				// m_simple_edges_buffer.capacity());//should never happen
+				// assert(m_simple_edges_buffer.size() &lt;
+				// m_simple_edges_cache.size());//should never happen
+<span class="fc" id="L118">				m_simple_edges_buffer.add(new SimpleEdge());</span>
+<span class="fc" id="L119">				se = m_simple_edges_buffer</span>
+<span class="fc" id="L120">						.get(m_simple_edges_buffer.size() - 1);</span>
+			} else {
+<span class="fc" id="L122">				se = m_simple_edges_recycle</span>
+<span class="fc" id="L123">						.get(m_simple_edges_recycle.size() - 1);</span>
+<span class="fc" id="L124">				m_simple_edges_recycle</span>
+<span class="fc" id="L125">						.remove(m_simple_edges_recycle.size() - 1);</span>
+			}
+
+<span class="fc" id="L128">			se.m_value = value;</span>
+<span class="fc" id="L129">			m_simple_edges_cache.set(ind, se);</span>
+<span class="fc" id="L130">			return se;</span>
+		} else {
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">			assert (se.m_value != value);// do not call TryCreateCachedEdge</span>
+											// twice.
+		}
+
+<span class="fc" id="L136">		return null;</span>
+	}
+
+	void initSimpleEdge_(SweepComparator.SimpleEdge se, int vertex) {
+<span class="fc" id="L140">		se.m_segment = m_shape.getSegment(vertex);</span>
+<span class="pc bpc" id="L141" title="1 of 2 branches missed.">		se.m_b_curve = se.m_segment != null;</span>
+<span class="pc bpc" id="L142" title="1 of 2 branches missed.">		if (!se.m_b_curve) {</span>
+<span class="fc" id="L143">			m_shape.queryLineConnector(vertex, se.m_line);</span>
+<span class="fc" id="L144">			se.m_segment = se.m_line;</span>
+<span class="fc" id="L145">			se.m_env.setCoordsNoNaN_(se.m_line.getStartX(), se.m_line.getEndX());</span>
+<span class="fc" id="L146">			se.m_env.vmax += m_tolerance;</span>
+<span class="fc" id="L147">			se.m_line.orientBottomUp_();</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">			se.m_b_horizontal = se.m_line.getEndY() == se.m_line.getStartY();</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">			if (!se.m_b_horizontal) {</span>
+<span class="fc" id="L150">				se.m_dxdy = (se.m_line.getEndX() - se.m_line.getStartX())</span>
+<span class="fc" id="L151">						/ (se.m_line.getEndY() - se.m_line.getStartY());</span>
+			}
+		} else {
+			// se.m_segment = se.m_segment_sptr.get();
+		}
+<span class="fc" id="L156">	}</span>
+
+	// Compares seg_1 and seg_2 x coordinates of intersection with the line
+	// parallel to axis x, passing through the coordinate y.
+	// If segments intersect not at the endpoint, the m_b_intersection_detected
+	// is set.
+	int compareTwoSegments_(Segment seg_1, Segment seg_2) {
+<span class="nc" id="L163">		int res = seg_1._isIntersecting(seg_2, m_tolerance, true);</span>
+<span class="nc bnc" id="L164" title="All 2 branches missed.">		if (res != 0) {</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">			if (res == 2)</span>
+<span class="nc" id="L166">				return errorCoincident();</span>
+			else
+<span class="nc" id="L168">				return errorCracking();</span>
+		}
+
+<span class="nc" id="L171">		Point2D start_1 = seg_1.getStartXY();</span>
+<span class="nc" id="L172">		Point2D end1 = seg_1.getEndXY();</span>
+<span class="nc" id="L173">		Point2D start2 = seg_2.getStartXY();</span>
+<span class="nc" id="L174">		Point2D end2 = seg_2.getEndXY();</span>
+<span class="nc" id="L175">		Point2D ptSweep = new Point2D();</span>
+<span class="nc" id="L176">		ptSweep.setCoords(m_sweep_x, m_sweep_y);</span>
+<span class="nc bnc" id="L177" title="All 4 branches missed.">		if (start_1.isEqual(start2) &amp;&amp; m_sweep_y == start_1.y) {</span>
+<span class="nc bnc" id="L178" title="All 4 branches missed.">			assert (start_1.compare(end1) &lt; 0 &amp;&amp; start2.compare(end2) &lt; 0);</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">			if (end1.compare(end2) &lt; 0)</span>
+<span class="nc" id="L180">				ptSweep.setCoords(end1);</span>
+			else
+<span class="nc" id="L182">				ptSweep.setCoords(end2);</span>
+<span class="nc bnc" id="L183" title="All 4 branches missed.">		} else if (start_1.isEqual(end2) &amp;&amp; m_sweep_y == start_1.y) {</span>
+<span class="nc bnc" id="L184" title="All 4 branches missed.">			assert (start_1.compare(end1) &lt; 0 &amp;&amp; start2.compare(end2) &gt; 0);</span>
+<span class="nc bnc" id="L185" title="All 2 branches missed.">			if (end1.compare(start2) &lt; 0)</span>
+<span class="nc" id="L186">				ptSweep.setCoords(end1);</span>
+			else
+<span class="nc" id="L188">				ptSweep.setCoords(start2);</span>
+<span class="nc bnc" id="L189" title="All 4 branches missed.">		} else if (start2.isEqual(end1) &amp;&amp; m_sweep_y == start2.y) {</span>
+<span class="nc bnc" id="L190" title="All 4 branches missed.">			assert (end1.compare(start_1) &lt; 0 &amp;&amp; start2.compare(end2) &lt; 0);</span>
+<span class="nc bnc" id="L191" title="All 2 branches missed.">			if (start_1.compare(end2) &lt; 0)</span>
+<span class="nc" id="L192">				ptSweep.setCoords(start_1);</span>
+			else
+<span class="nc" id="L194">				ptSweep.setCoords(end2);</span>
+<span class="nc bnc" id="L195" title="All 4 branches missed.">		} else if (end1.isEqual(end2) &amp;&amp; m_sweep_y == end1.y) {</span>
+<span class="nc bnc" id="L196" title="All 4 branches missed.">			assert (start_1.compare(end1) &gt; 0 &amp;&amp; start2.compare(end2) &gt; 0);</span>
+<span class="nc bnc" id="L197" title="All 2 branches missed.">			if (start_1.compare(start2) &lt; 0)</span>
+<span class="nc" id="L198">				ptSweep.setCoords(start_1);</span>
+			else
+<span class="nc" id="L200">				ptSweep.setCoords(start2);</span>
+		}
+
+<span class="nc" id="L203">		double xleft = seg_1.intersectionOfYMonotonicWithAxisX(ptSweep.y,</span>
+				ptSweep.x);
+<span class="nc" id="L205">		double xright = seg_2.intersectionOfYMonotonicWithAxisX(ptSweep.y,</span>
+				ptSweep.x);
+<span class="nc bnc" id="L207" title="All 2 branches missed.">		assert (xleft != xright);</span>
+<span class="nc bnc" id="L208" title="All 2 branches missed.">		return xleft &lt; xright ? -1 : 1;</span>
+	}
+
+	int compareNonHorizontal_(SimpleEdge line_1, SimpleEdge line_2) {
+<span class="fc bfc" id="L212" title="All 2 branches covered.">		if (line_1.m_line.getStartY() == line_2.m_line.getStartY()</span>
+<span class="fc bfc" id="L213" title="All 2 branches covered.">				&amp;&amp; line_1.m_line.getStartX() == line_2.m_line.getStartX()) {// connected</span>
+																			// at
+																			// the
+																			// start
+																			// V
+																			// shape
+<span class="fc bfc" id="L219" title="All 2 branches covered.">			if (line_1.m_line.getEndY() == line_2.m_line.getEndY()</span>
+<span class="fc bfc" id="L220" title="All 2 branches covered.">					&amp;&amp; line_1.m_line.getEndX() == line_2.m_line.getEndX()) {// connected</span>
+																			// at
+																			// another
+																			// end
+																			// also
+<span class="pc bpc" id="L225" title="1 of 2 branches missed.">				if (m_b_is_simple)</span>
+<span class="nc" id="L226">					return errorCoincident();</span>
+<span class="fc" id="L227">				return 0;</span>
+			}
+
+<span class="fc" id="L230">			return compareNonHorizontalUpperEnd_(line_1, line_2);</span>
+		}
+
+<span class="fc bfc" id="L233" title="All 2 branches covered.">		if (line_1.m_line.getEndY() == line_2.m_line.getEndY()</span>
+<span class="fc bfc" id="L234" title="All 2 branches covered.">				&amp;&amp; line_1.m_line.getEndX() == line_2.m_line.getEndX()) {</span>
+			// the case of upside-down V.
+<span class="fc" id="L236">			return compareNonHorizontalLowerEnd_(line_1, line_2);</span>
+		}
+
+<span class="fc" id="L239">		int lower = compareNonHorizontalLowerEnd_(line_1, line_2);</span>
+<span class="fc" id="L240">		int upper = compareNonHorizontalUpperEnd_(line_1, line_2);</span>
+<span class="fc bfc" id="L241" title="All 4 branches covered.">		if (lower &lt; 0 &amp;&amp; upper &lt; 0)</span>
+<span class="fc" id="L242">			return -1;</span>
+<span class="fc bfc" id="L243" title="All 4 branches covered.">		if (lower &gt; 0 &amp;&amp; upper &gt; 0)</span>
+<span class="fc" id="L244">			return 1;</span>
+
+<span class="fc" id="L246">		return errorCracking();</span>
+	}
+
+	int compareHorizontal1Case1_(Line line_1, Line line_2) {
+		// line_2 goes up and line_1 is horizontal connected at the start going
+		// to the right.
+<span class="fc bfc" id="L252" title="All 2 branches covered.">		if (line_1.getEndX() &gt; line_2.getEndX()) {</span>
+			// /
+			// /
+			// +------------------
+<span class="fc bfc" id="L256" title="All 2 branches covered.">			if (line_2.getEndX() &gt; line_2.getStartX()</span>
+<span class="pc bpc" id="L257" title="1 of 2 branches missed.">					&amp;&amp; line_2.getEndY() - line_2.getStartY() &lt; 2 * m_tolerance</span>
+<span class="nc bnc" id="L258" title="All 2 branches missed.">					&amp;&amp; line_1._isIntersectingPoint(line_2.getEndXY(),</span>
+							m_tolerance, true))
+<span class="nc" id="L260">				return errorCracking();</span>
+		} else {
+			// /
+			// /
+			// /
+			// +--
+<span class="pc bpc" id="L266" title="1 of 2 branches missed.">			assert (line_2.getEndX() - line_2.getStartX() != 0);</span>
+			// Note: line_2 cannot be vertical here
+			// Avoid expensive is_intersecting_ by providing a simple estimate.
+<span class="fc" id="L269">			double dydx = (line_2.getEndY() - line_2.getStartY())</span>
+<span class="fc" id="L270">					/ (line_2.getEndX() - line_2.getStartX());</span>
+<span class="fc" id="L271">			double d = dydx * (line_1.getEndX() - line_1.getStartX());</span>
+<span class="pc bpc" id="L272" title="1 of 2 branches missed.">			if (d &lt; m_tolerance_10</span>
+<span class="nc bnc" id="L273" title="All 2 branches missed.">					&amp;&amp; line_2._isIntersectingPoint(line_1.getEndXY(),</span>
+							m_tolerance, true))
+<span class="nc" id="L275">				return errorCracking();</span>
+		}
+
+<span class="fc" id="L278">		return 1;</span>
+	}
+
+	int compareHorizontal1Case2_(Line line_1, Line line_2) {
+		// -----------------+
+		// /
+		// /
+		// /
+		// line_2 goes up and below line_1. line_1 is horizontal connected at
+		// the end to the line_2 end.
+<span class="fc bfc" id="L288" title="All 2 branches covered.">		if (line_1.getStartX() &lt; line_2.getStartX()) {</span>
+<span class="fc bfc" id="L289" title="All 2 branches covered.">			if (line_2.getEndX() &gt; line_2.getStartX()</span>
+<span class="pc bpc" id="L290" title="1 of 2 branches missed.">					&amp;&amp; line_2.getEndY() - line_2.getStartY() &lt; 2 * m_tolerance</span>
+<span class="nc bnc" id="L291" title="All 2 branches missed.">					&amp;&amp; line_1._isIntersectingPoint(line_2.getEndXY(),</span>
+							m_tolerance, true))
+<span class="nc" id="L293">				return errorCracking();</span>
+		} else {
+			// --+
+			// /
+			// /
+			// /
+			// Avoid expensive is_intersecting_ by providing a simple estimate.
+<span class="fc" id="L300">			double dydx = (line_2.getEndY() - line_2.getStartY())</span>
+<span class="fc" id="L301">					/ (line_2.getEndX() - line_2.getStartX());</span>
+<span class="fc" id="L302">			double d = dydx * (line_1.getStartX() - line_1.getEndX());</span>
+<span class="pc bpc" id="L303" title="1 of 2 branches missed.">			if (d &lt; m_tolerance_10</span>
+<span class="pc bpc" id="L304" title="1 of 2 branches missed.">					&amp;&amp; line_2._isIntersectingPoint(line_1.getStartXY(),</span>
+							m_tolerance, true))
+<span class="nc" id="L306">				return errorCracking();</span>
+		}
+
+<span class="fc" id="L309">		return -1;</span>
+	}
+
+	int compareHorizontal1Case3_(Line line_1, Line line_2) {
+<span class="fc" id="L313">		Point2D v0 = new Point2D();</span>
+<span class="fc" id="L314">		v0.sub(line_2.getEndXY(), line_2.getStartXY());</span>
+<span class="fc" id="L315">		v0.rightPerpendicular();</span>
+<span class="fc" id="L316">		v0.normalize();</span>
+<span class="fc" id="L317">		Point2D v_1 = new Point2D();</span>
+<span class="fc" id="L318">		v_1.sub(line_1.getStartXY(), line_2.getStartXY());</span>
+<span class="fc" id="L319">		Point2D v_2 = new Point2D();</span>
+<span class="fc" id="L320">		v_2.sub(line_1.getEndXY(), line_2.getStartXY());</span>
+<span class="fc" id="L321">		double d_1 = v_1.dotProduct(v0);</span>
+<span class="fc" id="L322">		double d_2 = v_2.dotProduct(v0);</span>
+
+<span class="fc" id="L324">		double ad1 = Math.abs(d_1);</span>
+<span class="fc" id="L325">		double ad2 = Math.abs(d_2);</span>
+
+<span class="fc bfc" id="L327" title="All 2 branches covered.">		if (ad1 &lt; ad2) {</span>
+<span class="fc bfc" id="L328" title="All 2 branches covered.">			if (ad1 &lt; m_tolerance_10</span>
+<span class="pc bpc" id="L329" title="1 of 2 branches missed.">					&amp;&amp; line_2._isIntersectingPoint(line_1.getStartXY(),</span>
+							m_tolerance, true))
+<span class="fc" id="L331">				return errorCracking();</span>
+		} else {
+<span class="pc bpc" id="L333" title="1 of 2 branches missed.">			if (ad2 &lt; m_tolerance_10</span>
+<span class="nc bnc" id="L334" title="All 2 branches missed.">					&amp;&amp; line_2._isIntersectingPoint(line_1.getEndXY(),</span>
+							m_tolerance, true))
+<span class="nc" id="L336">				return errorCracking();</span>
+		}
+
+<span class="fc bfc" id="L339" title="All 4 branches covered.">		if (d_1 &lt; 0 &amp;&amp; d_2 &lt; 0)</span>
+<span class="fc" id="L340">			return -1;</span>
+
+<span class="pc bpc" id="L342" title="1 of 4 branches missed.">		if (d_1 &gt; 0 &amp;&amp; d_2 &gt; 0)</span>
+<span class="fc" id="L343">			return 1;</span>
+
+<span class="fc" id="L345">		return errorCracking();</span>
+	}
+
+	int compareHorizontal1_(Line line_1, Line line_2) {
+		// Two most important cases of connecting edges
+<span class="fc bfc" id="L350" title="All 2 branches covered.">		if (line_1.getStartY() == line_2.getStartY()</span>
+<span class="fc bfc" id="L351" title="All 2 branches covered.">				&amp;&amp; line_1.getStartX() == line_2.getStartX()) {</span>
+<span class="fc" id="L352">			return compareHorizontal1Case1_(line_1, line_2);</span>
+		}
+
+<span class="fc bfc" id="L355" title="All 2 branches covered.">		if (line_1.getEndY() == line_2.getEndY()</span>
+<span class="fc bfc" id="L356" title="All 2 branches covered.">				&amp;&amp; line_1.getEndX() == line_2.getEndX()) {</span>
+<span class="fc" id="L357">			return compareHorizontal1Case2_(line_1, line_2);</span>
+		}
+
+<span class="fc" id="L360">		return compareHorizontal1Case3_(line_1, line_2);</span>
+	}
+
+	int compareHorizontal2_(Line line_1, Line line_2) {
+<span class="pc bpc" id="L364" title="1 of 2 branches missed.">		if (line_1.getEndY() == line_2.getEndY()</span>
+<span class="fc bfc" id="L365" title="All 2 branches covered.">				&amp;&amp; line_1.getEndX() == line_2.getEndX()</span>
+<span class="pc bpc" id="L366" title="1 of 2 branches missed.">				&amp;&amp; line_1.getStartY() == line_2.getStartY()</span>
+<span class="pc bpc" id="L367" title="1 of 2 branches missed.">				&amp;&amp; line_1.getStartX() == line_2.getStartX()) {// both lines</span>
+																// coincide
+<span class="pc bpc" id="L369" title="1 of 2 branches missed.">			if (m_b_is_simple)</span>
+<span class="nc" id="L370">				return errorCoincident();</span>
+<span class="fc" id="L371">			return 0;</span>
+		} else
+<span class="fc" id="L373">			return errorCracking();</span>
+	}
+
+	int compareNonHorizontalLowerEnd_(SimpleEdge line_1, SimpleEdge line_2) {
+<span class="fc" id="L377">		int sign = 1;</span>
+<span class="fc bfc" id="L378" title="All 2 branches covered.">		if (line_1.m_line.getStartY() &lt; line_2.m_line.getStartY()) {</span>
+<span class="fc" id="L379">			sign = -1;</span>
+<span class="fc" id="L380">			SimpleEdge tmp = line_1;</span>
+<span class="fc" id="L381">			line_1 = line_2;</span>
+<span class="fc" id="L382">			line_2 = tmp;</span>
+		}
+
+<span class="fc" id="L385">		Line l1 = line_1.m_line;</span>
+<span class="fc" id="L386">		Line l2 = line_2.m_line;</span>
+		// Now line_1 has Start point higher than line_2 startpoint.
+<span class="fc" id="L388">		double x_1 = l1.getStartX() - l2.getStartX();</span>
+<span class="fc" id="L389">		double x2 = line_2.m_dxdy * (l1.getStartY() - l2.getStartY());</span>
+<span class="fc" id="L390">		double tol = m_tolerance_10;</span>
+<span class="fc bfc" id="L391" title="All 2 branches covered.">		if (x_1 &lt; x2 - tol)</span>
+<span class="fc" id="L392">			return -sign;</span>
+<span class="fc bfc" id="L393" title="All 2 branches covered.">		else if (x_1 &gt; x2 + tol)</span>
+<span class="fc" id="L394">			return sign;</span>
+		else // Possible problem
+		{
+<span class="pc bpc" id="L397" title="1 of 2 branches missed.">			if (l2._isIntersectingPoint(l1.getStartXY(), m_tolerance, true))</span>
+<span class="fc" id="L398">				return errorCracking();</span>
+<span class="nc bnc" id="L399" title="All 2 branches missed.">			return x_1 &lt; x2 ? -sign : sign;</span>
+		}
+	}
+
+	int compareNonHorizontalUpperEnd_(SimpleEdge line_1, SimpleEdge line_2) {
+<span class="fc" id="L404">		int sign = 1;</span>
+<span class="fc bfc" id="L405" title="All 2 branches covered.">		if (line_2.m_line.getEndY() &lt; line_1.m_line.getEndY()) {</span>
+<span class="fc" id="L406">			sign = -1;</span>
+<span class="fc" id="L407">			SimpleEdge tmp = line_1;</span>
+<span class="fc" id="L408">			line_1 = line_2;</span>
+<span class="fc" id="L409">			line_2 = tmp;</span>
+		}
+
+<span class="fc" id="L412">		Line l1 = line_1.m_line;</span>
+<span class="fc" id="L413">		Line l2 = line_2.m_line;</span>
+		// Now line_1 has End point lower than line_2 endpoint.
+<span class="fc" id="L415">		double x_1 = l1.getEndX() - l2.getStartX();</span>
+<span class="fc" id="L416">		double x2 = line_2.m_dxdy * (l1.getEndY() - l2.getStartY());</span>
+<span class="fc" id="L417">		double tol = m_tolerance_10;</span>
+<span class="fc bfc" id="L418" title="All 2 branches covered.">		if (x_1 &lt; x2 - tol)</span>
+<span class="fc" id="L419">			return -sign;</span>
+<span class="fc bfc" id="L420" title="All 2 branches covered.">		else if (x_1 &gt; x2 + tol)</span>
+<span class="fc" id="L421">			return sign;</span>
+		else // Possible problem
+		{
+<span class="pc bpc" id="L424" title="1 of 2 branches missed.">			if (l2._isIntersectingPoint(l1.getEndXY(), m_tolerance, true))</span>
+<span class="fc" id="L425">				return errorCracking();</span>
+<span class="nc bnc" id="L426" title="All 2 branches missed.">			return x_1 &lt; x2 ? -sign : sign;</span>
+		}
+	}
+
+	int errorCoincident() {// two segments coincide.
+<span class="nc" id="L431">		m_b_intersection_detected = true;</span>
+<span class="nc bnc" id="L432" title="All 2 branches missed.">		assert (m_b_is_simple);</span>
+<span class="nc" id="L433">		NonSimpleResult.Reason reason = NonSimpleResult.Reason.CrossOver;</span>
+<span class="nc" id="L434">		m_non_simple_result = new NonSimpleResult(reason, m_vertex_1,</span>
+				m_vertex_2);
+<span class="nc" id="L436">		return -1;</span>
+	}
+
+	int errorCracking() {// cracking error
+<span class="fc" id="L440">		m_b_intersection_detected = true;</span>
+<span class="fc bfc" id="L441" title="All 2 branches covered.">		if (m_b_is_simple) {// only report the reason in IsSimple. Do not do</span>
+							// that for regular cracking.
+<span class="fc" id="L443">			NonSimpleResult.Reason reason = NonSimpleResult.Reason.Cracking;</span>
+<span class="fc" id="L444">			m_non_simple_result = new NonSimpleResult(reason, m_vertex_1,</span>
+					m_vertex_2);
+<span class="fc" id="L446">		} else {// reset cached data after detected intersection</span>
+<span class="fc" id="L447">			m_prev_1 = -1;</span>
+<span class="fc" id="L448">			m_prev_2 = -1;</span>
+<span class="fc" id="L449">			m_vertex_1 = -1;</span>
+<span class="fc" id="L450">			m_vertex_2 = -1;</span>
+		}
+<span class="fc" id="L452">		return -1;</span>
+	}
+
+	int compareSegments_(int left, int right, SimpleEdge segLeft,
+			SimpleEdge segRight) {
+<span class="nc bnc" id="L457" title="All 2 branches missed.">		if (m_b_intersection_detected)</span>
+<span class="nc" id="L458">			return -1;</span>
+
+<span class="nc bnc" id="L460" title="All 4 branches missed.">		boolean sameY = m_prev_y == m_sweep_y &amp;&amp; m_prev_x == m_sweep_x;</span>
+		double xleft;
+<span class="nc bnc" id="L462" title="All 4 branches missed.">		if (sameY &amp;&amp; left == m_prev_1)</span>
+<span class="nc" id="L463">			xleft = m_prevx_1;</span>
+		else {
+<span class="nc" id="L465">			xleft = NumberUtils.NaN();</span>
+<span class="nc" id="L466">			m_prev_1 = -1;</span>
+		}
+		double xright;
+<span class="nc bnc" id="L469" title="All 4 branches missed.">		if (sameY &amp;&amp; right == m_prev_2)</span>
+<span class="nc" id="L470">			xright = m_prevx_2;</span>
+		else {
+<span class="nc" id="L472">			xright = NumberUtils.NaN();</span>
+<span class="nc" id="L473">			m_prev_2 = -1;</span>
+		}
+
+		// Quickly compare x projections.
+<span class="nc" id="L477">		Envelope1D envLeft = segLeft.m_segment.queryInterval(</span>
+				VertexDescription.Semantics.POSITION, 0);
+<span class="nc" id="L479">		Envelope1D envRight = segRight.m_segment.queryInterval(</span>
+				VertexDescription.Semantics.POSITION, 0);
+<span class="nc bnc" id="L481" title="All 2 branches missed.">		if (envLeft.vmax &lt; envRight.vmin)</span>
+<span class="nc" id="L482">			return -1;</span>
+<span class="nc bnc" id="L483" title="All 2 branches missed.">		if (envRight.vmax &lt; envLeft.vmin)</span>
+<span class="nc" id="L484">			return 1;</span>
+
+<span class="nc" id="L486">		m_prev_y = m_sweep_y;</span>
+<span class="nc" id="L487">		m_prev_x = m_sweep_x;</span>
+
+		// Now do intersection with the sweep line (it is a line parallel to the
+		// axis x.)
+<span class="nc bnc" id="L491" title="All 2 branches missed.">		if (NumberUtils.isNaN(xleft)) {</span>
+<span class="nc" id="L492">			m_prev_1 = left;</span>
+<span class="nc" id="L493">			double x = segLeft.m_segment.intersectionOfYMonotonicWithAxisX(</span>
+					m_sweep_y, m_sweep_x);
+<span class="nc" id="L495">			xleft = x;</span>
+<span class="nc" id="L496">			m_prevx_1 = x;</span>
+		}
+<span class="nc bnc" id="L498" title="All 2 branches missed.">		if (NumberUtils.isNaN(xright)) {</span>
+<span class="nc" id="L499">			m_prev_2 = right;</span>
+<span class="nc" id="L500">			double x = segRight.m_segment.intersectionOfYMonotonicWithAxisX(</span>
+					m_sweep_y, m_sweep_x);
+<span class="nc" id="L502">			xright = x;</span>
+<span class="nc" id="L503">			m_prevx_2 = x;</span>
+		}
+
+<span class="nc bnc" id="L506" title="All 2 branches missed.">		if (Math.abs(xleft - xright) &lt;= m_tolerance) {</span>
+			// special processing as we cannot decide in a simple way.
+<span class="nc" id="L508">			return compareTwoSegments_(segLeft.m_segment, segRight.m_segment);</span>
+		} else {
+<span class="nc bnc" id="L510" title="All 4 branches missed.">			return xleft &lt; xright ? -1 : xleft &gt; xright ? 1 : 0;</span>
+		}
+	}
+
+	SweepComparator(EditShape shape, double tol, boolean bIsSimple) {
+<span class="fc" id="L515">		super(true);</span>
+<span class="fc" id="L516">		m_shape = shape;</span>
+<span class="fc" id="L517">		m_sweep_y = NumberUtils.TheNaN;</span>
+<span class="fc" id="L518">		m_sweep_x = 0;</span>
+<span class="fc" id="L519">		m_prev_x = 0;</span>
+<span class="fc" id="L520">		m_prev_y = NumberUtils.TheNaN;</span>
+<span class="fc" id="L521">		m_tolerance = tol;</span>
+<span class="fc" id="L522">		m_tolerance_10 = 10 * tol;</span>
+<span class="fc" id="L523">		m_prevx_2 = NumberUtils.TheNaN;</span>
+<span class="fc" id="L524">		m_prevx_1 = NumberUtils.TheNaN;</span>
+<span class="fc" id="L525">		m_b_intersection_detected = false;</span>
+<span class="fc" id="L526">		m_prev_1 = -1;</span>
+<span class="fc" id="L527">		m_prev_2 = -1;</span>
+<span class="fc" id="L528">		m_vertex_1 = -1;</span>
+<span class="fc" id="L529">		m_vertex_2 = -1;</span>
+<span class="fc" id="L530">		m_current_node = -1;</span>
+<span class="fc" id="L531">		m_b_is_simple = bIsSimple;</span>
+<span class="fc" id="L532">		m_temp_simple_edge_1 = new SimpleEdge();</span>
+<span class="fc" id="L533">		m_temp_simple_edge_2 = new SimpleEdge();</span>
+
+<span class="fc" id="L535">		int s = Math.min(shape.getTotalPointCount() * 3 / 2,</span>
+				(int) (67 /* SIMPLEDGE_CACHESIZE */));
+<span class="fc" id="L537">		int cache_size = Math.min((int) 7, s);</span>
+		// m_simple_edges_buffer.reserve(cache_size);//must be reserved and
+		// never grow beyond reserved size
+
+<span class="fc" id="L541">		m_simple_edges_buffer = new ArrayList&lt;SimpleEdge&gt;();</span>
+<span class="fc" id="L542">		m_simple_edges_recycle = new ArrayList&lt;SimpleEdge&gt;();</span>
+<span class="fc" id="L543">		m_simple_edges_cache = new ArrayList&lt;SimpleEdge&gt;();</span>
+
+<span class="fc bfc" id="L545" title="All 2 branches covered.">		for (int i = 0; i &lt; cache_size; i++)</span>
+<span class="fc" id="L546">			m_simple_edges_cache.add(null);</span>
+<span class="fc" id="L547">	}</span>
+
+	// Makes the comparator to forget about the last detected intersection.
+	// Need to be called after the intersection has been resolved.
+	void clearIntersectionDetectedFlag() {
+<span class="fc" id="L552">		m_b_intersection_detected = false;</span>
+<span class="fc" id="L553">	}</span>
+
+	// Returns True if there has been intersection detected during compare call.
+	// Once intersection is detected subsequent calls to compare method do
+	// nothing until clear_intersection_detected_flag is called.
+	boolean intersectionDetected() {
+<span class="fc" id="L559">		return m_b_intersection_detected;</span>
+	}
+
+	// Returns the node at which the intersection has been detected
+	int getLastComparedNode() {
+<span class="fc" id="L564">		return m_current_node;</span>
+	}
+
+	// When used in IsSimple (see corresponding parameter in ctor), returns the
+	// reason of non-simplicity
+	NonSimpleResult getResult() {
+<span class="fc" id="L570">		return m_non_simple_result;</span>
+	}
+
+	// Sets new sweep line position.
+	void setSweepY(double y, double x) {
+		// _ASSERT(m_sweep_y != y || m_sweep_x != x);
+<span class="fc" id="L576">		m_sweep_y = y;</span>
+<span class="fc" id="L577">		m_sweep_x = x;</span>
+<span class="fc" id="L578">		m_prev_1 = -1;</span>
+<span class="fc" id="L579">		m_prev_2 = -1;</span>
+<span class="fc" id="L580">		m_vertex_1 = -1;</span>
+<span class="fc" id="L581">		m_vertex_2 = -1;</span>
+<span class="fc" id="L582">	}</span>
+
+	// The compare method. Compares x values of the edge given by its origin
+	// (elm) and the edge in the sweep structure and checks them for
+	// intersection at the same time.
+	@Override
+	int compare(Treap treap, int left, int node) {
+		// Compares two segments on a sweep line passing through m_sweep_y,
+		// m_sweep_x.
+<span class="fc bfc" id="L591" title="All 2 branches covered.">		if (m_b_intersection_detected)</span>
+<span class="fc" id="L592">			return -1;</span>
+
+<span class="fc" id="L594">		int right = treap.getElement(node);</span>
+<span class="fc" id="L595">		m_current_node = node;</span>
+<span class="fc" id="L596">		return compareSegments(left, left, right, right);</span>
+	}
+
+	int compareSegments(int leftElm, int left_vertex, int right_elm,
+			int right_vertex) {
+<span class="fc" id="L601">		SimpleEdge edgeLeft = tryGetCachedEdge_(leftElm);</span>
+<span class="fc bfc" id="L602" title="All 2 branches covered.">		if (edgeLeft == null) {</span>
+<span class="fc bfc" id="L603" title="All 2 branches covered.">			if (m_vertex_1 == left_vertex)</span>
+<span class="fc" id="L604">				edgeLeft = m_temp_simple_edge_1;</span>
+			else {
+<span class="fc" id="L606">				m_vertex_1 = left_vertex;</span>
+<span class="fc" id="L607">				edgeLeft = tryCreateCachedEdge_(leftElm);</span>
+<span class="fc bfc" id="L608" title="All 2 branches covered.">				if (edgeLeft == null) {</span>
+<span class="fc" id="L609">					edgeLeft = m_temp_simple_edge_1;</span>
+<span class="fc" id="L610">					m_temp_simple_edge_1.m_value = leftElm;</span>
+				}
+<span class="fc" id="L612">				initSimpleEdge_(edgeLeft, left_vertex);</span>
+			}
+		} else
+<span class="fc" id="L615">			m_vertex_1 = left_vertex;</span>
+
+<span class="fc" id="L617">		SimpleEdge edgeRight = tryGetCachedEdge_(right_elm);</span>
+<span class="fc bfc" id="L618" title="All 2 branches covered.">		if (edgeRight == null) {</span>
+<span class="fc bfc" id="L619" title="All 2 branches covered.">			if (m_vertex_2 == right_vertex)</span>
+<span class="fc" id="L620">				edgeRight = m_temp_simple_edge_2;</span>
+			else {
+<span class="fc" id="L622">				m_vertex_2 = right_vertex;</span>
+<span class="fc" id="L623">				edgeRight = tryCreateCachedEdge_(right_elm);</span>
+<span class="fc bfc" id="L624" title="All 2 branches covered.">				if (edgeRight == null) {</span>
+<span class="fc" id="L625">					edgeRight = m_temp_simple_edge_2;</span>
+<span class="fc" id="L626">					m_temp_simple_edge_2.m_value = right_elm;</span>
+				}
+<span class="fc" id="L628">				initSimpleEdge_(edgeRight, right_vertex);</span>
+			}
+		} else
+<span class="fc" id="L631">			m_vertex_2 = right_vertex;</span>
+
+<span class="pc bpc" id="L633" title="2 of 4 branches missed.">		if (edgeLeft.m_b_curve || edgeRight.m_b_curve)</span>
+<span class="nc" id="L634">			return compareSegments_(left_vertex, right_vertex, edgeLeft,</span>
+					edgeRight);
+
+		// Usually we work with lines, so process them in the fastest way.
+		// First check - assume segments are far apart. compare x intervals
+<span class="fc bfc" id="L639" title="All 2 branches covered.">		if (edgeLeft.m_env.vmax &lt; edgeRight.m_env.vmin)</span>
+<span class="fc" id="L640">			return -1;</span>
+<span class="fc bfc" id="L641" title="All 2 branches covered.">		if (edgeRight.m_env.vmax &lt; edgeLeft.m_env.vmin)</span>
+<span class="fc" id="L642">			return 1;</span>
+
+		// compare case by case.
+<span class="fc bfc" id="L645" title="All 2 branches covered.">		int kind = edgeLeft.m_b_horizontal ? 1 : 0;</span>
+<span class="fc bfc" id="L646" title="All 2 branches covered.">		kind |= edgeRight.m_b_horizontal ? 2 : 0;</span>
+<span class="fc bfc" id="L647" title="All 2 branches covered.">		if (kind == 0)// both segments are non-horizontal</span>
+<span class="fc" id="L648">			return compareNonHorizontal_(edgeLeft, edgeRight);</span>
+<span class="fc bfc" id="L649" title="All 2 branches covered.">		else if (kind == 1) // line_1 horizontal, line_2 is not</span>
+<span class="fc" id="L650">			return compareHorizontal1_(edgeLeft.m_line, edgeRight.m_line);</span>
+<span class="fc bfc" id="L651" title="All 2 branches covered.">		else if (kind == 2) // line_2 horizontal, line_1 is not</span>
+<span class="fc" id="L652">			return compareHorizontal1_(edgeRight.m_line, edgeLeft.m_line) * -1;</span>
+		else
+			// if (kind == 3) //both horizontal
+<span class="fc" id="L655">			return compareHorizontal2_(edgeLeft.m_line, edgeRight.m_line);</span>
+	}
+
+	@Override
+	void onDelete(int elm) {
+<span class="fc" id="L660">		tryDeleteCachedEdge_(elm);</span>
+<span class="fc" id="L661">	}</span>
+
+	@Override
+	void onSet(int oldelm) {
+<span class="nc" id="L665">		tryDeleteCachedEdge_(oldelm);</span>
+<span class="nc" id="L666">	}</span>
+
+	@Override
+	void onEndSearch(int elm) {
+<span class="nc" id="L670">		tryDeleteCachedEdge_(elm);</span>
+<span class="nc" id="L671">	}</span>
+
+	@Override
+	void onAddUniqueElementFailed(int elm) {
+<span class="fc" id="L675">		tryDeleteCachedEdge_(elm);</span>
+<span class="fc" id="L676">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

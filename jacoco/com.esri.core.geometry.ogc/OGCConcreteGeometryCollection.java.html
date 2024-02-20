@@ -1,0 +1,959 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OGCConcreteGeometryCollection.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry.ogc</a> &gt; <span class="el_source">OGCConcreteGeometryCollection.java</span></div><h1>OGCConcreteGeometryCollection.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2018 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry.ogc;
+
+import com.esri.core.geometry.Envelope;
+import com.esri.core.geometry.GeoJsonExportFlags;
+import com.esri.core.geometry.Geometry;
+import com.esri.core.geometry.GeometryCursor;
+import com.esri.core.geometry.GeometryException;
+import com.esri.core.geometry.MultiPath;
+import com.esri.core.geometry.MultiPoint;
+import com.esri.core.geometry.MultiVertexGeometry;
+import com.esri.core.geometry.NumberUtils;
+import com.esri.core.geometry.OGCStructureInternal;
+import com.esri.core.geometry.OperatorConvexHull;
+import com.esri.core.geometry.OperatorDifference;
+import com.esri.core.geometry.OperatorExportToGeoJson;
+import com.esri.core.geometry.OperatorIntersection;
+import com.esri.core.geometry.OperatorUnion;
+import com.esri.core.geometry.Point;
+import com.esri.core.geometry.Polygon;
+import com.esri.core.geometry.Polyline;
+import com.esri.core.geometry.SimpleGeometryCursor;
+import com.esri.core.geometry.SpatialReference;
+import com.esri.core.geometry.VertexDescription;
+
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.esri.core.geometry.SizeOf.SIZE_OF_OGC_CONCRETE_GEOMETRY_COLLECTION;
+
+public class OGCConcreteGeometryCollection extends OGCGeometryCollection {
+<span class="fc" id="L57">	static public String TYPE = &quot;GeometryCollection&quot;;</span>
+	
+	List&lt;OGCGeometry&gt; geometries;
+	
+	public OGCConcreteGeometryCollection(List&lt;OGCGeometry&gt; geoms,
+<span class="fc" id="L62">			SpatialReference sr) {</span>
+<span class="fc" id="L63">		geometries = geoms;</span>
+<span class="fc" id="L64">		esriSR = sr;</span>
+<span class="fc" id="L65">	}</span>
+	
+	public OGCConcreteGeometryCollection(GeometryCursor geoms,
+<span class="fc" id="L68">			SpatialReference sr) {</span>
+<span class="fc" id="L69">		List&lt;OGCGeometry&gt; ogcGeoms = new ArrayList&lt;OGCGeometry&gt;(10);</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">		for (Geometry g = geoms.next(); g != null; g = geoms.next()) {</span>
+<span class="fc" id="L71">			ogcGeoms.add(createFromEsriGeometry(g, sr));</span>
+		}
+		
+<span class="fc" id="L74">		geometries = ogcGeoms;</span>
+<span class="fc" id="L75">		esriSR = sr;</span>
+<span class="fc" id="L76">	}</span>
+
+<span class="fc" id="L78">	public OGCConcreteGeometryCollection(OGCGeometry geom, SpatialReference sr) {</span>
+<span class="fc" id="L79">		geometries = new ArrayList&lt;OGCGeometry&gt;(1);</span>
+<span class="fc" id="L80">		geometries.add(geom);</span>
+<span class="fc" id="L81">		esriSR = sr;</span>
+<span class="fc" id="L82">	}</span>
+
+<span class="fc" id="L84">	public OGCConcreteGeometryCollection(SpatialReference sr) {</span>
+<span class="fc" id="L85">		geometries = new ArrayList&lt;OGCGeometry&gt;();</span>
+<span class="fc" id="L86">		esriSR = sr;</span>
+<span class="fc" id="L87">	}</span>
+	
+	@Override
+	public int dimension() {
+<span class="nc" id="L91">		int maxD = 0;</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">		for (int i = 0, n = numGeometries(); i &lt; n; i++)</span>
+<span class="nc" id="L93">			maxD = Math.max(geometryN(i).dimension(), maxD);</span>
+
+<span class="nc" id="L95">		return maxD;</span>
+	}
+
+	@Override
+	public int coordinateDimension() {
+<span class="nc bnc" id="L100" title="All 2 branches missed.">		return isEmpty() ? 2 : geometryN(0).coordinateDimension();</span>
+	}
+
+	@Override
+	public boolean is3D() {
+<span class="pc bpc" id="L105" title="1 of 4 branches missed.">		return !isEmpty() &amp;&amp; geometries.get(0).is3D();</span>
+	}
+
+	@Override
+	public boolean isMeasured() {
+<span class="pc bpc" id="L110" title="1 of 4 branches missed.">		return !isEmpty() &amp;&amp; geometries.get(0).isMeasured();</span>
+	}
+
+	@Override
+	public OGCGeometry envelope() {
+<span class="nc" id="L115">		GeometryCursor gc = getEsriGeometryCursor();</span>
+<span class="nc" id="L116">		Envelope env = new Envelope();</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">		for (Geometry g = gc.next(); g != null; g = gc.next()) {</span>
+<span class="nc" id="L118">			Envelope e = new Envelope();</span>
+<span class="nc" id="L119">			g.queryEnvelope(e);</span>
+<span class="nc" id="L120">			env.merge(e);</span>
+		}
+
+<span class="nc" id="L123">		Polygon polygon = new Polygon();</span>
+<span class="nc" id="L124">		polygon.addEnvelope(env, false);</span>
+<span class="nc" id="L125">		return new OGCPolygon(polygon, esriSR);</span>
+	}
+
+	@Override
+	public int numGeometries() {
+<span class="fc" id="L130">		return geometries.size();</span>
+	}
+
+	@Override
+	public OGCGeometry geometryN(int n) {
+<span class="fc" id="L135">		return geometries.get(n);</span>
+	}
+
+	@Override
+	public String geometryType() {
+<span class="fc" id="L140">		return TYPE;</span>
+	}
+
+	@Override
+	public long estimateMemorySize()
+	{
+<span class="fc" id="L146">		long size = SIZE_OF_OGC_CONCRETE_GEOMETRY_COLLECTION;</span>
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">		if (geometries != null) {</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">			for (OGCGeometry geometry : geometries) {</span>
+<span class="fc" id="L149">				size += geometry.estimateMemorySize();</span>
+<span class="fc" id="L150">			}</span>
+		}
+<span class="fc" id="L152">		return size;</span>
+	}
+
+	@Override
+	public String asText() {
+<span class="fc" id="L157">		StringBuilder sb = new StringBuilder(&quot;GEOMETRYCOLLECTION &quot;);</span>
+<span class="pc bpc" id="L158" title="1 of 2 branches missed.">		if (is3D()) {</span>
+<span class="nc" id="L159">			sb.append('Z');</span>
+		}
+<span class="pc bpc" id="L161" title="1 of 2 branches missed.">		if (isMeasured()) {</span>
+<span class="nc" id="L162">			sb.append('M');</span>
+		}
+<span class="pc bpc" id="L164" title="2 of 4 branches missed.">		if (is3D() || isMeasured())</span>
+<span class="nc" id="L165">			sb.append(' ');</span>
+
+<span class="fc" id="L167">		int n = numGeometries();</span>
+
+<span class="fc bfc" id="L169" title="All 2 branches covered.">		if (n == 0) {</span>
+<span class="fc" id="L170">			sb.append(&quot;EMPTY&quot;);</span>
+<span class="fc" id="L171">			return sb.toString();</span>
+		}
+
+<span class="fc" id="L174">		sb.append('(');</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">		for (int i = 0; i &lt; n; i++) {</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">			if (i &gt; 0)</span>
+<span class="fc" id="L177">				sb.append(&quot;, &quot;);</span>
+
+<span class="fc" id="L179">			sb.append(geometryN(i).asText());</span>
+		}
+<span class="fc" id="L181">		sb.append(')');</span>
+
+<span class="fc" id="L183">		return sb.toString();</span>
+	}
+
+	@Override
+	public ByteBuffer asBinary() {
+
+<span class="fc" id="L189">		ArrayList&lt;ByteBuffer&gt; buffers = new ArrayList&lt;ByteBuffer&gt;(0);</span>
+
+<span class="fc" id="L191">		int size = 9;</span>
+<span class="fc" id="L192">		int n = numGeometries();</span>
+<span class="fc bfc" id="L193" title="All 2 branches covered.">		for (int i = 0; i &lt; n; i++) {</span>
+<span class="fc" id="L194">			ByteBuffer buffer = geometryN(i).asBinary();</span>
+<span class="fc" id="L195">			buffers.add(buffer);</span>
+<span class="fc" id="L196">			size += buffer.capacity();</span>
+		}
+
+<span class="fc" id="L199">		ByteBuffer wkbBuffer = ByteBuffer.allocate(size).order(</span>
+<span class="fc" id="L200">				ByteOrder.nativeOrder());</span>
+
+<span class="pc bpc" id="L202" title="1 of 2 branches missed.">		byte byteOrder = (byte) (wkbBuffer.order() == ByteOrder.LITTLE_ENDIAN ? 1</span>
+<span class="pc" id="L203">				: 0);</span>
+<span class="fc" id="L204">		int wkbType = 7;</span>
+
+<span class="pc bpc" id="L206" title="1 of 2 branches missed.">		if (is3D())</span>
+<span class="nc" id="L207">			wkbType += 1000;</span>
+<span class="pc bpc" id="L208" title="1 of 2 branches missed.">		if (isMeasured())</span>
+<span class="nc" id="L209">			wkbType += 2000;</span>
+
+<span class="fc" id="L211">		wkbBuffer.put(0, byteOrder);</span>
+<span class="fc" id="L212">		wkbBuffer.putInt(1, wkbType);</span>
+<span class="fc" id="L213">		wkbBuffer.putInt(5, n);</span>
+
+<span class="fc" id="L215">		int offset = 9;</span>
+<span class="fc bfc" id="L216" title="All 2 branches covered.">		for (int i = 0; i &lt; n; i++) {</span>
+<span class="fc" id="L217">			byte[] arr = buffers.get(i).array();</span>
+<span class="fc" id="L218">			System.arraycopy(arr, 0, wkbBuffer.array(), offset, arr.length);</span>
+<span class="fc" id="L219">			offset += arr.length;</span>
+		}
+
+<span class="fc" id="L222">		return wkbBuffer;</span>
+	}
+
+	@Override
+	public String asGeoJson() {
+<span class="fc" id="L227">		return asGeoJsonImpl(GeoJsonExportFlags.geoJsonExportDefaults);</span>
+	}
+
+	@Override
+	String asGeoJsonImpl(int export_flags) {
+<span class="fc" id="L232">		StringBuilder sb = new StringBuilder();</span>
+
+<span class="fc" id="L234">		sb.append(&quot;{\&quot;type\&quot;:\&quot;GeometryCollection\&quot;,\&quot;geometries\&quot;:&quot;);</span>
+
+<span class="fc" id="L236">		sb.append(&quot;[&quot;);</span>
+<span class="fc bfc" id="L237" title="All 2 branches covered.">		for (int i = 0, n = numGeometries(); i &lt; n; i++) {</span>
+<span class="fc bfc" id="L238" title="All 2 branches covered.">			if (i &gt; 0)</span>
+<span class="fc" id="L239">				sb.append(&quot;,&quot;);</span>
+
+<span class="pc bpc" id="L241" title="1 of 2 branches missed.">			if (geometryN(i) != null)</span>
+<span class="fc" id="L242">				sb.append(geometryN(i).asGeoJsonImpl(GeoJsonExportFlags.geoJsonExportSkipCRS));</span>
+		}
+
+<span class="fc" id="L245">		sb.append(&quot;],\&quot;crs\&quot;:&quot;);</span>
+
+<span class="pc bpc" id="L247" title="1 of 2 branches missed.">		if (esriSR != null) {</span>
+<span class="fc" id="L248">			String crs_value = OperatorExportToGeoJson.local().exportSpatialReference(0, esriSR);</span>
+<span class="fc" id="L249">			sb.append(crs_value);</span>
+<span class="fc" id="L250">		} else {</span>
+<span class="nc" id="L251">			sb.append(&quot;\&quot;null\&quot;&quot;);</span>
+		}
+
+<span class="fc" id="L254">		sb.append(&quot;}&quot;);</span>
+
+<span class="fc" id="L256">		return sb.toString();</span>
+	}
+
+	@Override
+	public boolean isEmpty() {
+<span class="fc bfc" id="L261" title="All 2 branches covered.">		return numGeometries() == 0;</span>
+	}
+
+	@Override
+	public double MinZ() {
+<span class="nc" id="L266">		double z = Double.NaN;</span>
+<span class="nc bnc" id="L267" title="All 2 branches missed.">		for (int i = 0, n = numGeometries(); i &lt; n; i++)</span>
+<span class="nc bnc" id="L268" title="All 2 branches missed.">			z = i == 0 ? geometryN(i).MinZ() : Math.min(geometryN(i).MinZ(), z);</span>
+<span class="nc" id="L269">		return z;</span>
+	}
+
+	@Override
+	public double MaxZ() {
+<span class="nc" id="L274">		double z = Double.NaN;</span>
+<span class="nc bnc" id="L275" title="All 2 branches missed.">		for (int i = 0, n = numGeometries(); i &lt; n; i++)</span>
+<span class="nc bnc" id="L276" title="All 2 branches missed.">			z = i == 0 ? geometryN(i).MaxZ() : Math.min(geometryN(i).MaxZ(), z);</span>
+<span class="nc" id="L277">		return z;</span>
+	}
+
+	@Override
+	public double MinMeasure() {
+<span class="nc" id="L282">		double z = Double.NaN;</span>
+<span class="nc bnc" id="L283" title="All 2 branches missed.">		for (int i = 0, n = numGeometries(); i &lt; n; i++)</span>
+<span class="nc bnc" id="L284" title="All 2 branches missed.">			z = i == 0 ? geometryN(i).MinMeasure() : Math.min(geometryN(i)</span>
+<span class="nc" id="L285">					.MinMeasure(), z);</span>
+<span class="nc" id="L286">		return z;</span>
+	}
+
+	@Override
+	public double MaxMeasure() {
+<span class="nc" id="L291">		double z = Double.NaN;</span>
+<span class="nc bnc" id="L292" title="All 2 branches missed.">		for (int i = 0, n = numGeometries(); i &lt; n; i++)</span>
+<span class="nc bnc" id="L293" title="All 2 branches missed.">			z = i == 0 ? geometryN(i).MaxMeasure() : Math.min(geometryN(i)</span>
+<span class="nc" id="L294">					.MaxMeasure(), z);</span>
+<span class="nc" id="L295">		return z;</span>
+	}
+
+	@Override
+	public boolean isSimple() {
+<span class="nc bnc" id="L300" title="All 2 branches missed.">		for (int i = 0, n = numGeometries(); i &lt; n; i++)</span>
+<span class="nc bnc" id="L301" title="All 2 branches missed.">			if (!geometryN(i).isSimple())</span>
+<span class="nc" id="L302">				return false;</span>
+
+<span class="nc" id="L304">		return true;</span>
+	}
+
+	/**
+	 * makeSimpleRelaxed is not supported for the GeometryCollection instance.
+	 * 
+	 */
+	@Override
+	public OGCGeometry makeSimple() {
+<span class="nc" id="L313">		throw new UnsupportedOperationException();</span>
+	}
+
+	@Override
+	public boolean isSimpleRelaxed() {
+<span class="nc bnc" id="L318" title="All 2 branches missed.">		for (int i = 0, n = numGeometries(); i &lt; n; i++)</span>
+<span class="nc bnc" id="L319" title="All 2 branches missed.">			if (!geometryN(i).isSimpleRelaxed())</span>
+<span class="nc" id="L320">				return false;</span>
+<span class="nc" id="L321">		return true;</span>
+	}
+
+	/**
+	 * makeSimpleRelaxed is not supported for the GeometryCollection instance.
+	 * 
+	 */
+	@Override
+	public OGCGeometry makeSimpleRelaxed(boolean forceProcessing) {
+<span class="nc" id="L330">		throw new UnsupportedOperationException();</span>
+	}
+
+	@Override
+	public OGCGeometry boundary() {
+<span class="nc" id="L335">		throw new UnsupportedOperationException();</span>
+	}
+
+	@Override
+	public OGCGeometry locateAlong(double mValue) {
+		// TODO Auto-generated method stub
+<span class="nc" id="L341">		throw new UnsupportedOperationException();</span>
+	}
+
+	@Override
+	public OGCGeometry locateBetween(double mStart, double mEnd) {
+		// TODO Auto-generated method stub
+<span class="nc" id="L347">		throw new UnsupportedOperationException();</span>
+	}
+
+	@Override
+	public Geometry getEsriGeometry() {
+<span class="nc" id="L352">		return null;</span>
+	}
+
+	@Override
+	public GeometryCursor getEsriGeometryCursor() {
+<span class="fc" id="L357">		return new GeometryCursorOGC(geometries);</span>
+	}
+
+	@Override
+	protected boolean isConcreteGeometryCollection() {
+<span class="fc" id="L362">		return true;</span>
+	}
+
+	private static class GeometryCursorOGC extends GeometryCursor {
+		private int m_index;
+		private int m_ind;
+		private List&lt;OGCGeometry&gt; m_geoms;
+		GeometryCursor m_curs;
+
+<span class="fc" id="L371">		GeometryCursorOGC(List&lt;OGCGeometry&gt; geoms) {</span>
+<span class="fc" id="L372">			m_geoms = geoms;</span>
+<span class="fc" id="L373">			m_index = -1;</span>
+<span class="fc" id="L374">			m_curs = null;</span>
+<span class="fc" id="L375">			m_ind = 0;</span>
+<span class="fc" id="L376">		}</span>
+
+		@Override
+		public Geometry next() {
+			while (true) {
+<span class="fc bfc" id="L381" title="All 2 branches covered.">				if (m_curs != null) {</span>
+<span class="fc" id="L382">					Geometry g = m_curs.next();</span>
+<span class="fc bfc" id="L383" title="All 2 branches covered.">					if (g != null) {</span>
+<span class="fc" id="L384">						m_index++;</span>
+<span class="fc" id="L385">						return g;</span>
+					}
+<span class="fc" id="L387">					m_curs = null;</span>
+				}
+<span class="fc bfc" id="L389" title="All 2 branches covered.">				if (m_ind &gt;= m_geoms.size())</span>
+<span class="fc" id="L390">					return null;</span>
+
+<span class="fc" id="L392">				int i = m_ind;</span>
+<span class="fc" id="L393">				m_ind++;</span>
+<span class="pc bpc" id="L394" title="1 of 2 branches missed.">				if (m_geoms.get(i) == null)</span>
+<span class="nc" id="L395">					continue;// filter out nulls</span>
+<span class="fc bfc" id="L396" title="All 2 branches covered.">				if (!m_geoms.get(i).isConcreteGeometryCollection()) {</span>
+<span class="fc" id="L397">					m_index++;</span>
+<span class="fc" id="L398">					return m_geoms.get(i).getEsriGeometry();</span>
+				} else {
+<span class="fc" id="L400">					OGCConcreteGeometryCollection gc = (OGCConcreteGeometryCollection) m_geoms</span>
+<span class="fc" id="L401">							.get(i);</span>
+<span class="fc" id="L402">					m_curs = new GeometryCursorOGC(gc.geometries);</span>
+<span class="fc" id="L403">					return next();</span>
+				}
+			}
+		}
+
+		@Override
+		public int getGeometryID() {
+<span class="fc" id="L410">			return m_index;</span>
+		}
+
+	}
+	
+	@Override
+	public OGCGeometry convexHull() {
+<span class="fc" id="L417">		GeometryCursor cursor = OperatorConvexHull.local().execute(</span>
+<span class="fc" id="L418">				getEsriGeometryCursor(), false, null);</span>
+<span class="fc" id="L419">		MultiPoint mp = new MultiPoint();</span>
+<span class="fc" id="L420">		Polygon polygon = new Polygon();</span>
+<span class="fc" id="L421">		VertexDescription vd = null;</span>
+<span class="fc bfc" id="L422" title="All 2 branches covered.">		for (Geometry geom = cursor.next(); geom != null; geom = cursor.next()) {</span>
+<span class="fc" id="L423">			vd = geom.getDescription();</span>
+<span class="fc bfc" id="L424" title="All 2 branches covered.">			if (geom.isEmpty())</span>
+<span class="fc" id="L425">				continue;</span>
+
+<span class="fc bfc" id="L427" title="All 2 branches covered.">			if (geom.getType() == Geometry.Type.Polygon) {</span>
+<span class="fc" id="L428">				polygon.add((MultiPath) geom, false);</span>
+			}
+<span class="fc bfc" id="L430" title="All 2 branches covered.">			else if (geom.getType() == Geometry.Type.Polyline) {</span>
+<span class="fc" id="L431">				mp.add((MultiVertexGeometry) geom, 0, -1);</span>
+			}
+<span class="pc bpc" id="L433" title="1 of 2 branches missed.">			else if (geom.getType() == Geometry.Type.Point) {</span>
+<span class="fc" id="L434">				mp.add((Point) geom);</span>
+			}
+			else {
+<span class="nc" id="L437">				throw new GeometryException(&quot;internal error&quot;);</span>
+			}
+		}
+
+<span class="fc" id="L441">		Geometry resultGeom = null;</span>
+<span class="fc bfc" id="L442" title="All 2 branches covered.">		if (!mp.isEmpty()) {</span>
+<span class="fc" id="L443">			resultGeom = OperatorConvexHull.local().execute(mp, null);</span>
+		}
+
+<span class="fc bfc" id="L446" title="All 2 branches covered.">		if (!polygon.isEmpty()) {</span>
+<span class="pc bpc" id="L447" title="1 of 4 branches missed.">			if (resultGeom != null &amp;&amp; !resultGeom.isEmpty()) {</span>
+<span class="fc" id="L448">				Geometry[] geoms = { resultGeom, polygon };</span>
+<span class="fc" id="L449">				resultGeom = OperatorConvexHull.local().execute(</span>
+<span class="fc" id="L450">						new SimpleGeometryCursor(geoms), true, null).next();</span>
+<span class="fc" id="L451">			}</span>
+			else {
+<span class="fc" id="L453">				resultGeom = OperatorConvexHull.local().execute(polygon, null);</span>
+			}
+		}
+
+<span class="fc bfc" id="L457" title="All 2 branches covered.">		if (resultGeom == null) {</span>
+<span class="fc" id="L458">			Point pt = new Point();</span>
+<span class="pc bpc" id="L459" title="1 of 2 branches missed.">			if (vd != null)</span>
+<span class="nc" id="L460">				pt.assignVertexDescription(vd);</span>
+
+<span class="fc" id="L462">			return new OGCPoint(pt, getEsriSpatialReference());</span>
+		}
+
+<span class="fc" id="L465">		return OGCGeometry.createFromEsriGeometry(resultGeom, getEsriSpatialReference(), false);</span>
+	}
+
+	@Override
+	public void setSpatialReference(SpatialReference esriSR_) {
+<span class="fc" id="L470">		esriSR = esriSR_;</span>
+<span class="fc bfc" id="L471" title="All 2 branches covered.">		for (int i = 0, n = geometries.size(); i &lt; n; i++) {</span>
+<span class="pc bpc" id="L472" title="1 of 2 branches missed.">			if (geometries.get(i) != null)</span>
+<span class="fc" id="L473">				geometries.get(i).setSpatialReference(esriSR_);</span>
+		}
+<span class="fc" id="L475">	}</span>
+
+	@Override
+	public OGCGeometry convertToMulti() {
+<span class="nc" id="L479">		return this;</span>
+	}
+	
+	@Override
+	public OGCGeometry reduceFromMulti() {
+<span class="fc" id="L484">		int n = numGeometries();</span>
+<span class="fc bfc" id="L485" title="All 2 branches covered.">		if (n == 0) {</span>
+<span class="fc" id="L486">			return this;</span>
+		}
+		
+<span class="fc bfc" id="L489" title="All 2 branches covered.">		if (n == 1) {</span>
+<span class="fc" id="L490">			return geometryN(0).reduceFromMulti();</span>
+		}
+		
+<span class="fc" id="L493">		return this;</span>
+	}
+
+	@Override
+	public String asJson() {
+<span class="nc" id="L498">		throw new UnsupportedOperationException();</span>
+	}
+
+	@Override
+	public boolean equals(Object other)	{
+<span class="pc bpc" id="L503" title="1 of 2 branches missed.">		if (other == null)</span>
+<span class="nc" id="L504">			return false;</span>
+
+<span class="pc bpc" id="L506" title="1 of 2 branches missed.">		if (other == this)</span>
+<span class="nc" id="L507">			return true;</span>
+
+<span class="pc bpc" id="L509" title="1 of 2 branches missed.">		if (other.getClass() != getClass())</span>
+<span class="nc" id="L510">			return false;</span>
+		
+<span class="fc" id="L512">		OGCConcreteGeometryCollection another = (OGCConcreteGeometryCollection)other;</span>
+<span class="pc bpc" id="L513" title="1 of 2 branches missed.">		if (geometries != null) {		</span>
+<span class="pc bpc" id="L514" title="1 of 2 branches missed.">			if (!geometries.equals(another.geometries))</span>
+<span class="nc" id="L515">				return false;</span>
+		}
+<span class="nc bnc" id="L517" title="All 2 branches missed.">		else if (another.geometries != null)</span>
+<span class="nc" id="L518">			return false;</span>
+		
+<span class="pc bpc" id="L520" title="1 of 2 branches missed.">		if (esriSR == another.esriSR) {</span>
+<span class="nc" id="L521">			return true;</span>
+		}
+			
+<span class="pc bpc" id="L524" title="2 of 4 branches missed.">		if (esriSR != null &amp;&amp; another.esriSR != null) {</span>
+<span class="fc" id="L525">			return esriSR.equals(another.esriSR);</span>
+		}
+			
+<span class="nc" id="L528">		return false;</span>
+	}
+
+	@Override
+	public int hashCode() {
+<span class="fc" id="L533">		int hash = 1;</span>
+<span class="pc bpc" id="L534" title="1 of 2 branches missed.">		if (geometries != null)</span>
+<span class="fc" id="L535">			hash = geometries.hashCode();</span>
+		
+<span class="pc bpc" id="L537" title="1 of 2 branches missed.">		if (esriSR != null)</span>
+<span class="fc" id="L538">			hash = NumberUtils.hashCombine(hash, esriSR.hashCode());</span>
+		
+<span class="fc" id="L540">		return hash;</span>
+	}
+	
+	@Override
+	public double distance(OGCGeometry another) {
+<span class="pc bpc" id="L545" title="1 of 2 branches missed.">		if (this == another)</span>
+<span class="nc bnc" id="L546" title="All 2 branches missed.">			return isEmpty() ? Double.NaN : 0;</span>
+
+<span class="fc" id="L548">		double minD = Double.NaN;</span>
+<span class="fc bfc" id="L549" title="All 2 branches covered.">		for (int i = 0, n = numGeometries(); i &lt; n; ++i) {</span>
+			// TODO Skip expensive distance computation if bounding boxes are further away than minD
+<span class="fc" id="L551">			double d = geometryN(i).distance(another);</span>
+<span class="fc bfc" id="L552" title="All 4 branches covered.">			if (d &lt; minD || Double.isNaN(minD)) {</span>
+<span class="fc" id="L553">				minD = d;</span>
+				// TODO Replace zero with tolerance defined by the spatial reference
+<span class="fc bfc" id="L555" title="All 2 branches covered.">				if (minD == 0) {</span>
+<span class="fc" id="L556">					break;</span>
+				}
+			}
+		}
+
+<span class="fc" id="L561">		return minD;</span>
+	}
+	
+	//
+	//Relational operations
+	@Override
+	public boolean overlaps(OGCGeometry another) {
+		//TODO
+<span class="nc" id="L569">		throw new UnsupportedOperationException();</span>
+	}
+	
+	@Override
+	public boolean touches(OGCGeometry another) {
+		//TODO
+<span class="nc" id="L575">		throw new UnsupportedOperationException();</span>
+	}
+	
+	@Override
+	public boolean crosses(OGCGeometry another) {
+		//TODO
+<span class="nc" id="L581">		throw new UnsupportedOperationException();</span>
+	}
+	
+	@Override
+	public boolean relate(OGCGeometry another, String matrix) {
+<span class="nc" id="L586">		throw new UnsupportedOperationException();</span>
+	}
+	
+	@Override
+	public boolean disjoint(OGCGeometry another) {
+<span class="pc bpc" id="L591" title="1 of 4 branches missed.">		if (isEmpty() || another.isEmpty())</span>
+<span class="fc" id="L592">			return true;</span>
+
+<span class="pc bpc" id="L594" title="1 of 2 branches missed.">		if (this == another)</span>
+<span class="nc" id="L595">			return false;</span>
+
+		//TODO: a simple envelope test
+		
+<span class="fc" id="L599">		OGCConcreteGeometryCollection flattened1 = flatten();</span>
+<span class="pc bpc" id="L600" title="1 of 2 branches missed.">		if (flattened1.isEmpty())</span>
+<span class="nc" id="L601">			return true;</span>
+<span class="fc" id="L602">		OGCConcreteGeometryCollection otherCol = new OGCConcreteGeometryCollection(another, esriSR);</span>
+<span class="fc" id="L603">		OGCConcreteGeometryCollection flattened2 = otherCol.flatten();</span>
+<span class="pc bpc" id="L604" title="1 of 2 branches missed.">		if (flattened2.isEmpty())</span>
+<span class="nc" id="L605">			return true;</span>
+		
+<span class="fc bfc" id="L607" title="All 2 branches covered.">		for (int i = 0, n1 = flattened1.numGeometries(); i &lt; n1; ++i) {</span>
+<span class="fc" id="L608">			OGCGeometry g1 = flattened1.geometryN(i);</span>
+<span class="fc bfc" id="L609" title="All 2 branches covered.">			for (int j = 0, n2 = flattened2.numGeometries(); j &lt; n2; ++j) {</span>
+<span class="fc" id="L610">				OGCGeometry g2 = flattened2.geometryN(j);</span>
+<span class="fc bfc" id="L611" title="All 2 branches covered.">				if (!g1.disjoint(g2))</span>
+<span class="fc" id="L612">					return false;</span>
+			}
+		}
+		
+<span class="fc" id="L616">		return true;</span>
+	}
+	
+	@Override
+	public boolean contains(OGCGeometry another) {
+<span class="pc bpc" id="L621" title="2 of 4 branches missed.">		if (isEmpty() || another.isEmpty())</span>
+<span class="nc" id="L622">			return false;</span>
+		
+<span class="pc bpc" id="L624" title="1 of 2 branches missed.">		if (this == another)</span>
+<span class="nc" id="L625">			return true;</span>
+
+<span class="fc" id="L627">		return another.difference(this).isEmpty();</span>
+	}
+	
+	@Override
+	public boolean Equals(OGCGeometry another) {
+<span class="nc bnc" id="L632" title="All 2 branches missed.">		if (this == another)</span>
+<span class="nc bnc" id="L633" title="All 2 branches missed.">			return !isEmpty();</span>
+		
+<span class="nc bnc" id="L635" title="All 2 branches missed.">		if (another == null)</span>
+<span class="nc" id="L636">			return false;</span>
+		
+
+<span class="nc" id="L639">		OGCGeometry g1 = reduceFromMulti();</span>
+<span class="nc" id="L640">		String t1 = g1.geometryType();</span>
+<span class="nc" id="L641">		OGCGeometry g2 = reduceFromMulti();</span>
+<span class="nc bnc" id="L642" title="All 2 branches missed.">		if (t1 != g2.geometryType()) {</span>
+<span class="nc" id="L643">			return false;</span>
+		}
+		
+<span class="nc bnc" id="L646" title="All 2 branches missed.">		if (t1 != OGCConcreteGeometryCollection.TYPE) {</span>
+<span class="nc" id="L647">			return g1.Equals(g2);</span>
+		}
+		
+<span class="nc" id="L650">		OGCConcreteGeometryCollection gc1 = (OGCConcreteGeometryCollection)g1;</span>
+<span class="nc" id="L651">		OGCConcreteGeometryCollection gc2 = (OGCConcreteGeometryCollection)g2;</span>
+		// TODO Assuming input geometries are simple and valid, remove-overlaps would be a no-op.
+		// Hence, calling flatten() should be sufficient.
+<span class="nc" id="L654">		gc1 = gc1.flattenAndRemoveOverlaps();</span>
+<span class="nc" id="L655">		gc2 = gc2.flattenAndRemoveOverlaps();</span>
+<span class="nc" id="L656">		int n = gc1.numGeometries();</span>
+<span class="nc bnc" id="L657" title="All 2 branches missed.">		if (n != gc2.numGeometries()) {</span>
+<span class="nc" id="L658">			return false;</span>
+		}
+		
+<span class="nc bnc" id="L661" title="All 2 branches missed.">		for (int i = 0; i &lt; n; ++i) {</span>
+<span class="nc bnc" id="L662" title="All 2 branches missed.">			if (!gc1.geometryN(i).Equals(gc2.geometryN(i))) {</span>
+<span class="nc" id="L663">				return false;</span>
+			}
+		}
+		
+<span class="nc bnc" id="L667" title="All 2 branches missed.">		return n &gt; 0;</span>
+	}
+
+	private static OGCConcreteGeometryCollection toGeometryCollection(OGCGeometry geometry)
+	{
+<span class="fc bfc" id="L672" title="All 2 branches covered.">		if (geometry.geometryType() != OGCConcreteGeometryCollection.TYPE) {</span>
+<span class="fc" id="L673">			return new OGCConcreteGeometryCollection(geometry, geometry.getEsriSpatialReference());</span>
+		}
+
+<span class="fc" id="L676">		return (OGCConcreteGeometryCollection) geometry;</span>
+	}
+
+	private static List&lt;Geometry&gt; toList(GeometryCursor cursor)
+	{
+<span class="fc" id="L681">		List&lt;Geometry&gt; geometries = new ArrayList&lt;Geometry&gt;();</span>
+<span class="fc bfc" id="L682" title="All 2 branches covered.">		for (Geometry geometry = cursor.next(); geometry != null; geometry = cursor.next()) {</span>
+<span class="fc" id="L683">			geometries.add(geometry);</span>
+		}
+<span class="fc" id="L685">		return geometries;</span>
+	}
+
+	//Topological
+	@Override
+	public OGCGeometry difference(OGCGeometry another) {
+<span class="pc bpc" id="L691" title="2 of 4 branches missed.">		if (isEmpty() || another.isEmpty()) {</span>
+<span class="nc" id="L692">			return this;</span>
+		}
+
+<span class="fc" id="L695">		List&lt;Geometry&gt; geometries = toList(prepare_for_ops_(toGeometryCollection(this)));</span>
+<span class="fc" id="L696">		List&lt;Geometry&gt; otherGeometries = toList(prepare_for_ops_(toGeometryCollection(another)));</span>
+
+<span class="fc" id="L698">		List&lt;OGCGeometry&gt; result = new ArrayList&lt;OGCGeometry&gt;();</span>
+<span class="fc bfc" id="L699" title="All 2 branches covered.">		for (Geometry geometry : geometries) {</span>
+<span class="pc bpc" id="L700" title="1 of 2 branches missed.">			for (Geometry otherGeometry : otherGeometries) {</span>
+<span class="pc bpc" id="L701" title="1 of 2 branches missed.">				if (geometry.getDimension() &gt; otherGeometry.getDimension()) {</span>
+<span class="nc" id="L702">					continue; //subtracting lower dimension has no effect.</span>
+				}
+
+<span class="fc" id="L705">				geometry = OperatorDifference.local().execute(geometry, otherGeometry, esriSR, null);</span>
+<span class="fc bfc" id="L706" title="All 2 branches covered.">				if (geometry.isEmpty()) {</span>
+<span class="fc" id="L707">					break;</span>
+				}
+<span class="fc" id="L709">			}</span>
+
+<span class="pc bpc" id="L711" title="1 of 2 branches missed.">			if (!geometry.isEmpty()) {</span>
+<span class="nc" id="L712">				result.add(OGCGeometry.createFromEsriGeometry(geometry, esriSR));</span>
+			}
+<span class="fc" id="L714">		}</span>
+
+<span class="pc bpc" id="L716" title="1 of 2 branches missed.">		if (result.size() == 1) {</span>
+<span class="nc" id="L717">			return result.get(0).reduceFromMulti();</span>
+		}
+		
+<span class="fc" id="L720">		return new OGCConcreteGeometryCollection(result, esriSR).flattenAndRemoveOverlaps();</span>
+	}
+	
+	@Override
+	public OGCGeometry intersection(OGCGeometry another) {
+<span class="pc bpc" id="L725" title="1 of 4 branches missed.">		if (isEmpty() || another.isEmpty()) {</span>
+<span class="fc" id="L726">			return new OGCConcreteGeometryCollection(esriSR);</span>
+		}
+
+<span class="fc" id="L729">		List&lt;Geometry&gt; geometries = toList(prepare_for_ops_(toGeometryCollection(this)));</span>
+<span class="fc" id="L730">		List&lt;Geometry&gt; otherGeometries = toList(prepare_for_ops_(toGeometryCollection(another)));</span>
+
+<span class="fc" id="L732">		List&lt;OGCGeometry&gt; result = new ArrayList&lt;OGCGeometry&gt;();</span>
+<span class="fc bfc" id="L733" title="All 2 branches covered.">		for (Geometry geometry : geometries) {</span>
+<span class="fc bfc" id="L734" title="All 2 branches covered.">			for (Geometry otherGeometry : otherGeometries) {</span>
+<span class="fc" id="L735">				GeometryCursor intersectionCursor = OperatorIntersection.local().execute(new SimpleGeometryCursor(geometry), new SimpleGeometryCursor(otherGeometry), esriSR, null, 7);</span>
+<span class="fc" id="L736">				OGCGeometry intersection = OGCGeometry.createFromEsriCursor(intersectionCursor, esriSR, true);</span>
+<span class="fc bfc" id="L737" title="All 2 branches covered.">				if (!intersection.isEmpty()) {</span>
+<span class="fc" id="L738">					result.add(intersection);</span>
+				}
+<span class="fc" id="L740">			}</span>
+<span class="fc" id="L741">		}</span>
+		
+<span class="fc bfc" id="L743" title="All 2 branches covered.">		if (result.size() == 1) {</span>
+<span class="fc" id="L744">			return result.get(0).reduceFromMulti();</span>
+		}
+
+<span class="fc" id="L747">		return new OGCConcreteGeometryCollection(result, esriSR).flattenAndRemoveOverlaps();</span>
+	}
+	
+	@Override
+	public OGCGeometry symDifference(OGCGeometry another) {
+		//TODO
+<span class="nc" id="L753">		throw new UnsupportedOperationException();</span>
+	}
+
+	/**
+	 * Checks if collection is flattened.
+	 * @return True for the flattened collection. A flattened collection contains up to three non-empty geometries:
+	 * an OGCMultiPoint, an OGCMultiPolygon, and an OGCMultiLineString.
+	 */
+	public boolean isFlattened() {
+<span class="fc" id="L762">		int n = numGeometries();</span>
+<span class="fc bfc" id="L763" title="All 2 branches covered.">		if (n &gt; 3)</span>
+<span class="fc" id="L764">			return false;</span>
+
+<span class="fc" id="L766">		int dimension = -1;</span>
+<span class="fc bfc" id="L767" title="All 2 branches covered.">		for (int i = 0; i &lt; n; ++i) {</span>
+<span class="fc" id="L768">			OGCGeometry g = geometryN(i);</span>
+<span class="fc bfc" id="L769" title="All 2 branches covered.">			if (g.isEmpty())</span>
+<span class="fc" id="L770">				return false;//no empty allowed</span>
+			
+<span class="fc" id="L772">			String t = g.geometryType();</span>
+<span class="fc bfc" id="L773" title="All 6 branches covered.">			if (t != OGCMultiPoint.TYPE &amp;&amp; t != OGCMultiPolygon.TYPE &amp;&amp; t != OGCMultiLineString.TYPE)</span>
+<span class="fc" id="L774">				return false;</span>
+			
+			//check strict order of geometry dimensions
+<span class="fc" id="L777">			int d = g.dimension();</span>
+<span class="fc bfc" id="L778" title="All 2 branches covered.">			if (d &lt;= dimension)</span>
+<span class="fc" id="L779">				return false;</span>
+
+<span class="fc" id="L781">			dimension = d;</span>
+		}
+		
+<span class="fc" id="L784">		return true;</span>
+	}
+
+	/**
+	 * Flattens Geometry Collection.
+	 * The result collection contains up to three geometries:
+	 * an OGCMultiPoint, an OGCMultilineString, and an OGCMultiPolygon (in that order).
+	 * @return A flattened Geometry Collection, or self if already flattened.
+	 */
+	public OGCConcreteGeometryCollection flatten() {
+<span class="fc bfc" id="L794" title="All 2 branches covered.">		if (isFlattened()) {</span>
+<span class="fc" id="L795">			return this;</span>
+		}
+		
+<span class="fc" id="L798">		OGCMultiPoint multiPoint = null;</span>
+<span class="fc" id="L799">		ArrayList&lt;Geometry&gt; polygons = null;</span>
+<span class="fc" id="L800">		OGCMultiLineString polyline = null;</span>
+<span class="fc" id="L801">		GeometryCursor gc = getEsriGeometryCursor();</span>
+<span class="fc bfc" id="L802" title="All 2 branches covered.">		for (Geometry g = gc.next(); g != null; g = gc.next()) {</span>
+<span class="fc bfc" id="L803" title="All 2 branches covered.">			if (g.isEmpty())</span>
+<span class="fc" id="L804">				continue;</span>
+			
+<span class="fc" id="L806">			Geometry.Type t = g.getType();</span>
+
+<span class="fc bfc" id="L808" title="All 2 branches covered.">			if (t == Geometry.Type.Point) {</span>
+<span class="fc bfc" id="L809" title="All 2 branches covered.">				if (multiPoint == null) {</span>
+<span class="fc" id="L810">					multiPoint = new OGCMultiPoint(esriSR);</span>
+				}
+
+<span class="fc" id="L813">				((MultiPoint)multiPoint.getEsriGeometry()).add((Point)g);</span>
+<span class="fc" id="L814">				continue;</span>
+			}
+
+<span class="fc bfc" id="L817" title="All 2 branches covered.">			if (t == Geometry.Type.MultiPoint) {</span>
+<span class="fc bfc" id="L818" title="All 2 branches covered.">				if (multiPoint == null)</span>
+<span class="fc" id="L819">					multiPoint = new OGCMultiPoint(esriSR);</span>
+				
+<span class="fc" id="L821">				((MultiPoint)multiPoint.getEsriGeometry()).add((MultiPoint)g, 0, -1);</span>
+<span class="fc" id="L822">				continue;</span>
+			}
+			
+<span class="fc bfc" id="L825" title="All 2 branches covered.">			if (t == Geometry.Type.Polyline) {</span>
+<span class="fc bfc" id="L826" title="All 2 branches covered.">				if (polyline == null)</span>
+<span class="fc" id="L827">					polyline = new OGCMultiLineString(esriSR);</span>
+				
+<span class="fc" id="L829">				((MultiPath)polyline.getEsriGeometry()).add((Polyline)g, false);</span>
+<span class="fc" id="L830">				continue;</span>
+			}
+			
+<span class="pc bpc" id="L833" title="1 of 2 branches missed.">			if (t == Geometry.Type.Polygon) {</span>
+<span class="fc bfc" id="L834" title="All 2 branches covered.">				if (polygons == null)</span>
+<span class="fc" id="L835">					polygons = new ArrayList&lt;Geometry&gt;();</span>
+				
+<span class="fc" id="L837">				polygons.add(g);</span>
+<span class="fc" id="L838">				continue;</span>
+			}
+			
+<span class="nc" id="L841">			throw new GeometryException(&quot;internal error&quot;);//what else?</span>
+		}
+
+<span class="fc" id="L844">		List&lt;OGCGeometry&gt; list = new ArrayList&lt;OGCGeometry&gt;();</span>
+
+<span class="fc bfc" id="L846" title="All 2 branches covered.">		if (multiPoint != null)</span>
+<span class="fc" id="L847">			list.add(multiPoint);</span>
+
+<span class="fc bfc" id="L849" title="All 2 branches covered.">		if (polyline != null)</span>
+<span class="fc" id="L850">			list.add(polyline);</span>
+		
+<span class="fc bfc" id="L852" title="All 2 branches covered.">		if (polygons != null) {</span>
+<span class="fc" id="L853">			GeometryCursor unionedPolygons = OperatorUnion.local().execute(new SimpleGeometryCursor(polygons), esriSR, null);</span>
+<span class="fc" id="L854">			Geometry g = unionedPolygons.next();</span>
+<span class="pc bpc" id="L855" title="1 of 2 branches missed.">			if (!g.isEmpty()) {</span>
+<span class="fc" id="L856">				list.add(new OGCMultiPolygon((Polygon)g, esriSR));</span>
+			}
+
+		}
+
+<span class="fc" id="L861">		return new OGCConcreteGeometryCollection(list, esriSR);</span>
+	}
+	
+	/**
+	 * Fixes topological overlaps in the GeometryCollecion.
+	 * This is equivalent to union of the geometry collection elements.
+	 *
+	 * TODO &quot;flattened&quot; collection is supposed to contain only mutli-geometries, but this method may return single geometries
+	 * e.g. for GEOMETRYCOLLECTION (LINESTRING (...)) it returns GEOMETRYCOLLECTION (LINESTRING (...))
+	 * and not GEOMETRYCOLLECTION (MULTILINESTRING (...))
+	 * @return A geometry collection that is flattened and has no overlapping elements.
+	 */
+	public OGCConcreteGeometryCollection flattenAndRemoveOverlaps() {
+
+		//flatten and crack/cluster
+<span class="fc" id="L876">		GeometryCursor cursor = OGCStructureInternal.prepare_for_ops_(flatten().getEsriGeometryCursor(), esriSR);</span>
+
+		//make sure geometries don't overlap
+<span class="fc" id="L879">		return new OGCConcreteGeometryCollection(removeOverlapsHelper_(toList(cursor)), esriSR);</span>
+	}
+
+	private GeometryCursor removeOverlapsHelper_(List&lt;Geometry&gt; geoms) {
+<span class="fc" id="L883">		List&lt;Geometry&gt; result = new ArrayList&lt;Geometry&gt;();</span>
+<span class="fc bfc" id="L884" title="All 2 branches covered.">		for (int i = 0; i &lt; geoms.size(); ++i) {</span>
+<span class="fc" id="L885">			Geometry current = geoms.get(i);</span>
+<span class="pc bpc" id="L886" title="1 of 2 branches missed.">			if (current.isEmpty())</span>
+<span class="nc" id="L887">				continue;</span>
+			
+<span class="fc bfc" id="L889" title="All 2 branches covered.">			for (int j = i + 1; j &lt; geoms.size(); ++j) {</span>
+<span class="fc" id="L890">				Geometry subG = geoms.get(j);</span>
+<span class="fc" id="L891">				current = OperatorDifference.local().execute(current, subG, esriSR, null);</span>
+<span class="fc bfc" id="L892" title="All 2 branches covered.">				if (current.isEmpty())</span>
+<span class="fc" id="L893">					break;</span>
+			}
+			
+<span class="fc bfc" id="L896" title="All 2 branches covered.">			if (current.isEmpty())</span>
+<span class="fc" id="L897">				continue;</span>
+			
+<span class="fc" id="L899">			result.add(current);</span>
+		}
+		
+<span class="fc" id="L902">		return new SimpleGeometryCursor(result);</span>
+	}
+	
+	private static class FlatteningCollectionCursor extends GeometryCursor {
+		private List&lt;OGCConcreteGeometryCollection&gt; m_collections;
+		private GeometryCursor m_current;
+		private int m_index;
+<span class="nc" id="L909">		FlatteningCollectionCursor(List&lt;OGCConcreteGeometryCollection&gt; collections) {</span>
+<span class="nc" id="L910">			m_collections = collections;</span>
+<span class="nc" id="L911">			m_index = -1;</span>
+<span class="nc" id="L912">			m_current = null;</span>
+<span class="nc" id="L913">		}</span>
+		
+		@Override
+		public Geometry next() {
+<span class="nc bnc" id="L917" title="All 2 branches missed.">			while (m_collections != null) {</span>
+<span class="nc bnc" id="L918" title="All 2 branches missed.">				if (m_current != null) {</span>
+<span class="nc" id="L919">					Geometry g = m_current.next();</span>
+<span class="nc bnc" id="L920" title="All 2 branches missed.">					if (g == null) {</span>
+<span class="nc" id="L921">						m_current = null;</span>
+<span class="nc" id="L922">						continue;</span>
+					}
+					
+<span class="nc" id="L925">					return g;</span>
+				}
+				else {
+<span class="nc" id="L928">					m_index++;</span>
+<span class="nc bnc" id="L929" title="All 2 branches missed.">					if (m_index &lt; m_collections.size()) {</span>
+<span class="nc" id="L930">						m_current = m_collections.get(m_index).flatten().getEsriGeometryCursor();</span>
+<span class="nc" id="L931">						continue;</span>
+					}
+					else {
+<span class="nc" id="L934">						m_collections = null;</span>
+<span class="nc" id="L935">						m_index = -1;</span>
+					}
+				}
+			}
+			
+<span class="nc" id="L940">			return null;</span>
+		}
+
+		@Override
+		public int getGeometryID() {
+<span class="nc" id="L945">			return m_index;</span>
+		}
+		
+	};
+	
+	//Collectively processes group of geometry collections (intersects all segments and clusters points).
+	//Flattens collections, removes overlaps.
+	//Once done, the result collections would work well for topological and relational operations.
+	private GeometryCursor prepare_for_ops_(OGCConcreteGeometryCollection collection) {
+<span class="pc bpc" id="L954" title="2 of 4 branches missed.">		assert(collection != null &amp;&amp; !collection.isEmpty());</span>
+<span class="fc" id="L955">		GeometryCursor prepared = OGCStructureInternal.prepare_for_ops_(collection.flatten().getEsriGeometryCursor(), esriSR);</span>
+<span class="fc" id="L956">		return removeOverlapsHelper_(toList(prepared));</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

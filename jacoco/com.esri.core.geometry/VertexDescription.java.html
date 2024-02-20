@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VertexDescription.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">VertexDescription.java</span></div><h1>VertexDescription.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+
+package com.esri.core.geometry;
+
+import java.util.Arrays;
+
+/**
+ * Describes the vertex format of a Geometry.
+ * 
+ * Geometry objects store vertices. The vertex is a multi attribute entity. It
+ * has mandatory X, Y coordinates. In addition it may have Z, M, ID, and other
+ * user specified attributes. Geometries point to VertexDescription instances.
+ * If the two Geometries have same set of attributes, they point to the same
+ * VertexDescription instance. &lt;br&gt;
+ * To create a new VertexDescription use the VertexDescriptionDesigner class. &lt;br&gt;
+ * The VertexDescription allows to add new attribute types easily (see ID2). &lt;br&gt;
+ * The attributes are stored sorted by Semantics value. &lt;br&gt;
+ * Note: You could also think of the VertexDescription as a schema of a database
+ * table. You may look the vertices of a Geometry as if they are stored in a
+ * database table, and the VertexDescription defines the fields of the table.
+ */
+public final class VertexDescription {
+	/**
+	 * Describes the attribute and, in case of predefined attributes, provides a
+	 * hint of the attribute use.
+	 */
+	public interface Semantics {
+		static final int POSITION = 0; // xy coordinates of a point (2D
+												// vector of double, linear
+												// interpolation)
+
+		static final int Z = 1; // z coordinates of a point (double,
+										// linear interpolation)
+
+		static final int M = 2; // m attribute (double, linear
+										// interpolation)
+
+		static final int ID = 3; // id (int, no interpolation)
+
+		static final int NORMAL = 4; // xyz coordinates of normal vector
+											// (float, angular interpolation)
+
+		static final int TEXTURE1D = 5; // u coordinates of texture
+												// (float, linear interpolation)
+
+		static final int TEXTURE2D = 6; // uv coordinates of texture
+												// (float, linear interpolation)
+
+		static final int TEXTURE3D = 7; // uvw coordinates of texture
+												// (float, linear interpolation)
+
+		static final int ID2 = 8; // two component ID
+
+		static final int MAXSEMANTICS = 8; // the max semantics value
+	}
+
+	/**
+	 * Specifies how the attribute is interpolated along the segments. are
+	 * represented as int64
+	 */
+	interface Interpolation {
+		public static final int NONE = 0;
+
+		public static final int LINEAR = 1;
+
+		public static final int ANGULAR = 2;
+	}
+
+	/**
+	 * Specifies the type of the attribute.
+	 */
+	interface Persistence {
+		public static final int enumFloat = 0;
+
+		public static final int enumDouble = 1;
+
+		public static final int enumInt32 = 2;
+
+		public static final int enumInt64 = 3;
+
+		public static final int enumInt8 = 4; // 8 bit integer. Can be signed or
+												// unsigned depending on
+												// platform.
+
+		public static final int enumInt16 = 5;
+	};
+
+	/**
+	 * Returns the attribute count of this description. The value is always
+	 * greater or equal to 1. The first attribute is always a POSITION.
+	 */
+	public final int getAttributeCount() {
+<span class="fc" id="L116">		return m_attributeCount;</span>
+	}
+
+	/**
+	 * Returns the semantics of the given attribute.
+	 * 
+	 * @param attributeIndex
+	 *            The index of the attribute in the description. Max value is
+	 *            getAttributeCount() - 1.
+	 */
+	public final int getSemantics(int attributeIndex) {
+<span class="fc" id="L127">		return m_indexToSemantics[attributeIndex];</span>
+	}
+
+	/**
+	 * Returns the index the given attribute in the vertex description.
+	 * 
+	 * @param semantics
+	 * @return Returns the attribute index or -1 of the attribute does not exist
+	 */
+	public final int getAttributeIndex(int semantics) {
+<span class="fc" id="L137">		return m_semanticsToIndexMap[semantics];</span>
+	}
+
+	/**
+	 * Returns the interpolation type for the attribute.
+	 * 
+	 * @param semantics
+	 *            The semantics of the attribute.
+	 */
+	static int getInterpolation(int semantics) {
+<span class="fc" id="L147">		return _interpolation[semantics];</span>
+	}
+
+	/**
+	 * Returns the persistence type for the attribute.
+	 * 
+	 * @param semantics
+	 *            The semantics of the attribute.
+	 */
+	static int getPersistence(int semantics) {
+<span class="fc" id="L157">		return _persistence[semantics];</span>
+	}
+
+	/**
+	 * Returns the size of the persistence type in bytes.
+	 * 
+	 * @param persistence
+	 *            The persistence type to query.
+	 */
+	static int getPersistenceSize(int persistence) {
+<span class="nc" id="L167">		return _persistencesize[persistence];</span>
+	}
+
+	/**
+	 * Returns the size of the semantics in bytes.
+	 */
+	static int getPersistenceSizeSemantics(int semantics) {
+<span class="nc" id="L174">		return getPersistenceSize(getPersistence(semantics))</span>
+<span class="nc" id="L175">				* getComponentCount(semantics);</span>
+	}
+
+	/**
+	 * Returns the number of the components of the given semantics. For example,
+	 * it returns 2 for the POSITION.
+	 * 
+	 * @param semantics
+	 *            The semantics of the attribute.
+	 */
+	public static int getComponentCount(int semantics) {
+<span class="fc" id="L186">		return _components[semantics];</span>
+	}
+
+	/**
+	 * Returns True if the attribute with the given name and given set exists.
+	 * 
+	 * @param semantics
+	 *            The semantics of the attribute.
+	 */
+	public boolean hasAttribute(int semantics) {
+<span class="fc bfc" id="L196" title="All 2 branches covered.">		return (m_semanticsBitArray &amp; (1 &lt;&lt; semantics)) != 0;</span>
+	}
+
+	/**
+	 * Returns True if this vertex description includes all attributes from the
+	 * src.
+	 *
+	 * @param src
+	 *            The Vertex_description to compare with.
+	 * @return The function returns false, only when this description does not
+	 *         have some of the attribute that src has.
+	 */
+	public final boolean hasAttributesFrom(VertexDescription src) {
+<span class="nc bnc" id="L209" title="All 2 branches missed.">		return (m_semanticsBitArray &amp; src.m_semanticsBitArray) == src.m_semanticsBitArray;</span>
+	}
+
+	/**
+	 * Returns True, if the vertex has Z attribute.
+	 */
+	public final boolean hasZ() {
+<span class="nc" id="L216">		return hasAttribute(Semantics.Z);</span>
+	}
+
+	/**
+	 * Returns True, if the vertex has M attribute.
+	 */
+	public final boolean hasM() {
+<span class="nc" id="L223">		return hasAttribute(Semantics.M);</span>
+	}
+
+	/**
+	 * Returns True, if the vertex has ID attribute.
+	 */
+	public final boolean hasID() {
+<span class="nc" id="L230">		return hasAttribute(Semantics.ID);</span>
+	}
+
+	/**
+	 * Returns default value for each ordinate of the vertex attribute with
+	 * given semantics.
+	 */
+	public static double getDefaultValue(int semantics) {
+<span class="fc" id="L238">		return _defaultValues[semantics];</span>
+	}
+
+	int getPointAttributeOffset_(int attributeIndex) {
+<span class="nc" id="L242">		return m_pointAttributeOffsets[attributeIndex];</span>
+	}
+
+	/**
+	 * Returns the total component count.
+	 */
+	public int getTotalComponentCount() {
+<span class="fc" id="L249">		return m_totalComponentCount;</span>
+	}
+
+	/**
+	 * Checks if the given value is the default one. The simple equality test
+	 * with GetDefaultValue does not work due to the use of NaNs as default
+	 * value for some parameters.
+	 */
+	public static boolean isDefaultValue(int semantics, double v) {
+<span class="fc" id="L258">		return NumberUtils.doubleToInt64Bits(_defaultValues[semantics]) == NumberUtils</span>
+<span class="pc bpc" id="L259" title="1 of 2 branches missed.">				.doubleToInt64Bits(v);</span>
+	}
+
+	static boolean isIntegerPersistence(int persistence) {
+<span class="nc bnc" id="L263" title="All 2 branches missed.">		return persistence &gt;= Persistence.enumInt32;</span>
+	}
+
+	static boolean isIntegerSemantics(int semantics) {
+<span class="nc" id="L267">		return isIntegerPersistence(getPersistence(semantics));</span>
+	}
+	
+	@Override
+	public boolean equals(Object _other) {
+<span class="pc bpc" id="L272" title="1 of 2 branches missed.">		return (Object) this == _other;</span>
+	}
+
+	/**
+	 * 
+	 * Returns a packed array of double representation of all ordinates of
+	 * attributes of a point, i.e.: X, Y, Z, ID, TEXTURE2D.u, TEXTURE2D.v
+	 */
+	double[] _getDefaultPointAttributes() {
+<span class="fc" id="L281">		return m_defaultPointAttributes;</span>
+	}
+
+	double _getDefaultPointAttributeValue(int attributeIndex, int ordinate) {
+<span class="nc" id="L285">		return m_defaultPointAttributes[_getPointAttributeOffset(attributeIndex)</span>
+				+ ordinate];
+	}
+
+	/**
+	 * 
+	 * Returns an offset to the first ordinate of the given attribute. This
+	 * method is used for the cases when one wants to have a packed array of
+	 * ordinates of all attributes, i.e.: X, Y, Z, ID, TEXTURE2D.u, TEXTURE2D.v
+	 */
+	int _getPointAttributeOffset(int attributeIndex) {
+<span class="fc" id="L296">		return m_pointAttributeOffsets[attributeIndex];</span>
+	}
+
+	int _getPointAttributeOffsetFromSemantics(int semantics) {
+<span class="nc" id="L300">		return m_pointAttributeOffsets[getAttributeIndex(semantics)];</span>
+	}
+
+	@Override
+	public int hashCode() {
+<span class="fc" id="L305">		return m_hash;</span>
+	}
+
+	int _getSemanticsImpl(int attributeIndex) {
+<span class="fc" id="L309">		return m_indexToSemantics[attributeIndex];</span>
+	}
+
+<span class="fc" id="L312">	VertexDescription(int bitMask) {</span>
+<span class="fc" id="L313">		m_semanticsBitArray = bitMask;</span>
+<span class="fc" id="L314">		m_attributeCount = 0;</span>
+<span class="fc" id="L315">		m_totalComponentCount = 0;</span>
+<span class="fc" id="L316">		m_semanticsToIndexMap = new int[Semantics.MAXSEMANTICS + 1];</span>
+<span class="fc" id="L317">		Arrays.fill(m_semanticsToIndexMap, -1);</span>
+<span class="fc bfc" id="L318" title="All 2 branches covered.">		for (int i = 0, flag = 1, n = Semantics.MAXSEMANTICS + 1; i &lt; n; i++) {</span>
+<span class="fc bfc" id="L319" title="All 2 branches covered.">			if ((bitMask &amp; flag) != 0) {</span>
+<span class="fc" id="L320">				m_semanticsToIndexMap[i] = m_attributeCount;</span>
+<span class="fc" id="L321">				m_attributeCount++;</span>
+<span class="fc" id="L322">				int comps = getComponentCount(i);</span>
+<span class="fc" id="L323">				m_totalComponentCount += comps;</span>
+			}
+
+<span class="fc" id="L326">			flag &lt;&lt;= 1;</span>
+		}
+
+<span class="fc" id="L329">		m_indexToSemantics = new int[m_attributeCount];</span>
+<span class="fc bfc" id="L330" title="All 2 branches covered.">		for (int i = 0, n = Semantics.MAXSEMANTICS + 1; i &lt; n; i++) {</span>
+<span class="fc" id="L331">			int attrib = m_semanticsToIndexMap[i];</span>
+<span class="fc bfc" id="L332" title="All 2 branches covered.">			if (attrib &gt;= 0)</span>
+<span class="fc" id="L333">				m_indexToSemantics[attrib] = i;</span>
+		}
+
+<span class="fc" id="L336">		m_defaultPointAttributes = new double[m_totalComponentCount];</span>
+<span class="fc" id="L337">		m_pointAttributeOffsets = new int[m_attributeCount];</span>
+<span class="fc" id="L338">		int offset = 0;</span>
+<span class="fc bfc" id="L339" title="All 2 branches covered.">		for (int i = 0, n = m_attributeCount; i &lt; n; i++) {</span>
+<span class="fc" id="L340">			int semantics = getSemantics(i);</span>
+<span class="fc" id="L341">			int comps = getComponentCount(semantics);</span>
+<span class="fc" id="L342">			double v = getDefaultValue(semantics);</span>
+<span class="fc" id="L343">			m_pointAttributeOffsets[i] = offset;</span>
+<span class="fc bfc" id="L344" title="All 2 branches covered.">			for (int icomp = 0; icomp &lt; comps; icomp++) {</span>
+<span class="fc" id="L345">				m_defaultPointAttributes[offset] = v;</span>
+<span class="fc" id="L346">				offset++;</span>
+			}
+		}
+
+<span class="fc" id="L350">		m_hash = NumberUtils.hash(m_semanticsBitArray);</span>
+<span class="fc" id="L351">	}</span>
+
+	private int m_attributeCount;
+	int m_semanticsBitArray; //the main component
+	private int m_totalComponentCount;
+	private int m_hash;
+
+	private int[] m_semanticsToIndexMap;
+	private int[] m_indexToSemantics;
+	private int[] m_pointAttributeOffsets;
+	private double[] m_defaultPointAttributes;
+
+<span class="fc" id="L363">	static final double[] _defaultValues = { 0, 0, NumberUtils.NaN(), 0, 0, 0,</span>
+			0, 0, 0 };
+
+<span class="fc" id="L366">	static final int[] _interpolation = { Interpolation.LINEAR,</span>
+			Interpolation.LINEAR, Interpolation.LINEAR, Interpolation.NONE,
+			Interpolation.ANGULAR, Interpolation.LINEAR, Interpolation.LINEAR,
+			Interpolation.LINEAR, Interpolation.NONE, };
+
+<span class="fc" id="L371">	static final int[] _persistence = { Persistence.enumDouble,</span>
+			Persistence.enumDouble, Persistence.enumDouble,
+			Persistence.enumInt32, Persistence.enumFloat,
+			Persistence.enumFloat, Persistence.enumFloat,
+			Persistence.enumFloat, Persistence.enumInt32, };
+
+<span class="fc" id="L377">	static final int[] _persistencesize = { 4, 8, 4, 8, 1, 2 };</span>
+
+<span class="fc" id="L379">	static final int[] _components = { 2, 1, 1, 1, 3, 1, 2, 3, 2, };</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

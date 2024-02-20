@@ -1,0 +1,1926 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Bufferer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Bufferer.java</span></div><h1>Bufferer.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+import java.util.ArrayList;
+import java.util.List;
+
+<span class="fc" id="L29">class Bufferer {</span>
+<span class="fc" id="L30">	Bufferer() {</span>
+<span class="fc" id="L31">		m_buffer_commands = new ArrayList&lt;BufferCommand&gt;(128);</span>
+<span class="fc" id="L32">		m_progress_tracker = null;</span>
+<span class="fc" id="L33">		m_tolerance = 0;</span>
+<span class="fc" id="L34">		m_small_tolerance = 0;</span>
+<span class="fc" id="L35">		m_filter_tolerance = 0;</span>
+<span class="fc" id="L36">		m_distance = 0;</span>
+<span class="fc" id="L37">		m_original_geom_type = Geometry.GeometryType.Unknown;</span>
+<span class="fc" id="L38">		m_abs_distance_reversed = 0;</span>
+<span class="fc" id="L39">		m_abs_distance = 0;</span>
+<span class="fc" id="L40">		m_densify_dist = -1;</span>
+<span class="fc" id="L41">		m_dA = -1;</span>
+<span class="fc" id="L42">		m_b_output_loops = true;</span>
+<span class="fc" id="L43">		m_bfilter = true;</span>
+<span class="fc" id="L44">		m_old_circle_template_size = 0;</span>
+<span class="fc" id="L45">	}</span>
+
+	
+	/**
+	 * Result is always a polygon. For non positive distance and non-areas
+	 * returns an empty polygon. For points returns circles.
+	 */
+	Geometry buffer(Geometry geometry, double distance,
+			SpatialReference sr, double densify_dist,
+			int max_vertex_in_complete_circle, ProgressTracker progress_tracker) {
+<span class="pc bpc" id="L55" title="1 of 2 branches missed.">		if (geometry == null)</span>
+<span class="nc" id="L56">			throw new IllegalArgumentException();</span>
+
+<span class="pc bpc" id="L58" title="1 of 2 branches missed.">		if (densify_dist &lt; 0)</span>
+<span class="nc" id="L59">			throw new IllegalArgumentException();</span>
+
+<span class="pc bpc" id="L61" title="1 of 2 branches missed.">		if (geometry.isEmpty())</span>
+<span class="nc" id="L62">			return new Polygon(geometry.getDescription());</span>
+
+<span class="fc" id="L64">		Envelope2D env2D = new Envelope2D();</span>
+<span class="fc" id="L65">		geometry.queryLooseEnvelope2D(env2D);</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">		if (distance &gt; 0)</span>
+<span class="fc" id="L67">			env2D.inflate(distance, distance);</span>
+
+<span class="fc" id="L69">		m_progress_tracker = progress_tracker;</span>
+
+<span class="fc" id="L71">		m_original_geom_type = geometry.getType().value();</span>
+<span class="fc" id="L72">		m_geometry = geometry;</span>
+<span class="fc" id="L73">		m_tolerance = InternalUtils.calculateToleranceFromGeometry(sr,</span>
+				env2D, true);// conservative to have same effect as simplify
+<span class="fc" id="L75">		m_small_tolerance = InternalUtils</span>
+<span class="fc" id="L76">				.calculateToleranceFromGeometry(null, env2D, true);// conservative</span>
+																	// to have
+																	// same
+																	// effect as
+																	// simplify
+
+<span class="pc bpc" id="L82" title="1 of 2 branches missed.">		if (max_vertex_in_complete_circle &lt;= 0) {</span>
+<span class="nc" id="L83">			max_vertex_in_complete_circle = 96;// 96 is the value used by SG.</span>
+												// This is the number of
+												// vertices in the full circle.
+		}
+		
+<span class="fc" id="L88">		m_spatialReference = sr;</span>
+<span class="fc" id="L89">		m_distance = distance;</span>
+<span class="fc" id="L90">		m_abs_distance = Math.abs(m_distance);</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">		m_abs_distance_reversed = m_abs_distance != 0 ? 1.0 / m_abs_distance</span>
+<span class="fc" id="L92">				: 0;</span>
+
+<span class="pc bpc" id="L94" title="1 of 4 branches missed.">		if (NumberUtils.isNaN(densify_dist) || densify_dist == 0) {</span>
+<span class="fc" id="L95">			densify_dist = m_abs_distance * 1e-5;</span>
+		} else {
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">			if (densify_dist &gt; m_abs_distance * 0.5)</span>
+<span class="nc" id="L98">				densify_dist = m_abs_distance * 0.5;// do not allow too</span>
+																// large densify
+																// distance (the
+																// value will be
+																// adjusted
+																// anyway later)
+		}
+
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">		if (max_vertex_in_complete_circle &lt; 12)</span>
+<span class="nc" id="L107">			max_vertex_in_complete_circle = 12;</span>
+
+		
+<span class="fc" id="L110">		double max_dd = Math.abs(distance)</span>
+<span class="fc" id="L111">				* (1 - Math.cos(Math.PI / max_vertex_in_complete_circle));</span>
+
+<span class="fc bfc" id="L113" title="All 2 branches covered.">		if (max_dd &gt; densify_dist)</span>
+<span class="fc" id="L114">			densify_dist = max_dd;// the densify distance has to agree with the</span>
+									// max_vertex_in_complete_circle
+		else {
+<span class="fc" id="L117">			double vertex_count = Math.PI</span>
+<span class="fc" id="L118">					/ Math.acos(1.0 - densify_dist / Math.abs(distance));</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">			if (vertex_count &lt; (double) max_vertex_in_complete_circle - 1.0) {</span>
+<span class="nc" id="L120">				max_vertex_in_complete_circle = (int) vertex_count;</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">				if (max_vertex_in_complete_circle &lt; 12) {</span>
+<span class="nc" id="L122">					max_vertex_in_complete_circle = 12;</span>
+<span class="nc" id="L123">					densify_dist = Math.abs(distance)</span>
+<span class="nc" id="L124">							* (1 - Math.cos(Math.PI</span>
+									/ max_vertex_in_complete_circle));
+				}
+			}
+		}
+
+<span class="fc" id="L130">		m_densify_dist = densify_dist;</span>
+<span class="fc" id="L131">		m_max_vertex_in_complete_circle = max_vertex_in_complete_circle;</span>
+		// when filtering close points we do not want the filter to distort
+		// generated buffer too much.
+<span class="fc" id="L134">		m_filter_tolerance = Math.min(m_small_tolerance,</span>
+				densify_dist * 0.25);
+		
+		
+<span class="fc" id="L138">		m_circle_template_size = calcN_();</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">		if (m_circle_template_size != m_old_circle_template_size) {</span>
+			// we have an optimization for this method to be called several
+			// times. Here we detected too many changes and need to regenerate
+			// the data.
+<span class="fc" id="L143">			m_circle_template.clear();</span>
+<span class="fc" id="L144">			m_old_circle_template_size = m_circle_template_size;</span>
+		}
+
+<span class="fc" id="L147">		Geometry result_geom = buffer_();</span>
+<span class="fc" id="L148">		m_geometry = null;</span>
+<span class="fc" id="L149">		return result_geom;		</span>
+	}
+
+	private Geometry m_geometry;
+
+	private static final class BufferCommand {
+		private interface Flags {
+			static final int enum_line = 1;
+			static final int enum_arc = 2;
+			static final int enum_connection = enum_arc | enum_line;
+		}
+
+		private Point2D m_from;
+		private Point2D m_to;
+		private Point2D m_center;
+		private int m_next;
+		private int m_prev;
+		private int m_type;
+
+		private BufferCommand(Point2D from, Point2D to, Point2D center,
+<span class="fc" id="L169">				int type, int next, int prev) {</span>
+<span class="fc" id="L170">			m_from = new Point2D();</span>
+<span class="fc" id="L171">			m_to = new Point2D();</span>
+<span class="fc" id="L172">			m_center = new Point2D();</span>
+<span class="fc" id="L173">			m_from.setCoords(from);</span>
+<span class="fc" id="L174">			m_to.setCoords(to);</span>
+<span class="fc" id="L175">			m_center.setCoords(center);</span>
+<span class="fc" id="L176">			m_type = type;</span>
+<span class="fc" id="L177">			m_next = next;</span>
+<span class="fc" id="L178">			m_prev = prev;</span>
+<span class="fc" id="L179">		}</span>
+
+		private BufferCommand(Point2D from, Point2D to, int next, int prev,
+<span class="fc" id="L182">				String dummy) {</span>
+<span class="fc" id="L183">			m_from = new Point2D();</span>
+<span class="fc" id="L184">			m_to = new Point2D();</span>
+<span class="fc" id="L185">			m_center = new Point2D();</span>
+<span class="fc" id="L186">			m_from.setCoords(from);</span>
+<span class="fc" id="L187">			m_to.setCoords(to);</span>
+<span class="fc" id="L188">			m_center.setNaN();</span>
+<span class="fc" id="L189">			m_type = 4;</span>
+<span class="fc" id="L190">			m_next = next;</span>
+<span class="fc" id="L191">			m_prev = prev;</span>
+<span class="fc" id="L192">		}</span>
+	}
+
+	private ArrayList&lt;BufferCommand&gt; m_buffer_commands;
+
+	private int m_original_geom_type;
+	private ProgressTracker m_progress_tracker;
+	private int m_max_vertex_in_complete_circle;
+	private SpatialReference m_spatialReference;
+	private double m_tolerance;
+	private double m_small_tolerance;
+	private double m_filter_tolerance;
+	private double m_densify_dist;
+	private double m_distance;
+	private double m_abs_distance;
+	private double m_abs_distance_reversed;
+	private double m_dA;
+	private boolean m_b_output_loops;
+	private boolean m_bfilter;
+<span class="fc" id="L211">	private ArrayList&lt;Point2D&gt; m_circle_template = new ArrayList&lt;Point2D&gt;(0);</span>
+	private ArrayList&lt;Point2D&gt; m_left_stack;
+	private ArrayList&lt;Point2D&gt; m_middle_stack;
+	private Line m_helper_line_1;
+	private Line m_helper_line_2;
+	private Point2D[] m_helper_array;
+	private int m_progress_counter;
+	private int m_circle_template_size;
+	private int m_old_circle_template_size;
+
+	private void generateCircleTemplate_() {
+<span class="fc bfc" id="L222" title="All 2 branches covered.">		if (!m_circle_template.isEmpty()) {</span>
+<span class="fc" id="L223">			return;</span>
+		}
+
+<span class="fc" id="L226">		int N = m_circle_template_size;</span>
+
+<span class="pc bpc" id="L228" title="1 of 2 branches missed.">		assert (N &gt;= 4);</span>
+<span class="fc" id="L229">		int real_size = (N + 3) / 4;</span>
+<span class="fc" id="L230">		double dA = (Math.PI * 0.5) / real_size;</span>
+<span class="fc" id="L231">		m_dA = dA;</span>
+
+<span class="fc bfc" id="L233" title="All 2 branches covered.">		for (int i = 0; i &lt; real_size * 4; i++)</span>
+<span class="fc" id="L234">			m_circle_template.add(null);</span>
+
+<span class="fc" id="L236">		double dcos = Math.cos(dA);</span>
+<span class="fc" id="L237">		double dsin = Math.sin(dA);</span>
+<span class="fc" id="L238">		Point2D pt = new Point2D(0.0, 1.0);</span>
+
+<span class="fc bfc" id="L240" title="All 2 branches covered.">		for (int i = 0; i &lt; real_size; i++) {</span>
+<span class="fc" id="L241">			m_circle_template.set(i + real_size * 0, new Point2D(pt.y, -pt.x));</span>
+<span class="fc" id="L242">			m_circle_template.set(i + real_size * 1, new Point2D(-pt.x, -pt.y));</span>
+<span class="fc" id="L243">			m_circle_template.set(i + real_size * 2, new Point2D(-pt.y, pt.x));</span>
+<span class="fc" id="L244">			m_circle_template.set(i + real_size * 3, pt);</span>
+<span class="fc" id="L245">			pt = new Point2D(pt.x, pt.y);</span>
+<span class="fc" id="L246">			pt.rotateReverse(dcos, dsin);</span>
+		}
+		// the template is filled with the index 0 corresponding to the point
+		// (0, 0), following clockwise direction (0, -1), (-1, 0), (1, 0)
+<span class="fc" id="L250">	}</span>
+
+	private static final class GeometryCursorForMultiPoint extends
+			GeometryCursor {
+		private Bufferer m_parent; 
+		private int m_index;
+		private Geometry m_buffered_polygon;
+		private MultiPoint m_mp;
+		private SpatialReference m_spatialReference;
+		private double m_distance;
+		private double m_densify_dist;
+		private double m_x;
+		private double m_y;
+		private int m_max_vertex_in_complete_circle;
+		private ProgressTracker m_progress_tracker;
+
+		GeometryCursorForMultiPoint(Bufferer parent, MultiPoint mp, double distance,
+				SpatialReference sr, double densify_dist,
+				int max_vertex_in_complete_circle,
+<span class="fc" id="L269">				ProgressTracker progress_tracker) {</span>
+<span class="fc" id="L270">			m_parent = parent;</span>
+<span class="fc" id="L271">			m_index = 0;</span>
+<span class="fc" id="L272">			m_mp = mp;</span>
+<span class="fc" id="L273">			m_x = 0;</span>
+<span class="fc" id="L274">			m_y = 0;</span>
+<span class="fc" id="L275">			m_distance = distance;</span>
+<span class="fc" id="L276">			m_spatialReference = sr;</span>
+<span class="fc" id="L277">			m_densify_dist = densify_dist;</span>
+<span class="fc" id="L278">			m_max_vertex_in_complete_circle = max_vertex_in_complete_circle;</span>
+<span class="fc" id="L279">			m_progress_tracker = progress_tracker;</span>
+<span class="fc" id="L280">		}</span>
+
+		@Override
+		public Geometry next() {
+<span class="fc" id="L284">			Point point = new Point();</span>
+			while (true) {
+<span class="fc bfc" id="L286" title="All 2 branches covered.">				if (m_index == m_mp.getPointCount())</span>
+<span class="fc" id="L287">					return null;</span>
+
+<span class="fc" id="L289">				m_mp.getPointByVal(m_index, point);</span>
+<span class="fc" id="L290">				m_index++;</span>
+<span class="pc bpc" id="L291" title="1 of 2 branches missed.">				if (point.isEmpty())</span>
+<span class="nc" id="L292">					continue;</span>
+				break;
+			}
+
+<span class="fc" id="L296">			boolean b_first = false;</span>
+<span class="fc bfc" id="L297" title="All 2 branches covered.">			if (m_buffered_polygon == null) {</span>
+<span class="fc" id="L298">				m_x = point.getX();</span>
+<span class="fc" id="L299">				m_y = point.getY();</span>
+
+<span class="fc" id="L301">				m_buffered_polygon = m_parent.buffer(point, m_distance,</span>
+						m_spatialReference, m_densify_dist,
+						m_max_vertex_in_complete_circle, m_progress_tracker);
+<span class="fc" id="L304">				b_first = true;</span>
+			}
+
+			Geometry res;
+<span class="fc bfc" id="L308" title="All 2 branches covered.">			if (m_index &lt; m_mp.getPointCount()) {</span>
+<span class="fc" id="L309">				res = new Polygon();</span>
+<span class="fc" id="L310">				m_buffered_polygon.copyTo(res);</span>
+			} else {
+<span class="fc" id="L312">				res = m_buffered_polygon; // do not clone the last geometry.</span>
+			}
+
+<span class="fc bfc" id="L315" title="All 2 branches covered.">			if (!b_first)// don't apply transformation unnecessary</span>
+			{
+<span class="fc" id="L317">				Transformation2D transform = new Transformation2D();</span>
+<span class="fc" id="L318">				double dx = point.getX() - m_x;</span>
+<span class="fc" id="L319">				double dy = point.getY() - m_y;</span>
+<span class="fc" id="L320">				transform.setShift(dx, dy);</span>
+<span class="fc" id="L321">				res.applyTransformation(transform);</span>
+			}
+
+<span class="fc" id="L324">			return res;</span>
+		}
+
+		@Override
+		public int getGeometryID() {
+<span class="nc" id="L329">			return 0;</span>
+		}
+	}
+
+	private static final class GlueingCursorForPolyline extends GeometryCursor {
+		private Polyline m_polyline;
+		private int m_current_path_index;
+
+<span class="fc" id="L337">		GlueingCursorForPolyline(Polyline polyline) {</span>
+<span class="fc" id="L338">			m_polyline = polyline;</span>
+<span class="fc" id="L339">			m_current_path_index = 0;</span>
+<span class="fc" id="L340">		}</span>
+
+		@Override
+		public Geometry next() {
+<span class="fc bfc" id="L344" title="All 2 branches covered.">			if (m_polyline == null)</span>
+<span class="fc" id="L345">				return null;</span>
+
+<span class="fc" id="L347">			MultiPathImpl mp = (MultiPathImpl) m_polyline._getImpl();</span>
+<span class="fc" id="L348">			int npaths = mp.getPathCount();</span>
+<span class="pc bpc" id="L349" title="1 of 2 branches missed.">			if (m_current_path_index &lt; npaths) {</span>
+<span class="fc" id="L350">				int ind = m_current_path_index;</span>
+<span class="fc" id="L351">				m_current_path_index++;</span>
+<span class="pc bpc" id="L352" title="1 of 2 branches missed.">				if (!mp.isClosedPathInXYPlane(ind)) {</span>
+					// connect paths that follow one another as an optimization
+					// for buffering (helps when one polyline is split into many
+					// segments).
+<span class="fc" id="L356">					Point2D prev_end = mp.getXY(mp.getPathEnd(ind) - 1);</span>
+<span class="fc bfc" id="L357" title="All 2 branches covered.">					while (m_current_path_index &lt; mp.getPathCount()) {</span>
+<span class="fc" id="L358">						Point2D start = mp.getXY(mp</span>
+<span class="fc" id="L359">								.getPathStart(m_current_path_index));</span>
+<span class="pc bpc" id="L360" title="1 of 2 branches missed.">						if (mp.isClosedPathInXYPlane(m_current_path_index))</span>
+<span class="nc" id="L361">							break;</span>
+<span class="pc bpc" id="L362" title="1 of 2 branches missed.">						if (start != prev_end)</span>
+<span class="fc" id="L363">							break;</span>
+
+<span class="nc" id="L365">						prev_end = mp</span>
+<span class="nc" id="L366">								.getXY(mp.getPathEnd(m_current_path_index) - 1);</span>
+<span class="nc" id="L367">						m_current_path_index++;</span>
+<span class="nc" id="L368">					}</span>
+				}
+
+<span class="fc bfc" id="L371" title="All 2 branches covered.">				if (ind == 0</span>
+<span class="fc bfc" id="L372" title="All 2 branches covered.">						&amp;&amp; m_current_path_index == m_polyline.getPathCount()) {</span>
+<span class="fc" id="L373">					Polyline pol = m_polyline;</span>
+<span class="fc" id="L374">					m_polyline = null;</span>
+<span class="fc" id="L375">					return pol;</span>
+				}
+
+<span class="fc" id="L378">				Polyline tmp_polyline = new Polyline(</span>
+<span class="fc" id="L379">						m_polyline.getDescription());</span>
+<span class="fc" id="L380">				tmp_polyline.addPath(m_polyline, ind, true);</span>
+<span class="pc bpc" id="L381" title="1 of 2 branches missed.">				for (int i = ind + 1; i &lt; m_current_path_index; i++) {</span>
+<span class="nc" id="L382">					tmp_polyline.addSegmentsFromPath(m_polyline, i, 0,</span>
+<span class="nc" id="L383">							mp.getSegmentCount(i), false);</span>
+				}
+
+				if (false) {
+					OperatorFactoryLocal.saveGeometryToEsriShapeDbg(
+							&quot;c:/temp/_geom.bin&quot;, tmp_polyline);
+				}
+
+<span class="fc bfc" id="L391" title="All 2 branches covered.">				if (m_current_path_index == m_polyline.getPathCount())</span>
+<span class="fc" id="L392">					m_polyline = null;</span>
+
+<span class="fc" id="L394">				return tmp_polyline;</span>
+			} else {
+<span class="nc" id="L396">				return null;</span>
+			}
+		}
+
+		@Override
+		public int getGeometryID() {
+<span class="fc" id="L402">			return 0;</span>
+		}
+	}
+	
+	private static final class GeometryCursorForPolyline extends GeometryCursor {
+		private Bufferer m_bufferer;
+		GeometryCursor m_geoms;
+		Geometry m_geometry;
+		private int m_index;
+		private boolean m_bfilter;
+
+		GeometryCursorForPolyline(Bufferer bufferer, GeometryCursor geoms,
+<span class="fc" id="L414">				boolean bfilter) {</span>
+<span class="fc" id="L415">			m_bufferer = bufferer;</span>
+<span class="fc" id="L416">			m_geoms = geoms;</span>
+<span class="fc" id="L417">			m_index = 0;</span>
+<span class="fc" id="L418">			m_bfilter = bfilter;</span>
+<span class="fc" id="L419">		}</span>
+
+		@Override
+		public Geometry next() {
+<span class="fc bfc" id="L423" title="All 2 branches covered.">			if (m_geometry == null) {</span>
+<span class="fc" id="L424">				m_index = 0;</span>
+<span class="fc" id="L425">				m_geometry = m_geoms.next();</span>
+<span class="fc bfc" id="L426" title="All 2 branches covered.">				if (m_geometry == null)</span>
+<span class="fc" id="L427">					return null;</span>
+			}
+
+<span class="fc" id="L430">			MultiPath mp = (MultiPath) (m_geometry);</span>
+<span class="fc bfc" id="L431" title="All 2 branches covered.">			if (m_index &lt; mp.getPathCount()) {</span>
+<span class="fc" id="L432">				int ind = m_index;</span>
+<span class="fc" id="L433">				m_index++;</span>
+<span class="fc" id="L434">				return m_bufferer.bufferPolylinePath_((Polyline) m_geometry,</span>
+						ind, m_bfilter);
+			}
+
+<span class="fc" id="L438">			m_geometry = null;</span>
+<span class="fc" id="L439">			return next();</span>
+		}
+
+		@Override
+		public int getGeometryID() {
+<span class="nc" id="L444">			return 0;</span>
+		}
+	}
+
+<span class="fc" id="L448">	private static final class GeometryCursorForPolygon extends GeometryCursor {</span>
+		private Bufferer m_bufferer;
+		private int m_index;
+
+<span class="fc" id="L452">		GeometryCursorForPolygon(Bufferer bufferer) {</span>
+<span class="fc" id="L453">			m_bufferer = bufferer;</span>
+<span class="fc" id="L454">			m_index = 0;</span>
+<span class="fc" id="L455">		}</span>
+
+		@Override
+		public Geometry next() {
+<span class="fc" id="L459">			Polygon input_polygon = (Polygon) (m_bufferer.m_geometry);</span>
+<span class="fc bfc" id="L460" title="All 2 branches covered.">			if (m_index &lt; input_polygon.getPathCount()) {</span>
+<span class="fc" id="L461">				int ind = m_index;</span>
+<span class="fc" id="L462">				double area = input_polygon.calculateRingArea2D(m_index);</span>
+<span class="pc bpc" id="L463" title="1 of 2 branches missed.">				assert (area &gt; 0);</span>
+<span class="fc" id="L464">				m_index++;</span>
+<span class="pc bpc" id="L465" title="1 of 2 branches missed.">				while (m_index &lt; input_polygon.getPathCount()) {</span>
+<span class="nc" id="L466">					double hole_area = input_polygon</span>
+<span class="nc" id="L467">							.calculateRingArea2D(m_index);</span>
+<span class="nc bnc" id="L468" title="All 2 branches missed.">					if (hole_area &gt; 0)</span>
+<span class="nc" id="L469">						break;// not a hole</span>
+<span class="nc" id="L470">					m_index++;</span>
+<span class="nc" id="L471">				}</span>
+
+<span class="pc bpc" id="L473" title="2 of 4 branches missed.">				if (ind == 0 &amp;&amp; m_index == input_polygon.getPathCount()) {</span>
+<span class="fc" id="L474">					return m_bufferer.bufferPolygonImpl_(input_polygon, 0,</span>
+<span class="fc" id="L475">							input_polygon.getPathCount());</span>
+				} else {
+<span class="nc" id="L477">					return m_bufferer.bufferPolygonImpl_(input_polygon, ind,</span>
+							m_index);
+				}
+			}
+
+<span class="fc" id="L482">			return null;</span>
+		}
+
+		@Override
+		public int getGeometryID() {
+<span class="nc" id="L487">			return 0;</span>
+		}
+	}
+
+	private Geometry buffer_() {
+<span class="fc" id="L492">		int gt = m_geometry.getType().value();</span>
+<span class="fc bfc" id="L493" title="All 2 branches covered.">		if (Geometry.isSegment(gt)) {// convert segment to a polyline and repeat</span>
+										// the call
+<span class="fc" id="L495">			Polyline polyline = new Polyline(m_geometry.getDescription());</span>
+<span class="fc" id="L496">			polyline.addSegment((Segment) (m_geometry), true);</span>
+<span class="fc" id="L497">			m_geometry = polyline;</span>
+<span class="fc" id="L498">			return buffer_();</span>
+		}
+
+<span class="fc bfc" id="L501" title="All 2 branches covered.">		if (m_distance &lt;= m_tolerance) {</span>
+<span class="fc bfc" id="L502" title="All 2 branches covered.">			if (Geometry.isArea(gt)) {</span>
+<span class="pc bpc" id="L503" title="1 of 2 branches missed.">				if (m_distance &lt;= 0) {</span>
+					// if the geometry is area type, then the negative distance
+					// may produce a degenerate shape. Check for this and return
+					// empty geometry.
+<span class="fc" id="L507">					Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L508">					m_geometry.queryEnvelope2D(env);</span>
+<span class="fc bfc" id="L509" title="All 2 branches covered.">					if (env.getWidth() &lt;= -m_distance * 2</span>
+<span class="pc bpc" id="L510" title="1 of 2 branches missed.">							|| env.getHeight() &lt;= m_distance * 2)</span>
+<span class="fc" id="L511">						return new Polygon(m_geometry.getDescription());</span>
+<span class="fc" id="L512">				}</span>
+			} else {
+<span class="fc" id="L514">				return new Polygon(m_geometry.getDescription());// return an</span>
+																// empty polygon
+																// for distance
+																// &lt;=
+																// m_tolerance
+																// and any input
+																// other than
+																// polygon.
+			}
+		}
+
+		// Operator_factory_local::SaveJSONToTextFileDbg(&quot;c:/temp/buffer_input.txt&quot;,
+		// *m_geometry, nullptr);
+
+		// Complex cases:
+<span class="pc bpc" id="L529" title="1 of 6 branches missed.">		switch (m_geometry.getType().value()) {</span>
+		case Geometry.GeometryType.Point:
+<span class="fc" id="L531">			return bufferPoint_();</span>
+		case Geometry.GeometryType.MultiPoint:
+<span class="fc" id="L533">			return bufferMultiPoint_();</span>
+		case Geometry.GeometryType.Polyline:
+<span class="fc" id="L535">			return bufferPolyline_();</span>
+		case Geometry.GeometryType.Polygon:
+<span class="fc" id="L537">			return bufferPolygon_();</span>
+		case Geometry.GeometryType.Envelope:
+<span class="fc" id="L539">			return bufferEnvelope_();</span>
+		default:
+<span class="nc" id="L541">			throw GeometryException.GeometryInternalError();</span>
+		}
+	}
+
+	private Geometry bufferPolyline_() {
+<span class="pc bpc" id="L546" title="1 of 2 branches missed.">		if (isDegenerateGeometry_(m_geometry)) {</span>
+<span class="nc" id="L547">			Point point = new Point();</span>
+<span class="nc" id="L548">			((MultiVertexGeometry) m_geometry).getPointByVal(0, point);</span>
+<span class="nc" id="L549">			Envelope2D env2D = new Envelope2D();</span>
+<span class="nc" id="L550">			m_geometry.queryEnvelope2D(env2D);</span>
+<span class="nc" id="L551">			point.setXY(env2D.getCenter());</span>
+<span class="nc" id="L552">			return bufferPoint_(point);</span>
+		}
+
+<span class="pc bpc" id="L555" title="1 of 2 branches missed.">		assert (m_distance &gt; 0);</span>
+<span class="fc" id="L556">		Polyline poly = (Polyline)m_geometry; m_geometry = null;</span>
+
+<span class="fc" id="L558">		GeometryCursor glueing_cursor = new GlueingCursorForPolyline(poly);//glues paths together if they connect at one point</span>
+<span class="fc" id="L559">		poly = null;</span>
+<span class="fc" id="L560">		GeometryCursor generalized_paths = OperatorGeneralize.local().execute(glueing_cursor, m_densify_dist * 0.25, false, m_progress_tracker);</span>
+<span class="fc" id="L561">		GeometryCursor simple_paths = OperatorSimplifyOGC.local().execute(generalized_paths, null, true, m_progress_tracker);//make a planar graph.</span>
+<span class="fc" id="L562">		generalized_paths = null;</span>
+<span class="fc" id="L563">		GeometryCursor path_buffering_cursor = new GeometryCursorForPolyline(this, simple_paths, m_bfilter); simple_paths = null;</span>
+<span class="fc" id="L564">		GeometryCursor union_cursor = OperatorUnion.local().execute(path_buffering_cursor, m_spatialReference, m_progress_tracker);//(int)Operator_union::Options::enum_disable_edge_dissolver</span>
+<span class="fc" id="L565">		Geometry result = union_cursor.next();</span>
+<span class="fc" id="L566">		return result;</span>
+	}
+
+	private Geometry bufferPolygon_() {
+<span class="fc bfc" id="L570" title="All 2 branches covered.">		if (m_distance == 0)</span>
+<span class="fc" id="L571">			return m_geometry;// return input to the output.</span>
+
+		OperatorSimplify simplify = (OperatorSimplify) OperatorFactoryLocal
+<span class="fc" id="L574">				.getInstance().getOperator(Operator.Type.Simplify);</span>
+
+<span class="fc" id="L576">		generateCircleTemplate_();</span>
+<span class="fc" id="L577">		m_geometry = simplify.execute(m_geometry, null, false,</span>
+				m_progress_tracker);
+<span class="fc bfc" id="L579" title="All 2 branches covered.">		if(m_geometry.isEmpty()) {</span>
+<span class="fc" id="L580">			return m_geometry;</span>
+		}
+
+<span class="fc bfc" id="L583" title="All 2 branches covered.">		if (m_distance &lt; 0) {</span>
+<span class="fc" id="L584">			Polygon poly = (Polygon) (m_geometry);</span>
+<span class="fc" id="L585">			Polygon buffered_result = bufferPolygonImpl_(poly, 0,</span>
+<span class="fc" id="L586">					poly.getPathCount());</span>
+<span class="fc" id="L587">			return simplify.execute(buffered_result, m_spatialReference, false,</span>
+					m_progress_tracker);
+		} else {
+<span class="pc bpc" id="L590" title="1 of 2 branches missed.">			if (isDegenerateGeometry_(m_geometry)) {</span>
+<span class="nc" id="L591">				Point point = new Point();</span>
+<span class="nc" id="L592">				((MultiVertexGeometry) m_geometry).getPointByVal(0, point);</span>
+<span class="nc" id="L593">				Envelope2D env2D = new Envelope2D();</span>
+<span class="nc" id="L594">				m_geometry.queryEnvelope2D(env2D);</span>
+<span class="nc" id="L595">				point.setXY(env2D.getCenter());</span>
+<span class="nc" id="L596">				return bufferPoint_(point);</span>
+			}
+
+			// For the positive distance we need to process polygon in the parts
+			// such that each exterior ring with holes is processed separatelly.
+<span class="fc" id="L601">			GeometryCursorForPolygon cursor = new GeometryCursorForPolygon(this);</span>
+			GeometryCursor union_cursor = ((OperatorUnion) OperatorFactoryLocal
+<span class="fc" id="L603">					.getInstance().getOperator(Operator.Type.Union)).execute(</span>
+					cursor, m_spatialReference, m_progress_tracker);
+<span class="fc" id="L605">			Geometry result = union_cursor.next();</span>
+<span class="pc bpc" id="L606" title="1 of 2 branches missed.">			if (result != null) {</span>
+<span class="fc" id="L607">				return result;</span>
+			} else {
+				//never return empty.
+<span class="nc" id="L610">				return new Polygon(m_geometry.getDescription());</span>
+			}
+		}
+	}
+
+	private Polygon bufferPolygonImpl_(Polygon input_geom, int ipath_begin,
+			int ipath_end) {
+<span class="fc" id="L617">		MultiPath input_mp = (MultiPath) (input_geom);</span>
+<span class="fc" id="L618">		MultiPathImpl mp_impl = (MultiPathImpl) (input_mp._getImpl());</span>
+<span class="fc" id="L619">		Polygon intermediate_polygon = new Polygon(input_geom.getDescription());</span>
+<span class="fc bfc" id="L620" title="All 2 branches covered.">		for (int ipath = ipath_begin; ipath &lt; ipath_end; ipath++) {</span>
+<span class="pc bpc" id="L621" title="1 of 2 branches missed.">			if (mp_impl.getPathSize(ipath) &lt; 1)</span>
+<span class="nc" id="L622">				continue;</span>
+
+<span class="fc" id="L624">			double path_area = mp_impl.calculateRingArea2D(ipath);</span>
+<span class="fc" id="L625">			Envelope2D env2D = new Envelope2D();</span>
+<span class="fc" id="L626">			mp_impl.queryPathEnvelope2D(ipath, env2D);</span>
+
+<span class="fc bfc" id="L628" title="All 2 branches covered.">			if (m_distance &gt; 0) {</span>
+<span class="pc bpc" id="L629" title="1 of 2 branches missed.">				if (path_area &gt; 0) {</span>
+<span class="pc bpc" id="L630" title="1 of 2 branches missed.">					if (isDegeneratePath_(mp_impl, ipath)) {// if a path is</span>
+															// degenerate
+															// (almost a point),
+															// then we can draw
+															// a circle instead
+															// of it as a buffer
+															// and nobody would
+															// notice :)
+<span class="nc" id="L638">						Point point = new Point();</span>
+<span class="nc" id="L639">						mp_impl.getPointByVal(mp_impl.getPathStart(ipath),</span>
+								point);
+<span class="nc" id="L641">						point.setXY(env2D.getCenter());</span>
+<span class="nc" id="L642">						addCircle_(</span>
+<span class="nc" id="L643">								(MultiPathImpl) intermediate_polygon._getImpl(),</span>
+								point);
+<span class="nc" id="L645">					} else {</span>
+<span class="fc" id="L646">						Polyline result_polyline = new Polyline(</span>
+<span class="fc" id="L647">								input_geom.getDescription());</span>
+<span class="fc" id="L648">						MultiPathImpl result_mp = (MultiPathImpl) result_polyline</span>
+<span class="fc" id="L649">								._getImpl();</span>
+
+						// We often see convex hulls, buffering those is an
+						// extremely simple task.
+<span class="fc" id="L653">						boolean bConvex = ConvexHull.isPathConvex(</span>
+								(Polygon) (m_geometry), ipath,
+								m_progress_tracker);
+<span class="pc bpc" id="L656" title="1 of 2 branches missed.">						if (bConvex</span>
+<span class="nc bnc" id="L657" title="All 2 branches missed.">								|| bufferClosedPath_(m_geometry, ipath,</span>
+										result_mp, true, 1) == 2) {
+<span class="fc" id="L659">							Polygon buffered_path = bufferConvexPath_(input_mp,</span>
+									ipath);
+<span class="fc" id="L661">							intermediate_polygon.add(buffered_path, false);</span>
+<span class="fc" id="L662">						} else {</span>
+<span class="nc" id="L663">							Polygon buffered_path = bufferCleanup_(</span>
+									result_polyline, false);
+<span class="nc" id="L665">							intermediate_polygon.add(buffered_path, false);</span>
+						}
+<span class="fc" id="L667">					}</span>
+				} else {
+<span class="nc bnc" id="L669" title="All 2 branches missed.">					if (env2D.getWidth() + m_tolerance &lt;= 2 * m_abs_distance</span>
+<span class="nc bnc" id="L670" title="All 2 branches missed.">							|| env2D.getHeight() + m_tolerance &lt;= 2 * m_abs_distance) // skip</span>
+																						// parts
+																						// that
+																						// will
+																						// dissapear
+<span class="nc" id="L675">						continue;</span>
+
+<span class="nc" id="L677">					Polyline result_polyline = new Polyline(</span>
+<span class="nc" id="L678">							input_geom.getDescription());</span>
+<span class="nc" id="L679">					MultiPathImpl result_mp = (MultiPathImpl) result_polyline</span>
+<span class="nc" id="L680">							._getImpl();</span>
+<span class="nc" id="L681">					bufferClosedPath_(m_geometry, ipath, result_mp, true, 1);</span>
+<span class="nc bnc" id="L682" title="All 2 branches missed.">					if (!result_polyline.isEmpty()) {</span>
+<span class="nc" id="L683">						Envelope2D env = new Envelope2D();</span>
+<span class="nc" id="L684">						env.setCoords(env2D);</span>
+<span class="nc" id="L685">						env.inflate(m_abs_distance, m_abs_distance);</span>
+<span class="nc" id="L686">						result_mp.addEnvelope(env, false);</span>
+<span class="nc" id="L687">						Polygon buffered_path = bufferCleanup_(result_polyline,</span>
+								false);
+						// intermediate_polygon.reserve(intermediate_polygon.getPointCount()
+						// + buffered_path.getPointCount() - 4);
+<span class="nc bnc" id="L691" title="All 2 branches missed.">						for (int i = 1, n = buffered_path.getPathCount(); i &lt; n; i++)</span>
+<span class="nc" id="L692">							intermediate_polygon</span>
+<span class="nc" id="L693">									.addPath(buffered_path, i, true);</span>
+					}
+<span class="nc" id="L695">				}</span>
+			} else {
+<span class="fc bfc" id="L697" title="All 2 branches covered.">				if (path_area &gt; 0) {</span>
+<span class="pc bpc" id="L698" title="1 of 2 branches missed.">					if (env2D.getWidth() + m_tolerance &lt;= 2 * m_abs_distance</span>
+<span class="pc bpc" id="L699" title="1 of 2 branches missed.">							|| env2D.getHeight() + m_tolerance &lt;= 2 * m_abs_distance) // skip</span>
+																						// parts
+																						// that
+																						// will
+																						// dissapear
+<span class="nc" id="L704">						continue;</span>
+
+<span class="fc" id="L706">					Polyline result_polyline = new Polyline(</span>
+<span class="fc" id="L707">							input_geom.getDescription());</span>
+<span class="fc" id="L708">					MultiPathImpl result_mp = (MultiPathImpl) result_polyline</span>
+<span class="fc" id="L709">							._getImpl();</span>
+<span class="fc" id="L710">					bufferClosedPath_(m_geometry, ipath, result_mp, true, -1);// this</span>
+																				// will
+																				// provide
+																				// a
+																				// shape
+																				// buffered
+																				// inwards.
+																				// It
+																				// has
+																				// counterclockwise
+																				// orientation
+<span class="pc bpc" id="L721" title="1 of 2 branches missed.">					if (!result_polyline.isEmpty()) {</span>
+<span class="fc" id="L722">						Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L723">						result_mp.queryLooseEnvelope2D(env);</span>
+<span class="fc" id="L724">						env.inflate(m_abs_distance, m_abs_distance);</span>
+<span class="fc" id="L725">						result_mp.addEnvelope(env, false);// add an envelope</span>
+															// exterior shell
+<span class="fc" id="L727">						Polygon buffered_path = bufferCleanup_(result_polyline,</span>
+								false);// simplify with winding rule
+						// extract all parts but the first one (which is the
+						// envelope we added previously)
+<span class="fc bfc" id="L731" title="All 2 branches covered.">						for (int i = 1, npaths = buffered_path.getPathCount(); i &lt; npaths; i++) {</span>
+							// the extracted parts have inverted orientation.
+<span class="fc" id="L733">							intermediate_polygon</span>
+<span class="fc" id="L734">									.addPath(buffered_path, i, true);</span>
+						}
+					} else {
+						// the path has been erased
+					}
+<span class="fc" id="L739">				} else {</span>
+					// When buffering a hole with negative distance, buffer it
+					// as if it is an exterior ring buffered with positive
+					// distance
+<span class="fc" id="L743">					Polyline result_polyline = new Polyline(</span>
+<span class="fc" id="L744">							input_geom.getDescription());</span>
+<span class="fc" id="L745">					MultiPathImpl result_mp = (MultiPathImpl) result_polyline</span>
+<span class="fc" id="L746">							._getImpl();</span>
+<span class="fc" id="L747">					bufferClosedPath_(m_geometry, ipath, result_mp, true, -1);// this</span>
+																				// will
+																				// provide
+																				// a
+																				// shape
+																				// buffered
+																				// inwards.
+<span class="fc" id="L754">					Polygon buffered_path = bufferCleanup_(result_polyline,</span>
+							false);
+<span class="fc bfc" id="L756" title="All 2 branches covered.">					for (int i = 0, npaths = buffered_path.getPathCount(); i &lt; npaths; i++) {</span>
+<span class="fc" id="L757">						intermediate_polygon.addPath(buffered_path, i, true);// adds</span>
+																				// buffered
+																				// hole
+																				// reversed
+																				// as
+																				// if
+																				// it
+																				// is
+																				// exteror
+																				// ring
+					}
+				}
+
+				// intermediate_polygon has inverted orientation.
+			}
+		}
+
+<span class="fc bfc" id="L774" title="All 2 branches covered.">		if (m_distance &gt; 0) {</span>
+<span class="pc bpc" id="L775" title="1 of 2 branches missed.">			if (intermediate_polygon.getPathCount() &gt; 1) {</span>
+<span class="nc" id="L776">				Polygon cleaned_polygon = bufferCleanup_(intermediate_polygon,</span>
+						false);
+<span class="nc" id="L778">				return cleaned_polygon;</span>
+			} else {
+<span class="fc" id="L780">				return setWeakSimple_(intermediate_polygon);</span>
+			}
+		} else {
+<span class="fc" id="L783">			Envelope2D polyenv = new Envelope2D();</span>
+<span class="fc" id="L784">			intermediate_polygon.queryLooseEnvelope2D(polyenv);</span>
+<span class="pc bpc" id="L785" title="1 of 2 branches missed.">			if (!intermediate_polygon.isEmpty()) {</span>
+				// negative buffer distance. We got buffered holes and exterior
+				// rings. They all have wrong orientation.
+				// we need to apply winding simplify again to ensure all holes
+				// are unioned.
+				// For that create a big envelope and add all rings of the
+				// intermediate_polygon to it.
+<span class="fc" id="L792">				polyenv.inflate(m_abs_distance, m_abs_distance);</span>
+<span class="fc" id="L793">				intermediate_polygon.addEnvelope(polyenv, false);</span>
+<span class="fc" id="L794">				Polygon cleaned_polygon = bufferCleanup_(intermediate_polygon,</span>
+						false);
+				// intermediate_polygon.reset();//free memory
+
+<span class="fc" id="L798">				Polygon result_polygon = new Polygon(</span>
+<span class="fc" id="L799">						cleaned_polygon.getDescription());</span>
+<span class="fc bfc" id="L800" title="All 2 branches covered.">				for (int i = 1, n = cleaned_polygon.getPathCount(); i &lt; n; i++) {</span>
+<span class="fc" id="L801">					result_polygon.addPath(cleaned_polygon, i, false);</span>
+				}
+<span class="fc" id="L803">				return setWeakSimple_(result_polygon);</span>
+			} else {
+<span class="nc" id="L805">				return setWeakSimple_(intermediate_polygon);</span>
+			}
+		}
+	}
+
+	private Geometry bufferPoint_() {
+<span class="fc" id="L811">		return bufferPoint_((Point) (m_geometry));</span>
+	}
+
+	private Geometry bufferPoint_(Point point) {
+<span class="pc bpc" id="L815" title="1 of 2 branches missed.">		assert (m_distance &gt; 0);</span>
+<span class="fc" id="L816">		Polygon resultPolygon = new Polygon(point.getDescription());</span>
+<span class="fc" id="L817">		addCircle_((MultiPathImpl) resultPolygon._getImpl(), point);</span>
+<span class="fc" id="L818">		return setStrongSimple_(resultPolygon);</span>
+	}
+
+	private Geometry bufferMultiPoint_() {
+<span class="pc bpc" id="L822" title="1 of 2 branches missed.">		assert (m_distance &gt; 0);</span>
+<span class="fc" id="L823">		GeometryCursorForMultiPoint mpCursor = new GeometryCursorForMultiPoint(this,</span>
+				(MultiPoint) (m_geometry), m_distance, m_spatialReference,
+				m_densify_dist, m_max_vertex_in_complete_circle,
+				m_progress_tracker);
+<span class="fc" id="L827">		GeometryCursor c = ((OperatorUnion) OperatorFactoryLocal.getInstance()</span>
+<span class="fc" id="L828">				.getOperator(Operator.Type.Union)).execute(mpCursor,</span>
+				m_spatialReference, m_progress_tracker);
+<span class="fc" id="L830">		return c.next();</span>
+	}
+
+	private Geometry bufferEnvelope_() {
+<span class="fc" id="L834">		Polygon polygon = new Polygon(m_geometry.getDescription());</span>
+<span class="fc bfc" id="L835" title="All 2 branches covered.">		if (m_distance &lt;= 0) {</span>
+<span class="pc bpc" id="L836" title="1 of 2 branches missed.">			if (m_distance == 0)</span>
+<span class="nc" id="L837">				polygon.addEnvelope((Envelope) (m_geometry), false);</span>
+			else {
+<span class="fc" id="L839">				Envelope env = new Envelope();</span>
+<span class="fc" id="L840">				m_geometry.queryEnvelope(env);</span>
+<span class="fc" id="L841">				env.inflate(m_distance, m_distance);</span>
+<span class="fc" id="L842">				polygon.addEnvelope(env, false);</span>
+			}
+
+<span class="fc" id="L845">			return polygon;// nothing is easier than negative buffer on the</span>
+							// envelope.
+		}
+
+<span class="fc" id="L849">		polygon.addEnvelope((Envelope) (m_geometry), false);</span>
+<span class="fc" id="L850">		m_geometry = polygon;</span>
+<span class="fc" id="L851">		return bufferConvexPath_(polygon, 0);</span>
+	}
+
+	private Polygon bufferConvexPath_(MultiPath src, int ipath) {
+<span class="fc" id="L855">		generateCircleTemplate_();</span>
+
+<span class="fc" id="L857">		Polygon resultPolygon = new Polygon(src.getDescription());</span>
+<span class="fc" id="L858">		MultiPathImpl result_mp = (MultiPathImpl) resultPolygon._getImpl();</span>
+
+		// resultPolygon.reserve((m_circle_template.size() / 10 + 4) *
+		// src.getPathSize(ipath));
+
+<span class="fc" id="L863">		Point2D pt_1_tmp = new Point2D(), pt_1 = new Point2D();</span>
+<span class="fc" id="L864">		Point2D pt_2_tmp = new Point2D(), pt_2 = new Point2D();</span>
+<span class="fc" id="L865">		Point2D pt_3_tmp = new Point2D(), pt_3 = new Point2D();</span>
+<span class="fc" id="L866">		Point2D v_1 = new Point2D();</span>
+<span class="fc" id="L867">		Point2D v_2 = new Point2D();</span>
+<span class="fc" id="L868">		MultiPathImpl src_mp = (MultiPathImpl) src._getImpl();</span>
+<span class="fc" id="L869">		int path_size = src.getPathSize(ipath);</span>
+<span class="fc" id="L870">		int path_start = src.getPathStart(ipath);</span>
+<span class="fc bfc" id="L871" title="All 2 branches covered.">		for (int i = 0, n = src.getPathSize(ipath); i &lt; n; i++) {</span>
+<span class="fc" id="L872">			src_mp.getXY(path_start + i, pt_1);</span>
+<span class="fc" id="L873">			src_mp.getXY(path_start + (i + 1) % path_size, pt_2);</span>
+<span class="fc" id="L874">			src_mp.getXY(path_start + (i + 2) % path_size, pt_3);</span>
+<span class="fc" id="L875">			v_1.sub(pt_2, pt_1);</span>
+<span class="pc bpc" id="L876" title="1 of 2 branches missed.">			if (v_1.length() == 0)</span>
+<span class="nc" id="L877">				throw GeometryException.GeometryInternalError();</span>
+
+<span class="fc" id="L879">			v_1.leftPerpendicular();</span>
+<span class="fc" id="L880">			v_1.normalize();</span>
+<span class="fc" id="L881">			v_1.scale(m_abs_distance);</span>
+<span class="fc" id="L882">			pt_1_tmp.add(v_1, pt_1);</span>
+<span class="fc" id="L883">			pt_2_tmp.add(v_1, pt_2);</span>
+<span class="fc bfc" id="L884" title="All 2 branches covered.">			if (i == 0)</span>
+<span class="fc" id="L885">				result_mp.startPath(pt_1_tmp);</span>
+			else {
+<span class="fc" id="L887">				result_mp.lineTo(pt_1_tmp);</span>
+			}
+
+<span class="fc" id="L890">			result_mp.lineTo(pt_2_tmp);</span>
+
+<span class="fc" id="L892">			v_2.sub(pt_3, pt_2);</span>
+<span class="pc bpc" id="L893" title="1 of 2 branches missed.">			if (v_2.length() == 0)</span>
+<span class="nc" id="L894">				throw GeometryException.GeometryInternalError();</span>
+
+<span class="fc" id="L896">			v_2.leftPerpendicular();</span>
+<span class="fc" id="L897">			v_2.normalize();</span>
+<span class="fc" id="L898">			v_2.scale(m_abs_distance);</span>
+<span class="fc" id="L899">			pt_3_tmp.add(v_2, pt_2);</span>
+
+<span class="fc" id="L901">			addJoin_(result_mp, pt_2, pt_2_tmp, pt_3_tmp, false, false);</span>
+		}
+
+<span class="fc" id="L904">		return setWeakSimple_(resultPolygon);</span>
+	}
+
+	private Polygon bufferPolylinePath_(Polyline polyline, int ipath,
+			boolean bfilter) {
+<span class="pc bpc" id="L909" title="1 of 2 branches missed.">		assert (m_distance != 0);</span>
+<span class="fc" id="L910">		generateCircleTemplate_();</span>
+
+<span class="fc" id="L912">		MultiPath input_multi_path = polyline;</span>
+<span class="fc" id="L913">		MultiPathImpl mp_impl = (MultiPathImpl) (input_multi_path._getImpl());</span>
+
+<span class="pc bpc" id="L915" title="1 of 2 branches missed.">		if (mp_impl.getPathSize(ipath) &lt; 1)</span>
+<span class="nc" id="L916">			return null;</span>
+
+<span class="pc bpc" id="L918" title="1 of 4 branches missed.">		if (isDegeneratePath_(mp_impl, ipath) &amp;&amp; m_distance &gt; 0) {// if a path</span>
+																	// is
+																	// degenerate
+																	// (almost a
+																	// point),
+																	// then we
+																	// can draw
+																	// a circle
+																	// instead
+																	// of it as
+																	// a buffer
+																	// and
+																	// nobody
+																	// would
+																	// notice :)
+<span class="fc" id="L933">			Point point = new Point();</span>
+<span class="fc" id="L934">			mp_impl.getPointByVal(mp_impl.getPathStart(ipath), point);</span>
+<span class="fc" id="L935">			Envelope2D env2D = new Envelope2D();</span>
+<span class="fc" id="L936">			mp_impl.queryPathEnvelope2D(ipath, env2D);</span>
+<span class="fc" id="L937">			point.setXY(env2D.getCenter());</span>
+<span class="fc" id="L938">			return (Polygon) (bufferPoint_(point));</span>
+		}
+
+<span class="fc" id="L941">		Polyline result_polyline = new Polyline(polyline.getDescription());</span>
+
+<span class="fc" id="L943">		MultiPathImpl result_mp = (MultiPathImpl) result_polyline._getImpl();</span>
+<span class="fc" id="L944">		boolean b_closed = mp_impl.isClosedPathInXYPlane(ipath);</span>
+
+<span class="pc bpc" id="L946" title="1 of 2 branches missed.">		if (b_closed) {</span>
+<span class="nc" id="L947">			bufferClosedPath_(input_multi_path, ipath, result_mp, bfilter, 1);</span>
+<span class="nc" id="L948">			bufferClosedPath_(input_multi_path, ipath, result_mp, bfilter, -1);</span>
+		} else {
+<span class="fc" id="L950">			Polyline tmpPoly = new Polyline(input_multi_path.getDescription());</span>
+<span class="fc" id="L951">			tmpPoly.addPath(input_multi_path, ipath, false);</span>
+<span class="fc" id="L952">			((MultiPathImpl) tmpPoly._getImpl()).addSegmentsFromPath(</span>
+<span class="fc" id="L953">					(MultiPathImpl) input_multi_path._getImpl(), ipath, 0,</span>
+<span class="fc" id="L954">					input_multi_path.getSegmentCount(ipath), false);</span>
+<span class="fc" id="L955">			bufferClosedPath_(tmpPoly, 0, result_mp, bfilter, 1);</span>
+		}
+
+<span class="fc" id="L958">		return bufferCleanup_(result_polyline, false);</span>
+	}
+
+	private void progress_() {
+<span class="fc" id="L962">		m_progress_counter++;</span>
+<span class="pc bpc" id="L963" title="1 of 2 branches missed.">		if (m_progress_counter % 1024 == 0) {</span>
+<span class="nc bnc" id="L964" title="All 2 branches missed.">			if ((m_progress_tracker != null)</span>
+<span class="nc bnc" id="L965" title="All 2 branches missed.">					&amp;&amp; !(m_progress_tracker.progress(-1, -1)))</span>
+<span class="nc" id="L966">				throw new RuntimeException(&quot;user_canceled&quot;);</span>
+		}
+<span class="fc" id="L968">	}</span>
+
+	private Polygon bufferCleanup_(MultiPath multi_path, boolean simplify_result) {
+<span class="pc bpc" id="L971" title="1 of 2 branches missed.">		double tol = simplify_result ? m_tolerance : m_small_tolerance;</span>
+<span class="pc bpc" id="L972" title="1 of 2 branches missed.">		Polygon resultPolygon = (Polygon) (TopologicalOperations</span>
+<span class="fc" id="L973">				.planarSimplify(multi_path, tol, true, !simplify_result,</span>
+						m_progress_tracker));
+<span class="pc bpc" id="L975" title="1 of 2 branches missed.">		assert (InternalUtils.isWeakSimple(resultPolygon, 0.0));</span>
+<span class="fc" id="L976">		return resultPolygon;</span>
+	}
+
+	private int calcN_() {
+		//this method should be called only once m_circle_template_size is set then;
+<span class="fc" id="L981">		final int minN = 4;</span>
+<span class="fc bfc" id="L982" title="All 2 branches covered.">		if (m_densify_dist == 0)</span>
+<span class="fc" id="L983">			return m_max_vertex_in_complete_circle;</span>
+
+<span class="fc" id="L985">		double r = m_densify_dist * Math.abs(m_abs_distance_reversed);</span>
+<span class="fc" id="L986">		double cos_a = 1 - r;</span>
+		double N;
+<span class="pc bpc" id="L988" title="1 of 2 branches missed.">		if (cos_a &lt; -1)</span>
+<span class="nc" id="L989">			N = minN;</span>
+		else
+<span class="fc" id="L991">			N = 2.0 * Math.PI / Math.acos(cos_a) + 0.5;</span>
+
+<span class="pc bpc" id="L993" title="1 of 2 branches missed.">		if (N &lt; minN)</span>
+<span class="nc" id="L994">			N = minN;</span>
+<span class="pc bpc" id="L995" title="1 of 2 branches missed.">		else if (N &gt; m_max_vertex_in_complete_circle)</span>
+<span class="fc" id="L996">			N = m_max_vertex_in_complete_circle;</span>
+
+<span class="fc" id="L998">		return (int) N;</span>
+	}
+
+	private void addJoin_(MultiPathImpl dst, Point2D center, Point2D fromPt,
+			Point2D toPt, boolean bStartPath, boolean bFinishAtToPt) {
+<span class="fc" id="L1003">		generateCircleTemplate_();</span>
+
+<span class="fc" id="L1005">		Point2D v_1 = new Point2D();</span>
+<span class="fc" id="L1006">		v_1.sub(fromPt, center);</span>
+<span class="fc" id="L1007">		v_1.scale(m_abs_distance_reversed);</span>
+<span class="fc" id="L1008">		Point2D v_2 = new Point2D();</span>
+<span class="fc" id="L1009">		v_2.sub(toPt, center);</span>
+<span class="fc" id="L1010">		v_2.scale(m_abs_distance_reversed);</span>
+<span class="fc" id="L1011">		double angle_from = Math.atan2(v_1.y, v_1.x);</span>
+<span class="fc" id="L1012">		double dindex_from = angle_from / m_dA;</span>
+<span class="fc bfc" id="L1013" title="All 2 branches covered.">		if (dindex_from &lt; 0)</span>
+<span class="fc" id="L1014">			dindex_from = (double) m_circle_template.size() + dindex_from;</span>
+
+<span class="fc" id="L1016">		dindex_from = (double) m_circle_template.size() - dindex_from;</span>
+
+<span class="fc" id="L1018">		double angle_to = Math.atan2(v_2.y, v_2.x);</span>
+<span class="fc" id="L1019">		double dindex_to = angle_to / m_dA;</span>
+<span class="fc bfc" id="L1020" title="All 2 branches covered.">		if (dindex_to &lt; 0)</span>
+<span class="fc" id="L1021">			dindex_to = (double) m_circle_template.size() + dindex_to;</span>
+
+<span class="fc" id="L1023">		dindex_to = (double) m_circle_template.size() - dindex_to;</span>
+
+<span class="fc bfc" id="L1025" title="All 2 branches covered.">		if (dindex_to &lt; dindex_from)</span>
+<span class="fc" id="L1026">			dindex_to += (double) m_circle_template.size();</span>
+<span class="pc bpc" id="L1027" title="1 of 2 branches missed.">		assert (dindex_to &gt;= dindex_from);</span>
+
+<span class="fc" id="L1029">		int index_to = (int) dindex_to;</span>
+<span class="fc" id="L1030">		int index_from = (int) Math.ceil(dindex_from);</span>
+
+<span class="pc bpc" id="L1032" title="1 of 2 branches missed.">		if (bStartPath) {</span>
+<span class="nc" id="L1033">			dst.startPath(fromPt);</span>
+<span class="nc" id="L1034">			bStartPath = false;</span>
+		}
+
+<span class="fc" id="L1037">		Point2D p = new Point2D();</span>
+<span class="fc" id="L1038">		p.setCoords(m_circle_template.get(index_from % m_circle_template.size()));</span>
+<span class="fc" id="L1039">		p.scaleAdd(m_abs_distance, center);</span>
+<span class="fc" id="L1040">		double ddd = m_tolerance * 10;</span>
+<span class="fc" id="L1041">		p.sub(fromPt);</span>
+<span class="fc bfc" id="L1042" title="All 2 branches covered.">		if (p.length() &lt; ddd)// if too close to the fromPt, then use the next</span>
+								// point
+<span class="fc" id="L1044">			index_from += 1;</span>
+
+<span class="fc" id="L1046">		p.setCoords(m_circle_template.get(index_to % m_circle_template.size()));</span>
+<span class="fc" id="L1047">		p.scaleAdd(m_abs_distance, center);</span>
+<span class="fc" id="L1048">		p.sub(toPt);</span>
+<span class="fc bfc" id="L1049" title="All 2 branches covered.">		if (p.length() &lt; ddd)// if too close to the toPt, then use the prev</span>
+								// point
+<span class="fc" id="L1051">			index_to -= 1;</span>
+
+<span class="fc" id="L1053">		int count = index_to - index_from;</span>
+<span class="fc" id="L1054">		count++;</span>
+
+<span class="fc bfc" id="L1056" title="All 2 branches covered.">		for (int i = 0, j = index_from % m_circle_template.size(); i &lt; count; i++, j = (j + 1)</span>
+<span class="fc" id="L1057">				% m_circle_template.size()) {</span>
+<span class="fc" id="L1058">			p.setCoords(m_circle_template.get(j));</span>
+<span class="fc" id="L1059">			p.scaleAdd(m_abs_distance, center);</span>
+<span class="fc" id="L1060">			dst.lineTo(p);</span>
+<span class="fc" id="L1061">			progress_();</span>
+		}
+
+<span class="fc bfc" id="L1064" title="All 2 branches covered.">		if (bFinishAtToPt) {</span>
+<span class="fc" id="L1065">			dst.lineTo(toPt);</span>
+		}
+<span class="fc" id="L1067">	}</span>
+
+	private int bufferClosedPath_(Geometry input_geom, int ipath,
+			MultiPathImpl result_mp, boolean bfilter, int dir) {
+		// Use temporary polyline for the path buffering.
+<span class="fc" id="L1072">		EditShape edit_shape = new EditShape();</span>
+<span class="fc" id="L1073">		int geom = edit_shape.addPathFromMultiPath((MultiPath) input_geom,</span>
+				ipath, true);
+<span class="fc" id="L1075">		edit_shape.filterClosePoints(m_filter_tolerance, false, false);</span>
+<span class="pc bpc" id="L1076" title="1 of 2 branches missed.">		if (edit_shape.getPointCount(geom) &lt; 2) {// Got degenerate output.</span>
+													// Either bail out or
+													// produce a circle.
+<span class="nc bnc" id="L1079" title="All 2 branches missed.">			if (dir &lt; 0)</span>
+<span class="nc" id="L1080">				return 1;// negative direction produces nothing.</span>
+
+<span class="nc" id="L1082">			MultiPath mpIn = (MultiPath) input_geom;</span>
+			// Add a circle
+<span class="nc" id="L1084">			Point pt = new Point();</span>
+<span class="nc" id="L1085">			mpIn.getPointByVal(mpIn.getPathStart(ipath), pt);</span>
+<span class="nc" id="L1086">			addCircle_(result_mp, pt);</span>
+<span class="nc" id="L1087">			return 1;</span>
+		}
+
+<span class="pc bpc" id="L1090" title="1 of 2 branches missed.">		assert (edit_shape.getFirstPath(geom) != -1);</span>
+<span class="pc bpc" id="L1091" title="1 of 2 branches missed.">		assert (edit_shape.getFirstVertex(edit_shape.getFirstPath(geom)) != -1);</span>
+
+<span class="fc" id="L1093">		Point2D origin = edit_shape.getXY(edit_shape.getFirstVertex(edit_shape</span>
+<span class="fc" id="L1094">				.getFirstPath(geom)));</span>
+<span class="fc" id="L1095">		Transformation2D tr = new Transformation2D();</span>
+<span class="fc" id="L1096">		tr.setShift(-origin.x, -origin.y);</span>
+		// move the path to origin for better accuracy in calculations.
+<span class="fc" id="L1098">		edit_shape.applyTransformation(tr);</span>
+
+<span class="pc bpc" id="L1100" title="1 of 2 branches missed.">		if (bfilter) {</span>
+			// try removing the noise that does not contribute to the buffer.
+<span class="fc" id="L1102">			int res_filter = filterPath_(edit_shape, geom, dir, true, m_abs_distance, m_filter_tolerance, m_densify_dist);</span>
+<span class="pc bpc" id="L1103" title="1 of 2 branches missed.">			assert (res_filter == 1);</span>
+			// Operator_factory_local::SaveJSONToTextFileDbg(&quot;c:/temp/buffer_filter.txt&quot;,
+			// *edit_shape.get_geometry(geom), nullptr);
+<span class="pc bpc" id="L1106" title="1 of 2 branches missed.">			if (edit_shape.getPointCount(geom) &lt; 2) {// got degenerate output.</span>
+														// Wither bail out or
+														// produce a circle.
+<span class="nc bnc" id="L1109" title="All 2 branches missed.">				if (dir &lt; 0)</span>
+<span class="nc" id="L1110">					return 1;// negative direction produces nothing.</span>
+
+<span class="nc" id="L1112">				MultiPath mpIn = (MultiPath) input_geom;</span>
+				// Add a circle
+<span class="nc" id="L1114">				Point pt = new Point();</span>
+<span class="nc" id="L1115">				mpIn.getPointByVal(mpIn.getPathStart(ipath), pt);</span>
+<span class="nc" id="L1116">				addCircle_(result_mp, pt);</span>
+<span class="nc" id="L1117">				return 1;</span>
+			}
+		}
+
+<span class="fc" id="L1121">		m_buffer_commands.clear();</span>
+<span class="fc" id="L1122">		int path = edit_shape.getFirstPath(geom);</span>
+<span class="fc" id="L1123">		int ivert = edit_shape.getFirstVertex(path);</span>
+<span class="fc bfc" id="L1124" title="All 2 branches covered.">		int iprev = dir == 1 ? edit_shape.getPrevVertex(ivert) : edit_shape</span>
+<span class="fc" id="L1125">				.getNextVertex(ivert);</span>
+<span class="fc bfc" id="L1126" title="All 2 branches covered.">		int inext = dir == 1 ? edit_shape.getNextVertex(ivert) : edit_shape</span>
+<span class="fc" id="L1127">				.getPrevVertex(ivert);</span>
+<span class="fc" id="L1128">		boolean b_first = true;</span>
+<span class="fc" id="L1129">		Point2D pt_current = new Point2D(), pt_after = new Point2D(), pt_before = new Point2D(), pt_left_prev = new Point2D(), pt = new Point2D(), pt1 = new Point2D();</span>
+<span class="fc" id="L1130">		Point2D v_after = new Point2D(), v_before = new Point2D(), v_left = new Point2D(), v_left_prev = new Point2D();</span>
+<span class="fc" id="L1131">		double abs_d = m_abs_distance;</span>
+<span class="fc" id="L1132">		int ncount = edit_shape.getPathSize(path);</span>
+
+		// write out buffer commands as a set of arcs and line segments.
+		// if we'd convert this directly to a polygon and draw using winding
+		// fill rule, we'd get the buffered result.
+<span class="fc bfc" id="L1137" title="All 2 branches covered.">		for (int index = 0; index &lt; ncount; index++) {</span>
+<span class="fc" id="L1138">			edit_shape.getXY(inext, pt_after);</span>
+
+<span class="fc bfc" id="L1140" title="All 2 branches covered.">			if (b_first) {</span>
+<span class="fc" id="L1141">				edit_shape.getXY(ivert, pt_current);</span>
+<span class="fc" id="L1142">				edit_shape.getXY(iprev, pt_before);</span>
+<span class="fc" id="L1143">				v_before.sub(pt_current, pt_before);</span>
+<span class="fc" id="L1144">				v_before.normalize();</span>
+<span class="fc" id="L1145">				v_left_prev.leftPerpendicular(v_before);</span>
+<span class="fc" id="L1146">				v_left_prev.scale(abs_d);</span>
+<span class="fc" id="L1147">				pt_left_prev.add(v_left_prev, pt_current);</span>
+			}
+
+<span class="fc" id="L1150">			v_after.sub(pt_after, pt_current);</span>
+<span class="fc" id="L1151">			v_after.normalize();</span>
+
+<span class="fc" id="L1153">			v_left.leftPerpendicular(v_after);</span>
+<span class="fc" id="L1154">			v_left.scale(abs_d);</span>
+<span class="fc" id="L1155">			pt.add(pt_current, v_left);</span>
+<span class="fc" id="L1156">			double cross = v_before.crossProduct(v_after);</span>
+<span class="fc" id="L1157">			double dot = v_before.dotProduct(v_after);</span>
+<span class="fc bfc" id="L1158" title="All 6 branches covered.">			boolean bDoJoin = cross &lt; 0 || (dot &lt; 0 &amp;&amp; cross == 0);</span>
+<span class="fc bfc" id="L1159" title="All 2 branches covered.">			if (bDoJoin) {</span>
+<span class="fc" id="L1160">				m_buffer_commands.add(new BufferCommand(pt_left_prev, pt,</span>
+						pt_current, BufferCommand.Flags.enum_arc,
+<span class="fc" id="L1162">						m_buffer_commands.size() + 1,</span>
+<span class="fc" id="L1163">						m_buffer_commands.size() - 1));</span>
+<span class="pc bpc" id="L1164" title="1 of 2 branches missed.">			} else if (!pt_left_prev.isEqual(pt)) {</span>
+<span class="fc" id="L1165">				m_buffer_commands.add(new BufferCommand(pt_left_prev,</span>
+<span class="fc" id="L1166">						pt_current, m_buffer_commands.size() + 1,</span>
+<span class="fc" id="L1167">						m_buffer_commands.size() - 1, &quot;dummy&quot;));</span>
+<span class="fc" id="L1168">				m_buffer_commands.add(new BufferCommand(pt_current, pt,</span>
+<span class="fc" id="L1169">						m_buffer_commands.size() + 1,</span>
+<span class="fc" id="L1170">						m_buffer_commands.size() - 1, &quot;dummy&quot;));</span>
+			}
+
+<span class="fc" id="L1173">			pt1.add(pt_after, v_left);</span>
+<span class="fc" id="L1174">			m_buffer_commands</span>
+<span class="fc" id="L1175">					.add(new BufferCommand(pt, pt1, pt_current,</span>
+							BufferCommand.Flags.enum_line, m_buffer_commands
+<span class="fc" id="L1177">									.size() + 1, m_buffer_commands.size() - 1));</span>
+
+<span class="fc" id="L1179">			pt_left_prev.setCoords(pt1);</span>
+<span class="fc" id="L1180">			v_left_prev.setCoords(v_left);</span>
+<span class="fc" id="L1181">			pt_before.setCoords(pt_current);</span>
+<span class="fc" id="L1182">			pt_current.setCoords(pt_after);</span>
+<span class="fc" id="L1183">			v_before.setCoords(v_after);</span>
+<span class="fc" id="L1184">			iprev = ivert;</span>
+<span class="fc" id="L1185">			ivert = inext;</span>
+<span class="fc" id="L1186">			b_first = false;</span>
+<span class="fc bfc" id="L1187" title="All 2 branches covered.">			inext = dir == 1 ? edit_shape.getNextVertex(ivert) : edit_shape</span>
+<span class="fc" id="L1188">					.getPrevVertex(ivert);</span>
+		}
+
+<span class="fc" id="L1191">		m_buffer_commands.get(m_buffer_commands.size() - 1).m_next = 0;</span>
+<span class="fc" id="L1192">		m_buffer_commands.get(0).m_prev = m_buffer_commands.size() - 1;</span>
+<span class="fc" id="L1193">		processBufferCommands_(result_mp);</span>
+<span class="fc" id="L1194">		tr.setShift(origin.x, origin.y);// move the path to improve precision.</span>
+<span class="fc" id="L1195">		result_mp.applyTransformation(tr, result_mp.getPathCount() - 1);</span>
+<span class="fc" id="L1196">		return 1;</span>
+	}
+
+	private void processBufferCommands_(MultiPathImpl result_mp) {
+<span class="fc" id="L1200">		int ifirst_seg = cleanupBufferCommands_();</span>
+<span class="fc" id="L1201">		boolean first = true;</span>
+<span class="fc" id="L1202">		int iseg_next = ifirst_seg + 1;</span>
+<span class="fc bfc" id="L1203" title="All 2 branches covered.">		for (int iseg = ifirst_seg; iseg_next != ifirst_seg; iseg = iseg_next) {</span>
+<span class="fc" id="L1204">			BufferCommand command = m_buffer_commands.get(iseg);</span>
+<span class="pc bpc" id="L1205" title="1 of 2 branches missed.">			iseg_next = command.m_next != -1 ? command.m_next : (iseg + 1)</span>
+<span class="pc" id="L1206">					% m_buffer_commands.size();</span>
+<span class="pc bpc" id="L1207" title="1 of 2 branches missed.">			if (command.m_type == 0)</span>
+<span class="nc" id="L1208">				continue;// deleted segment</span>
+
+<span class="fc bfc" id="L1210" title="All 2 branches covered.">			if (first) {</span>
+<span class="fc" id="L1211">				result_mp.startPath(command.m_from);</span>
+<span class="fc" id="L1212">				first = false;</span>
+			}
+
+<span class="fc bfc" id="L1215" title="All 2 branches covered.">			if (command.m_type == BufferCommand.Flags.enum_arc) {// arc</span>
+<span class="fc" id="L1216">				addJoin_(result_mp, command.m_center, command.m_from,</span>
+<span class="fc" id="L1217">						command.m_to, false, true);</span>
+			} else {
+<span class="fc" id="L1219">				result_mp.lineTo(command.m_to);</span>
+			}
+<span class="fc" id="L1221">			first = false;</span>
+		}
+<span class="fc" id="L1223">	}</span>
+
+	private int cleanupBufferCommands_() {
+		// The purpose of this function is to remove as many self intersections
+		// from the buffered shape as possible.
+		// The buffer works without cleanup also, but slower.
+
+<span class="fc bfc" id="L1230" title="All 2 branches covered.">		if (m_helper_array == null)</span>
+<span class="fc" id="L1231">			m_helper_array = new Point2D[9];</span>
+
+<span class="fc" id="L1233">		int istart = 0;</span>
+<span class="pc bpc" id="L1234" title="1 of 2 branches missed.">		for (int iseg = 0, nseg = m_buffer_commands.size(); iseg &lt; nseg;) {</span>
+<span class="fc" id="L1235">			BufferCommand command = m_buffer_commands.get(iseg);</span>
+<span class="fc bfc" id="L1236" title="All 2 branches covered.">			if ((command.m_type &amp; BufferCommand.Flags.enum_connection) != 0) {</span>
+<span class="fc" id="L1237">				istart = iseg;</span>
+<span class="fc" id="L1238">				break;</span>
+			}
+
+<span class="fc" id="L1241">			iseg = command.m_next;</span>
+<span class="fc" id="L1242">		}</span>
+
+<span class="fc" id="L1244">		int iseg_next = istart + 1;</span>
+<span class="fc bfc" id="L1245" title="All 2 branches covered.">		for (int iseg = istart; iseg_next != istart; iseg = iseg_next) {</span>
+<span class="fc" id="L1246">			BufferCommand command = m_buffer_commands.get(iseg);</span>
+<span class="fc" id="L1247">			iseg_next = command.m_next;</span>
+<span class="fc" id="L1248">			int count = 1;</span>
+<span class="fc" id="L1249">			BufferCommand command_next = null;</span>
+<span class="pc bpc" id="L1250" title="1 of 2 branches missed.">			while (iseg_next != iseg) {// find next segement</span>
+<span class="fc" id="L1251">				command_next = m_buffer_commands.get(iseg_next);</span>
+<span class="fc bfc" id="L1252" title="All 2 branches covered.">				if ((command_next.m_type &amp; BufferCommand.Flags.enum_connection) != 0)</span>
+<span class="fc" id="L1253">					break;</span>
+
+<span class="fc" id="L1255">				iseg_next = command_next.m_next;</span>
+<span class="fc" id="L1256">				count++;</span>
+			}
+
+<span class="fc bfc" id="L1259" title="All 2 branches covered.">			if (count == 1) {</span>
+				// Next segment starts where this one ends. Skip this case as it
+				// is simple.
+<span class="pc bpc" id="L1262" title="1 of 2 branches missed.">				assert (command.m_to.isEqual(command_next.m_from));</span>
+				continue;
+			}
+
+<span class="pc bpc" id="L1266" title="1 of 2 branches missed.">			if ((command.m_type &amp; command_next.m_type) == BufferCommand.Flags.enum_line) {// simplest</span>
+																							// cleanup
+																							// -
+																							// intersect
+																							// lines
+<span class="fc bfc" id="L1271" title="All 2 branches covered.">				if (m_helper_line_1 == null) {</span>
+<span class="fc" id="L1272">					m_helper_line_1 = new Line();</span>
+<span class="fc" id="L1273">					m_helper_line_2 = new Line();</span>
+				}
+<span class="fc" id="L1275">				m_helper_line_1.setStartXY(command.m_from);</span>
+<span class="fc" id="L1276">				m_helper_line_1.setEndXY(command.m_to);</span>
+<span class="fc" id="L1277">				m_helper_line_2.setStartXY(command_next.m_from);</span>
+<span class="fc" id="L1278">				m_helper_line_2.setEndXY(command_next.m_to);</span>
+
+<span class="fc" id="L1280">				int count_ = m_helper_line_1.intersect(m_helper_line_2,</span>
+						m_helper_array, null, null, m_small_tolerance);
+<span class="fc bfc" id="L1282" title="All 2 branches covered.">				if (count_ == 1) {</span>
+<span class="fc" id="L1283">					command.m_to.setCoords(m_helper_array[0]);</span>
+<span class="fc" id="L1284">					command_next.m_from.setCoords(m_helper_array[0]);</span>
+<span class="fc" id="L1285">					command.m_next = iseg_next;// skip until iseg_next</span>
+<span class="fc" id="L1286">					command_next.m_prev = iseg;</span>
+<span class="pc bpc" id="L1287" title="1 of 2 branches missed.">				} else if (count_ == 2) {// TODO: this case needs improvement</span>
+				}
+			}
+		}
+
+<span class="fc" id="L1292">		return istart;</span>
+	}
+
+	private static void protectExtremeVertices_(EditShape edit_shape,
+			int protection_index, int geom, int path) {
+		// detect very narrow corners and preserve them. We cannot reliably
+		// delete these.
+<span class="fc" id="L1299">		int vprev = -1;</span>
+<span class="fc" id="L1300">		Point2D pt_prev = new Point2D();</span>
+<span class="fc" id="L1301">		pt_prev.setNaN();</span>
+<span class="fc" id="L1302">		Point2D pt = new Point2D();</span>
+<span class="fc" id="L1303">		pt.setNaN();</span>
+<span class="fc" id="L1304">		Point2D v_before = new Point2D();</span>
+<span class="fc" id="L1305">		v_before.setNaN();</span>
+<span class="fc" id="L1306">		Point2D pt_next = new Point2D();</span>
+<span class="fc" id="L1307">		Point2D v_after = new Point2D();</span>
+<span class="fc" id="L1308">		for (int i = 0, n = edit_shape.getPathSize(path), v = edit_shape</span>
+<span class="fc bfc" id="L1309" title="All 2 branches covered.">				.getFirstVertex(path); i &lt; n; ++i) {</span>
+<span class="fc bfc" id="L1310" title="All 2 branches covered.">			if (vprev == -1) {</span>
+<span class="fc" id="L1311">				edit_shape.getXY(v, pt);</span>
+
+<span class="fc" id="L1313">				vprev = edit_shape.getPrevVertex(v);</span>
+<span class="pc bpc" id="L1314" title="1 of 2 branches missed.">				if (vprev != -1) {</span>
+<span class="fc" id="L1315">					edit_shape.getXY(vprev, pt_prev);</span>
+<span class="fc" id="L1316">					v_before.sub(pt, pt_prev);</span>
+<span class="fc" id="L1317">					v_before.normalize();</span>
+				}
+			}
+
+<span class="fc" id="L1321">			int vnext = edit_shape.getNextVertex(v);</span>
+<span class="pc bpc" id="L1322" title="1 of 2 branches missed.">			if (vnext == -1)</span>
+<span class="nc" id="L1323">				break;</span>
+
+<span class="fc" id="L1325">			edit_shape.getXY(vnext, pt_next);</span>
+<span class="fc" id="L1326">			v_after.sub(pt_next, pt);</span>
+<span class="fc" id="L1327">			v_after.normalize();</span>
+
+<span class="pc bpc" id="L1329" title="1 of 2 branches missed.">			if (vprev != -1) {</span>
+<span class="fc" id="L1330">				double d = v_after.dotProduct(v_before);</span>
+<span class="fc bfc" id="L1331" title="All 2 branches covered.">				if (d &lt; -0.99</span>
+<span class="pc bpc" id="L1332" title="1 of 2 branches missed.">						&amp;&amp; Math.abs(v_after.crossProduct(v_before)) &lt; 1e-7) {</span>
+<span class="fc" id="L1333">					edit_shape.setUserIndex(v, protection_index, 1);</span>
+				}
+			}
+
+<span class="fc" id="L1337">			vprev = v;</span>
+<span class="fc" id="L1338">			v = vnext;</span>
+<span class="fc" id="L1339">			pt_prev.setCoords(pt);</span>
+<span class="fc" id="L1340">			pt.setCoords(pt_next);</span>
+<span class="fc" id="L1341">			v_before.setCoords(v_after);</span>
+		}
+<span class="fc" id="L1343">	}</span>
+	
+	static private int filterPath_(EditShape edit_shape, int geom, int dir,
+			boolean closed, double abs_distance, double filter_tolerance,
+			double densify_distance) {
+<span class="fc" id="L1348">		int path = edit_shape.getFirstPath(geom);</span>
+
+<span class="fc" id="L1350">		int concave_index = -1;</span>
+<span class="fc" id="L1351">		int fixed_vertices_index = edit_shape.createUserIndex();</span>
+<span class="fc" id="L1352">		protectExtremeVertices_(edit_shape, fixed_vertices_index, geom, path);</span>
+
+<span class="pc bpc" id="L1354" title="1 of 2 branches missed.">		for (int iter = 0; iter &lt; 100; ++iter) {</span>
+<span class="fc" id="L1355">			int isize = edit_shape.getPathSize(path);</span>
+<span class="pc bpc" id="L1356" title="1 of 2 branches missed.">			if (isize == 0) {</span>
+<span class="nc" id="L1357">				edit_shape.removeUserIndex(fixed_vertices_index);</span>
+				;
+<span class="nc" id="L1359">				return 1;</span>
+			}
+
+<span class="fc" id="L1362">			int ivert = edit_shape.getFirstVertex(path);</span>
+<span class="fc" id="L1363">			int nvertices = edit_shape.getPathSize(path);</span>
+<span class="fc bfc" id="L1364" title="All 2 branches covered.">			if (nvertices &lt; 3) {</span>
+<span class="fc" id="L1365">				edit_shape.removeUserIndex(fixed_vertices_index);</span>
+				;
+<span class="fc" id="L1367">				return 1;</span>
+			}
+
+<span class="pc bpc" id="L1370" title="2 of 4 branches missed.">			if (closed &amp;&amp; !edit_shape.isClosedPath(path))// the path is closed</span>
+															// only virtually
+			{
+<span class="nc" id="L1373">				nvertices -= 1;</span>
+			}
+
+<span class="fc" id="L1376">			double abs_d = abs_distance;</span>
+<span class="fc" id="L1377">			final int nfilter = 64;</span>
+<span class="fc" id="L1378">			boolean filtered = false;</span>
+<span class="fc" id="L1379">			int filtered_in_pass = 0;</span>
+<span class="fc" id="L1380">			boolean go_back = false;</span>
+<span class="pc bpc" id="L1381" title="1 of 4 branches missed.">			for (int i = 0; i &lt; nvertices &amp;&amp; ivert != -1; i++) {</span>
+<span class="fc" id="L1382">				int filtered_now = 0;</span>
+<span class="fc" id="L1383">				int v = ivert; // filter == 0</span>
+<span class="fc bfc" id="L1384" title="All 2 branches covered.">				for (int filter = 1, n = (int) Math.min(nfilter, nvertices - i); filter &lt; n; filter++) {</span>
+<span class="fc" id="L1385">					v = edit_shape.getNextVertex(v, dir);</span>
+<span class="fc bfc" id="L1386" title="All 2 branches covered.">					if (filter &gt; 1) {</span>
+<span class="fc" id="L1387">						int num = clipFilter_(edit_shape,</span>
+								fixed_vertices_index, ivert, v, dir,
+								abs_distance, densify_distance, nfilter);
+<span class="fc bfc" id="L1390" title="All 2 branches covered.">						if (num == -1)</span>
+<span class="fc" id="L1391">							break;</span>
+
+<span class="pc bpc" id="L1393" title="1 of 2 branches missed.">						filtered |= num &gt; 0;</span>
+<span class="fc" id="L1394">						filtered_now += num;</span>
+<span class="fc" id="L1395">						nvertices -= num;</span>
+					}
+				}
+
+<span class="fc" id="L1399">				filtered_in_pass += filtered_now;</span>
+
+<span class="pc bpc" id="L1401" title="1 of 2 branches missed.">				go_back = filtered_now &gt; 0;</span>
+
+<span class="pc bpc" id="L1403" title="1 of 2 branches missed.">				if (go_back) {</span>
+<span class="nc" id="L1404">					int prev = edit_shape.getPrevVertex(ivert, dir);</span>
+<span class="nc bnc" id="L1405" title="All 2 branches missed.">					if (prev != -1) {</span>
+<span class="nc" id="L1406">						ivert = prev;</span>
+<span class="nc" id="L1407">						nvertices++;</span>
+<span class="nc" id="L1408">						continue;</span>
+					}
+				}
+
+<span class="fc" id="L1412">				ivert = edit_shape.getNextVertex(ivert, dir);</span>
+			}
+
+<span class="pc bpc" id="L1415" title="1 of 2 branches missed.">			if (filtered_in_pass == 0)</span>
+<span class="fc" id="L1416">				break;</span>
+		}
+
+<span class="fc" id="L1419">		edit_shape.removeUserIndex(fixed_vertices_index);</span>
+<span class="fc" id="L1420">		edit_shape.filterClosePoints(filter_tolerance, false, false);</span>
+
+<span class="fc" id="L1422">		return 1;</span>
+	}
+
+	// This function clips out segments connecting from_vertiex to to_vertiex if
+	// they do not contribute to the buffer.
+	private static int clipFilter_(EditShape edit_shape,
+			int fixed_vertices_index, int from_vertex, int to_vertex, int dir,
+			double abs_distance, double densify_distance, final int max_filter) {
+		// Note: vertices marked with fixed_vertices_index cannot be deleted.
+
+<span class="fc" id="L1432">		Point2D pt1 = edit_shape.getXY(from_vertex);</span>
+<span class="fc" id="L1433">		Point2D pt2 = edit_shape.getXY(to_vertex);</span>
+<span class="fc bfc" id="L1434" title="All 2 branches covered.">		if (pt1.equals(pt2))</span>
+<span class="fc" id="L1435">			return -1;</span>
+
+<span class="fc" id="L1437">		double densify_distance_delta = densify_distance * 0.25;// distance by</span>
+																// which we can
+																// move the
+																// point closer
+																// to the chord
+																// (introducing
+																// an error into
+																// the buffer).
+<span class="fc" id="L1445">		double erase_distance_delta = densify_distance * 0.25;// distance when</span>
+																// we can erase
+																// the point
+																// (introducing
+																// an error into
+																// the buffer).
+		// This function goal is to modify or remove vertices between
+		// from_vertex and to_vertex in such a way that the result would not
+		// affect buffer to the left of the
+		// chain.
+<span class="fc" id="L1455">		Point2D v_gap = new Point2D();</span>
+<span class="fc" id="L1456">		v_gap.sub(pt2, pt1);</span>
+<span class="fc" id="L1457">		double gap_length = v_gap.length();</span>
+<span class="fc" id="L1458">		double h2_4 = gap_length * gap_length * 0.25;</span>
+<span class="fc" id="L1459">		double sqr_center_to_chord = abs_distance * abs_distance - h2_4; // squared</span>
+																			// distance
+																			// from
+																			// the
+																			// chord
+																			// to
+																			// the
+																			// circle
+																			// center
+<span class="fc bfc" id="L1468" title="All 2 branches covered.">		if (sqr_center_to_chord &lt;= h2_4)</span>
+<span class="fc" id="L1469">			return -1;// center to chord distance is less than half gap, that</span>
+						// means the gap is too wide for useful filtering (maybe
+						// this).
+
+<span class="fc" id="L1473">		double center_to_chord = Math.sqrt(sqr_center_to_chord); // distance</span>
+																	// from
+																	// circle
+																	// center to
+																	// the
+																	// chord.
+
+<span class="fc" id="L1480">		v_gap.normalize();</span>
+<span class="fc" id="L1481">		Point2D v_gap_norm = new Point2D(v_gap);</span>
+<span class="fc" id="L1482">		v_gap_norm.rightPerpendicular();</span>
+<span class="fc" id="L1483">		double chord_to_corner = h2_4 / center_to_chord; // cos(a) =</span>
+															// center_to_chord /
+															// distance;
+															// chord_to_corner =
+															// distance / cos(a)
+															// -
+															// center_to_chord;
+<span class="pc bpc" id="L1490" title="1 of 2 branches missed.">		boolean can_erase_corner_point = chord_to_corner &lt;= erase_distance_delta;</span>
+<span class="fc" id="L1491">		Point2D chord_midpoint = new Point2D();</span>
+<span class="fc" id="L1492">		MathUtils.lerp(pt2, pt1, 0.5, chord_midpoint);</span>
+<span class="fc" id="L1493">		Point2D corner = new Point2D(v_gap_norm);</span>
+<span class="fc" id="L1494">		double corrected_chord_to_corner = chord_to_corner</span>
+				- densify_distance_delta;// using slightly smaller than needed
+											// distance let us filter more.
+<span class="fc" id="L1497">		corner.scaleAdd(Math.max(0.0, corrected_chord_to_corner),</span>
+				chord_midpoint);
+		// corner = (p1 + p2) * 0.5 + v_gap_norm * chord_to_corner;
+
+<span class="fc" id="L1501">		Point2D center = new Point2D(v_gap_norm);</span>
+<span class="fc" id="L1502">		center.negate();</span>
+<span class="fc" id="L1503">		center.scaleAdd(center_to_chord, chord_midpoint);</span>
+
+<span class="fc" id="L1505">		double allowed_distance = abs_distance - erase_distance_delta;</span>
+<span class="fc" id="L1506">		double sqr_allowed_distance = MathUtils.sqr(allowed_distance);</span>
+<span class="fc" id="L1507">		double sqr_large_distance = sqr_allowed_distance * (1.9 * 1.9);</span>
+
+<span class="fc" id="L1509">		Point2D co_p1 = new Point2D();</span>
+<span class="fc" id="L1510">		co_p1.sub(corner, pt1);</span>
+<span class="fc" id="L1511">		Point2D co_p2 = new Point2D();</span>
+<span class="fc" id="L1512">		co_p2.sub(corner, pt2);</span>
+
+<span class="fc" id="L1514">		boolean large_distance = false;// set to true when distance</span>
+<span class="fc" id="L1515">		int cnt = 0;</span>
+<span class="fc" id="L1516">		char[] locations = new char[64];</span>
+		{
+			// check all vertices in the gap verifying that the gap can be
+			// clipped.
+			//
+
+<span class="fc" id="L1522">			Point2D pt = new Point2D();</span>
+			// firstly remove any duplicate vertices in the end.
+<span class="pc bpc" id="L1524" title="1 of 2 branches missed.">			for (int v = edit_shape.getPrevVertex(to_vertex, dir); v != from_vertex;) {</span>
+<span class="fc bfc" id="L1525" title="All 2 branches covered.">				if (edit_shape.getUserIndex(v, fixed_vertices_index) == 1)</span>
+<span class="fc" id="L1526">					return -1;// this range contains protected vertex</span>
+
+<span class="fc" id="L1528">				edit_shape.getXY(v, pt);</span>
+<span class="pc bpc" id="L1529" title="1 of 2 branches missed.">				if (pt.equals(pt2)) {</span>
+<span class="nc" id="L1530">					int v1 = edit_shape.getPrevVertex(v, dir);</span>
+<span class="nc" id="L1531">					edit_shape.removeVertex(v, false);</span>
+<span class="nc" id="L1532">					v = v1;</span>
+<span class="nc" id="L1533">					continue;</span>
+				} else {
+					break;
+				}
+			}
+
+<span class="fc" id="L1539">			Point2D prev_prev_pt = new Point2D();</span>
+<span class="fc" id="L1540">			prev_prev_pt.setNaN();</span>
+<span class="fc" id="L1541">			Point2D prev_pt = new Point2D();</span>
+<span class="fc" id="L1542">			prev_pt.setCoords(pt1);</span>
+<span class="fc" id="L1543">			locations[cnt++] = 1;</span>
+<span class="fc" id="L1544">			int prev_v = from_vertex;</span>
+<span class="fc" id="L1545">			Point2D dummyPt = new Point2D();</span>
+<span class="fc bfc" id="L1546" title="All 2 branches covered.">			for (int v = edit_shape.getNextVertex(from_vertex, dir); v != to_vertex;) {</span>
+<span class="pc bpc" id="L1547" title="1 of 2 branches missed.">				if (edit_shape.getUserIndex(v, fixed_vertices_index) == 1)</span>
+<span class="nc" id="L1548">					return -1;// this range contains protected vertex</span>
+
+<span class="fc" id="L1550">				edit_shape.getXY(v, pt);</span>
+<span class="pc bpc" id="L1551" title="1 of 2 branches missed.">				if (pt.equals(prev_pt)) {</span>
+<span class="nc" id="L1552">					int v1 = edit_shape.getNextVertex(v, dir);</span>
+<span class="nc" id="L1553">					edit_shape.removeVertex(v, false);</span>
+<span class="nc" id="L1554">					v = v1;</span>
+<span class="nc" id="L1555">					continue;</span>
+				}
+
+<span class="fc" id="L1558">				locations[cnt++] = 0;</span>
+
+<span class="fc" id="L1560">				Point2D v1 = new Point2D();</span>
+<span class="fc" id="L1561">				v1.sub(pt, pt1);</span>
+<span class="fc bfc" id="L1562" title="All 2 branches covered.">				if (v1.dotProduct(v_gap_norm) &lt; 0)// we are crossing on the</span>
+													// wrong site of the chord.
+													// Just bail out earlier.
+													// Maybe we could continue
+													// clipping though here, but
+													// it seems to be
+													// unnecessary complicated.
+<span class="fc" id="L1569">					return 0;</span>
+
+<span class="pc bpc" id="L1571" title="1 of 2 branches missed.">				if (Point2D.sqrDistance(pt, pt1) &gt; sqr_large_distance</span>
+<span class="pc bpc" id="L1572" title="1 of 2 branches missed.">						|| Point2D.sqrDistance(pt, pt2) &gt; sqr_large_distance)</span>
+<span class="nc" id="L1573">					large_distance = true; // too far from points, may</span>
+											// contribute to the outline (in
+											// case of a large loop)
+
+<span class="fc" id="L1577">				char next_location = 0;</span>
+
+<span class="fc" id="L1579">				dummyPt.sub(pt, pt1);</span>
+<span class="fc" id="L1580">				double cs1 = dummyPt.crossProduct(co_p1);</span>
+<span class="pc bpc" id="L1581" title="1 of 2 branches missed.">				if (cs1 &gt;= 0) {</span>
+<span class="fc" id="L1582">					next_location = 1;</span>
+				}
+
+<span class="fc" id="L1585">				dummyPt.sub(pt, pt2);</span>
+<span class="fc" id="L1586">				double cs2 = dummyPt.crossProduct(co_p2);</span>
+<span class="pc bpc" id="L1587" title="1 of 2 branches missed.">				if (cs2 &lt;= 0) {</span>
+<span class="fc" id="L1588">					next_location |= 2;</span>
+				}
+
+<span class="pc bpc" id="L1591" title="1 of 2 branches missed.">				if (next_location == 0)</span>
+<span class="nc" id="L1592">					return 0;</span>
+
+<span class="fc" id="L1594">				locations[cnt - 1] = next_location;</span>
+<span class="fc" id="L1595">				prev_prev_pt.setCoords(prev_pt);</span>
+<span class="fc" id="L1596">				prev_pt.setCoords(pt);</span>
+<span class="fc" id="L1597">				prev_v = v;</span>
+<span class="fc" id="L1598">				v = edit_shape.getNextVertex(v, dir);</span>
+<span class="fc" id="L1599">			}</span>
+
+<span class="pc bpc" id="L1601" title="1 of 2 branches missed.">			if (cnt == 1)</span>
+<span class="nc" id="L1602">				return 0;</span>
+
+<span class="pc bpc" id="L1604" title="1 of 2 branches missed.">			assert (!pt2.equals(prev_pt));</span>
+<span class="fc" id="L1605">			locations[cnt++] = 2;</span>
+		}
+
+<span class="fc" id="L1608">		boolean can_clip_all = true;</span>
+		// we can remove all points and replace them with a single corner point
+		// if we are moving from location 1 via location 3 to location 2
+<span class="fc bfc" id="L1611" title="All 2 branches covered.">		for (int i = 1, k = 0; i &lt; cnt; i++) {</span>
+<span class="pc bpc" id="L1612" title="1 of 2 branches missed.">			if (locations[i] != locations[i - 1]) {</span>
+<span class="fc" id="L1613">				k++;</span>
+<span class="pc bpc" id="L1614" title="4 of 10 branches missed.">				can_clip_all = k &lt; 3</span>
+						&amp;&amp; ((k == 1 &amp;&amp; locations[i] == 3) || (k == 2 &amp;&amp; locations[i] == 2));
+<span class="pc bpc" id="L1616" title="1 of 2 branches missed.">				if (!can_clip_all)</span>
+<span class="nc" id="L1617">					return 0;</span>
+			}
+		}
+
+<span class="pc bpc" id="L1621" title="5 of 8 branches missed.">		if (cnt &gt; 2 &amp;&amp; can_clip_all &amp;&amp; (cnt == 3 || !large_distance)) {</span>
+<span class="fc" id="L1622">			int clip_count = 0;</span>
+<span class="fc" id="L1623">			int v = edit_shape.getNextVertex(from_vertex, dir);</span>
+<span class="pc bpc" id="L1624" title="1 of 2 branches missed.">			if (!can_erase_corner_point) {</span>
+<span class="fc" id="L1625">				edit_shape.setXY(v, corner);</span>
+<span class="fc" id="L1626">				v = edit_shape.getNextVertex(v, dir);</span>
+			}
+
+			// we can remove all vertices between from and to, because they
+			// don't contribute
+<span class="pc bpc" id="L1631" title="1 of 2 branches missed.">			while (v != to_vertex) {</span>
+<span class="nc" id="L1632">				int v1 = edit_shape.getNextVertex(v, dir);</span>
+<span class="nc" id="L1633">				edit_shape.removeVertex(v, false);</span>
+<span class="nc" id="L1634">				v = v1;</span>
+<span class="nc" id="L1635">				++clip_count;</span>
+<span class="nc" id="L1636">			}</span>
+
+<span class="fc" id="L1638">			return clip_count;</span>
+		}
+
+<span class="nc bnc" id="L1641" title="All 2 branches missed.">		if (cnt == 3) {</span>
+<span class="nc bnc" id="L1642" title="All 6 branches missed.">			boolean case1 = (locations[0] == 1 &amp;&amp; locations[1] == 2 &amp;&amp; locations[2] == 2);</span>
+<span class="nc bnc" id="L1643" title="All 6 branches missed.">			boolean case2 = (locations[0] == 1 &amp;&amp; locations[1] == 1 &amp;&amp; locations[2] == 2);</span>
+<span class="nc bnc" id="L1644" title="All 4 branches missed.">			if (case1 || case2) {</span>
+				// special case, when we cannot clip, but we can move the point
+<span class="nc" id="L1646">				Point2D p1 = edit_shape.getXY(from_vertex);</span>
+<span class="nc" id="L1647">				int v = edit_shape.getNextVertex(from_vertex, dir);</span>
+<span class="nc" id="L1648">				Point2D p2 = edit_shape.getXY(v);</span>
+<span class="nc" id="L1649">				Point2D p3 = edit_shape.getXY(edit_shape.getNextVertex(v, dir));</span>
+<span class="nc bnc" id="L1650" title="All 2 branches missed.">				if (case2) {</span>
+<span class="nc" id="L1651">					Point2D temp = p1;</span>
+<span class="nc" id="L1652">					p1 = p3;</span>
+<span class="nc" id="L1653">					p3 = temp;</span>
+				}
+
+<span class="nc" id="L1656">				Point2D vec = new Point2D();</span>
+<span class="nc" id="L1657">				vec.sub(p1, p2);</span>
+<span class="nc" id="L1658">				p3.sub(p2);</span>
+<span class="nc" id="L1659">				double veclen = vec.length();</span>
+<span class="nc" id="L1660">				double w = p3.length();</span>
+<span class="nc" id="L1661">				double wcosa = vec.dotProduct(p3) / veclen;</span>
+<span class="nc" id="L1662">				double wsina = Math.abs(p3.crossProduct(vec) / veclen);</span>
+<span class="nc" id="L1663">				double z = 2 * abs_distance - wsina;</span>
+<span class="nc bnc" id="L1664" title="All 2 branches missed.">				if (z &lt; 0)</span>
+<span class="nc" id="L1665">					return 0;</span>
+
+<span class="nc" id="L1667">				double x = wcosa + Math.sqrt(wsina * z);</span>
+<span class="nc bnc" id="L1668" title="All 2 branches missed.">				if (x &gt; veclen)</span>
+<span class="nc" id="L1669">					return 0;</span>
+
+<span class="nc" id="L1671">				Point2D hvec = new Point2D();</span>
+<span class="nc" id="L1672">				hvec.scaleAdd(-x / veclen, vec, p3); // hvec = p3 - vec * (x /</span>
+														// veclen);
+<span class="nc" id="L1674">				double h = hvec.length();</span>
+<span class="nc" id="L1675">				double y = -(h * h * veclen) / (2 * hvec.dotProduct(vec));</span>
+
+<span class="nc" id="L1677">				double t = (x - y) / veclen;</span>
+<span class="nc" id="L1678">				MathUtils.lerp(p2, p1, t, p2);</span>
+<span class="nc" id="L1679">				edit_shape.setXY(v, p2);</span>
+<span class="nc" id="L1680">				return 0;</span>
+			}
+		}
+
+<span class="nc bnc" id="L1684" title="All 4 branches missed.">		if (large_distance &amp;&amp; cnt &gt; 3) {</span>
+			// we are processing more than 3 points and there are some points
+			// further than the
+<span class="nc" id="L1687">			return 0;</span>
+		}
+
+<span class="nc" id="L1690">		int v_prev = -1;</span>
+<span class="nc" id="L1691">		Point2D pt_prev = new Point2D();</span>
+<span class="nc" id="L1692">		int v_cur = from_vertex;</span>
+<span class="nc" id="L1693">		Point2D pt_cur = new Point2D(pt1);</span>
+<span class="nc" id="L1694">		int cur_location = 1;</span>
+<span class="nc" id="L1695">		int prev_location = -1; // 1 - semiplane to the right of [f,c]. 3 -</span>
+								// semiplane to the right of [c,t], 2 - both
+								// above fc and ct, 0 - cannot clip, -1 -
+								// unknown
+<span class="nc" id="L1699">		int v_next = v_cur;</span>
+<span class="nc" id="L1700">		int clip_count = 0;</span>
+<span class="nc" id="L1701">		cnt = 1;</span>
+<span class="nc bnc" id="L1702" title="All 2 branches missed.">		while (v_next != to_vertex) {</span>
+<span class="nc" id="L1703">			v_next = edit_shape.getNextVertex(v_next, dir);</span>
+<span class="nc" id="L1704">			int next_location = locations[cnt++];</span>
+<span class="nc bnc" id="L1705" title="All 2 branches missed.">			if (next_location == 0) {</span>
+<span class="nc bnc" id="L1706" title="All 2 branches missed.">				if (v_next == to_vertex)</span>
+<span class="nc" id="L1707">					break;</span>
+
+				continue;
+			}
+
+<span class="nc" id="L1712">			Point2D pt_next = edit_shape.getXY(v_next);</span>
+
+<span class="nc bnc" id="L1714" title="All 2 branches missed.">			if (prev_location != -1) {</span>
+<span class="nc" id="L1715">				int common_location = (prev_location &amp; cur_location &amp; next_location);</span>
+<span class="nc bnc" id="L1716" title="All 2 branches missed.">				if ((common_location &amp; 3) != 0) {</span>
+					// prev and next are on the same semiplane as the current we
+					// can safely remove the current point.
+<span class="nc" id="L1719">					edit_shape.removeVertex(v_cur, true);</span>
+<span class="nc" id="L1720">					clip_count++;// do not change prev point.</span>
+<span class="nc" id="L1721">					v_cur = v_next;</span>
+<span class="nc" id="L1722">					pt_cur.setCoords(pt_next);</span>
+<span class="nc" id="L1723">					cur_location = next_location;</span>
+<span class="nc" id="L1724">					continue;</span>
+				}
+
+<span class="nc bnc" id="L1727" title="All 6 branches missed.">				if (cur_location == 3 &amp;&amp; prev_location != 0</span>
+						&amp;&amp; next_location != 0) {
+<span class="nc bnc" id="L1729" title="All 2 branches missed.">					assert ((prev_location &amp; next_location) == 0);// going from</span>
+																	// one semi
+																	// plane to
+																	// another
+																	// via the
+																	// mid.
+<span class="nc" id="L1735">					pt_cur.setCoords(corner);</span>
+<span class="nc bnc" id="L1736" title="All 4 branches missed.">					if (can_erase_corner_point || pt_cur.equals(pt_prev)) {// this</span>
+																			// point
+																			// can
+																			// be
+																			// removed
+<span class="nc" id="L1741">						edit_shape.removeVertex(v_cur, true);</span>
+<span class="nc" id="L1742">						clip_count++;// do not change prev point.</span>
+<span class="nc" id="L1743">						v_cur = v_next;</span>
+<span class="nc" id="L1744">						pt_cur.setCoords(pt_next);</span>
+<span class="nc" id="L1745">						cur_location = next_location;</span>
+<span class="nc" id="L1746">						continue;</span>
+					} else {
+<span class="nc" id="L1748">						edit_shape.setXY(v_cur, pt_cur); // snap to the corner</span>
+					}
+				} else {
+<span class="nc bnc" id="L1751" title="All 14 branches missed.">					if (next_location == 0</span>
+							&amp;&amp; cur_location != 0
+							|| next_location != 0
+							&amp;&amp; cur_location == 0
+							|| ((next_location | cur_location) == 3
+									&amp;&amp; next_location != 3 &amp;&amp; cur_location != 3)) {
+						// clip
+					}
+				}
+			}
+
+<span class="nc" id="L1762">			prev_location = cur_location;</span>
+<span class="nc" id="L1763">			v_prev = v_cur;</span>
+<span class="nc" id="L1764">			pt_prev.setCoords(pt_cur);</span>
+<span class="nc" id="L1765">			v_cur = v_next;</span>
+<span class="nc" id="L1766">			cur_location = next_location;</span>
+<span class="nc" id="L1767">			pt_cur.setCoords(pt_next);</span>
+<span class="nc" id="L1768">		}</span>
+
+<span class="nc" id="L1770">		return clip_count;</span>
+	}
+	
+	private boolean isDegeneratePath_(MultiPathImpl mp_impl, int ipath) {
+<span class="pc bpc" id="L1774" title="1 of 2 branches missed.">		if (mp_impl.getPathSize(ipath) == 1)</span>
+<span class="nc" id="L1775">			return true;</span>
+<span class="fc" id="L1776">		Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L1777">		mp_impl.queryPathEnvelope2D(ipath, env);</span>
+<span class="fc bfc" id="L1778" title="All 2 branches covered.">		if (Math.max(env.getWidth(), env.getHeight()) &lt; m_densify_dist * 0.5)</span>
+<span class="fc" id="L1779">			return true;</span>
+
+<span class="fc" id="L1781">		return false;</span>
+	}
+
+	private boolean isDegenerateGeometry_(Geometry geom) {
+<span class="fc" id="L1785">		Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L1786">		geom.queryEnvelope2D(env);</span>
+<span class="pc bpc" id="L1787" title="1 of 2 branches missed.">		if (Math.max(env.getWidth(), env.getHeight()) &lt; m_densify_dist * 0.5)</span>
+<span class="nc" id="L1788">			return true;</span>
+
+<span class="fc" id="L1790">		return false;</span>
+	}
+
+	private Polyline preparePolyline_(Polyline input_geom) {
+		// Generalize it firstly using 25% of the densification deviation as a
+		// criterion.
+		Polyline generalized_polyline = (Polyline) ((OperatorGeneralize) OperatorFactoryLocal
+<span class="nc" id="L1797">				.getInstance().getOperator(Operator.Type.Generalize)).execute(</span>
+				input_geom, m_densify_dist * 0.25, false, m_progress_tracker);
+
+<span class="nc" id="L1800">		int path_point_count = 0;</span>
+<span class="nc bnc" id="L1801" title="All 2 branches missed.">		for (int i = 0, npath = generalized_polyline.getPathCount(); i &lt; npath; i++) {</span>
+<span class="nc" id="L1802">			path_point_count = Math.max(generalized_polyline.getPathSize(i),</span>
+					path_point_count);
+		}
+
+<span class="nc bnc" id="L1806" title="All 2 branches missed.">		if (path_point_count &lt; 32) {</span>
+<span class="nc" id="L1807">			m_bfilter = false;</span>
+<span class="nc" id="L1808">			return generalized_polyline;</span>
+		} else {
+<span class="nc" id="L1810">			m_bfilter = true;</span>
+			// If we apply a filter to the polyline, then we have to resolve all
+			// self intersections.
+<span class="nc" id="L1813">			Polyline simple_polyline = (Polyline) (TopologicalOperations</span>
+<span class="nc" id="L1814">					.planarSimplify(generalized_polyline, m_small_tolerance,</span>
+							false, true, m_progress_tracker));
+			// Operator_factory_local::SaveJSONToTextFileDbg(&quot;c:/temp/buffer_simplify.txt&quot;,
+			// *simple_polyline, nullptr);
+<span class="nc" id="L1818">			return simple_polyline;</span>
+		}
+	}
+
+	private void addCircle_(MultiPathImpl result_mp, Point point) {
+		// Uses same calculations for each of the quadrants, generating a
+		// symmetric distribution of points.
+<span class="fc" id="L1825">		Point2D center = point.getXY();</span>
+<span class="pc bpc" id="L1826" title="1 of 4 branches missed.">		if (m_circle_template != null &amp;&amp; !m_circle_template.isEmpty()) {// use</span>
+																		// template
+																		// if
+																		// available.
+<span class="fc" id="L1830">			Point2D p = new Point2D();</span>
+<span class="fc" id="L1831">			p.setCoords(m_circle_template.get(0));</span>
+<span class="fc" id="L1832">			p.scaleAdd(m_abs_distance, center);</span>
+<span class="fc" id="L1833">			result_mp.startPath(p);</span>
+<span class="fc bfc" id="L1834" title="All 2 branches covered.">			for (int i = 1, n = (int) m_circle_template.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L1835">				p.setCoords(m_circle_template.get(i));</span>
+<span class="fc" id="L1836">				p.scaleAdd(m_abs_distance, center);</span>
+<span class="fc" id="L1837">				result_mp.lineTo(p);</span>
+			}
+<span class="fc" id="L1839">			return;</span>
+		}
+
+		// avoid unnecessary memory allocation for the circle template. Just do
+		// the point here.
+
+<span class="fc" id="L1845">		int N = m_circle_template_size;</span>
+<span class="fc" id="L1846">		int real_size = (N + 3) / 4;</span>
+<span class="fc" id="L1847">		double dA = (Math.PI * 0.5) / real_size;</span>
+		// result_mp.reserve(real_size * 4);
+
+<span class="fc" id="L1850">		double dcos = Math.cos(dA);</span>
+<span class="fc" id="L1851">		double dsin = Math.sin(dA);</span>
+<span class="fc" id="L1852">		Point2D pt = new Point2D();</span>
+<span class="fc bfc" id="L1853" title="All 2 branches covered.">		for (int quadrant = 3; quadrant &gt;= 0; quadrant--) {</span>
+<span class="fc" id="L1854">			pt.setCoords(0.0, m_abs_distance);</span>
+<span class="fc bfc" id="L1855" title="All 4 branches covered.">			switch (quadrant) {</span>
+			case 0: {// upper left quadrant
+<span class="fc bfc" id="L1857" title="All 2 branches covered.">				for (int i = 0; i &lt; real_size; i++) {</span>
+<span class="fc" id="L1858">					result_mp.lineTo(pt.x + center.x, pt.y + center.y);</span>
+<span class="fc" id="L1859">					pt.rotateReverse(dcos, dsin);</span>
+				}
+<span class="fc" id="L1861">				break;</span>
+			}
+			case 1: {// upper left quadrant
+<span class="fc bfc" id="L1864" title="All 2 branches covered.">				for (int i = 0; i &lt; real_size; i++) {// m_circle_template.set(i</span>
+														// + real_size * 1,
+														// Point_2D::construct(-pt.y,
+														// pt.x));
+<span class="fc" id="L1868">					result_mp.lineTo(-pt.y + center.x, pt.x + center.y);</span>
+<span class="fc" id="L1869">					pt.rotateReverse(dcos, dsin);</span>
+				}
+<span class="fc" id="L1871">				break;</span>
+			}
+			case 2: {// lower left quadrant
+						// m_circle_template.set(i + real_size * 2,
+						// Point_2D::construct(-pt.x, -pt.y));
+<span class="fc bfc" id="L1876" title="All 2 branches covered.">				for (int i = 0; i &lt; real_size; i++) {</span>
+<span class="fc" id="L1877">					result_mp.lineTo(-pt.x + center.x, -pt.y + center.y);</span>
+<span class="fc" id="L1878">					pt.rotateReverse(dcos, dsin);</span>
+				}
+<span class="fc" id="L1880">				break;</span>
+			}
+			default:// case 3:
+			{// lower right quadrant
+				// m_circle_template.set(i + real_size * 3,
+				// Point_2D::construct(pt.y, -pt.x));
+<span class="fc" id="L1886">				result_mp.startPath(pt.y + center.x, -pt.x + center.y);// we</span>
+																		// start
+																		// at
+																		// the
+																		// quadrant
+																		// 3.
+																		// The
+																		// first
+																		// point
+																		// is
+																		// (0,
+																		// -m_distance)
+																		// +
+																		// center
+<span class="fc bfc" id="L1900" title="All 2 branches covered.">				for (int i = 1; i &lt; real_size; i++) {</span>
+<span class="fc" id="L1901">					pt.rotateReverse(dcos, dsin);</span>
+<span class="fc" id="L1902">					result_mp.lineTo(pt.y + center.x, -pt.x + center.y);</span>
+				}
+				break;
+			}
+			}
+
+<span class="fc" id="L1908">			progress_();</span>
+		}
+<span class="fc" id="L1910">	}</span>
+
+	private static Polygon setWeakSimple_(Polygon poly) {
+<span class="fc" id="L1913">		((MultiPathImpl) poly._getImpl()).setIsSimple(</span>
+				MultiVertexGeometryImpl.GeometryXSimple.Weak, 0.0, false);
+<span class="fc" id="L1915">		return poly;</span>
+	}
+
+	private Polygon setStrongSimple_(Polygon poly) {
+<span class="fc" id="L1919">		((MultiPathImpl) poly._getImpl()).setIsSimple(</span>
+				MultiVertexGeometryImpl.GeometryXSimple.Strong, m_tolerance,
+				false);
+<span class="fc" id="L1922">		((MultiPathImpl) poly._getImpl())._updateOGCFlags();</span>
+<span class="fc" id="L1923">		return poly;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

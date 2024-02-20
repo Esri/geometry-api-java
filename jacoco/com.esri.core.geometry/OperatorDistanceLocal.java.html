@@ -1,0 +1,436 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OperatorDistanceLocal.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">OperatorDistanceLocal.java</span></div><h1>OperatorDistanceLocal.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+<span class="fc" id="L27">class OperatorDistanceLocal extends OperatorDistance {</span>
+
+	/**
+	 * Performs the Distance operation on two geometries
+	 * 
+	 * @return Returns a double.
+	 */
+	@Override
+	public double execute(Geometry geom1, Geometry geom2,
+			ProgressTracker progressTracker) {
+<span class="pc bpc" id="L37" title="2 of 4 branches missed.">		if (null == geom1 || null == geom2) {</span>
+<span class="nc" id="L38">			throw new IllegalArgumentException();</span>
+		}
+
+<span class="fc" id="L41">		Geometry geometryA = geom1;</span>
+<span class="fc" id="L42">		Geometry geometryB = geom2;</span>
+
+<span class="fc bfc" id="L44" title="All 4 branches covered.">		if (geometryA.isEmpty() || geometryB.isEmpty())</span>
+<span class="fc" id="L45">			return NumberUtils.TheNaN;		</span>
+
+		Polygon polygonA;
+		Polygon polygonB;
+		MultiPoint multiPointA;
+		MultiPoint multiPointB;
+
+		// if geometryA is an envelope use a polygon instead (if geom1 was
+		// folded, then geometryA will already be a polygon)
+		// if geometryA is a point use a multipoint instead
+<span class="fc" id="L55">		Geometry.Type gtA = geometryA.getType();</span>
+<span class="fc" id="L56">		Geometry.Type gtB = geometryB.getType();</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">		if (gtA == Geometry.Type.Point) {</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">			if (gtB == Geometry.Type.Point) {</span>
+<span class="fc" id="L59">				return Point2D.distance(((Point)geometryA).getXY(), ((Point)geometryB).getXY());</span>
+			}
+<span class="pc bpc" id="L61" title="1 of 2 branches missed.">			else if (gtB == Geometry.Type.Envelope) {</span>
+<span class="nc" id="L62">				Envelope2D envB = new Envelope2D();</span>
+<span class="nc" id="L63">				geometryB.queryEnvelope2D(envB);</span>
+<span class="nc" id="L64">				return envB.distance(((Point)geometryA).getXY());</span>
+			}
+			
+<span class="fc" id="L67">			multiPointA = new MultiPoint();</span>
+<span class="fc" id="L68">			multiPointA.add((Point) geometryA);</span>
+<span class="fc" id="L69">			geometryA = multiPointA;</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">		} else if (gtA == Geometry.Type.Envelope) {</span>
+<span class="pc bpc" id="L71" title="1 of 2 branches missed.">			if (gtB == Geometry.Type.Envelope) {</span>
+<span class="nc" id="L72">				Envelope2D envA = new Envelope2D();</span>
+<span class="nc" id="L73">				geometryA.queryEnvelope2D(envA);</span>
+<span class="nc" id="L74">				Envelope2D envB = new Envelope2D();</span>
+<span class="nc" id="L75">				geometryB.queryEnvelope2D(envB);</span>
+<span class="nc" id="L76">				return envB.distance(envA);</span>
+			}
+<span class="fc" id="L78">			polygonA = new Polygon();</span>
+<span class="fc" id="L79">			polygonA.addEnvelope((Envelope) geometryA, false);</span>
+<span class="fc" id="L80">			geometryA = polygonA;</span>
+		}
+
+		// if geom_2 is an envelope use a polygon instead
+		// if geom_2 is a point use a multipoint instead
+<span class="fc bfc" id="L85" title="All 2 branches covered.">		if (gtB == Geometry.Type.Point) {</span>
+<span class="fc" id="L86">			multiPointB = new MultiPoint();</span>
+<span class="fc" id="L87">			multiPointB.add((Point) geometryB);</span>
+<span class="fc" id="L88">			geometryB = multiPointB;</span>
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">		} else if (gtB == Geometry.Type.Envelope) {</span>
+<span class="nc" id="L90">			polygonB = new Polygon();</span>
+<span class="nc" id="L91">			polygonB.addEnvelope((Envelope) geometryB, false);</span>
+<span class="nc" id="L92">			geometryB = polygonB;</span>
+		}
+
+<span class="fc" id="L95">		DistanceCalculator distanceCalculator = new DistanceCalculator(</span>
+				progressTracker);
+<span class="fc" id="L97">		double distance = distanceCalculator.calculate(geometryA, geometryB);</span>
+<span class="fc" id="L98">		return distance;</span>
+	}
+
+	// Implementation of distance algorithm.
+	class DistanceCalculator {
+		private ProgressTracker m_progressTracker;
+		private Envelope2D m_env2DgeometryA;
+		private Envelope2D m_env2DgeometryB;
+
+		private void swapEnvelopes_() {
+			double temp;
+			// swap xmin
+<span class="fc" id="L110">			temp = m_env2DgeometryA.xmin;</span>
+<span class="fc" id="L111">			m_env2DgeometryA.xmin = m_env2DgeometryB.xmin;</span>
+<span class="fc" id="L112">			m_env2DgeometryB.xmin = temp;</span>
+			// swap xmax
+<span class="fc" id="L114">			temp = m_env2DgeometryA.xmax;</span>
+<span class="fc" id="L115">			m_env2DgeometryA.xmax = m_env2DgeometryB.xmax;</span>
+<span class="fc" id="L116">			m_env2DgeometryB.xmax = temp;</span>
+			// swap ymin
+<span class="fc" id="L118">			temp = m_env2DgeometryA.ymin;</span>
+<span class="fc" id="L119">			m_env2DgeometryA.ymin = m_env2DgeometryB.ymin;</span>
+<span class="fc" id="L120">			m_env2DgeometryB.ymin = temp;</span>
+			// swap ymax
+<span class="fc" id="L122">			temp = m_env2DgeometryA.ymax;</span>
+<span class="fc" id="L123">			m_env2DgeometryA.ymax = m_env2DgeometryB.ymax;</span>
+<span class="fc" id="L124">			m_env2DgeometryB.ymax = temp;</span>
+<span class="fc" id="L125">		}</span>
+
+		private double executeBruteForce_(/* const */Geometry geometryA, /* const */
+		Geometry geometryB) {
+<span class="pc bpc" id="L129" title="1 of 2 branches missed.">			if ((m_progressTracker != null)</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">					&amp;&amp; !(m_progressTracker.progress(-1, -1)))</span>
+<span class="nc" id="L131">				throw new RuntimeException(&quot;user_canceled&quot;);</span>
+
+<span class="fc" id="L133">			boolean geometriesAreDisjoint = !m_env2DgeometryA</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">					.isIntersecting(m_env2DgeometryB);</span>
+<span class="fc bfc" id="L135" title="All 2 branches covered.">			if (Geometry.isMultiPath(geometryA.getType().value())</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">					&amp;&amp; Geometry.isMultiPath(geometryB.getType().value())) { // MultiPath</span>
+																			// vs.
+																			// MultiPath
+																			// choose
+																			// the
+																			// multipath
+																			// with
+																			// more
+																			// points
+																			// to
+																			// be
+																			// geometryA,
+																			// this
+																			// way
+																			// more
+																			// of
+																			// geometryA
+																			// segments
+																			// can
+																			// be
+																			// disqualified
+																			// more
+																			// quickly
+																			// by
+																			// testing
+																			// segmentA
+																			// envelope
+																			// vs.
+																			// geometryB
+																			// envelope
+<span class="fc" id="L166">				if (((MultiPath) geometryA).getPointCount() &gt; ((MultiPath) geometryB)</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">						.getPointCount())</span>
+<span class="fc" id="L168">					return bruteForceMultiPathMultiPath_((MultiPath) geometryA,</span>
+							(MultiPath) geometryB, geometriesAreDisjoint);
+<span class="fc" id="L170">				swapEnvelopes_();</span>
+<span class="fc" id="L171">				double answer = bruteForceMultiPathMultiPath_(</span>
+						(MultiPath) geometryB, (MultiPath) geometryA,
+						geometriesAreDisjoint);
+<span class="fc" id="L174">				swapEnvelopes_();</span>
+<span class="fc" id="L175">				return answer;</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">			} else if (geometryA.getType() == Geometry.Type.MultiPoint</span>
+<span class="pc bpc" id="L177" title="1 of 2 branches missed.">					&amp;&amp; Geometry.isMultiPath(geometryB.getType().value())) { // MultiPoint</span>
+																			// vs.
+																			// MultiPath
+<span class="nc" id="L180">				swapEnvelopes_();</span>
+<span class="nc" id="L181">				double answer = bruteForceMultiPathMultiPoint_(</span>
+						(MultiPath) geometryB, (MultiPoint) geometryA,
+						geometriesAreDisjoint);
+<span class="nc" id="L184">				swapEnvelopes_();</span>
+<span class="nc" id="L185">				return answer;</span>
+<span class="pc bpc" id="L186" title="1 of 2 branches missed.">			} else if (geometryB.getType() == Geometry.Type.MultiPoint</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">					&amp;&amp; Geometry.isMultiPath(geometryA.getType().value())) { // MultiPath</span>
+																			// vs.
+																			// MultiPoint
+<span class="fc" id="L190">				return bruteForceMultiPathMultiPoint_((MultiPath) geometryA,</span>
+						(MultiPoint) geometryB, geometriesAreDisjoint);
+<span class="pc bpc" id="L192" title="1 of 2 branches missed.">			} else if (geometryA.getType() == Geometry.Type.MultiPoint</span>
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">					&amp;&amp; geometryB.getType() == Geometry.Type.MultiPoint) { // MultiPoint</span>
+																			// vs.
+																			// MultiPoint
+																			// choose
+																			// the
+																			// multipoint
+																			// with
+																			// more
+																			// vertices
+																			// to
+																			// be
+																			// the
+																			// &quot;geometryA&quot;,
+																			// this
+																			// way
+																			// more
+																			// points
+																			// can
+																			// be
+																			// potentially
+																			// excluded
+																			// by
+																			// envelope
+																			// distance
+																			// tests.
+<span class="fc" id="L218">				if (((MultiPoint) geometryA).getPointCount() &gt; ((MultiPoint) geometryB)</span>
+<span class="fc bfc" id="L219" title="All 2 branches covered.">						.getPointCount())</span>
+<span class="fc" id="L220">					return bruteForceMultiPointMultiPoint_(</span>
+							(MultiPoint) geometryA, (MultiPoint) geometryB,
+							geometriesAreDisjoint);
+<span class="fc" id="L223">				swapEnvelopes_();</span>
+<span class="fc" id="L224">				double answer = bruteForceMultiPointMultiPoint_(</span>
+						(MultiPoint) geometryB, (MultiPoint) geometryA,
+						geometriesAreDisjoint);
+<span class="fc" id="L227">				swapEnvelopes_();</span>
+<span class="fc" id="L228">				return answer;</span>
+			}
+<span class="nc" id="L230">			return 0.0;</span>
+		}
+
+		private double bruteForceMultiPathMultiPath_(
+		/* const */MultiPath geometryA, /* const */MultiPath geometryB,
+				boolean geometriesAreDisjoint) {
+			// It may be beneficial to have the geometry with less vertices
+			// always be geometryA.
+<span class="fc" id="L238">			SegmentIterator segIterA = geometryA.querySegmentIterator();</span>
+<span class="fc" id="L239">			SegmentIterator segIterB = geometryB.querySegmentIterator();</span>
+<span class="fc" id="L240">			Envelope2D env2DSegmentA = new Envelope2D();</span>
+<span class="fc" id="L241">			Envelope2D env2DSegmentB = new Envelope2D();</span>
+
+<span class="fc" id="L243">			double minSqrDistance = NumberUtils.doubleMax();</span>
+
+<span class="fc bfc" id="L245" title="All 2 branches covered.">			if (!geometriesAreDisjoint) {</span>
+				// Geometries might be non-disjoint. Check if they intersect
+				// using point-in-polygon tests
+<span class="pc bpc" id="L248" title="1 of 2 branches missed.">				if (weakIntersectionTest_(geometryA, geometryB, segIterA,</span>
+						segIterB))
+<span class="nc" id="L250">					return 0.0;</span>
+			}
+
+			// if geometries are known disjoint, don't bother to do any tests
+			// for polygon containment
+
+			// nested while-loop insanity
+<span class="fc bfc" id="L257" title="All 2 branches covered.">			while (segIterA.nextPath()) {</span>
+<span class="fc bfc" id="L258" title="All 2 branches covered.">				while (segIterA.hasNextSegment()) {</span>
+<span class="fc" id="L259">					/* const */Segment segmentA = segIterA.nextSegment();</span>
+<span class="fc" id="L260">					segmentA.queryEnvelope2D(env2DSegmentA);</span>
+<span class="fc bfc" id="L261" title="All 2 branches covered.">					if (env2DSegmentA.sqrDistance(m_env2DgeometryB) &gt; minSqrDistance)</span>
+<span class="fc" id="L262">						continue;</span>
+
+<span class="fc bfc" id="L264" title="All 2 branches covered.">					while (segIterB.nextPath()) {</span>
+<span class="fc bfc" id="L265" title="All 2 branches covered.">						while (segIterB.hasNextSegment()) {</span>
+<span class="fc" id="L266">							/* const */Segment segmentB = segIterB</span>
+<span class="fc" id="L267">									.nextSegment();</span>
+<span class="fc" id="L268">							segmentB.queryEnvelope2D(env2DSegmentB);</span>
+<span class="fc bfc" id="L269" title="All 2 branches covered.">							if (env2DSegmentA.sqrDistance(env2DSegmentB) &lt; minSqrDistance) {</span>
+								// get distance between segments
+<span class="fc" id="L271">								double sqrDistance = segmentA.distance(</span>
+										segmentB, geometriesAreDisjoint);
+<span class="fc" id="L273">								sqrDistance *= sqrDistance;</span>
+<span class="fc bfc" id="L274" title="All 2 branches covered.">								if (sqrDistance &lt; minSqrDistance) {</span>
+<span class="fc bfc" id="L275" title="All 2 branches covered.">									if (sqrDistance == 0.0)</span>
+<span class="fc" id="L276">										return 0.0;</span>
+
+<span class="fc" id="L278">									minSqrDistance = sqrDistance;</span>
+								}
+							}
+<span class="fc" id="L281">						}</span>
+					}
+<span class="fc" id="L283">					segIterB.resetToFirstPath();</span>
+<span class="fc" id="L284">				}</span>
+			}
+
+<span class="fc" id="L287">			return Math.sqrt(minSqrDistance);</span>
+		}
+
+		private double bruteForceMultiPathMultiPoint_(
+		/* const */MultiPath geometryA, /* const */
+		MultiPoint geometryB, boolean geometriesAreDisjoint) {
+<span class="fc" id="L293">			SegmentIterator segIterA = geometryA.querySegmentIterator();</span>
+
+<span class="fc" id="L295">			Envelope2D env2DSegmentA = new Envelope2D();</span>
+
+<span class="fc" id="L297">			double minSqrDistance = NumberUtils.doubleMax();</span>
+
+<span class="fc" id="L299">			Point2D inputPoint = new Point2D();</span>
+<span class="fc" id="L300">			double t = -1;</span>
+<span class="fc" id="L301">			double sqrDistance = minSqrDistance;</span>
+<span class="fc" id="L302">			/* const */MultiPointImpl multiPointImplB = (MultiPointImpl) geometryB</span>
+<span class="fc" id="L303">					._getImpl();</span>
+<span class="fc" id="L304">			int pointCountB = multiPointImplB.getPointCount();</span>
+<span class="pc bpc" id="L305" title="1 of 2 branches missed.">			boolean bDoPiPTest = !geometriesAreDisjoint</span>
+<span class="pc bnc" id="L306" title="All 2 branches missed.">					&amp;&amp; (geometryA.getType() == Geometry.Type.Polygon);</span>
+
+<span class="fc bfc" id="L308" title="All 2 branches covered.">			while (segIterA.nextPath()) {</span>
+<span class="fc bfc" id="L309" title="All 2 branches covered.">				while (segIterA.hasNextSegment()) {</span>
+<span class="fc" id="L310">					/* const */Segment segmentA = segIterA.nextSegment();</span>
+<span class="fc" id="L311">					segmentA.queryEnvelope2D(env2DSegmentA);</span>
+					// if multipointB has only 1 vertex then it is faster to not
+					// test for
+					// env2DSegmentA.distance(env2DgeometryB)
+<span class="fc bfc" id="L315" title="All 2 branches covered.">					if (pointCountB &gt; 1</span>
+<span class="fc bfc" id="L316" title="All 2 branches covered.">							&amp;&amp; env2DSegmentA.sqrDistance(m_env2DgeometryB) &gt; minSqrDistance)</span>
+<span class="fc" id="L317">						continue;</span>
+
+<span class="fc bfc" id="L319" title="All 2 branches covered.">					for (int i = 0; i &lt; pointCountB; i++) {</span>
+<span class="fc" id="L320">						multiPointImplB.getXY(i, inputPoint);</span>
+<span class="pc bpc" id="L321" title="1 of 2 branches missed.">						if (bDoPiPTest) {</span>
+							// Test for polygon containment. This takes the
+							// place of a more general intersection test at the
+							// beginning of the operator
+<span class="nc bnc" id="L325" title="All 2 branches missed.">							if (PolygonUtils.isPointInPolygon2D(</span>
+									(Polygon) geometryA, inputPoint, 0) != PolygonUtils.PiPResult.PiPOutside)
+<span class="nc" id="L327">								return 0.0;</span>
+						}
+
+<span class="fc" id="L330">						t = segmentA.getClosestCoordinate(inputPoint, false);</span>
+<span class="fc" id="L331">						inputPoint.sub(segmentA.getCoord2D(t));</span>
+<span class="fc" id="L332">						sqrDistance = inputPoint.sqrLength();</span>
+<span class="fc bfc" id="L333" title="All 2 branches covered.">						if (sqrDistance &lt; minSqrDistance) {</span>
+<span class="pc bpc" id="L334" title="1 of 2 branches missed.">							if (sqrDistance == 0.0)</span>
+<span class="nc" id="L335">								return 0.0;</span>
+
+<span class="fc" id="L337">							minSqrDistance = sqrDistance;</span>
+						}
+					}
+
+					// No need to do point-in-polygon anymore (if it is a
+					// polygon vs polyline)
+<span class="fc" id="L343">					bDoPiPTest = false;</span>
+<span class="fc" id="L344">				}</span>
+			}
+<span class="fc" id="L346">			return Math.sqrt(minSqrDistance);</span>
+		}
+
+		private double bruteForceMultiPointMultiPoint_(
+		/* const */MultiPoint geometryA, /* const */
+		MultiPoint geometryB, boolean geometriesAreDisjoint) {
+<span class="fc" id="L352">			double minSqrDistance = NumberUtils.doubleMax();</span>
+
+<span class="fc" id="L354">			Point2D pointA = new Point2D();</span>
+<span class="fc" id="L355">			Point2D pointB = new Point2D();</span>
+
+<span class="fc" id="L357">			double sqrDistance = minSqrDistance;</span>
+<span class="fc" id="L358">			/* const */MultiPointImpl multiPointImplA = (/* const */MultiPointImpl) geometryA</span>
+<span class="fc" id="L359">					._getImpl();</span>
+<span class="fc" id="L360">			/* const */MultiPointImpl multiPointImplB = (/* const */MultiPointImpl) geometryB</span>
+<span class="fc" id="L361">					._getImpl();</span>
+<span class="fc" id="L362">			int pointCountA = multiPointImplA.getPointCount();</span>
+<span class="fc" id="L363">			int pointCountB = multiPointImplB.getPointCount();</span>
+<span class="fc bfc" id="L364" title="All 2 branches covered.">			for (int i = 0; i &lt; pointCountA; i++) {</span>
+<span class="fc" id="L365">				multiPointImplA.getXY(i, pointA);</span>
+
+<span class="pc bpc" id="L367" title="1 of 2 branches missed.">				if (pointCountB &gt; 1</span>
+<span class="nc bnc" id="L368" title="All 2 branches missed.">						&amp;&amp; m_env2DgeometryB.sqrDistance(pointA) &gt; minSqrDistance)</span>
+<span class="nc" id="L369">					continue;</span>
+
+<span class="fc bfc" id="L371" title="All 2 branches covered.">				for (int j = 0; j &lt; pointCountB; j++) {</span>
+<span class="fc" id="L372">					multiPointImplB.getXY(j, pointB);</span>
+<span class="fc" id="L373">					sqrDistance = Point2D.sqrDistance(pointA, pointB);</span>
+<span class="fc bfc" id="L374" title="All 2 branches covered.">					if (sqrDistance &lt; minSqrDistance) {</span>
+<span class="pc bpc" id="L375" title="1 of 2 branches missed.">						if (sqrDistance == 0.0)</span>
+<span class="nc" id="L376">							return 0.0;</span>
+
+<span class="fc" id="L378">						minSqrDistance = sqrDistance;</span>
+					}
+				}
+			}
+
+<span class="fc" id="L383">			return Math.sqrt(minSqrDistance);</span>
+		}
+
+		// resets Iterators if they are used.
+		private boolean weakIntersectionTest_(/* const */Geometry geometryA, /* const */
+		Geometry geometryB, SegmentIterator segIterA, SegmentIterator segIterB) {
+<span class="fc bfc" id="L389" title="All 2 branches covered.">			if (geometryA.getType() == Geometry.Type.Polygon) {</span>
+				// test PolygonA vs. first segment of each of geometryB's paths
+<span class="fc bfc" id="L391" title="All 2 branches covered.">				while (segIterB.nextPath()) {</span>
+<span class="pc bpc" id="L392" title="1 of 2 branches missed.">					if (segIterB.hasNextSegment()) {</span>
+<span class="fc" id="L393">						/* const */Segment segmentB = segIterB.nextSegment();</span>
+<span class="pc bpc" id="L394" title="1 of 2 branches missed.">						if (PolygonUtils.isPointInPolygon2D(</span>
+<span class="fc" id="L395">								(Polygon) geometryA, segmentB.getEndXY(), 0) != PolygonUtils.PiPResult.PiPOutside)</span>
+<span class="nc" id="L396">							return true;</span>
+<span class="fc" id="L397">					}</span>
+				}
+<span class="fc" id="L399">				segIterB.resetToFirstPath();</span>
+			}
+
+<span class="fc bfc" id="L402" title="All 2 branches covered.">			if (geometryB.getType() == Geometry.Type.Polygon) {</span>
+				// test PolygonB vs. first segment of each of geometryA's paths
+<span class="fc bfc" id="L404" title="All 2 branches covered.">				while (segIterA.nextPath()) {</span>
+<span class="pc bpc" id="L405" title="1 of 2 branches missed.">					if (segIterA.hasNextSegment()) {</span>
+<span class="fc" id="L406">						/* const */Segment segmentA = segIterA.nextSegment();</span>
+<span class="pc bpc" id="L407" title="1 of 2 branches missed.">						if (PolygonUtils.isPointInPolygon2D(</span>
+<span class="fc" id="L408">								(Polygon) geometryB, segmentA.getEndXY(), 0) != PolygonUtils.PiPResult.PiPOutside)</span>
+<span class="nc" id="L409">							return true;</span>
+<span class="fc" id="L410">					}</span>
+				}
+<span class="fc" id="L412">				segIterA.resetToFirstPath();</span>
+			}
+<span class="fc" id="L414">			return false;</span>
+		}
+
+<span class="fc" id="L417">		DistanceCalculator(ProgressTracker progressTracker) {</span>
+<span class="fc" id="L418">			m_progressTracker = progressTracker;</span>
+<span class="fc" id="L419">			m_env2DgeometryA = new Envelope2D();</span>
+<span class="fc" id="L420">			m_env2DgeometryA.setEmpty();</span>
+<span class="fc" id="L421">			m_env2DgeometryB = new Envelope2D();</span>
+<span class="fc" id="L422">			m_env2DgeometryB.setEmpty();</span>
+<span class="fc" id="L423">		}</span>
+
+		double calculate(/* const */Geometry geometryA, /* const */
+		Geometry geometryB) {
+<span class="pc bpc" id="L427" title="2 of 4 branches missed.">			if (geometryA.isEmpty() || geometryB.isEmpty())</span>
+<span class="nc" id="L428">				return NumberUtils.TheNaN;</span>
+
+<span class="fc" id="L430">			geometryA.queryEnvelope2D(m_env2DgeometryA);</span>
+<span class="fc" id="L431">			geometryB.queryEnvelope2D(m_env2DgeometryB);</span>
+<span class="fc" id="L432">			return executeBruteForce_(geometryA, geometryB);</span>
+		}
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

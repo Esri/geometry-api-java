@@ -1,0 +1,803 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OperatorExportToGeoJsonCursor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">OperatorExportToGeoJsonCursor.java</span></div><h1>OperatorExportToGeoJsonCursor.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+/*
+ Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+import com.esri.core.geometry.VertexDescription.Semantics;
+
+class OperatorExportToGeoJsonCursor extends JsonCursor {
+	GeometryCursor m_inputGeometryCursor;
+	SpatialReference m_spatialReference;
+	int m_index;
+	int m_export_flags;
+
+	public OperatorExportToGeoJsonCursor(int export_flags, SpatialReference spatialReference,
+<span class="nc" id="L57">			GeometryCursor geometryCursor) {</span>
+<span class="nc" id="L58">		m_index = -1;</span>
+<span class="nc bnc" id="L59" title="All 2 branches missed.">		if (geometryCursor == null)</span>
+<span class="nc" id="L60">			throw new IllegalArgumentException();</span>
+
+<span class="nc" id="L62">		m_export_flags = export_flags;</span>
+<span class="nc" id="L63">		m_spatialReference = spatialReference;</span>
+<span class="nc" id="L64">		m_inputGeometryCursor = geometryCursor;</span>
+<span class="nc" id="L65">	}</span>
+
+	@Override
+	public int getID() {
+<span class="nc" id="L69">		return m_index;</span>
+	}
+
+	@Override
+	public String next() {
+		Geometry geometry;
+<span class="nc bnc" id="L75" title="All 2 branches missed.">		if ((geometry = m_inputGeometryCursor.next()) != null) {</span>
+<span class="nc" id="L76">			m_index = m_inputGeometryCursor.getGeometryID();</span>
+<span class="nc" id="L77">			return exportToGeoJson(m_export_flags, geometry, m_spatialReference);</span>
+		}
+<span class="nc" id="L79">		return null;</span>
+	}
+
+	// Mirrors wkt
+	static String exportToGeoJson(int export_flags, Geometry geometry, SpatialReference spatial_reference) {
+
+<span class="pc bpc" id="L85" title="1 of 2 branches missed.">		if (geometry == null)</span>
+<span class="nc" id="L86">			throw new IllegalArgumentException(&quot;&quot;);</span>
+
+<span class="fc" id="L88">		JsonWriter json_writer = new JsonStringWriter();</span>
+
+<span class="fc" id="L90">		json_writer.startObject();</span>
+
+<span class="fc" id="L92">		exportGeometryToGeoJson_(export_flags, geometry, json_writer);</span>
+
+<span class="fc bfc" id="L94" title="All 2 branches covered.">		if ((export_flags &amp; GeoJsonExportFlags.geoJsonExportSkipCRS) == 0) {</span>
+<span class="fc" id="L95">			json_writer.addFieldName(&quot;crs&quot;);</span>
+<span class="fc" id="L96">			exportSpatialReference(export_flags, spatial_reference, json_writer);</span>
+		}
+
+<span class="fc" id="L99">		json_writer.endObject();</span>
+
+<span class="fc" id="L101">		return (String) json_writer.getJson();</span>
+	}
+
+	static String exportSpatialReference(int export_flags, SpatialReference spatial_reference) {
+<span class="pc bpc" id="L105" title="2 of 4 branches missed.">		if (spatial_reference == null || (export_flags &amp; GeoJsonExportFlags.geoJsonExportSkipCRS) != 0)</span>
+<span class="nc" id="L106">			throw new IllegalArgumentException(&quot;&quot;);</span>
+
+<span class="fc" id="L108">		JsonWriter json_writer = new JsonStringWriter();</span>
+<span class="fc" id="L109">		exportSpatialReference(export_flags, spatial_reference, json_writer);</span>
+
+<span class="fc" id="L111">		return (String) json_writer.getJson();</span>
+	}
+
+	private static void exportGeometryToGeoJson_(int export_flags, Geometry geometry, JsonWriter json_writer) {
+<span class="fc" id="L115">		int type = geometry.getType().value();</span>
+<span class="pc bpc" id="L116" title="1 of 6 branches missed.">		switch (type) {</span>
+		case Geometry.GeometryType.Polygon:
+<span class="fc" id="L118">			exportPolygonToGeoJson_(export_flags, (Polygon) geometry, json_writer);</span>
+<span class="fc" id="L119">			return;</span>
+
+		case Geometry.GeometryType.Polyline:
+<span class="fc" id="L122">			exportPolylineToGeoJson_(export_flags, (Polyline) geometry, json_writer);</span>
+<span class="fc" id="L123">			return;</span>
+
+		case Geometry.GeometryType.MultiPoint:
+<span class="fc" id="L126">			exportMultiPointToGeoJson_(export_flags, (MultiPoint) geometry, json_writer);</span>
+<span class="fc" id="L127">			return;</span>
+
+		case Geometry.GeometryType.Point:
+<span class="fc" id="L130">			exportPointToGeoJson_(export_flags, (Point) geometry, json_writer);</span>
+<span class="fc" id="L131">			return;</span>
+
+		case Geometry.GeometryType.Envelope:
+<span class="fc" id="L134">			exportEnvelopeToGeoJson_(export_flags, (Envelope) geometry,</span>
+					json_writer);
+<span class="fc" id="L136">			return;</span>
+
+		default:
+<span class="nc" id="L139">			throw new RuntimeException(&quot;not implemented for this geometry type&quot;);</span>
+		}
+	}
+
+	private static void exportSpatialReference(int export_flags, SpatialReference spatial_reference,
+			JsonWriter json_writer) {
+<span class="fc bfc" id="L145" title="All 2 branches covered.">		if (spatial_reference != null) {</span>
+<span class="fc" id="L146">			int wkid = spatial_reference.getLatestID();</span>
+
+<span class="fc bfc" id="L148" title="All 2 branches covered.">			if (wkid &lt;= 0)</span>
+<span class="fc" id="L149">				throw new GeometryException(&quot;invalid call&quot;);</span>
+
+<span class="fc" id="L151">			json_writer.startObject();</span>
+
+<span class="fc" id="L153">			json_writer.addFieldName(&quot;type&quot;);</span>
+
+<span class="fc" id="L155">			json_writer.addValueString(&quot;name&quot;);</span>
+
+<span class="fc" id="L157">			json_writer.addFieldName(&quot;properties&quot;);</span>
+<span class="fc" id="L158">			json_writer.startObject();</span>
+
+<span class="fc" id="L160">			json_writer.addFieldName(&quot;name&quot;);</span>
+
+<span class="fc" id="L162">			String authority = ((SpatialReferenceImpl) spatial_reference).getAuthority();</span>
+<span class="fc" id="L163">			authority = authority.toUpperCase();</span>
+<span class="fc" id="L164">			StringBuilder crs_identifier = new StringBuilder(authority);</span>
+<span class="fc" id="L165">			crs_identifier.append(':');</span>
+<span class="fc" id="L166">			crs_identifier.append(wkid);</span>
+<span class="fc" id="L167">			json_writer.addValueString(crs_identifier.toString());</span>
+
+<span class="fc" id="L169">			json_writer.endObject();</span>
+
+<span class="fc" id="L171">			json_writer.endObject();</span>
+<span class="fc" id="L172">		} else {</span>
+<span class="fc" id="L173">			json_writer.addValueNull();</span>
+		}
+<span class="fc" id="L175">	}</span>
+
+	// Mirrors wkt
+	private static void exportPolygonToGeoJson_(int export_flags, Polygon polygon, JsonWriter json_writer) {
+<span class="fc" id="L179">		MultiPathImpl polygon_impl = (MultiPathImpl) (polygon._getImpl());</span>
+
+<span class="pc bpc" id="L181" title="1 of 2 branches missed.">		if ((export_flags &amp; GeoJsonExportFlags.geoJsonExportFailIfNotSimple) != 0) {</span>
+<span class="nc" id="L182">			int simple = polygon_impl.getIsSimple(0.0);</span>
+
+<span class="nc bnc" id="L184" title="All 2 branches missed.">			if (simple != MultiPathImpl.GeometryXSimple.Strong)</span>
+<span class="nc" id="L185">				throw new GeometryException(&quot;corrupted geometry&quot;);</span>
+		}
+
+<span class="fc" id="L188">		int point_count = polygon.getPointCount();</span>
+<span class="fc" id="L189">		int polygon_count = polygon_impl.getOGCPolygonCount();</span>
+
+<span class="pc bpc" id="L191" title="1 of 4 branches missed.">		if (point_count &gt; 0 &amp;&amp; polygon_count == 0)</span>
+<span class="nc" id="L192">			throw new GeometryException(&quot;corrupted geometry&quot;);</span>
+
+<span class="fc" id="L194">		int precision = 17 - (31 &amp; (export_flags &gt;&gt; 13));</span>
+<span class="pc bpc" id="L195" title="1 of 2 branches missed.">		boolean bFixedPoint = (GeoJsonExportFlags.geoJsonExportPrecisionFixedPoint &amp; export_flags) != 0;</span>
+<span class="pc bpc" id="L196" title="1 of 4 branches missed.">		boolean b_export_zs = polygon_impl.hasAttribute(VertexDescription.Semantics.Z)</span>
+				&amp;&amp; (export_flags &amp; GeoJsonExportFlags.geoJsonExportStripZs) == 0;
+<span class="pc bpc" id="L198" title="3 of 4 branches missed.">		boolean b_export_ms = polygon_impl.hasAttribute(VertexDescription.Semantics.M)</span>
+				&amp;&amp; (export_flags &amp; GeoJsonExportFlags.geoJsonExportStripMs) == 0;
+
+<span class="pc bpc" id="L201" title="1 of 4 branches missed.">		if (!b_export_zs &amp;&amp; b_export_ms)</span>
+<span class="nc" id="L202">			throw new IllegalArgumentException(&quot;invalid argument&quot;);</span>
+
+<span class="fc" id="L204">		int path_count = 0;</span>
+<span class="fc" id="L205">		AttributeStreamOfDbl position = null;</span>
+<span class="fc" id="L206">		AttributeStreamOfDbl zs = null;</span>
+<span class="fc" id="L207">		AttributeStreamOfDbl ms = null;</span>
+<span class="fc" id="L208">		AttributeStreamOfInt8 path_flags = null;</span>
+<span class="fc" id="L209">		AttributeStreamOfInt32 paths = null;</span>
+
+<span class="fc bfc" id="L211" title="All 2 branches covered.">		if (point_count &gt; 0) {</span>
+<span class="fc" id="L212">			position = (AttributeStreamOfDbl) polygon_impl.getAttributeStreamRef(Semantics.POSITION);</span>
+<span class="fc" id="L213">			path_flags = polygon_impl.getPathFlagsStreamRef();</span>
+<span class="fc" id="L214">			paths = polygon_impl.getPathStreamRef();</span>
+<span class="fc" id="L215">			path_count = polygon_impl.getPathCount();</span>
+
+<span class="fc bfc" id="L217" title="All 2 branches covered.">			if (b_export_zs) {</span>
+<span class="pc bpc" id="L218" title="1 of 2 branches missed.">				if (polygon_impl._attributeStreamIsAllocated(Semantics.Z))</span>
+<span class="fc" id="L219">					zs = (AttributeStreamOfDbl) polygon_impl.getAttributeStreamRef(Semantics.Z);</span>
+			}
+
+<span class="pc bpc" id="L222" title="1 of 2 branches missed.">			if (b_export_ms) {</span>
+<span class="nc bnc" id="L223" title="All 2 branches missed.">				if (polygon_impl._attributeStreamIsAllocated(Semantics.M))</span>
+<span class="nc" id="L224">					ms = (AttributeStreamOfDbl) polygon_impl.getAttributeStreamRef(Semantics.M);</span>
+			}
+		}
+
+<span class="fc bfc" id="L228" title="All 4 branches covered.">		if ((export_flags &amp; GeoJsonExportFlags.geoJsonExportPreferMultiGeometry) == 0 &amp;&amp; polygon_count &lt;= 1)</span>
+<span class="fc" id="L229">			polygonTaggedText_(precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, paths, path_count,</span>
+					json_writer);
+		else
+<span class="fc" id="L232">			multiPolygonTaggedText_(precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, path_flags,</span>
+					paths, polygon_count, path_count, json_writer);
+<span class="fc" id="L234">	}</span>
+
+	// Mirrors wkt
+	private static void exportPolylineToGeoJson_(int export_flags, Polyline polyline, JsonWriter json_writer) {
+<span class="fc" id="L238">		MultiPathImpl polyline_impl = (MultiPathImpl) polyline._getImpl();</span>
+
+<span class="fc" id="L240">		int point_count = polyline_impl.getPointCount();</span>
+<span class="fc" id="L241">		int path_count = polyline_impl.getPathCount();</span>
+
+<span class="pc bpc" id="L243" title="1 of 4 branches missed.">		if (point_count &gt; 0 &amp;&amp; path_count == 0)</span>
+<span class="nc" id="L244">			throw new GeometryException(&quot;corrupted geometry&quot;);</span>
+
+<span class="fc" id="L246">		int precision = 17 - (31 &amp; (export_flags &gt;&gt; 13));</span>
+<span class="pc bpc" id="L247" title="1 of 2 branches missed.">		boolean bFixedPoint = (GeoJsonExportFlags.geoJsonExportPrecisionFixedPoint &amp; export_flags) != 0;</span>
+<span class="pc bpc" id="L248" title="1 of 4 branches missed.">		boolean b_export_zs = polyline_impl.hasAttribute(VertexDescription.Semantics.Z)</span>
+				&amp;&amp; (export_flags &amp; GeoJsonExportFlags.geoJsonExportStripZs) == 0;
+<span class="pc bpc" id="L250" title="3 of 4 branches missed.">		boolean b_export_ms = polyline_impl.hasAttribute(VertexDescription.Semantics.M)</span>
+				&amp;&amp; (export_flags &amp; GeoJsonExportFlags.geoJsonExportStripMs) == 0;
+
+<span class="pc bpc" id="L253" title="1 of 4 branches missed.">		if (!b_export_zs &amp;&amp; b_export_ms)</span>
+<span class="nc" id="L254">			throw new IllegalArgumentException(&quot;invalid argument&quot;);</span>
+
+<span class="fc" id="L256">		AttributeStreamOfDbl position = null;</span>
+<span class="fc" id="L257">		AttributeStreamOfDbl zs = null;</span>
+<span class="fc" id="L258">		AttributeStreamOfDbl ms = null;</span>
+<span class="fc" id="L259">		AttributeStreamOfInt8 path_flags = null;</span>
+<span class="fc" id="L260">		AttributeStreamOfInt32 paths = null;</span>
+
+<span class="fc bfc" id="L262" title="All 2 branches covered.">		if (point_count &gt; 0) {</span>
+<span class="fc" id="L263">			position = (AttributeStreamOfDbl) polyline_impl.getAttributeStreamRef(Semantics.POSITION);</span>
+<span class="fc" id="L264">			path_flags = polyline_impl.getPathFlagsStreamRef();</span>
+<span class="fc" id="L265">			paths = polyline_impl.getPathStreamRef();</span>
+
+<span class="fc bfc" id="L267" title="All 2 branches covered.">			if (b_export_zs) {</span>
+<span class="pc bpc" id="L268" title="1 of 2 branches missed.">				if (polyline_impl._attributeStreamIsAllocated(Semantics.Z))</span>
+<span class="fc" id="L269">					zs = (AttributeStreamOfDbl) polyline_impl.getAttributeStreamRef(Semantics.Z);</span>
+			}
+
+<span class="pc bpc" id="L272" title="1 of 2 branches missed.">			if (b_export_ms) {</span>
+<span class="nc bnc" id="L273" title="All 2 branches missed.">				if (polyline_impl._attributeStreamIsAllocated(Semantics.M))</span>
+<span class="nc" id="L274">					ms = (AttributeStreamOfDbl) polyline_impl.getAttributeStreamRef(Semantics.M);</span>
+			}
+		}
+
+<span class="fc bfc" id="L278" title="All 4 branches covered.">		if ((export_flags &amp; GeoJsonExportFlags.geoJsonExportPreferMultiGeometry) == 0 &amp;&amp; path_count &lt;= 1)</span>
+<span class="fc" id="L279">			lineStringTaggedText_(precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, path_flags, paths,</span>
+					json_writer);
+		else
+<span class="fc" id="L282">			multiLineStringTaggedText_(precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, path_flags,</span>
+					paths, path_count, json_writer);
+<span class="fc" id="L284">	}</span>
+
+	// Mirrors wkt
+	private static void exportMultiPointToGeoJson_(int export_flags, MultiPoint multipoint, JsonWriter json_writer) {
+<span class="fc" id="L288">		MultiPointImpl multipoint_impl = (MultiPointImpl) multipoint._getImpl();</span>
+
+<span class="fc" id="L290">		int point_count = multipoint_impl.getPointCount();</span>
+
+<span class="fc" id="L292">		int precision = 17 - (31 &amp; (export_flags &gt;&gt; 13));</span>
+<span class="pc bpc" id="L293" title="1 of 2 branches missed.">		boolean bFixedPoint = (GeoJsonExportFlags.geoJsonExportPrecisionFixedPoint &amp; export_flags) != 0;</span>
+<span class="pc bpc" id="L294" title="1 of 4 branches missed.">		boolean b_export_zs = multipoint_impl.hasAttribute(VertexDescription.Semantics.Z)</span>
+				&amp;&amp; (export_flags &amp; GeoJsonExportFlags.geoJsonExportStripZs) == 0;
+<span class="pc bpc" id="L296" title="1 of 4 branches missed.">		boolean b_export_ms = multipoint_impl.hasAttribute(VertexDescription.Semantics.M)</span>
+				&amp;&amp; (export_flags &amp; GeoJsonExportFlags.geoJsonExportStripMs) == 0;
+
+<span class="pc bpc" id="L299" title="1 of 4 branches missed.">		if (!b_export_zs &amp;&amp; b_export_ms)</span>
+<span class="nc" id="L300">			throw new IllegalArgumentException(&quot;invalid argument&quot;);</span>
+
+<span class="fc" id="L302">		AttributeStreamOfDbl position = null;</span>
+<span class="fc" id="L303">		AttributeStreamOfDbl zs = null;</span>
+<span class="fc" id="L304">		AttributeStreamOfDbl ms = null;</span>
+
+<span class="fc bfc" id="L306" title="All 2 branches covered.">		if (point_count &gt; 0) {</span>
+<span class="fc" id="L307">			position = (AttributeStreamOfDbl) multipoint_impl.getAttributeStreamRef(Semantics.POSITION);</span>
+
+<span class="fc bfc" id="L309" title="All 2 branches covered.">			if (b_export_zs) {</span>
+<span class="pc bpc" id="L310" title="1 of 2 branches missed.">				if (multipoint_impl._attributeStreamIsAllocated(Semantics.Z))</span>
+<span class="fc" id="L311">					zs = (AttributeStreamOfDbl) multipoint_impl.getAttributeStreamRef(Semantics.Z);</span>
+			}
+
+<span class="fc bfc" id="L314" title="All 2 branches covered.">			if (b_export_ms) {</span>
+<span class="pc bpc" id="L315" title="1 of 2 branches missed.">				if (multipoint_impl._attributeStreamIsAllocated(Semantics.M))</span>
+<span class="fc" id="L316">					ms = (AttributeStreamOfDbl) multipoint_impl.getAttributeStreamRef(Semantics.M);</span>
+			}
+		}
+
+<span class="fc" id="L320">		multiPointTaggedText_(precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, point_count,</span>
+				json_writer);
+<span class="fc" id="L322">	}</span>
+
+	// Mirrors wkt
+	private static void exportPointToGeoJson_(int export_flags, Point point, JsonWriter json_writer) {
+<span class="fc" id="L326">		int precision = 17 - (31 &amp; (export_flags &gt;&gt; 13));</span>
+<span class="pc bpc" id="L327" title="1 of 2 branches missed.">		boolean bFixedPoint = (GeoJsonExportFlags.geoJsonExportPrecisionFixedPoint &amp; export_flags) != 0;</span>
+<span class="pc bpc" id="L328" title="1 of 4 branches missed.">		boolean b_export_zs = point.hasAttribute(VertexDescription.Semantics.Z)</span>
+				&amp;&amp; (export_flags &amp; GeoJsonExportFlags.geoJsonExportStripZs) == 0;
+<span class="pc bpc" id="L330" title="1 of 4 branches missed.">		boolean b_export_ms = point.hasAttribute(VertexDescription.Semantics.M)</span>
+				&amp;&amp; (export_flags &amp; GeoJsonExportFlags.geoJsonExportStripMs) == 0;
+
+<span class="pc bpc" id="L333" title="1 of 4 branches missed.">		if (!b_export_zs &amp;&amp; b_export_ms)</span>
+<span class="nc" id="L334">			throw new IllegalArgumentException(&quot;invalid argument&quot;);</span>
+
+<span class="fc" id="L336">		double x = NumberUtils.NaN();</span>
+<span class="fc" id="L337">		double y = NumberUtils.NaN();</span>
+<span class="fc" id="L338">		double z = NumberUtils.NaN();</span>
+<span class="fc" id="L339">		double m = NumberUtils.NaN();</span>
+
+<span class="fc bfc" id="L341" title="All 2 branches covered.">		if (!point.isEmpty()) {</span>
+<span class="fc" id="L342">			x = point.getX();</span>
+<span class="fc" id="L343">			y = point.getY();</span>
+
+<span class="fc bfc" id="L345" title="All 2 branches covered.">			if (b_export_zs)</span>
+<span class="fc" id="L346">				z = point.getZ();</span>
+
+<span class="fc bfc" id="L348" title="All 2 branches covered.">			if (b_export_ms)</span>
+<span class="fc" id="L349">				m = point.getM();</span>
+		}
+
+<span class="fc bfc" id="L352" title="All 2 branches covered.">		if ((export_flags &amp; GeoJsonExportFlags.geoJsonExportPreferMultiGeometry) == 0)</span>
+<span class="fc" id="L353">			pointTaggedText_(precision, bFixedPoint, b_export_zs, b_export_ms, x, y, z, m, json_writer);</span>
+		else
+<span class="fc" id="L355">			multiPointTaggedTextFromPoint_(precision, bFixedPoint, b_export_zs, b_export_ms, x, y, z, m, json_writer);</span>
+<span class="fc" id="L356">	}</span>
+
+	// Mirrors wkt
+	private static void exportEnvelopeToGeoJson_(int export_flags, Envelope envelope, JsonWriter json_writer) {
+<span class="fc" id="L360">		int precision = 17 - (31 &amp; (export_flags &gt;&gt; 13));</span>
+<span class="pc bpc" id="L361" title="1 of 2 branches missed.">		boolean bFixedPoint = (GeoJsonExportFlags.geoJsonExportPrecisionFixedPoint &amp; export_flags) != 0;</span>
+<span class="pc bpc" id="L362" title="3 of 4 branches missed.">		boolean b_export_zs = envelope.hasAttribute(VertexDescription.Semantics.Z)</span>
+				&amp;&amp; (export_flags &amp; GeoJsonExportFlags.geoJsonExportStripZs) == 0;
+<span class="pc bpc" id="L364" title="3 of 4 branches missed.">		boolean b_export_ms = envelope.hasAttribute(VertexDescription.Semantics.M)</span>
+				&amp;&amp; (export_flags &amp; GeoJsonExportFlags.geoJsonExportStripMs) == 0;
+
+<span class="pc bpc" id="L367" title="2 of 4 branches missed.">		if (!b_export_zs &amp;&amp; b_export_ms)</span>
+<span class="nc" id="L368">			throw new IllegalArgumentException(&quot;invalid argument&quot;);</span>
+
+<span class="fc" id="L370">		double xmin = NumberUtils.NaN();</span>
+<span class="fc" id="L371">		double ymin = NumberUtils.NaN();</span>
+<span class="fc" id="L372">		double xmax = NumberUtils.NaN();</span>
+<span class="fc" id="L373">		double ymax = NumberUtils.NaN();</span>
+<span class="fc" id="L374">		double zmin = NumberUtils.NaN();</span>
+<span class="fc" id="L375">		double zmax = NumberUtils.NaN();</span>
+<span class="fc" id="L376">		double mmin = NumberUtils.NaN();</span>
+<span class="fc" id="L377">		double mmax = NumberUtils.NaN();</span>
+
+<span class="fc bfc" id="L379" title="All 2 branches covered.">		if (!envelope.isEmpty()) {</span>
+<span class="fc" id="L380">			xmin = envelope.getXMin();</span>
+<span class="fc" id="L381">			ymin = envelope.getYMin();</span>
+<span class="fc" id="L382">			xmax = envelope.getXMax();</span>
+<span class="fc" id="L383">			ymax = envelope.getYMax();</span>
+
+			Envelope1D interval;
+
+<span class="pc bpc" id="L387" title="1 of 2 branches missed.">			if (b_export_zs) {</span>
+<span class="nc" id="L388">				interval = envelope.queryInterval(Semantics.Z, 0);</span>
+<span class="nc" id="L389">				zmin = interval.vmin;</span>
+<span class="nc" id="L390">				zmax = interval.vmax;</span>
+			}
+
+<span class="pc bpc" id="L393" title="1 of 2 branches missed.">			if (b_export_ms) {</span>
+<span class="nc" id="L394">				interval = envelope.queryInterval(Semantics.M, 0);</span>
+<span class="nc" id="L395">				mmin = interval.vmin;</span>
+<span class="nc" id="L396">				mmax = interval.vmax;</span>
+			}
+		}
+
+<span class="pc bpc" id="L400" title="1 of 2 branches missed.">		if ((export_flags &amp; GeoJsonExportFlags.geoJsonExportPreferMultiGeometry) == 0)</span>
+<span class="fc" id="L401">			polygonTaggedTextFromEnvelope_(precision, bFixedPoint, b_export_zs, b_export_ms, xmin, ymin, xmax, ymax,</span>
+					zmin, zmax, mmin, mmax, json_writer);
+		else
+<span class="nc" id="L404">			multiPolygonTaggedTextFromEnvelope_(precision, bFixedPoint, b_export_zs, b_export_ms, xmin, ymin, xmax,</span>
+					ymax, zmin, zmax, mmin, mmax, json_writer);
+<span class="fc" id="L406">	}</span>
+
+	// Mirrors wkt
+	private static void multiPolygonTaggedText_(int precision, boolean bFixedPoint, boolean b_export_zs,
+			boolean b_export_ms, AttributeStreamOfDbl zs, AttributeStreamOfDbl ms, AttributeStreamOfDbl position,
+			AttributeStreamOfInt8 path_flags, AttributeStreamOfInt32 paths, int polygon_count, int path_count,
+			JsonWriter json_writer) {
+<span class="fc" id="L413">		json_writer.addFieldName(&quot;type&quot;);</span>
+<span class="fc" id="L414">		json_writer.addValueString(&quot;MultiPolygon&quot;);</span>
+
+<span class="fc" id="L416">		json_writer.addFieldName(&quot;coordinates&quot;);</span>
+
+<span class="fc bfc" id="L418" title="All 2 branches covered.">		if (position == null) {</span>
+<span class="fc" id="L419">			json_writer.startArray();</span>
+<span class="fc" id="L420">			json_writer.endArray();</span>
+<span class="fc" id="L421">			return;</span>
+		}
+
+<span class="fc" id="L424">		json_writer.startArray();</span>
+
+<span class="fc" id="L426">		multiPolygonText_(precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, path_flags, paths,</span>
+				polygon_count, path_count, json_writer);
+
+<span class="fc" id="L429">		json_writer.endArray();</span>
+<span class="fc" id="L430">	}</span>
+
+	// Mirrors wkt
+	private static void multiPolygonTaggedTextFromEnvelope_(int precision, boolean bFixedPoint, boolean b_export_zs,
+			boolean b_export_ms, double xmin, double ymin, double xmax, double ymax, double zmin, double zmax,
+			double mmin, double mmax, JsonWriter json_writer) {
+<span class="nc" id="L436">		json_writer.addFieldName(&quot;type&quot;);</span>
+<span class="nc" id="L437">		json_writer.addValueString(&quot;MultiPolygon&quot;);</span>
+
+<span class="nc" id="L439">		json_writer.addFieldName(&quot;coordinates&quot;);</span>
+
+<span class="nc bnc" id="L441" title="All 2 branches missed.">		if (NumberUtils.isNaN(xmin)) {</span>
+<span class="nc" id="L442">			json_writer.startArray();</span>
+<span class="nc" id="L443">			json_writer.endArray();</span>
+<span class="nc" id="L444">			return;</span>
+		}
+
+<span class="nc" id="L447">		json_writer.startArray();</span>
+
+<span class="nc" id="L449">		writeEnvelopeAsGeoJsonPolygon_(precision, bFixedPoint, b_export_zs, b_export_ms, xmin, ymin, xmax, ymax, zmin,</span>
+				zmax, mmin, mmax, json_writer);
+
+<span class="nc" id="L452">		json_writer.endArray();</span>
+<span class="nc" id="L453">	}</span>
+
+	// Mirrors wkt
+	private static void multiLineStringTaggedText_(int precision, boolean bFixedPoint, boolean b_export_zs,
+			boolean b_export_ms, AttributeStreamOfDbl zs, AttributeStreamOfDbl ms, AttributeStreamOfDbl position,
+			AttributeStreamOfInt8 path_flags, AttributeStreamOfInt32 paths, int path_count, JsonWriter json_writer) {
+<span class="fc" id="L459">		json_writer.addFieldName(&quot;type&quot;);</span>
+<span class="fc" id="L460">		json_writer.addValueString(&quot;MultiLineString&quot;);</span>
+
+<span class="fc" id="L462">		json_writer.addFieldName(&quot;coordinates&quot;);</span>
+
+<span class="pc bpc" id="L464" title="1 of 2 branches missed.">		if (position == null) {</span>
+<span class="nc" id="L465">			json_writer.startArray();</span>
+<span class="nc" id="L466">			json_writer.endArray();</span>
+<span class="nc" id="L467">			return;</span>
+		}
+
+<span class="fc" id="L470">		json_writer.startArray();</span>
+
+<span class="fc" id="L472">		multiLineStringText_(precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, path_flags, paths,</span>
+				path_count, json_writer);
+
+<span class="fc" id="L475">		json_writer.endArray();</span>
+<span class="fc" id="L476">	}</span>
+
+	// Mirrors wkt
+	private static void multiPointTaggedText_(int precision, boolean bFixedPoint, boolean b_export_zs,
+			boolean b_export_ms, AttributeStreamOfDbl zs, AttributeStreamOfDbl ms, AttributeStreamOfDbl position,
+			int point_count, JsonWriter json_writer) {
+<span class="fc" id="L482">		json_writer.addFieldName(&quot;type&quot;);</span>
+<span class="fc" id="L483">		json_writer.addValueString(&quot;MultiPoint&quot;);</span>
+
+<span class="fc" id="L485">		json_writer.addFieldName(&quot;coordinates&quot;);</span>
+
+<span class="fc bfc" id="L487" title="All 2 branches covered.">		if (position == null) {</span>
+<span class="fc" id="L488">			json_writer.startArray();</span>
+<span class="fc" id="L489">			json_writer.endArray();</span>
+<span class="fc" id="L490">			return;</span>
+		}
+
+<span class="fc" id="L493">		lineStringText_(false, false, precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, 0,</span>
+				point_count, json_writer);
+<span class="fc" id="L495">	}</span>
+
+	// Mirrors wkt
+	private static void multiPointTaggedTextFromPoint_(int precision, boolean bFixedPoint, boolean b_export_zs,
+			boolean b_export_ms, double x, double y, double z, double m, JsonWriter json_writer) {
+<span class="fc" id="L500">		json_writer.addFieldName(&quot;type&quot;);</span>
+<span class="fc" id="L501">		json_writer.addValueString(&quot;MultiPoint&quot;);</span>
+
+<span class="fc" id="L503">		json_writer.addFieldName(&quot;coordinates&quot;);</span>
+
+<span class="fc bfc" id="L505" title="All 2 branches covered.">		if (NumberUtils.isNaN(x)) {</span>
+<span class="fc" id="L506">			json_writer.startArray();</span>
+<span class="fc" id="L507">			json_writer.endArray();</span>
+<span class="fc" id="L508">			return;</span>
+		}
+
+<span class="fc" id="L511">		json_writer.startArray();</span>
+
+<span class="fc" id="L513">		pointText_(precision, bFixedPoint, b_export_zs, b_export_ms, x, y, z, m, json_writer);</span>
+
+<span class="fc" id="L515">		json_writer.endArray();</span>
+<span class="fc" id="L516">	}</span>
+
+	// Mirrors wkt
+	private static void polygonTaggedText_(int precision, boolean bFixedPoint, boolean b_export_zs, boolean b_export_ms,
+			AttributeStreamOfDbl zs, AttributeStreamOfDbl ms, AttributeStreamOfDbl position,
+			AttributeStreamOfInt32 paths, int path_count, JsonWriter json_writer) {
+<span class="fc" id="L522">		json_writer.addFieldName(&quot;type&quot;);</span>
+<span class="fc" id="L523">		json_writer.addValueString(&quot;Polygon&quot;);</span>
+
+<span class="fc" id="L525">		json_writer.addFieldName(&quot;coordinates&quot;);</span>
+
+<span class="fc bfc" id="L527" title="All 2 branches covered.">		if (position == null) {</span>
+<span class="fc" id="L528">			json_writer.startArray();</span>
+<span class="fc" id="L529">			json_writer.endArray();</span>
+<span class="fc" id="L530">			return;</span>
+		}
+
+<span class="fc" id="L533">		polygonText_(precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, paths, 0, path_count,</span>
+				json_writer);
+<span class="fc" id="L535">	}</span>
+
+	// Mirrors wkt
+	private static void polygonTaggedTextFromEnvelope_(int precision, boolean bFixedPoint, boolean b_export_zs,
+			boolean b_export_ms, double xmin, double ymin, double xmax, double ymax, double zmin, double zmax,
+			double mmin, double mmax, JsonWriter json_writer) {
+<span class="fc" id="L541">		json_writer.addFieldName(&quot;type&quot;);</span>
+<span class="fc" id="L542">		json_writer.addValueString(&quot;Polygon&quot;);</span>
+
+<span class="fc" id="L544">		json_writer.addFieldName(&quot;coordinates&quot;);</span>
+
+<span class="fc bfc" id="L546" title="All 2 branches covered.">		if (NumberUtils.isNaN(xmin)) {</span>
+<span class="fc" id="L547">			json_writer.startArray();</span>
+<span class="fc" id="L548">			json_writer.endArray();</span>
+<span class="fc" id="L549">			return;</span>
+		}
+
+<span class="fc" id="L552">		writeEnvelopeAsGeoJsonPolygon_(precision, bFixedPoint, b_export_zs, b_export_ms, xmin, ymin, xmax, ymax, zmin,</span>
+				zmax, mmin, mmax, json_writer);
+<span class="fc" id="L554">	}</span>
+
+	// Mirrors wkt
+	private static void lineStringTaggedText_(int precision, boolean bFixedPoint, boolean b_export_zs,
+			boolean b_export_ms, AttributeStreamOfDbl zs, AttributeStreamOfDbl ms, AttributeStreamOfDbl position,
+			AttributeStreamOfInt8 path_flags, AttributeStreamOfInt32 paths, JsonWriter json_writer) {
+<span class="fc" id="L560">		json_writer.addFieldName(&quot;type&quot;);</span>
+<span class="fc" id="L561">		json_writer.addValueString(&quot;LineString&quot;);</span>
+
+<span class="fc" id="L563">		json_writer.addFieldName(&quot;coordinates&quot;);</span>
+
+<span class="fc bfc" id="L565" title="All 2 branches covered.">		if (position == null) {</span>
+<span class="fc" id="L566">			json_writer.startArray();</span>
+<span class="fc" id="L567">			json_writer.endArray();</span>
+<span class="fc" id="L568">			return;</span>
+		}
+
+<span class="pc bpc" id="L571" title="1 of 2 branches missed.">		boolean b_closed = ((path_flags.read(0) &amp; PathFlags.enumClosed) != 0);</span>
+
+<span class="fc" id="L573">		lineStringText_(false, b_closed, precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, 0,</span>
+<span class="fc" id="L574">				paths.read(1), json_writer);</span>
+<span class="fc" id="L575">	}</span>
+
+	// Mirrors wkt
+	private static void pointTaggedText_(int precision, boolean bFixedPoint, boolean b_export_zs, boolean b_export_ms,
+			double x, double y, double z, double m, JsonWriter json_writer) {
+<span class="fc" id="L580">		json_writer.addFieldName(&quot;type&quot;);</span>
+<span class="fc" id="L581">		json_writer.addValueString(&quot;Point&quot;);</span>
+
+<span class="fc" id="L583">		json_writer.addFieldName(&quot;coordinates&quot;);</span>
+
+<span class="fc bfc" id="L585" title="All 2 branches covered.">		if (NumberUtils.isNaN(x)) {</span>
+<span class="fc" id="L586">			json_writer.startArray();</span>
+<span class="fc" id="L587">			json_writer.endArray();</span>
+
+<span class="fc" id="L589">			return;</span>
+		}
+
+<span class="fc" id="L592">		pointText_(precision, bFixedPoint, b_export_zs, b_export_ms, x, y, z, m, json_writer);</span>
+<span class="fc" id="L593">	}</span>
+
+	// Mirrors wkt
+	private static void multiPolygonText_(int precision, boolean bFixedPoint, boolean b_export_zs, boolean b_export_ms,
+			AttributeStreamOfDbl zs, AttributeStreamOfDbl ms, AttributeStreamOfDbl position,
+			AttributeStreamOfInt8 path_flags, AttributeStreamOfInt32 paths, int polygon_count, int path_count,
+			JsonWriter json_writer) {
+<span class="fc" id="L600">		int polygon_start = 0;</span>
+<span class="fc" id="L601">		int polygon_end = 1;</span>
+
+<span class="pc bpc" id="L603" title="1 of 4 branches missed.">		while (polygon_end &lt; path_count &amp;&amp; ((int) path_flags.read(polygon_end) &amp; PathFlags.enumOGCStartPolygon) == 0)</span>
+<span class="fc" id="L604">			polygon_end++;</span>
+
+<span class="fc" id="L606">		polygonText_(precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, paths, polygon_start,</span>
+				polygon_end, json_writer);
+
+<span class="fc bfc" id="L609" title="All 2 branches covered.">		for (int ipolygon = 1; ipolygon &lt; polygon_count; ipolygon++) {</span>
+<span class="fc" id="L610">			polygon_start = polygon_end;</span>
+<span class="fc" id="L611">			polygon_end++;</span>
+
+<span class="fc bfc" id="L613" title="All 2 branches covered.">			while (polygon_end &lt; path_count</span>
+<span class="pc bpc" id="L614" title="1 of 2 branches missed.">					&amp;&amp; ((int) path_flags.read(polygon_end) &amp; PathFlags.enumOGCStartPolygon) == 0)</span>
+<span class="fc" id="L615">				polygon_end++;</span>
+
+<span class="fc" id="L617">			polygonText_(precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, paths, polygon_start,</span>
+					polygon_end, json_writer);
+		}
+<span class="fc" id="L620">	}</span>
+
+	// Mirrors wkt
+	private static void multiLineStringText_(int precision, boolean bFixedPoint, boolean b_export_zs,
+			boolean b_export_ms, AttributeStreamOfDbl zs, AttributeStreamOfDbl ms, AttributeStreamOfDbl position,
+			AttributeStreamOfInt8 path_flags, AttributeStreamOfInt32 paths, int path_count, JsonWriter json_writer) {
+<span class="pc bpc" id="L626" title="1 of 2 branches missed.">		boolean b_closed = ((path_flags.read(0) &amp; PathFlags.enumClosed) != 0);</span>
+
+<span class="fc" id="L628">		lineStringText_(false, b_closed, precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, 0,</span>
+<span class="fc" id="L629">				paths.read(1), json_writer);</span>
+
+<span class="fc bfc" id="L631" title="All 2 branches covered.">		for (int path = 1; path &lt; path_count; path++) {</span>
+<span class="pc bpc" id="L632" title="1 of 2 branches missed.">			b_closed = ((path_flags.read(path) &amp; PathFlags.enumClosed) != 0);</span>
+
+<span class="fc" id="L634">			int istart = paths.read(path);</span>
+<span class="fc" id="L635">			int iend = paths.read(path + 1);</span>
+<span class="fc" id="L636">			lineStringText_(false, b_closed, precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, istart,</span>
+					iend, json_writer);
+		}
+<span class="fc" id="L639">	}</span>
+
+	// Mirrors wkt
+	private static void polygonText_(int precision, boolean bFixedPoint, boolean b_export_zs, boolean b_export_ms,
+			AttributeStreamOfDbl zs, AttributeStreamOfDbl ms, AttributeStreamOfDbl position,
+			AttributeStreamOfInt32 paths, int polygon_start, int polygon_end, JsonWriter json_writer) {
+<span class="fc" id="L645">		json_writer.startArray();</span>
+
+<span class="fc" id="L647">		int istart = paths.read(polygon_start);</span>
+<span class="fc" id="L648">		int iend = paths.read(polygon_start + 1);</span>
+<span class="fc" id="L649">		lineStringText_(true, true, precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, istart, iend,</span>
+				json_writer);
+
+<span class="fc bfc" id="L652" title="All 2 branches covered.">		for (int path = polygon_start + 1; path &lt; polygon_end; path++) {</span>
+<span class="fc" id="L653">			istart = paths.read(path);</span>
+<span class="fc" id="L654">			iend = paths.read(path + 1);</span>
+<span class="fc" id="L655">			lineStringText_(true, true, precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, istart,</span>
+					iend, json_writer);
+		}
+
+<span class="fc" id="L659">		json_writer.endArray();</span>
+<span class="fc" id="L660">	}</span>
+
+	// Mirrors wkt
+	private static void lineStringText_(boolean bRing, boolean b_closed, int precision, boolean bFixedPoint,
+			boolean b_export_zs, boolean b_export_ms, AttributeStreamOfDbl zs, AttributeStreamOfDbl ms,
+			AttributeStreamOfDbl position, int istart, int iend, JsonWriter json_writer) {
+<span class="pc bpc" id="L666" title="1 of 2 branches missed.">		if (istart == iend) {</span>
+<span class="nc" id="L667">			json_writer.startArray();</span>
+<span class="nc" id="L668">			json_writer.endArray();</span>
+<span class="nc" id="L669">			return;</span>
+		}
+
+<span class="fc" id="L672">		json_writer.startArray();</span>
+
+<span class="fc bfc" id="L674" title="All 2 branches covered.">		if (bRing) {</span>
+<span class="fc" id="L675">			pointText_(precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, istart, json_writer);</span>
+
+<span class="fc bfc" id="L677" title="All 2 branches covered.">			for (int point = iend - 1; point &gt;= istart + 1; point--)</span>
+<span class="fc" id="L678">				pointText_(precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, point, json_writer);</span>
+
+<span class="fc" id="L680">			pointText_(precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, istart, json_writer);</span>
+		} else {
+<span class="fc bfc" id="L682" title="All 2 branches covered.">			for (int point = istart; point &lt; iend - 1; point++)</span>
+<span class="fc" id="L683">				pointText_(precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, point, json_writer);</span>
+
+<span class="fc" id="L685">			pointText_(precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, iend - 1, json_writer);</span>
+
+<span class="pc bpc" id="L687" title="1 of 2 branches missed.">			if (b_closed)</span>
+<span class="nc" id="L688">				pointText_(precision, bFixedPoint, b_export_zs, b_export_ms, zs, ms, position, istart, json_writer);</span>
+		}
+
+<span class="fc" id="L691">		json_writer.endArray();</span>
+<span class="fc" id="L692">	}</span>
+
+	// Mirrors wkt
+	private static int pointText_(int precision, boolean bFixedPoint, boolean b_export_zs, boolean b_export_ms,
+			double x, double y, double z, double m, JsonWriter json_writer) {
+
+<span class="fc" id="L698">		json_writer.startArray();</span>
+
+<span class="fc" id="L700">		json_writer.addValueDouble(x, precision, bFixedPoint);</span>
+<span class="fc" id="L701">		json_writer.addValueDouble(y, precision, bFixedPoint);</span>
+
+<span class="fc bfc" id="L703" title="All 2 branches covered.">		if (b_export_zs)</span>
+<span class="fc" id="L704">			json_writer.addValueDouble(z, precision, bFixedPoint);</span>
+
+<span class="fc bfc" id="L706" title="All 2 branches covered.">		if (b_export_ms)</span>
+<span class="fc" id="L707">			json_writer.addValueDouble(m, precision, bFixedPoint);</span>
+
+<span class="fc" id="L709">		json_writer.endArray();</span>
+
+<span class="fc" id="L711">		return 1;</span>
+	}
+
+	// Mirrors wkt
+	private static void pointText_(int precision, boolean bFixedPoint, boolean b_export_zs, boolean b_export_ms,
+			AttributeStreamOfDbl zs, AttributeStreamOfDbl ms, AttributeStreamOfDbl position, int point,
+			JsonWriter json_writer) {
+<span class="fc" id="L718">		double x = position.readAsDbl(2 * point);</span>
+<span class="fc" id="L719">		double y = position.readAsDbl(2 * point + 1);</span>
+<span class="fc" id="L720">		double z = NumberUtils.NaN();</span>
+<span class="fc" id="L721">		double m = NumberUtils.NaN();</span>
+
+<span class="fc bfc" id="L723" title="All 2 branches covered.">		if (b_export_zs)</span>
+<span class="pc bpc" id="L724" title="1 of 2 branches missed.">			z = (zs != null ? zs.readAsDbl(point) : VertexDescription.getDefaultValue(Semantics.Z));</span>
+
+<span class="fc bfc" id="L726" title="All 2 branches covered.">		if (b_export_ms)</span>
+<span class="pc bpc" id="L727" title="1 of 2 branches missed.">			m = (ms != null ? ms.readAsDbl(point) : VertexDescription.getDefaultValue(Semantics.M));</span>
+
+<span class="fc" id="L729">		pointText_(precision, bFixedPoint, b_export_zs, b_export_ms, x, y, z, m, json_writer);</span>
+<span class="fc" id="L730">	}</span>
+
+	// Mirrors wkt
+	private static void writeEnvelopeAsGeoJsonPolygon_(int precision, boolean bFixedPoint, boolean b_export_zs,
+			boolean b_export_ms, double xmin, double ymin, double xmax, double ymax, double zmin, double zmax,
+			double mmin, double mmax, JsonWriter json_writer) {
+<span class="fc" id="L736">		json_writer.startArray();</span>
+<span class="fc" id="L737">		json_writer.startArray();</span>
+
+<span class="fc" id="L739">		json_writer.startArray();</span>
+<span class="fc" id="L740">		json_writer.addValueDouble(xmin, precision, bFixedPoint);</span>
+<span class="fc" id="L741">		json_writer.addValueDouble(ymin, precision, bFixedPoint);</span>
+
+<span class="pc bpc" id="L743" title="1 of 2 branches missed.">		if (b_export_zs)</span>
+<span class="nc" id="L744">			json_writer.addValueDouble(zmin, precision, bFixedPoint);</span>
+
+<span class="pc bpc" id="L746" title="1 of 2 branches missed.">		if (b_export_ms)</span>
+<span class="nc" id="L747">			json_writer.addValueDouble(mmin, precision, bFixedPoint);</span>
+
+<span class="fc" id="L749">		json_writer.endArray();</span>
+
+<span class="fc" id="L751">		json_writer.startArray();</span>
+<span class="fc" id="L752">		json_writer.addValueDouble(xmax, precision, bFixedPoint);</span>
+<span class="fc" id="L753">		json_writer.addValueDouble(ymin, precision, bFixedPoint);</span>
+
+<span class="pc bpc" id="L755" title="1 of 2 branches missed.">		if (b_export_zs)</span>
+<span class="nc" id="L756">			json_writer.addValueDouble(zmax, precision, bFixedPoint);</span>
+
+<span class="pc bpc" id="L758" title="1 of 2 branches missed.">		if (b_export_ms)</span>
+<span class="nc" id="L759">			json_writer.addValueDouble(mmax, precision, bFixedPoint);</span>
+
+<span class="fc" id="L761">		json_writer.endArray();</span>
+
+<span class="fc" id="L763">		json_writer.startArray();</span>
+<span class="fc" id="L764">		json_writer.addValueDouble(xmax, precision, bFixedPoint);</span>
+<span class="fc" id="L765">		json_writer.addValueDouble(ymax, precision, bFixedPoint);</span>
+
+<span class="pc bpc" id="L767" title="1 of 2 branches missed.">		if (b_export_zs)</span>
+<span class="nc" id="L768">			json_writer.addValueDouble(zmin, precision, bFixedPoint);</span>
+
+<span class="pc bpc" id="L770" title="1 of 2 branches missed.">		if (b_export_ms)</span>
+<span class="nc" id="L771">			json_writer.addValueDouble(mmin, precision, bFixedPoint);</span>
+
+<span class="fc" id="L773">		json_writer.endArray();</span>
+
+<span class="fc" id="L775">		json_writer.startArray();</span>
+<span class="fc" id="L776">		json_writer.addValueDouble(xmin, precision, bFixedPoint);</span>
+<span class="fc" id="L777">		json_writer.addValueDouble(ymax, precision, bFixedPoint);</span>
+
+<span class="pc bpc" id="L779" title="1 of 2 branches missed.">		if (b_export_zs)</span>
+<span class="nc" id="L780">			json_writer.addValueDouble(zmax, precision, bFixedPoint);</span>
+
+<span class="pc bpc" id="L782" title="1 of 2 branches missed.">		if (b_export_ms)</span>
+<span class="nc" id="L783">			json_writer.addValueDouble(mmax, precision, bFixedPoint);</span>
+
+<span class="fc" id="L785">		json_writer.endArray();</span>
+
+<span class="fc" id="L787">		json_writer.startArray();</span>
+<span class="fc" id="L788">		json_writer.addValueDouble(xmin, precision, bFixedPoint);</span>
+<span class="fc" id="L789">		json_writer.addValueDouble(ymin, precision, bFixedPoint);</span>
+
+<span class="pc bpc" id="L791" title="1 of 2 branches missed.">		if (b_export_zs)</span>
+<span class="nc" id="L792">			json_writer.addValueDouble(zmin, precision, bFixedPoint);</span>
+
+<span class="pc bpc" id="L794" title="1 of 2 branches missed.">		if (b_export_ms)</span>
+<span class="nc" id="L795">			json_writer.addValueDouble(mmin, precision, bFixedPoint);</span>
+
+<span class="fc" id="L797">		json_writer.endArray();</span>
+
+<span class="fc" id="L799">		json_writer.endArray();</span>
+<span class="fc" id="L800">		json_writer.endArray();</span>
+<span class="fc" id="L801">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

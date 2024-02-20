@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OperatorDensifyByLengthCursor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">OperatorDensifyByLengthCursor.java</span></div><h1>OperatorDensifyByLengthCursor.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+class OperatorDensifyByLengthCursor extends GeometryCursor {
+
+	GeometryCursor m_inputGeoms;
+	// SpatialReferenceImpl m_spatialReference;
+	double m_maxLength;
+	int m_index;
+
+	public OperatorDensifyByLengthCursor(GeometryCursor inputGeoms1,
+<span class="fc" id="L35">			double maxLength, ProgressTracker progressTracker) {</span>
+<span class="fc" id="L36">		m_index = -1;</span>
+<span class="fc" id="L37">		m_inputGeoms = inputGeoms1;</span>
+<span class="fc" id="L38">		m_maxLength = maxLength;</span>
+<span class="fc" id="L39">	}</span>
+
+	@Override
+	public int getGeometryID() {
+<span class="nc" id="L43">		return m_index;</span>
+	}
+
+	@Override
+	public Geometry next() {
+		Geometry geom;
+<span class="pc bpc" id="L49" title="1 of 2 branches missed.">		if ((geom = m_inputGeoms.next()) != null) {</span>
+<span class="fc" id="L50">			m_index = m_inputGeoms.getGeometryID();</span>
+<span class="fc" id="L51">			return densifyByLength(geom);</span>
+		}
+<span class="nc" id="L53">		return null;</span>
+	}
+
+	private Geometry densifyByLength(Geometry geom) {
+<span class="pc bpc" id="L57" title="2 of 4 branches missed.">		if (geom.isEmpty() || geom.getDimension() &lt; 1)</span>
+<span class="nc" id="L58">			return geom;</span>
+
+<span class="fc" id="L60">		int geometryType = geom.getType().value();</span>
+
+		// TODO implement IsMultiPath and remove Polygon and Polyline call to
+		// match Native
+		// if (Geometry.IsMultiPath(geometryType))
+<span class="fc bfc" id="L65" title="All 2 branches covered.">		if (geometryType == Geometry.GeometryType.Polygon)</span>
+<span class="fc" id="L66">			return densifyMultiPath((MultiPath) geom);</span>
+<span class="pc bpc" id="L67" title="1 of 2 branches missed.">		else if (Geometry.GeometryType.Polyline == geometryType)</span>
+<span class="fc" id="L68">			return densifyMultiPath((MultiPath) geom);</span>
+<span class="nc bnc" id="L69" title="All 2 branches missed.">		else if (Geometry.isSegment(geometryType))</span>
+<span class="nc" id="L70">			return densifySegment((Segment) geom);</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">		else if (geometryType == Geometry.GeometryType.Envelope)</span>
+<span class="nc" id="L72">			return densifyEnvelope((Envelope) geom);</span>
+		else
+			// TODO fix geometry exception to match native implementation
+<span class="nc" id="L75">			throw GeometryException.GeometryInternalError();// GEOMTHROW(internal_error);</span>
+
+		// unreachable in java
+		// return null;
+	}
+
+	private Geometry densifySegment(Segment geom) {
+<span class="nc" id="L82">		double length = geom.calculateLength2D();</span>
+<span class="nc bnc" id="L83" title="All 2 branches missed.">		if (length &lt;= m_maxLength)</span>
+<span class="nc" id="L84">			return (Geometry) geom;</span>
+
+<span class="nc" id="L86">		Polyline polyline = new Polyline(geom.getDescription());</span>
+<span class="nc" id="L87">		polyline.addSegment(geom, true);</span>
+<span class="nc" id="L88">		return densifyMultiPath((MultiPath) polyline);</span>
+	}
+
+	private Geometry densifyEnvelope(Envelope geom) {
+<span class="nc" id="L92">		Polygon polygon = new Polygon(geom.getDescription());</span>
+<span class="nc" id="L93">		polygon.addEnvelope(geom, false);</span>
+
+<span class="nc" id="L95">		Envelope2D env2D = new Envelope2D();</span>
+<span class="nc" id="L96">		geom.queryEnvelope2D(env2D);</span>
+<span class="nc" id="L97">		double w = env2D.getWidth();</span>
+<span class="nc" id="L98">		double h = env2D.getHeight();</span>
+<span class="nc bnc" id="L99" title="All 4 branches missed.">		if (w &lt;= m_maxLength &amp;&amp; h &lt;= m_maxLength)</span>
+<span class="nc" id="L100">			return (Geometry) polygon;</span>
+
+<span class="nc" id="L102">		return densifyMultiPath((MultiPath) polygon);</span>
+	}
+
+	private Geometry densifyMultiPath(MultiPath geom) {
+<span class="fc" id="L106">		MultiPath densifiedPoly = (MultiPath) geom.createInstance();</span>
+<span class="fc" id="L107">		SegmentIterator iter = geom.querySegmentIterator();</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">		while (iter.nextPath()) {</span>
+<span class="fc" id="L109">			boolean bStartNewPath = true;</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">			while (iter.hasNextSegment()) {</span>
+<span class="fc" id="L111">				Segment seg = iter.nextSegment();</span>
+<span class="pc bpc" id="L112" title="1 of 2 branches missed.">				if (seg.getType().value() != Geometry.GeometryType.Line)</span>
+<span class="nc" id="L113">					throw new GeometryException(&quot;not implemented&quot;);</span>
+
+<span class="fc" id="L115">				boolean bIsClosing = iter.isClosingSegment();</span>
+
+<span class="fc" id="L117">				double len = seg.calculateLength2D();</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">				if (len &gt; m_maxLength) {// need to split</span>
+<span class="fc" id="L119">					double dcount = Math.ceil(len / m_maxLength);</span>
+
+<span class="fc" id="L121">					Point point = new Point(geom.getDescription());// LOCALREFCLASS1(Point,</span>
+																	// VertexDescription,
+																	// point,
+																	// geom.getDescription());
+<span class="fc bfc" id="L125" title="All 2 branches covered.">					if (bStartNewPath) {</span>
+<span class="fc" id="L126">						bStartNewPath = false;</span>
+<span class="fc" id="L127">						seg.queryStart(point);</span>
+<span class="fc" id="L128">						densifiedPoly.startPath(point);</span>
+					}
+<span class="fc" id="L130">					double dt = 1.0 / dcount;</span>
+<span class="fc" id="L131">					double t = dt;</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">					for (int i = 0, n = (int) dcount - 1; i &lt; n; i++) {</span>
+<span class="fc" id="L133">						seg.queryCoord(t, point);</span>
+<span class="fc" id="L134">						densifiedPoly.lineTo(point);</span>
+<span class="fc" id="L135">						t += dt;</span>
+					}
+
+<span class="fc bfc" id="L138" title="All 2 branches covered.">					if (!bIsClosing) {</span>
+<span class="fc" id="L139">						seg.queryEnd(point);</span>
+<span class="fc" id="L140">						densifiedPoly.lineTo(point);</span>
+					} else {
+<span class="fc" id="L142">						densifiedPoly.closePathWithLine();</span>
+					}
+
+<span class="fc" id="L145">					bStartNewPath = false;</span>
+<span class="fc" id="L146">				} else {</span>
+<span class="fc bfc" id="L147" title="All 2 branches covered.">					if (!bIsClosing)</span>
+<span class="fc" id="L148">						densifiedPoly.addSegment(seg, bStartNewPath);</span>
+					else
+<span class="fc" id="L150">						densifiedPoly.closePathWithLine();</span>
+
+<span class="fc" id="L152">					bStartNewPath = false;</span>
+				}
+<span class="fc" id="L154">			}</span>
+<span class="fc" id="L155">		}</span>
+
+<span class="fc" id="L157">		return (Geometry) densifiedPoly;</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

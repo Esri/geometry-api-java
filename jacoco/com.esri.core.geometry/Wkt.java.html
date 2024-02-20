@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Wkt.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Wkt.java</span></div><h1>Wkt.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+<span class="nc" id="L27">final class Wkt {</span>
+	public static double find_tolerance_from_wkt(String buffer) {
+<span class="nc" id="L29">		double tolerance = -1.0;</span>
+
+<span class="nc bnc" id="L31" title="All 4 branches missed.">		if (buffer != null &amp;&amp; buffer.length() &gt; 0) {</span>
+			int n1, n2;
+
+<span class="nc" id="L34">			n1 = buffer.indexOf(&quot;PROJCS&quot;);</span>
+<span class="nc bnc" id="L35" title="All 2 branches missed.">			if (n1 &gt;= 0) {</span>
+<span class="nc" id="L36">				double factor = 0.0;</span>
+
+<span class="nc" id="L38">				n1 = buffer.lastIndexOf(&quot;UNIT&quot;);</span>
+<span class="nc bnc" id="L39" title="All 2 branches missed.">				if (n1 &gt;= 0) {</span>
+<span class="nc" id="L40">					n1 = buffer.indexOf(',', n1 + 4);</span>
+<span class="nc bnc" id="L41" title="All 2 branches missed.">					if (n1 &gt; 0) {</span>
+<span class="nc" id="L42">						n1++;</span>
+<span class="nc" id="L43">						n2 = buffer.indexOf(']', n1 + 1);</span>
+<span class="nc bnc" id="L44" title="All 2 branches missed.">						if (n2 &gt; 0) {</span>
+							try {
+<span class="nc" id="L46">								factor = Double.parseDouble(buffer.substring(</span>
+										n1, n2));
+<span class="nc" id="L48">							} catch (NumberFormatException e) {</span>
+<span class="nc" id="L49">								factor = 0.0;</span>
+<span class="nc" id="L50">							}</span>
+						}
+					}
+				}
+
+<span class="nc bnc" id="L55" title="All 2 branches missed.">				if (factor &gt; 0.0)</span>
+<span class="nc" id="L56">					tolerance = (0.001 / factor);</span>
+<span class="nc" id="L57">			}</span>
+
+			else {
+<span class="nc" id="L60">				n1 = buffer.indexOf(&quot;GEOGCS&quot;);</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">				if (n1 &gt;= 0) {</span>
+<span class="nc" id="L62">					double axis = 0.0;</span>
+<span class="nc" id="L63">					double factor = 0.0;</span>
+
+<span class="nc" id="L65">					n1 = buffer.indexOf(&quot;SPHEROID&quot;, n1 + 6);</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">					if (n1 &gt; 0) {</span>
+<span class="nc" id="L67">						n1 = buffer.indexOf(',', n1 + 8);</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">						if (n1 &gt; 0) {</span>
+<span class="nc" id="L69">							n1++;</span>
+<span class="nc" id="L70">							n2 = buffer.indexOf(',', n1 + 1);</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">							if (n2 &gt; 0) {</span>
+								try {
+<span class="nc" id="L73">									axis = Double.parseDouble(buffer.substring(</span>
+											n1, n2));
+<span class="nc" id="L75">								} catch (NumberFormatException e) {</span>
+<span class="nc" id="L76">									axis = 0.0;</span>
+<span class="nc" id="L77">								}</span>
+							}
+
+<span class="nc bnc" id="L80" title="All 2 branches missed.">							if (axis &gt; 0.0) {</span>
+<span class="nc" id="L81">								n1 = buffer.indexOf(&quot;UNIT&quot;, n2 + 1);</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">								if (n1 &gt;= 0) {</span>
+<span class="nc" id="L83">									n1 = buffer.indexOf(',', n1 + 4);</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">									if (n1 &gt; 0) {</span>
+<span class="nc" id="L85">										n1++;</span>
+<span class="nc" id="L86">										n2 = buffer.indexOf(']', n1 + 1);</span>
+<span class="nc bnc" id="L87" title="All 2 branches missed.">										if (n2 &gt; 0) {</span>
+											try {
+<span class="nc" id="L89">												factor = Double</span>
+<span class="nc" id="L90">														.parseDouble(buffer</span>
+<span class="nc" id="L91">																.substring(n1,</span>
+																		n2));
+<span class="nc" id="L93">											} catch (NumberFormatException e) {</span>
+<span class="nc" id="L94">												factor = 0.0;</span>
+<span class="nc" id="L95">											}</span>
+										}
+									}
+								}
+							}
+						}
+					}
+
+<span class="nc bnc" id="L103" title="All 4 branches missed.">					if (axis &gt; 0.0 &amp;&amp; factor &gt; 0.0)</span>
+<span class="nc" id="L104">						tolerance = (0.001 / (axis * factor));</span>
+				}
+			}
+		}
+
+<span class="nc" id="L109">		return tolerance;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

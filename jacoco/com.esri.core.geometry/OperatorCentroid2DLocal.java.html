@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OperatorCentroid2DLocal.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">OperatorCentroid2DLocal.java</span></div><h1>OperatorCentroid2DLocal.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2019 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+<span class="fc" id="L26">public class OperatorCentroid2DLocal extends OperatorCentroid2D {</span>
+	@Override
+	public Point2D execute(Geometry geometry, ProgressTracker progressTracker) {
+<span class="fc bfc" id="L29" title="All 2 branches covered.">		if (geometry.isEmpty()) {</span>
+<span class="fc" id="L30">			return null;</span>
+		}
+
+<span class="fc" id="L33">		Geometry.Type geometryType = geometry.getType();</span>
+<span class="pc bpc" id="L34" title="1 of 7 branches missed.">		switch (geometryType) {</span>
+		case Point:
+<span class="fc" id="L36">			return ((Point) geometry).getXY();</span>
+		case Line:
+<span class="fc" id="L38">			return computeLineCentroid((Line) geometry);</span>
+		case Envelope:
+<span class="fc" id="L40">			return ((Envelope) geometry).getCenterXY();</span>
+		case MultiPoint:
+<span class="fc" id="L42">			return computePointsCentroid((MultiPoint) geometry);</span>
+		case Polyline:
+<span class="fc" id="L44">			return computePolylineCentroid(((Polyline) geometry));</span>
+		case Polygon:
+<span class="fc" id="L46">			return computePolygonCentroid((Polygon) geometry);</span>
+		default:
+<span class="nc" id="L48">			throw new UnsupportedOperationException(&quot;Unexpected geometry type: &quot; + geometryType);</span>
+		}
+	}
+
+	private static Point2D computeLineCentroid(Line line) {
+<span class="fc" id="L53">		return new Point2D((line.getEndX() - line.getStartX()) / 2, (line.getEndY() - line.getStartY()) / 2);</span>
+	}
+
+	// Points centroid is arithmetic mean of the input points
+	private static Point2D computePointsCentroid(MultiVertexGeometry multiPoint) {
+<span class="fc" id="L58">		double xSum = 0;</span>
+<span class="fc" id="L59">		double ySum = 0;</span>
+<span class="fc" id="L60">		int pointCount = multiPoint.getPointCount();</span>
+<span class="fc" id="L61">		Point2D point2D = new Point2D();</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">		for (int i = 0; i &lt; pointCount; i++) {</span>
+<span class="fc" id="L63">			multiPoint.getXY(i, point2D);</span>
+<span class="fc" id="L64">			xSum += point2D.x;</span>
+<span class="fc" id="L65">			ySum += point2D.y;</span>
+		}
+<span class="fc" id="L67">		return new Point2D(xSum / pointCount, ySum / pointCount);</span>
+	}
+
+	// Lines centroid is weighted mean of each line segment, weight in terms of line
+	// length
+	private static Point2D computePolylineCentroid(MultiPath polyline) {
+<span class="fc" id="L73">		double totalLength = polyline.calculateLength2D();</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">		if (totalLength == 0) {</span>
+<span class="fc" id="L75">			return computePointsCentroid(polyline);</span>
+		}
+		
+<span class="fc" id="L78">		MathUtils.KahanSummator xSum = new MathUtils.KahanSummator(0);</span>
+<span class="fc" id="L79">		MathUtils.KahanSummator ySum = new MathUtils.KahanSummator(0);</span>
+<span class="fc" id="L80">		Point2D point = new Point2D();</span>
+<span class="fc" id="L81">		SegmentIterator iter = polyline.querySegmentIterator();</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">		while (iter.nextPath()) {</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">			while (iter.hasNextSegment()) {</span>
+<span class="fc" id="L84">				Segment seg = iter.nextSegment();</span>
+<span class="fc" id="L85">				seg.getCoord2D(0.5, point);</span>
+<span class="fc" id="L86">				double length = seg.calculateLength2D();</span>
+<span class="fc" id="L87">				point.scale(length);</span>
+<span class="fc" id="L88">				xSum.add(point.x);</span>
+<span class="fc" id="L89">				ySum.add(point.y);</span>
+<span class="fc" id="L90">			}</span>
+		}
+		
+<span class="fc" id="L93">		return new Point2D(xSum.getResult() / totalLength, ySum.getResult() / totalLength);</span>
+	}
+
+	// Polygon centroid: area weighted average of centroids
+	private static Point2D computePolygonCentroid(Polygon polygon) {
+<span class="fc" id="L98">		double totalArea = polygon.calculateArea2D();</span>
+<span class="fc bfc" id="L99" title="All 2 branches covered.">		if (totalArea == 0)</span>
+		{
+<span class="fc" id="L101">			return computePolylineCentroid(polygon);</span>
+		}
+		
+<span class="fc" id="L104">		MathUtils.KahanSummator xSum = new MathUtils.KahanSummator(0);</span>
+<span class="fc" id="L105">		MathUtils.KahanSummator ySum = new MathUtils.KahanSummator(0);</span>
+<span class="fc" id="L106">		Point2D startPoint = new Point2D();</span>
+<span class="fc" id="L107">		Point2D current = new Point2D();</span>
+<span class="fc" id="L108">		Point2D next = new Point2D();</span>
+<span class="fc" id="L109">		Point2D origin = polygon.getXY(0);</span>
+
+<span class="fc bfc" id="L111" title="All 2 branches covered.">		for (int ipath = 0, npaths = polygon.getPathCount(); ipath &lt; npaths; ipath++) {</span>
+<span class="fc" id="L112">			int startIndex = polygon.getPathStart(ipath);</span>
+<span class="fc" id="L113">			int endIndex = polygon.getPathEnd(ipath);</span>
+<span class="fc" id="L114">			int pointCount = endIndex - startIndex;</span>
+<span class="pc bpc" id="L115" title="1 of 2 branches missed.">			if (pointCount &lt; 3) {</span>
+<span class="nc" id="L116">				continue;</span>
+			}
+			
+<span class="fc" id="L119">			polygon.getXY(startIndex, startPoint);</span>
+<span class="fc" id="L120">			polygon.getXY(startIndex + 1, current);</span>
+<span class="fc" id="L121">			current.sub(startPoint);</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">			for (int i = startIndex + 2, n = endIndex; i &lt; n; i++) {</span>
+<span class="fc" id="L123">				polygon.getXY(i, next);</span>
+<span class="fc" id="L124">				next.sub(startPoint);</span>
+<span class="fc" id="L125">				double twiceTriangleArea = next.x * current.y - current.x * next.y;</span>
+<span class="fc" id="L126">				xSum.add((current.x + next.x) * twiceTriangleArea);</span>
+<span class="fc" id="L127">				ySum.add((current.y + next.y) * twiceTriangleArea);</span>
+<span class="fc" id="L128">				current.setCoords(next);</span>
+			}
+			
+<span class="fc" id="L131">			startPoint.sub(origin);</span>
+<span class="fc" id="L132">			startPoint.scale(6.0 * polygon.calculateRingArea2D(ipath));</span>
+			//add weighted startPoint
+<span class="fc" id="L134">			xSum.add(startPoint.x);</span>
+<span class="fc" id="L135">			ySum.add(startPoint.y);</span>
+		}
+
+<span class="fc" id="L138">		totalArea *= 6.0;</span>
+<span class="fc" id="L139">		Point2D res = new Point2D(xSum.getResult() / totalArea, ySum.getResult() / totalArea);</span>
+<span class="fc" id="L140">		res.add(origin);</span>
+<span class="fc" id="L141">		return res;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

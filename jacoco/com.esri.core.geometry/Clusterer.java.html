@@ -1,0 +1,585 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Clusterer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Clusterer.java</span></div><h1>Clusterer.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+/**
+ * Implementation for the vertex clustering.
+ * 
+ * Used by the TopoGraph and Simplify.
+ */
+<span class="fc" id="L31">final class Clusterer {</span>
+	// Clusters vertices of the shape. Returns True, if some vertices were moved
+	// (clustered).
+	// Uses reciprocal clustering (cluster vertices that are mutual nearest
+	// neighbours)
+	/*
+	 * static boolean executeReciprocal(EditShape shape, double tolerance) {
+	 * Clusterer clusterer = new Clusterer(); clusterer.m_shape = shape;
+	 * clusterer.m_tolerance = tolerance; clusterer.m_sqr_tolerance = tolerance
+	 * * tolerance; clusterer.m_cell_size = 2 * tolerance;
+	 * clusterer.m_inv_cell_size = 1.0 / clusterer.m_cell_size; return
+	 * clusterer.clusterReciprocal_(); }
+	 */
+
+	// Clusters vertices of the shape. Returns True, if some vertices were moved
+	// (clustered).
+	// Uses non-reciprocal clustering (cluster any vertices that are closer than
+	// the tolerance in the first-found-first-clustered order)
+	static boolean executeNonReciprocal(EditShape shape, double tolerance) {
+<span class="fc" id="L50">		Clusterer clusterer = new Clusterer();</span>
+<span class="fc" id="L51">		clusterer.m_shape = shape;</span>
+<span class="fc" id="L52">		clusterer.m_tolerance = tolerance;</span>
+<span class="fc" id="L53">		clusterer.m_sqr_tolerance = tolerance * tolerance;</span>
+<span class="fc" id="L54">		clusterer.m_cell_size = 2 * tolerance;</span>
+<span class="fc" id="L55">		clusterer.m_inv_cell_size = 1.0 / clusterer.m_cell_size;</span>
+<span class="fc" id="L56">		return clusterer.clusterNonReciprocal_();</span>
+	}
+
+	// Use b_conservative == True for simplify, and False for IsSimple. This
+	// makes sure Simplified shape is more robust to transformations.
+	static boolean isClusterCandidate_(double x_1, double y1, double x2,
+			double y2, double sqr_tolerance) {
+<span class="fc" id="L63">		double dx = x_1 - x2;</span>
+<span class="fc" id="L64">		double dy = y1 - y2;</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">		return dx * dx + dy * dy &lt;= sqr_tolerance;</span>
+	}
+
+<span class="fc" id="L68">	Point2D m_origin = new Point2D();</span>
+	double m_tolerance;
+	double m_sqr_tolerance;
+	double m_cell_size;
+	double m_inv_cell_size;
+<span class="fc" id="L73">	int[] m_bucket_array = new int[4];// temporary 4 element array</span>
+<span class="fc" id="L74">	int[] m_bucket_hash = new int[4];// temporary 4 element array</span>
+<span class="fc" id="L75">	int m_dbg_candidate_check_count = 0;</span>
+<span class="fc" id="L76">	int m_hash_values = -1;</span>
+<span class="fc" id="L77">	int m_new_clusters = -1;</span>
+
+	static int hashFunction_(int xi, int yi) {
+<span class="fc" id="L80">		int h = NumberUtils.hash(xi);</span>
+<span class="fc" id="L81">		return NumberUtils.hash(h, yi);</span>
+	}
+
+	final class ClusterHashFunction extends IndexHashTable.HashFunction {
+		EditShape m_shape;
+		double m_sqr_tolerance;
+		double m_inv_cell_size;
+<span class="fc" id="L88">		Point2D m_origin = new Point2D();</span>
+<span class="fc" id="L89">		Point2D m_pt = new Point2D();</span>
+<span class="fc" id="L90">		Point2D m_pt_2 = new Point2D();</span>
+		int m_hash_values;
+
+		public ClusterHashFunction(EditShape shape, Point2D origin,
+<span class="fc" id="L94">				double sqr_tolerance, double inv_cell_size, int hash_values) {</span>
+<span class="fc" id="L95">			m_shape = shape;</span>
+<span class="fc" id="L96">			m_sqr_tolerance = sqr_tolerance;</span>
+<span class="fc" id="L97">			m_inv_cell_size = inv_cell_size;</span>
+<span class="fc" id="L98">			m_origin = origin;</span>
+<span class="fc" id="L99">			m_hash_values = hash_values;</span>
+<span class="fc" id="L100">			m_pt.setNaN();</span>
+<span class="fc" id="L101">			m_pt_2.setNaN();</span>
+<span class="fc" id="L102">		}</span>
+
+		int calculate_hash(int element) {
+<span class="nc" id="L105">			return calculate_hash_from_vertex(element);</span>
+		}
+
+		int dbg_calculate_hash_from_xy(double x, double y) {
+<span class="nc" id="L109">			double dx = x - m_origin.x;</span>
+<span class="nc" id="L110">			int xi = (int) (dx * m_inv_cell_size + 0.5);</span>
+<span class="nc" id="L111">			double dy = y - m_origin.y;</span>
+<span class="nc" id="L112">			int yi = (int) (dy * m_inv_cell_size + 0.5);</span>
+<span class="nc" id="L113">			return hashFunction_(xi, yi);</span>
+		}
+
+		int calculate_hash_from_vertex(int vertex) {
+<span class="fc" id="L117">			m_shape.getXY(vertex, m_pt);</span>
+<span class="fc" id="L118">			double dx = m_pt.x - m_origin.x;</span>
+<span class="fc" id="L119">			int xi = (int) (dx * m_inv_cell_size + 0.5);</span>
+<span class="fc" id="L120">			double dy = m_pt.y - m_origin.y;</span>
+<span class="fc" id="L121">			int yi = (int) (dy * m_inv_cell_size + 0.5);</span>
+<span class="fc" id="L122">			return hashFunction_(xi, yi);</span>
+		}
+
+		@Override
+		public int getHash(int element) {
+<span class="fc" id="L127">			return m_shape.getUserIndex(element, m_hash_values);</span>
+		}
+
+		@Override
+		public boolean equal(int element_1, int element_2) {
+<span class="nc" id="L132">			int xyindex_1 = element_1;</span>
+<span class="nc" id="L133">			int xyindex_2 = element_2;</span>
+<span class="nc" id="L134">			m_shape.getXY(xyindex_1, m_pt);</span>
+<span class="nc" id="L135">			m_shape.getXY(xyindex_2, m_pt_2);</span>
+<span class="nc" id="L136">			return isClusterCandidate_(m_pt.x, m_pt.y, m_pt_2.x, m_pt_2.y,</span>
+					m_sqr_tolerance);
+		}
+
+		@Override
+		public int getHash(Object element_descriptor) {
+			// UNUSED
+<span class="nc" id="L143">			return 0;</span>
+		}
+
+		@Override
+		public boolean equal(Object element_descriptor, int element) {
+			// UNUSED
+<span class="nc" id="L149">			return false;</span>
+		}
+	};
+
+	EditShape m_shape;
+	IndexMultiList m_clusters;
+	ClusterHashFunction m_hash_function;
+	IndexHashTable m_hash_table;
+
+<span class="nc" id="L158">	static class ClusterCandidate {</span>
+		public int vertex;
+		double distance;
+	};
+
+	void getNearestNeighbourCandidate_(int xyindex, Point2D pointOfInterest,
+			int bucket_ptr, ClusterCandidate candidate) {
+<span class="nc" id="L165">		candidate.vertex = -1;</span>
+<span class="nc" id="L166">		candidate.distance = NumberUtils.doubleMax();</span>
+
+<span class="nc" id="L168">		Point2D pt = new Point2D();</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">		for (int node = bucket_ptr; node != -1; node = m_hash_table</span>
+<span class="nc" id="L170">				.getNextInBucket(node)) {</span>
+<span class="nc" id="L171">			int xyind = m_hash_table.getElement(node);</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">			if (xyindex == xyind)</span>
+<span class="nc" id="L173">				continue;</span>
+
+<span class="nc" id="L175">			m_shape.getXY(xyind, pt);</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">			if (isClusterCandidate_(pointOfInterest.x, pointOfInterest.y, pt.x,</span>
+					pt.y, m_sqr_tolerance)) {
+<span class="nc" id="L178">				pt.sub(pointOfInterest);</span>
+<span class="nc" id="L179">				double l = pt.length();</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">				if (l &lt; candidate.distance) {</span>
+<span class="nc" id="L181">					candidate.distance = l;</span>
+<span class="nc" id="L182">					candidate.vertex = xyind;</span>
+				}
+			}
+		}
+<span class="nc" id="L186">	}</span>
+
+	void findClusterCandidate_(int xyindex, ClusterCandidate candidate) {
+<span class="nc" id="L189">		Point2D pointOfInterest = new Point2D();</span>
+<span class="nc" id="L190">		m_shape.getXY(xyindex, pointOfInterest);</span>
+<span class="nc" id="L191">		double x_0 = pointOfInterest.x - m_origin.x;</span>
+<span class="nc" id="L192">		double x = x_0 * m_inv_cell_size;</span>
+<span class="nc" id="L193">		double y0 = pointOfInterest.y - m_origin.y;</span>
+<span class="nc" id="L194">		double y = y0 * m_inv_cell_size;</span>
+
+<span class="nc" id="L196">		int xi = (int) x;</span>
+<span class="nc" id="L197">		int yi = (int) y;</span>
+
+		// find the nearest neighbour in the 4 neigbouring cells.
+
+<span class="nc" id="L201">		candidate.vertex = -1;</span>
+<span class="nc" id="L202">		candidate.distance = NumberUtils.doubleMax();</span>
+<span class="nc" id="L203">		ClusterCandidate c = new ClusterCandidate();</span>
+<span class="nc bnc" id="L204" title="All 2 branches missed.">		for (int dx = 0; dx &lt;= 1; dx += 1) {</span>
+<span class="nc bnc" id="L205" title="All 2 branches missed.">			for (int dy = 0; dy &lt;= 1; dy += 1) {</span>
+<span class="nc" id="L206">				int bucket_ptr = m_hash_table.getFirstInBucket(hashFunction_(xi</span>
+						+ dx, yi + dy));
+<span class="nc bnc" id="L208" title="All 2 branches missed.">				if (bucket_ptr != IndexHashTable.nullNode()) {</span>
+<span class="nc" id="L209">					getNearestNeighbourCandidate_(xyindex, pointOfInterest,</span>
+							bucket_ptr, c);
+<span class="nc bnc" id="L211" title="All 4 branches missed.">					if (c.vertex != IndexHashTable.nullNode()</span>
+							&amp;&amp; c.distance &lt; candidate.distance) {
+<span class="nc" id="L213">						candidate = c;</span>
+					}
+				}
+			}
+		}
+<span class="nc" id="L218">	}</span>
+
+	void collectClusterCandidates_(int xyindex,
+			AttributeStreamOfInt32 candidates) {
+<span class="fc" id="L222">		Point2D pointOfInterest = new Point2D();</span>
+<span class="fc" id="L223">		m_shape.getXY(xyindex, pointOfInterest);</span>
+<span class="fc" id="L224">		double x_0 = pointOfInterest.x - m_origin.x;</span>
+<span class="fc" id="L225">		double x = x_0 * m_inv_cell_size;</span>
+<span class="fc" id="L226">		double y0 = pointOfInterest.y - m_origin.y;</span>
+<span class="fc" id="L227">		double y = y0 * m_inv_cell_size;</span>
+
+<span class="fc" id="L229">		int xi = (int) x;</span>
+<span class="fc" id="L230">		int yi = (int) y;</span>
+
+<span class="fc" id="L232">		int bucket_count = 0;</span>
+		// find all nearest neighbours in the 4 neigbouring cells.
+		// Note, because we check four neighbours, there should be 4 times more
+		// bins in the hash table to reduce collision probability in this loop.
+<span class="fc bfc" id="L236" title="All 2 branches covered.">		for (int dx = 0; dx &lt;= 1; dx += 1) {</span>
+<span class="fc bfc" id="L237" title="All 2 branches covered.">			for (int dy = 0; dy &lt;= 1; dy += 1) {</span>
+<span class="fc" id="L238">				int hash = hashFunction_(xi + dx, yi + dy);</span>
+<span class="fc" id="L239">				int bucket_ptr = m_hash_table.getFirstInBucket(hash);</span>
+<span class="fc bfc" id="L240" title="All 2 branches covered.">				if (bucket_ptr != -1) {</span>
+					// Check if we already have this bucket.
+					// There could be a hash collision for neighbouring buckets.
+<span class="fc" id="L243">					m_bucket_array[bucket_count] = bucket_ptr;</span>
+<span class="fc" id="L244">					m_bucket_hash[bucket_count] = hash;</span>
+
+<span class="fc" id="L246">					bucket_count++;</span>
+				}
+			}
+		}
+
+		// Clear duplicate buckets
+		// There could be a hash collision for neighboring buckets.
+<span class="fc bfc" id="L253" title="All 2 branches covered.">		for (int j = bucket_count - 1; j &gt;= 1; j--) {</span>
+<span class="fc" id="L254">			int bucket_ptr = m_bucket_array[j];</span>
+<span class="fc bfc" id="L255" title="All 2 branches covered.">			for (int i = j - 1; i &gt;= 0; i--) {</span>
+<span class="fc bfc" id="L256" title="All 2 branches covered.">				if (bucket_ptr == m_bucket_array[i])// hash values for two</span>
+													// neighbouring cells have
+													// collided.
+				{
+<span class="fc" id="L260">					m_bucket_hash[i] = -1; // forget collided hash</span>
+<span class="fc" id="L261">					bucket_count--;</span>
+<span class="fc bfc" id="L262" title="All 2 branches covered.">					if (j != bucket_count) {</span>
+<span class="fc" id="L263">						m_bucket_hash[j] = m_bucket_hash[bucket_count];</span>
+<span class="fc" id="L264">						m_bucket_array[j] = m_bucket_array[bucket_count];</span>
+					}
+					break;// duplicate
+				}
+			}
+		}
+
+<span class="fc bfc" id="L271" title="All 2 branches covered.">		for (int i = 0; i &lt; bucket_count; i++) {</span>
+<span class="fc" id="L272">			collectNearestNeighbourCandidates_(xyindex, m_bucket_hash[i],</span>
+					pointOfInterest, m_bucket_array[i], candidates);
+		}
+<span class="fc" id="L275">	}</span>
+
+	void collectNearestNeighbourCandidates_(int xyindex, int hash,
+			Point2D pointOfInterest, int bucket_ptr,
+			AttributeStreamOfInt32 candidates) {
+<span class="fc" id="L280">		Point2D pt = new Point2D();</span>
+<span class="fc bfc" id="L281" title="All 2 branches covered.">		for (int node = bucket_ptr; node != -1; node = m_hash_table</span>
+<span class="fc" id="L282">				.getNextInBucket(node)) {</span>
+<span class="fc" id="L283">			int xyind = m_hash_table.getElement(node);</span>
+<span class="pc bpc" id="L284" title="1 of 4 branches missed.">			if (xyindex == xyind || hash != -1</span>
+<span class="fc bfc" id="L285" title="All 2 branches covered.">					&amp;&amp; m_shape.getUserIndex(xyind, m_hash_values) != hash)</span>
+<span class="fc" id="L286">				continue;// processing same vertex, or the bucket hash modulo</span>
+							// bin count collides.
+
+<span class="fc" id="L289">			m_shape.getXY(xyind, pt);</span>
+<span class="fc" id="L290">			m_dbg_candidate_check_count++;</span>
+<span class="fc bfc" id="L291" title="All 2 branches covered.">			if (isClusterCandidate_(pointOfInterest.x, pointOfInterest.y, pt.x,</span>
+					pt.y, m_sqr_tolerance)) {
+<span class="fc" id="L293">				candidates.add(node);// note that we add the cluster node</span>
+										// instead of the cluster.
+			}
+		}
+<span class="fc" id="L297">	}</span>
+
+	boolean mergeClusters_(int vertex1, int vertex2, boolean update_hash) {
+<span class="fc" id="L300">		int cluster_1 = m_shape.getUserIndex(vertex1, m_new_clusters);</span>
+<span class="fc" id="L301">		int cluster_2 = m_shape.getUserIndex(vertex2, m_new_clusters);</span>
+<span class="pc bpc" id="L302" title="1 of 2 branches missed.">		assert (cluster_1 != StridedIndexTypeCollection.impossibleIndex2());</span>
+<span class="pc bpc" id="L303" title="1 of 2 branches missed.">		assert (cluster_2 != StridedIndexTypeCollection.impossibleIndex2());</span>
+
+<span class="fc bfc" id="L305" title="All 2 branches covered.">		if (cluster_1 == -1) {</span>
+<span class="fc" id="L306">			cluster_1 = m_clusters.createList();</span>
+<span class="fc" id="L307">			m_clusters.addElement(cluster_1, vertex1);</span>
+<span class="fc" id="L308">			m_shape.setUserIndex(vertex1, m_new_clusters, cluster_1);</span>
+		}
+
+<span class="pc bpc" id="L311" title="1 of 2 branches missed.">		if (cluster_2 == -1) {</span>
+<span class="fc" id="L312">			m_clusters.addElement(cluster_1, vertex2);</span>
+		} else {
+<span class="nc" id="L314">			m_clusters.concatenateLists(cluster_1, cluster_2);</span>
+		}
+
+		// ensure only single vertex refers to the cluster.
+<span class="fc" id="L318">		m_shape.setUserIndex(vertex2, m_new_clusters,</span>
+<span class="fc" id="L319">				StridedIndexTypeCollection.impossibleIndex2());</span>
+
+		// merge cordinates
+<span class="fc" id="L322">		boolean res = mergeVertices_(vertex1, vertex2);</span>
+
+<span class="fc bfc" id="L324" title="All 2 branches covered.">		if (update_hash) {</span>
+<span class="fc" id="L325">			int hash = m_hash_function.calculate_hash_from_vertex(vertex1);</span>
+<span class="fc" id="L326">			m_shape.setUserIndex(vertex1, m_hash_values, hash);</span>
+		} else {
+
+		}
+
+<span class="fc" id="L331">		return res;</span>
+	}
+
+	// recalculate coordinates of the vertices by averaging them using weights.
+	// return true if the coordinates has changed.
+	static boolean mergeVertices(Point pt_1, Point pt_2, double w_1,
+			int rank_1, double w_2, int rank_2, Point pt_res, double[] w_res,
+			int[] rank_res) {
+<span class="nc bnc" id="L339" title="All 4 branches missed.">		assert (!pt_1.isEmpty() &amp;&amp; !pt_2.isEmpty());</span>
+<span class="nc" id="L340">		boolean res = pt_1.equals(pt_2);</span>
+
+<span class="nc bnc" id="L342" title="All 2 branches missed.">		if (rank_1 &gt; rank_2) {</span>
+<span class="nc" id="L343">			pt_res = pt_1;</span>
+<span class="nc bnc" id="L344" title="All 2 branches missed.">			if (w_res != null) {</span>
+<span class="nc" id="L345">				rank_res[0] = rank_1;</span>
+<span class="nc" id="L346">				w_res[0] = w_1;</span>
+			}
+<span class="nc" id="L348">			return res;</span>
+<span class="nc bnc" id="L349" title="All 2 branches missed.">		} else if (rank_2 &gt; rank_1) {</span>
+<span class="nc" id="L350">			pt_res = pt_2;</span>
+<span class="nc bnc" id="L351" title="All 2 branches missed.">			if (w_res != null) {</span>
+<span class="nc" id="L352">				rank_res[0] = rank_1;</span>
+<span class="nc" id="L353">				w_res[0] = w_1;</span>
+			}
+<span class="nc" id="L355">			return res;</span>
+		}
+
+<span class="nc" id="L358">		pt_res = pt_1;</span>
+<span class="nc" id="L359">		Point2D pt2d = new Point2D();</span>
+<span class="nc" id="L360">		mergeVertices2D(pt_1.getXY(), pt_2.getXY(), w_1, rank_1, w_2, rank_2,</span>
+				pt2d, w_res, rank_res);
+<span class="nc" id="L362">		pt_res.setXY(pt2d);</span>
+<span class="nc" id="L363">		return res;</span>
+	}
+
+	static boolean mergeVertices2D(Point2D pt_1, Point2D pt_2, double w_1,
+			int rank_1, double w_2, int rank_2, Point2D pt_res, double[] w_res,
+			int[] rank_res) {
+<span class="nc" id="L369">		double w = w_1 + w_2;</span>
+<span class="nc" id="L370">		boolean r = false;</span>
+<span class="nc" id="L371">		double x = pt_1.x;</span>
+<span class="nc bnc" id="L372" title="All 2 branches missed.">		if (pt_1.x != pt_2.x) {</span>
+<span class="nc bnc" id="L373" title="All 2 branches missed.">			if (rank_1 == rank_2)</span>
+<span class="nc" id="L374">				x = (pt_1.x * w_1 + pt_2.x * w_2) / w;</span>
+
+<span class="nc" id="L376">			r = true;</span>
+		}
+<span class="nc" id="L378">		double y = pt_1.y;</span>
+<span class="nc bnc" id="L379" title="All 2 branches missed.">		if (pt_1.y != pt_2.y) {</span>
+<span class="nc bnc" id="L380" title="All 2 branches missed.">			if (rank_1 == rank_2)</span>
+<span class="nc" id="L381">				y = (pt_1.y * w_1 + pt_2.y * w_2) / w;</span>
+
+<span class="nc" id="L383">			r = true;</span>
+		}
+
+<span class="nc bnc" id="L386" title="All 2 branches missed.">		if (rank_1 != rank_2) {</span>
+<span class="nc bnc" id="L387" title="All 2 branches missed.">			if (rank_1 &gt; rank_2) {</span>
+<span class="nc bnc" id="L388" title="All 2 branches missed.">				if (w_res != null) {</span>
+<span class="nc" id="L389">					rank_res[0] = rank_1;</span>
+<span class="nc" id="L390">					w_res[0] = w_1;</span>
+				}
+<span class="nc" id="L392">				pt_res = pt_1;</span>
+			} else {
+<span class="nc bnc" id="L394" title="All 2 branches missed.">				if (w_res != null) {</span>
+<span class="nc" id="L395">					rank_res[0] = rank_2;</span>
+<span class="nc" id="L396">					w_res[0] = w_2;</span>
+				}
+<span class="nc" id="L398">				pt_res = pt_2;</span>
+			}
+		} else {
+<span class="nc" id="L401">			pt_res.setCoords(x, y);</span>
+<span class="nc bnc" id="L402" title="All 2 branches missed.">			if (w_res != null) {</span>
+<span class="nc" id="L403">				w_res[0] = w;</span>
+<span class="nc" id="L404">				rank_res[0] = rank_1;</span>
+			}
+		}
+
+<span class="nc" id="L408">		return r;</span>
+	}
+
+	boolean mergeVertices_(int vert_1, int vert_2) {
+<span class="fc" id="L412">		Point2D pt_1 = new Point2D();</span>
+<span class="fc" id="L413">		m_shape.getXY(vert_1, pt_1);</span>
+<span class="fc" id="L414">		Point2D pt_2 = new Point2D();</span>
+<span class="fc" id="L415">		m_shape.getXY(vert_2, pt_2);</span>
+
+<span class="fc" id="L417">		double w_1 = m_shape.getWeight(vert_1);</span>
+<span class="fc" id="L418">		double w_2 = m_shape.getWeight(vert_2);</span>
+<span class="fc" id="L419">		double w = w_1 + w_2;</span>
+<span class="fc" id="L420">		int r = 0;</span>
+<span class="fc" id="L421">		double x = pt_1.x;</span>
+<span class="fc bfc" id="L422" title="All 2 branches covered.">		if (pt_1.x != pt_2.x) {</span>
+<span class="fc" id="L423">			x = (pt_1.x * w_1 + pt_2.x * w_2) / w;</span>
+<span class="fc" id="L424">			r++;</span>
+		}
+<span class="fc" id="L426">		double y = pt_1.y;</span>
+<span class="fc bfc" id="L427" title="All 2 branches covered.">		if (pt_1.y != pt_2.y) {</span>
+<span class="fc" id="L428">			y = (pt_1.y * w_1 + pt_2.y * w_2) / w;</span>
+<span class="fc" id="L429">			r++;</span>
+		}
+
+<span class="fc bfc" id="L432" title="All 2 branches covered.">		if (r &gt; 0)</span>
+<span class="fc" id="L433">			m_shape.setXY(vert_1, x, y);</span>
+
+<span class="fc" id="L435">		m_shape.setWeight(vert_1, w);</span>
+<span class="fc bfc" id="L436" title="All 2 branches covered.">		return r != 0;</span>
+	}
+
+	boolean clusterNonReciprocal_() {
+<span class="fc" id="L440">		int point_count = m_shape.getTotalPointCount();</span>
+<span class="fc" id="L441">		Envelope2D env = m_shape.getEnvelope2D();</span>
+<span class="fc" id="L442">		m_origin = env.getLowerLeft();</span>
+<span class="fc" id="L443">		double dim = Math.max(env.getHeight(), env.getWidth());</span>
+<span class="fc" id="L444">		double mincell = dim / (NumberUtils.intMax() - 1);</span>
+<span class="fc bfc" id="L445" title="All 2 branches covered.">		if (m_cell_size &lt; mincell) {</span>
+<span class="fc" id="L446">			m_cell_size = mincell;</span>
+<span class="fc" id="L447">			m_inv_cell_size = 1.0 / m_cell_size;</span>
+		}
+
+		// This holds clusters.
+<span class="fc" id="L451">		m_clusters = new IndexMultiList();</span>
+<span class="fc" id="L452">		m_clusters.reserveLists(m_shape.getTotalPointCount() / 3 + 1);</span>
+<span class="fc" id="L453">		m_clusters.reserveNodes(m_shape.getTotalPointCount() / 3 + 1);</span>
+
+<span class="fc" id="L455">		m_hash_values = m_shape.createUserIndex();</span>
+<span class="fc" id="L456">		m_new_clusters = m_shape.createUserIndex();</span>
+
+		// Make the hash table. It serves a purpose of fine grain grid.
+		// Make it 25% larger than the 4 times point count to reduce the chance
+		// of collision.
+		// The 4 times comes from the fact that we check four neighbouring cells
+		// in the grid for each point.
+<span class="fc" id="L463">		m_hash_function = new ClusterHashFunction(m_shape, m_origin,</span>
+				m_sqr_tolerance, m_inv_cell_size, m_hash_values);
+<span class="fc" id="L465">		m_hash_table = new IndexHashTable(4 * point_count / 3, m_hash_function);</span>
+<span class="fc" id="L466">		m_hash_table.reserveElements(m_shape.getTotalPointCount());</span>
+<span class="fc" id="L467">		boolean b_clustered = false;</span>
+
+		// Go through all vertices stored in the m_shape and put the handles of
+		// the vertices into the clusters and the hash table.
+<span class="fc bfc" id="L471" title="All 2 branches covered.">		for (int geometry = m_shape.getFirstGeometry(); geometry != -1; geometry = m_shape</span>
+<span class="fc" id="L472">				.getNextGeometry(geometry)) {</span>
+<span class="fc bfc" id="L473" title="All 2 branches covered.">			for (int path = m_shape.getFirstPath(geometry); path != -1; path = m_shape</span>
+<span class="fc" id="L474">					.getNextPath(path)) {</span>
+<span class="fc" id="L475">				int vertex = m_shape.getFirstVertex(path);</span>
+<span class="fc bfc" id="L476" title="All 2 branches covered.">				for (int index = 0, nindex = m_shape.getPathSize(path); index &lt; nindex; index++) {</span>
+<span class="pc bpc" id="L477" title="1 of 2 branches missed.">					assert (vertex != -1);</span>
+<span class="fc" id="L478">					int hash = m_hash_function</span>
+<span class="fc" id="L479">							.calculate_hash_from_vertex(vertex);</span>
+<span class="fc" id="L480">					m_shape.setUserIndex(vertex, m_hash_values, hash);</span>
+<span class="fc" id="L481">					m_hash_table.addElement(vertex, hash); // add cluster to the</span>
+															// hash table
+<span class="pc bpc" id="L483" title="1 of 2 branches missed.">					assert (m_shape.getUserIndex(vertex, m_new_clusters) == -1);</span>
+<span class="fc" id="L484">					vertex = m_shape.getNextVertex(vertex);</span>
+				}
+			}
+		}
+
+		// m_hash_table-&gt;dbg_print_bucket_histogram_();
+
+		{// scope for candidates array
+<span class="fc" id="L492">			AttributeStreamOfInt32 candidates = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L493">			candidates.reserve(10);</span>
+
+<span class="fc bfc" id="L495" title="All 2 branches covered.">			for (int geometry = m_shape.getFirstGeometry(); geometry != -1; geometry = m_shape</span>
+<span class="fc" id="L496">					.getNextGeometry(geometry)) {</span>
+<span class="fc bfc" id="L497" title="All 2 branches covered.">				for (int path = m_shape.getFirstPath(geometry); path != -1; path = m_shape</span>
+<span class="fc" id="L498">						.getNextPath(path)) {</span>
+<span class="fc" id="L499">					int vertex = m_shape.getFirstVertex(path);</span>
+<span class="fc bfc" id="L500" title="All 2 branches covered.">					for (int index = 0, nindex = m_shape.getPathSize(path); index &lt; nindex; index++) {</span>
+<span class="fc" id="L501">						if (m_shape.getUserIndex(vertex, m_new_clusters) == StridedIndexTypeCollection</span>
+<span class="fc bfc" id="L502" title="All 2 branches covered.">								.impossibleIndex2()) {</span>
+<span class="fc" id="L503">							vertex = m_shape.getNextVertex(vertex);</span>
+<span class="fc" id="L504">							continue;// this vertex was merged with another</span>
+										// cluster. It also was removed from the
+										// hash table.
+						}
+
+<span class="fc" id="L509">						int hash = m_shape.getUserIndex(vertex, m_hash_values);</span>
+<span class="fc" id="L510">						m_hash_table.deleteElement(vertex, hash);</span>
+
+						while (true) {
+<span class="fc" id="L513">							collectClusterCandidates_(vertex, candidates);</span>
+<span class="fc bfc" id="L514" title="All 2 branches covered.">							if (candidates.size() == 0) {// no candidate for</span>
+															// clustering has
+															// been found for
+															// the cluster_1.
+<span class="fc" id="L518">								break;</span>
+							}
+
+<span class="fc" id="L521">							boolean clustered = false;</span>
+<span class="fc" id="L522">							for (int candidate_index = 0, ncandidates = candidates</span>
+<span class="fc bfc" id="L523" title="All 2 branches covered.">									.size(); candidate_index &lt; ncandidates; candidate_index++) {</span>
+<span class="fc" id="L524">								int cluster_node = candidates</span>
+<span class="fc" id="L525">										.get(candidate_index);</span>
+<span class="fc" id="L526">								int other_vertex = m_hash_table</span>
+<span class="fc" id="L527">										.getElement(cluster_node);</span>
+<span class="fc" id="L528">								m_hash_table.deleteNode(cluster_node);</span>
+<span class="fc bfc" id="L529" title="All 2 branches covered.">								clustered |= mergeClusters_(vertex,</span>
+										other_vertex,
+										candidate_index + 1 == ncandidates);
+							}
+
+<span class="fc" id="L534">							b_clustered |= clustered;</span>
+<span class="fc" id="L535">							candidates.clear(false);</span>
+							// repeat search for the cluster candidates for
+							// cluster_1
+<span class="fc bfc" id="L538" title="All 2 branches covered.">							if (!clustered)</span>
+<span class="fc" id="L539">								break;// positions did not change</span>
+<span class="fc" id="L540">						}</span>
+
+						// m_shape-&gt;set_user_index(vertex, m_new_clusters,
+						// Strided_index_type_collection::impossible_index_2());
+<span class="fc" id="L544">						vertex = m_shape.getNextVertex(vertex);</span>
+					}
+				}
+			}
+		}
+
+<span class="fc bfc" id="L550" title="All 2 branches covered.">		if (b_clustered) {</span>
+<span class="fc" id="L551">			applyClusterPositions_();</span>
+		}
+
+<span class="fc" id="L554">		m_hash_table = null;</span>
+<span class="fc" id="L555">		m_hash_function = null;</span>
+<span class="fc" id="L556">		m_shape.removeUserIndex(m_hash_values);</span>
+<span class="fc" id="L557">		m_shape.removeUserIndex(m_new_clusters);</span>
+
+		// output_debug_printf(&quot;total: %d\n&quot;,m_shape-&gt;get_total_point_count());
+		// output_debug_printf(&quot;clustered: %d\n&quot;,m_dbg_candidate_check_count);
+<span class="fc" id="L561">		return b_clustered;</span>
+	}
+
+	void applyClusterPositions_() {
+<span class="fc" id="L565">		Point2D cluster_pt = new Point2D();</span>
+		// move vertices to the clustered positions.
+<span class="fc bfc" id="L567" title="All 2 branches covered.">		for (int list = m_clusters.getFirstList(); list != -1; list = m_clusters</span>
+<span class="fc" id="L568">				.getNextList(list)) {</span>
+<span class="fc" id="L569">			int node = m_clusters.getFirst(list);</span>
+<span class="pc bpc" id="L570" title="1 of 2 branches missed.">			assert (node != -1);</span>
+<span class="fc" id="L571">			int vertex = m_clusters.getElement(node);</span>
+<span class="fc" id="L572">			m_shape.getXY(vertex, cluster_pt);</span>
+<span class="fc bfc" id="L573" title="All 2 branches covered.">			for (node = m_clusters.getNext(node); node != -1; node = m_clusters</span>
+<span class="fc" id="L574">					.getNext(node)) {</span>
+<span class="fc" id="L575">				int vertex_1 = m_clusters.getElement(node);</span>
+<span class="fc" id="L576">				m_shape.setXY(vertex_1, cluster_pt);</span>
+			}
+		}
+<span class="fc" id="L579">	}</span>
+
+<span class="fc" id="L581">	Clusterer() {</span>
+<span class="fc" id="L582">	}</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

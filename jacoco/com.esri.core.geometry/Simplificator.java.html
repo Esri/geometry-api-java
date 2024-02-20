@@ -1,0 +1,943 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Simplificator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Simplificator.java</span></div><h1>Simplificator.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+<span class="fc" id="L26">class Simplificator {</span>
+	private EditShape m_shape;
+	private int m_geometry;
+	private IndexMultiDCList m_sortedVertices;
+
+	private AttributeStreamOfInt32 m_bunchEdgeEndPoints;
+	private AttributeStreamOfInt32 m_bunchEdgeCenterPoints;
+	private AttributeStreamOfInt32 m_bunchEdgeIndices;
+	// private AttributeStreamOfInt32 m_orphanVertices;
+
+	private int m_sortedVerticesListIndex;
+	private int m_userIndexSortedIndexToVertex;
+	private int m_userIndexSortedAngleIndexToVertex;
+	private int m_nextVertexToProcess;
+	private int m_firstCoincidentVertex;
+	//private int m_knownSimpleResult;
+	private boolean m_fixSelfTangency;
+	private ProgressTracker m_progressTracker;
+<span class="fc" id="L44">	private int[] m_ar = null;</span>
+<span class="fc" id="L45">	private int[] m_br = null;</span>
+
+	private void _beforeRemoveVertex(int vertex, boolean bChangePathFirst) {
+<span class="fc" id="L48">		int vertexlistIndex = m_shape.getUserIndex(vertex,</span>
+				m_userIndexSortedIndexToVertex);
+
+<span class="pc bpc" id="L51" title="1 of 2 branches missed.">		if (m_nextVertexToProcess == vertexlistIndex) {</span>
+<span class="nc" id="L52">			m_nextVertexToProcess = m_sortedVertices</span>
+<span class="nc" id="L53">					.getNext(m_nextVertexToProcess);</span>
+		}
+
+<span class="fc bfc" id="L56" title="All 2 branches covered.">		if (m_firstCoincidentVertex == vertexlistIndex)</span>
+<span class="fc" id="L57">			m_firstCoincidentVertex = m_sortedVertices</span>
+<span class="fc" id="L58">					.getNext(m_firstCoincidentVertex);</span>
+
+<span class="fc" id="L60">		m_sortedVertices.deleteElement(m_sortedVerticesListIndex,</span>
+				vertexlistIndex);
+<span class="fc" id="L62">		_removeAngleSortInfo(vertex);</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">		if (bChangePathFirst) {</span>
+<span class="fc" id="L64">			int path = m_shape.getPathFromVertex(vertex);</span>
+<span class="pc bpc" id="L65" title="1 of 2 branches missed.">			if (path != -1) {</span>
+<span class="fc" id="L66">				int first = m_shape.getFirstVertex(path);</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">				if (first == vertex) {</span>
+<span class="fc" id="L68">					int next = m_shape.getNextVertex(vertex);</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">					if (next != vertex) {</span>
+<span class="fc" id="L70">						int p = m_shape.getPathFromVertex(next);</span>
+<span class="pc bpc" id="L71" title="1 of 2 branches missed.">						if (p == path) {</span>
+<span class="nc" id="L72">							m_shape.setFirstVertex_(path, next);</span>
+<span class="nc" id="L73">							return;</span>
+						}
+						else {
+<span class="fc" id="L76">							int prev = m_shape.getPrevVertex(vertex);</span>
+<span class="pc bpc" id="L77" title="1 of 2 branches missed.">							if (prev != vertex) {</span>
+<span class="fc" id="L78">								p = m_shape.getPathFromVertex(prev);</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">								if (p == path) {</span>
+<span class="fc" id="L80">									m_shape.setFirstVertex_(path, prev);</span>
+<span class="fc" id="L81">									return;</span>
+								}
+							}
+						}
+					}
+
+<span class="fc" id="L87">					m_shape.setFirstVertex_(path, -1);</span>
+<span class="fc" id="L88">					m_shape.setLastVertex_(path, -1);</span>
+				}
+			}
+		}
+<span class="fc" id="L92">	}</span>
+
+	static private class SimplificatorAngleComparer extends
+			AttributeStreamOfInt32.IntComparator {
+		private Simplificator m_parent;
+<span class="fc" id="L97">		private Point2D pt1 = new Point2D();</span>
+<span class="fc" id="L98">		private Point2D pt2 = new Point2D();</span>
+<span class="fc" id="L99">		private Point2D pt10 = new Point2D();</span>
+<span class="fc" id="L100">		private Point2D pt20 = new Point2D();</span>
+<span class="fc" id="L101">		private Point2D v1 = new Point2D();</span>
+<span class="fc" id="L102">		private Point2D v2 = new Point2D();</span>
+
+<span class="fc" id="L104">		public SimplificatorAngleComparer(Simplificator parent) {</span>
+<span class="fc" id="L105">			m_parent = parent;</span>
+<span class="fc" id="L106">		}</span>
+
+		@Override
+		public int compare(int v1, int v2) {
+<span class="fc" id="L110">			return _compareAngles(v1, v2);</span>
+		}
+
+		private int _compareAngles(int index1, int index2) {
+<span class="fc" id="L114">			int vert1 = m_parent.m_bunchEdgeEndPoints.get(index1);</span>
+<span class="fc" id="L115">			m_parent.m_shape.getXY(vert1, pt1);</span>
+<span class="fc" id="L116">			int vert2 = m_parent.m_bunchEdgeEndPoints.get(index2);</span>
+<span class="fc" id="L117">			m_parent.m_shape.getXY(vert2, pt2);</span>
+
+<span class="fc bfc" id="L119" title="All 2 branches covered.">			if (pt1.isEqual(pt2))</span>
+<span class="fc" id="L120">				return 0;// overlap case</span>
+
+<span class="fc" id="L122">			int vert10 = m_parent.m_bunchEdgeCenterPoints.get(index1);</span>
+<span class="fc" id="L123">			m_parent.m_shape.getXY(vert10, pt10);</span>
+
+<span class="fc" id="L125">			int vert20 = m_parent.m_bunchEdgeCenterPoints.get(index2);</span>
+<span class="fc" id="L126">			m_parent.m_shape.getXY(vert20, pt20);</span>
+
+<span class="fc" id="L128">			v1.sub(pt1, pt10);</span>
+<span class="fc" id="L129">			v2.sub(pt2, pt20);</span>
+<span class="fc" id="L130">			int result = Point2D._compareVectors(v1, v2);</span>
+<span class="fc" id="L131">			return result;</span>
+		}
+	}
+
+	private boolean _processBunch() {
+<span class="fc" id="L136">		boolean bModified = false;</span>
+<span class="fc" id="L137">		Point2D ptCenter = new Point2D();</span>
+		while (true) {
+<span class="fc bfc" id="L139" title="All 2 branches covered.">			if (m_bunchEdgeEndPoints == null) {</span>
+<span class="fc" id="L140">				m_bunchEdgeEndPoints = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L141">				m_bunchEdgeCenterPoints = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L142">				m_bunchEdgeIndices = new AttributeStreamOfInt32(0);</span>
+			} else {
+<span class="fc" id="L144">				m_bunchEdgeEndPoints.clear(false);</span>
+<span class="fc" id="L145">				m_bunchEdgeCenterPoints.clear(false);</span>
+<span class="fc" id="L146">				m_bunchEdgeIndices.clear(false);</span>
+			}
+
+<span class="fc" id="L149">			int currentVertex = m_firstCoincidentVertex;</span>
+<span class="fc" id="L150">			int index = 0;</span>
+<span class="fc" id="L151">			boolean bFirst = true;</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">			while (currentVertex != m_nextVertexToProcess) {</span>
+<span class="fc" id="L153">				int v = m_sortedVertices.getData(currentVertex);</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">				if (bFirst) {</span>
+<span class="fc" id="L155">					m_shape.getXY(v, ptCenter);</span>
+<span class="fc" id="L156">					bFirst = false;</span>
+				}
+<span class="fc" id="L158">				int vertP = m_shape.getPrevVertex(v);</span>
+<span class="fc" id="L159">				int vertN = m_shape.getNextVertex(v);</span>
+
+<span class="fc" id="L161">				int id = m_shape.getUserIndex(vertP,</span>
+						m_userIndexSortedAngleIndexToVertex);
+<span class="fc bfc" id="L163" title="All 2 branches covered.">				if (id != 0xdeadbeef)// avoid adding a point twice</span>
+				{
+<span class="fc" id="L165">					m_bunchEdgeEndPoints.add(vertP);</span>
+<span class="fc" id="L166">					m_shape.setUserIndex(vertP,</span>
+							m_userIndexSortedAngleIndexToVertex, 0xdeadbeef);// mark
+																				// that
+																				// it
+																				// has
+																				// been
+																				// already
+																				// added
+<span class="fc" id="L174">					m_bunchEdgeCenterPoints.add(v);</span>
+<span class="fc" id="L175">					m_bunchEdgeIndices.add(index++);</span>
+				}
+
+<span class="fc" id="L178">				int id2 = m_shape.getUserIndex(vertN,</span>
+						m_userIndexSortedAngleIndexToVertex);
+<span class="fc bfc" id="L180" title="All 2 branches covered.">				if (id2 != 0xdeadbeef) // avoid adding a point twice</span>
+				{
+<span class="fc" id="L182">					m_bunchEdgeEndPoints.add(vertN);</span>
+<span class="fc" id="L183">					m_shape.setUserIndex(vertN,</span>
+							m_userIndexSortedAngleIndexToVertex, 0xdeadbeef);// mark
+																				// that
+																				// it
+																				// has
+																				// been
+																				// already
+																				// added
+<span class="fc" id="L191">					m_bunchEdgeCenterPoints.add(v);</span>
+<span class="fc" id="L192">					m_bunchEdgeIndices.add(index++);</span>
+				}
+
+<span class="fc" id="L195">				currentVertex = m_sortedVertices.getNext(currentVertex);</span>
+<span class="fc" id="L196">			}</span>
+
+<span class="fc bfc" id="L198" title="All 2 branches covered.">			if (m_bunchEdgeEndPoints.size() &lt; 2)</span>
+<span class="fc" id="L199">				break;</span>
+
+			// Sort the bunch edpoints by angle (angle between the axis x and
+			// the edge, connecting the endpoint with the bunch center)
+<span class="fc" id="L203">			m_bunchEdgeIndices.Sort(0, m_bunchEdgeIndices.size(),</span>
+					new SimplificatorAngleComparer(this));
+
+<span class="fc bfc" id="L206" title="All 2 branches covered.">			for (int i = 0, n = m_bunchEdgeIndices.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L207">				int indexL = m_bunchEdgeIndices.get(i);</span>
+<span class="fc" id="L208">				int vertex = m_bunchEdgeEndPoints.get(indexL);</span>
+<span class="fc" id="L209">				m_shape.setUserIndex(vertex,</span>
+						m_userIndexSortedAngleIndexToVertex, i);// rember the
+																// sort by angle
+																// order
+			}
+
+<span class="fc" id="L215">			boolean bCrossOverResolved = _processCrossOvers(ptCenter);// see of</span>
+																		// there
+																		// are
+																		// crossing
+																		// over
+																		// edges.
+<span class="fc bfc" id="L221" title="All 2 branches covered.">			for (int i = 0, n = m_bunchEdgeIndices.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L222">				int indexL = m_bunchEdgeIndices.get(i);</span>
+<span class="fc bfc" id="L223" title="All 2 branches covered.">				if (indexL == -1)</span>
+<span class="fc" id="L224">					continue;</span>
+<span class="fc" id="L225">				int vertex = m_bunchEdgeEndPoints.get(indexL);</span>
+<span class="fc" id="L226">				m_shape.setUserIndex(vertex,</span>
+						m_userIndexSortedAngleIndexToVertex, -1);// remove
+																	// mapping
+			}
+
+<span class="fc bfc" id="L231" title="All 2 branches covered.">			if (bCrossOverResolved) {</span>
+<span class="fc" id="L232">				bModified = true;</span>
+<span class="fc" id="L233">				continue;</span>
+			}
+
+			break;
+		}
+
+<span class="fc" id="L239">		return bModified;</span>
+	}
+
+	private boolean _processCrossOvers(Point2D ptCenter) {
+<span class="fc" id="L243">		boolean bFound = false;</span>
+
+		// Resolve all overlaps
+<span class="fc" id="L246">		boolean bContinue = true;</span>
+<span class="fc bfc" id="L247" title="All 2 branches covered.">		while (bContinue) {</span>
+			// The nearest pairts in the middle of the list
+<span class="fc" id="L249">			bContinue = false;</span>
+<span class="fc" id="L250">			int index1 = 0;</span>
+<span class="fc bfc" id="L251" title="All 2 branches covered.">			if (m_bunchEdgeIndices.get(index1) == -1)</span>
+<span class="fc" id="L252">				index1 = _getNextEdgeIndex(index1);</span>
+
+<span class="fc" id="L254">			int index2 = _getNextEdgeIndex(index1);</span>
+
+<span class="fc" id="L256">			for (int i = 0, n = m_bunchEdgeIndices.size(); i &lt; n</span>
+<span class="pc bpc" id="L257" title="2 of 8 branches missed.">					&amp;&amp; index1 != -1 &amp;&amp; index2 != -1 &amp;&amp; index1 != index2; i++) {</span>
+<span class="fc" id="L258">				int edgeindex1 = m_bunchEdgeIndices.get(index1);</span>
+<span class="fc" id="L259">				int edgeindex2 = m_bunchEdgeIndices.get(index2);</span>
+
+<span class="fc" id="L261">				int vertexB1 = m_bunchEdgeEndPoints.get(edgeindex1);</span>
+<span class="fc" id="L262">				int vertexB2 = m_bunchEdgeEndPoints.get(edgeindex2);</span>
+
+<span class="fc" id="L264">				int vertexA1 = m_shape.getNextVertex(vertexB1);</span>
+<span class="fc bfc" id="L265" title="All 2 branches covered.">				if (!m_shape.isEqualXY(vertexA1, ptCenter))</span>
+<span class="fc" id="L266">					vertexA1 = m_shape.getPrevVertex(vertexB1);</span>
+<span class="fc" id="L267">				int vertexA2 = m_shape.getNextVertex(vertexB2);</span>
+<span class="fc bfc" id="L268" title="All 2 branches covered.">				if (!m_shape.isEqualXY(vertexA2, ptCenter))</span>
+<span class="fc" id="L269">					vertexA2 = m_shape.getPrevVertex(vertexB2);</span>
+
+<span class="fc" id="L271">				boolean bDirection1 = _getDirection(vertexA1, vertexB1);</span>
+<span class="fc" id="L272">				boolean bDirection2 = _getDirection(vertexA2, vertexB2);</span>
+<span class="fc bfc" id="L273" title="All 2 branches covered.">				int vertexC1 = bDirection1 ? m_shape.getPrevVertex(vertexA1)</span>
+<span class="fc" id="L274">						: m_shape.getNextVertex(vertexA1);</span>
+<span class="fc bfc" id="L275" title="All 2 branches covered.">				int vertexC2 = bDirection2 ? m_shape.getPrevVertex(vertexA2)</span>
+<span class="fc" id="L276">						: m_shape.getNextVertex(vertexA2);</span>
+
+<span class="fc" id="L278">				boolean bOverlap = false;</span>
+<span class="pc bpc" id="L279" title="1 of 2 branches missed.">				if (_removeSpike(vertexA1))</span>
+<span class="nc" id="L280">					bOverlap = true;</span>
+<span class="pc bpc" id="L281" title="1 of 2 branches missed.">				else if (_removeSpike(vertexA2))</span>
+<span class="nc" id="L282">					bOverlap = true;</span>
+<span class="fc bfc" id="L283" title="All 2 branches covered.">				else if (_removeSpike(vertexB1))</span>
+<span class="fc" id="L284">					bOverlap = true;</span>
+<span class="pc bpc" id="L285" title="1 of 2 branches missed.">				else if (_removeSpike(vertexB2))</span>
+<span class="nc" id="L286">					bOverlap = true;</span>
+<span class="pc bpc" id="L287" title="1 of 2 branches missed.">				else if (_removeSpike(vertexC1))</span>
+<span class="nc" id="L288">					bOverlap = true;</span>
+<span class="pc bpc" id="L289" title="1 of 2 branches missed.">				else if (_removeSpike(vertexC2))</span>
+<span class="nc" id="L290">					bOverlap = true;</span>
+
+<span class="fc bfc" id="L292" title="All 4 branches covered.">				if (!bOverlap &amp;&amp; m_shape.isEqualXY(vertexB1, vertexB2)) {</span>
+<span class="fc" id="L293">					bOverlap = true;</span>
+<span class="fc" id="L294">					_resolveOverlap(bDirection1, bDirection2, vertexA1,</span>
+							vertexB1, vertexA2, vertexB2);
+				}
+
+<span class="pc bpc" id="L298" title="1 of 4 branches missed.">				if (!bOverlap &amp;&amp; m_shape.isEqualXY(vertexC1, vertexC2)) {</span>
+<span class="nc" id="L299">					bOverlap = true;</span>
+<span class="nc bnc" id="L300" title="All 4 branches missed.">					_resolveOverlap(!bDirection1, !bDirection2, vertexA1,</span>
+							vertexC1, vertexA2, vertexC2);
+				}
+
+<span class="fc bfc" id="L304" title="All 2 branches covered.">				if (bOverlap)</span>
+<span class="fc" id="L305">					bFound = true;</span>
+
+<span class="fc" id="L307">				bContinue |= bOverlap;</span>
+
+<span class="fc" id="L309">				index1 = _getNextEdgeIndex(index1);</span>
+<span class="fc" id="L310">				index2 = _getNextEdgeIndex(index1);</span>
+			}
+<span class="fc" id="L312">		}</span>
+
+<span class="fc bfc" id="L314" title="All 2 branches covered.">		if (!bFound) {// resolve all cross overs</span>
+<span class="fc" id="L315">			int index1 = 0;</span>
+<span class="pc bpc" id="L316" title="1 of 2 branches missed.">			if (m_bunchEdgeIndices.get(index1) == -1)</span>
+<span class="nc" id="L317">				index1 = _getNextEdgeIndex(index1);</span>
+
+<span class="fc" id="L319">			int index2 = _getNextEdgeIndex(index1);</span>
+
+<span class="fc" id="L321">			for (int i = 0, n = m_bunchEdgeIndices.size(); i &lt; n</span>
+<span class="pc bpc" id="L322" title="2 of 8 branches missed.">					&amp;&amp; index1 != -1 &amp;&amp; index2 != -1 &amp;&amp; index1 != index2; i++) {</span>
+<span class="fc" id="L323">				int edgeindex1 = m_bunchEdgeIndices.get(index1);</span>
+<span class="fc" id="L324">				int edgeindex2 = m_bunchEdgeIndices.get(index2);</span>
+
+<span class="fc" id="L326">				int vertexB1 = m_bunchEdgeEndPoints.get(edgeindex1);</span>
+<span class="fc" id="L327">				int vertexB2 = m_bunchEdgeEndPoints.get(edgeindex2);</span>
+
+<span class="fc" id="L329">				int vertexA1 = m_shape.getNextVertex(vertexB1);</span>
+<span class="fc bfc" id="L330" title="All 2 branches covered.">				if (!m_shape.isEqualXY(vertexA1, ptCenter))</span>
+<span class="fc" id="L331">					vertexA1 = m_shape.getPrevVertex(vertexB1);</span>
+<span class="fc" id="L332">				int vertexA2 = m_shape.getNextVertex(vertexB2);</span>
+<span class="fc bfc" id="L333" title="All 2 branches covered.">				if (!m_shape.isEqualXY(vertexA2, ptCenter))</span>
+<span class="fc" id="L334">					vertexA2 = m_shape.getPrevVertex(vertexB2);</span>
+
+<span class="fc" id="L336">				boolean bDirection1 = _getDirection(vertexA1, vertexB1);</span>
+<span class="fc" id="L337">				boolean bDirection2 = _getDirection(vertexA2, vertexB2);</span>
+<span class="fc bfc" id="L338" title="All 2 branches covered.">				int vertexC1 = bDirection1 ? m_shape.getPrevVertex(vertexA1)</span>
+<span class="fc" id="L339">						: m_shape.getNextVertex(vertexA1);</span>
+<span class="fc bfc" id="L340" title="All 2 branches covered.">				int vertexC2 = bDirection2 ? m_shape.getPrevVertex(vertexA2)</span>
+<span class="fc" id="L341">						: m_shape.getNextVertex(vertexA2);</span>
+
+<span class="fc bfc" id="L343" title="All 2 branches covered.">				if (_detectAndResolveCrossOver(bDirection1, bDirection2,</span>
+						vertexB1, vertexA1, vertexC1, vertexB2, vertexA2,
+						vertexC2)) {
+<span class="fc" id="L346">					bFound = true;</span>
+				}
+
+<span class="fc" id="L349">				index1 = _getNextEdgeIndex(index1);</span>
+<span class="fc" id="L350">				index2 = _getNextEdgeIndex(index1);</span>
+			}
+		}
+
+<span class="fc" id="L354">		return bFound;</span>
+	}
+
+	static private class SimplificatorVertexComparer extends
+			AttributeStreamOfInt32.IntComparator {
+		private Simplificator m_parent;
+<span class="fc" id="L360">		private Point2D pt1 = new Point2D();</span>
+<span class="fc" id="L361">		private Point2D pt2 = new Point2D();</span>
+
+<span class="fc" id="L363">		SimplificatorVertexComparer(Simplificator parent) {</span>
+<span class="fc" id="L364">			m_parent = parent;</span>
+<span class="fc" id="L365">		}</span>
+
+		@Override
+		public int compare(int v1, int v2) {
+<span class="fc" id="L369">			return _compareVerticesSimple(v1, v2);</span>
+		}
+
+		private int _compareVerticesSimple(int v1, int v2) {
+<span class="fc" id="L373">			m_parent.m_shape.getXY(v1, pt1);</span>
+<span class="fc" id="L374">			m_parent.m_shape.getXY(v2, pt2);</span>
+<span class="fc" id="L375">			int res = pt1.compare(pt2);</span>
+<span class="fc bfc" id="L376" title="All 2 branches covered.">			if (res == 0) {// sort equal vertices by the path ID</span>
+<span class="fc" id="L377">				int i1 = m_parent.m_shape.getPathFromVertex(v1);</span>
+<span class="fc" id="L378">				int i2 = m_parent.m_shape.getPathFromVertex(v2);</span>
+<span class="fc bfc" id="L379" title="All 4 branches covered.">				res = i1 &lt; i2 ? -1 : (i1 == i2 ? 0 : 1);</span>
+			}
+
+<span class="fc" id="L382">			return res;</span>
+		}
+	}
+
+	private boolean _simplify() {
+<span class="pc bpc" id="L387" title="1 of 2 branches missed.">		if (m_shape.getGeometryType(m_geometry) == Polygon.Type.Polygon.value()</span>
+<span class="pc bpc" id="L388" title="1 of 2 branches missed.">				&amp;&amp; m_shape.getFillRule(m_geometry) == Polygon.FillRule.enumFillRuleWinding)</span>
+
+		{
+<span class="nc" id="L391">			TopologicalOperations ops = new TopologicalOperations();</span>
+<span class="nc" id="L392">			ops.planarSimplifyNoCrackingAndCluster(m_fixSelfTangency,</span>
+					m_shape, m_geometry, m_progressTracker);
+<span class="nc bnc" id="L394" title="All 2 branches missed.">			assert (m_shape.getFillRule(m_geometry) == Polygon.FillRule.enumFillRuleOddEven);</span>
+		}
+<span class="fc" id="L396">		boolean bChanged = false;</span>
+
+<span class="fc" id="L398">		m_userIndexSortedIndexToVertex = -1;</span>
+<span class="fc" id="L399">		m_userIndexSortedAngleIndexToVertex = -1;</span>
+
+<span class="fc" id="L401">		int pointCount = m_shape.getPointCount(m_geometry);</span>
+
+		// Sort vertices lexicographically
+		// Firstly copy allvertices to an array.
+<span class="fc" id="L405">		AttributeStreamOfInt32 verticesSorter = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L406">		verticesSorter.reserve(pointCount);</span>
+
+<span class="fc bfc" id="L408" title="All 2 branches covered.">		for (int path = m_shape.getFirstPath(m_geometry); path != -1; path = m_shape</span>
+<span class="fc" id="L409">				.getNextPath(path)) {</span>
+<span class="fc" id="L410">			int vertex = m_shape.getFirstVertex(path);</span>
+<span class="fc bfc" id="L411" title="All 2 branches covered.">			for (int index = 0, n = m_shape.getPathSize(path); index &lt; n; index++) {</span>
+<span class="fc" id="L412">				verticesSorter.add(vertex);</span>
+<span class="fc" id="L413">				vertex = m_shape.getNextVertex(vertex);</span>
+			}
+		}
+
+		// Sort
+<span class="fc" id="L418">		verticesSorter.Sort(0, pointCount,</span>
+				new SimplificatorVertexComparer(this));
+
+		// Copy sorted vertices to the m_sortedVertices list. Make a mapping
+		// from the edit shape vertices to the sorted vertices.
+<span class="fc" id="L423">		m_userIndexSortedIndexToVertex = m_shape.createUserIndex();// this index</span>
+																	// is used
+																	// to map
+																	// from edit
+																	// shape
+																	// vertex to
+																	// the
+																	// m_sortedVertices
+																	// list
+<span class="fc" id="L432">		m_sortedVertices = new IndexMultiDCList();</span>
+<span class="fc" id="L433">		m_sortedVerticesListIndex = m_sortedVertices.createList(0);</span>
+<span class="fc bfc" id="L434" title="All 2 branches covered.">		for (int i = 0; i &lt; pointCount; i++) {</span>
+<span class="fc" id="L435">			int vertex = verticesSorter.get(i);</span>
+<span class="fc" id="L436">			int vertexlistIndex = m_sortedVertices.addElement(</span>
+					m_sortedVerticesListIndex, vertex);
+<span class="fc" id="L438">			m_shape.setUserIndex(vertex, m_userIndexSortedIndexToVertex,</span>
+					vertexlistIndex);// remember the sorted list element on the
+										// vertex.
+			// When we remove a vertex, we also remove associated sorted list
+			// element.
+		}
+
+<span class="fc" id="L445">		m_userIndexSortedAngleIndexToVertex = m_shape.createUserIndex();// create</span>
+																		// additional
+																		// list
+																		// to
+																		// store
+																		// angular
+																		// sort
+																		// mapping.
+
+<span class="fc" id="L454">		m_nextVertexToProcess = -1;</span>
+
+<span class="fc bfc" id="L456" title="All 2 branches covered.">		if (_cleanupSpikes())// cleanup any spikes on the polygon.</span>
+<span class="fc" id="L457">			bChanged = true;</span>
+
+		// Simplify polygon
+<span class="fc" id="L460">		int iRepeatNum = 0;</span>
+<span class="fc" id="L461">		boolean bNeedRepeat = false;</span>
+
+		// Internal iteration loop for the simplificator.
+		// ST. I am not sure if it actually needs this loop. TODO: figure
+		// this out.
+		do// while (bNeedRepeat);
+		{
+<span class="fc" id="L468">			bNeedRepeat = false;</span>
+
+<span class="fc" id="L470">			m_firstCoincidentVertex = -1;</span>
+<span class="fc" id="L471">			int coincidentCount = 0;</span>
+<span class="fc" id="L472">			Point2D ptFirst = new Point2D();</span>
+<span class="fc" id="L473">			Point2D pt = new Point2D();</span>
+			// Main loop of the simplificator. Go through the vertices and
+			// for those that have same coordinates,
+<span class="fc" id="L476">			for (int vlistindex = m_sortedVertices</span>
+<span class="fc" id="L477">					.getFirst(m_sortedVerticesListIndex); vlistindex != IndexMultiDCList</span>
+<span class="fc bfc" id="L478" title="All 2 branches covered.">					.nullNode();) {</span>
+<span class="fc" id="L479">				int vertex = m_sortedVertices.getData(vlistindex);</span>
+
+<span class="fc bfc" id="L481" title="All 2 branches covered.">				if (m_firstCoincidentVertex != -1) {</span>
+					// Point2D pt = new Point2D();
+<span class="fc" id="L483">					m_shape.getXY(vertex, pt);</span>
+<span class="fc bfc" id="L484" title="All 2 branches covered.">					if (ptFirst.isEqual(pt)) {</span>
+<span class="fc" id="L485">						coincidentCount++;</span>
+					} else {
+<span class="fc" id="L487">						ptFirst.setCoords(pt);</span>
+<span class="fc" id="L488">						m_nextVertexToProcess = vlistindex;// we remeber the</span>
+															// next index in
+															// the member
+															// variable to
+															// allow it to
+															// be updated if
+															// a vertex is
+															// removed
+															// inside of the
+															// _ProcessBunch.
+<span class="fc bfc" id="L498" title="All 2 branches covered.">						if (coincidentCount &gt; 0) {</span>
+<span class="fc" id="L499">							boolean result = _processBunch();// process a</span>
+																// bunch of
+																// coinciding
+																// vertices
+<span class="fc bfc" id="L503" title="All 2 branches covered.">							if (result) {// something has changed.</span>
+											// Note that ProcessBunch may
+											// change m_nextVertexToProcess
+											// and m_firstCoincidentVertex.
+<span class="fc" id="L507">								bNeedRepeat = true;</span>
+<span class="fc" id="L508">								if (m_nextVertexToProcess != IndexMultiDCList</span>
+<span class="pc bpc" id="L509" title="1 of 2 branches missed.">										.nullNode()) {</span>
+<span class="fc" id="L510">									int v = m_sortedVertices</span>
+<span class="fc" id="L511">											.getData(m_nextVertexToProcess);</span>
+<span class="fc" id="L512">									m_shape.getXY(v, ptFirst);</span>
+								}
+							}
+						}
+
+<span class="fc" id="L517">						vlistindex = m_nextVertexToProcess;</span>
+<span class="fc" id="L518">						m_firstCoincidentVertex = vlistindex;</span>
+<span class="fc" id="L519">						coincidentCount = 0;</span>
+					}
+				} else {
+<span class="fc" id="L522">					m_firstCoincidentVertex = vlistindex;</span>
+<span class="fc" id="L523">					m_shape.getXY(m_sortedVertices.getData(vlistindex),</span>
+							ptFirst);
+<span class="fc" id="L525">					coincidentCount = 0;</span>
+				}
+
+<span class="pc bpc" id="L528" title="1 of 2 branches missed.">				if (vlistindex != -1)//vlistindex can be set to -1 after ProcessBunch call above</span>
+<span class="fc" id="L529">					vlistindex = m_sortedVertices.getNext(vlistindex);</span>
+<span class="fc" id="L530">			}</span>
+
+<span class="fc" id="L532">			m_nextVertexToProcess = -1;</span>
+
+<span class="pc bpc" id="L534" title="1 of 2 branches missed.">			if (coincidentCount &gt; 0) {</span>
+<span class="nc" id="L535">				boolean result = _processBunch();</span>
+<span class="nc bnc" id="L536" title="All 2 branches missed.">				if (result)</span>
+<span class="nc" id="L537">					bNeedRepeat = true;</span>
+			}
+
+<span class="pc bpc" id="L540" title="1 of 2 branches missed.">			if (iRepeatNum++ &gt; 10) {</span>
+<span class="nc" id="L541">				throw GeometryException.GeometryInternalError();</span>
+			}
+
+<span class="fc bfc" id="L544" title="All 2 branches covered.">			if (bNeedRepeat)</span>
+<span class="fc" id="L545">				_fixOrphanVertices();// fix broken structure of the shape</span>
+
+<span class="pc bpc" id="L547" title="1 of 2 branches missed.">			if (_cleanupSpikes())</span>
+<span class="nc" id="L548">				bNeedRepeat = true;</span>
+
+<span class="fc" id="L550">			bChanged |= bNeedRepeat;</span>
+
+<span class="fc bfc" id="L552" title="All 2 branches covered.">		} while (bNeedRepeat);</span>
+
+		// Now process rings. Fix ring orientation and determine rings that need
+		// to be deleted.
+
+<span class="fc" id="L557">		m_shape.removeUserIndex(m_userIndexSortedIndexToVertex);</span>
+<span class="fc" id="L558">		m_shape.removeUserIndex(m_userIndexSortedAngleIndexToVertex);</span>
+
+<span class="fc" id="L560">		bChanged |= RingOrientationFixer.execute(m_shape, m_geometry,</span>
+				m_sortedVertices, m_fixSelfTangency);
+
+<span class="fc" id="L563">		return bChanged;</span>
+	}
+
+	private boolean _getDirection(int vert1, int vert2) {
+<span class="fc bfc" id="L567" title="All 2 branches covered.">		if (m_shape.getNextVertex(vert2) == vert1) {</span>
+<span class="fc" id="L568">			return false;</span>
+		} else {
+<span class="fc" id="L570">			return true;</span>
+		}
+	}
+
+	private boolean _detectAndResolveCrossOver(boolean bDirection1,
+			boolean bDirection2, int vertexB1, int vertexA1, int vertexC1,
+			int vertexB2, int vertexA2, int vertexC2) {
+
+<span class="fc bfc" id="L578" title="All 2 branches covered.">		if (vertexA1 == vertexA2) {</span>
+<span class="fc" id="L579">			_removeAngleSortInfo(vertexB1);</span>
+<span class="fc" id="L580">			_removeAngleSortInfo(vertexB2);</span>
+<span class="fc" id="L581">			return false;</span>
+		}
+
+		// get indices of the vertices for the angle sort.
+<span class="fc" id="L585">		int iB1 = m_shape.getUserIndex(vertexB1,</span>
+				m_userIndexSortedAngleIndexToVertex);
+<span class="fc" id="L587">		int iC1 = m_shape.getUserIndex(vertexC1,</span>
+				m_userIndexSortedAngleIndexToVertex);
+<span class="fc" id="L589">		int iB2 = m_shape.getUserIndex(vertexB2,</span>
+				m_userIndexSortedAngleIndexToVertex);
+<span class="fc" id="L591">		int iC2 = m_shape.getUserIndex(vertexC2,</span>
+				m_userIndexSortedAngleIndexToVertex);
+		// Sort the indices to restore the angle-sort order
+
+<span class="fc bfc" id="L595" title="All 2 branches covered.">		if (m_ar == null) {</span>
+<span class="fc" id="L596">			m_ar = new int[8];</span>
+<span class="fc" id="L597">			m_br = new int[4];</span>
+		}
+<span class="fc" id="L599">		m_ar[0] = 0;</span>
+<span class="fc" id="L600">		m_br[0] = iB1;</span>
+<span class="fc" id="L601">		m_ar[1] = 0;</span>
+<span class="fc" id="L602">		m_br[1] = iC1;</span>
+<span class="fc" id="L603">		m_ar[2] = 1;</span>
+<span class="fc" id="L604">		m_br[2] = iB2;</span>
+<span class="fc" id="L605">		m_ar[3] = 1;</span>
+<span class="fc" id="L606">		m_br[3] = iC2;</span>
+<span class="fc bfc" id="L607" title="All 2 branches covered.">		for (int j = 1; j &lt; 4; j++)// insertion sort</span>
+		{
+<span class="fc" id="L609">			int key = m_br[j];</span>
+<span class="fc" id="L610">			int data = m_ar[j];</span>
+<span class="fc" id="L611">			int i = j - 1;</span>
+<span class="fc bfc" id="L612" title="All 4 branches covered.">			while (i &gt;= 0 &amp;&amp; m_br[i] &gt; key) {</span>
+<span class="fc" id="L613">				m_br[i + 1] = m_br[i];</span>
+<span class="fc" id="L614">				m_ar[i + 1] = m_ar[i];</span>
+<span class="fc" id="L615">				i--;</span>
+			}
+<span class="fc" id="L617">			m_br[i + 1] = key;</span>
+<span class="fc" id="L618">			m_ar[i + 1] = data;</span>
+		}
+
+<span class="fc" id="L621">		int detector = 0;</span>
+<span class="pc bpc" id="L622" title="1 of 2 branches missed.">		if (m_ar[0] != 0)</span>
+<span class="nc" id="L623">			detector |= 1;</span>
+<span class="fc bfc" id="L624" title="All 2 branches covered.">		if (m_ar[1] != 0)</span>
+<span class="fc" id="L625">			detector |= 2;</span>
+<span class="fc bfc" id="L626" title="All 2 branches covered.">		if (m_ar[2] != 0)</span>
+<span class="fc" id="L627">			detector |= 4;</span>
+<span class="fc bfc" id="L628" title="All 2 branches covered.">		if (m_ar[3] != 0)</span>
+<span class="fc" id="L629">			detector |= 8;</span>
+<span class="pc bpc" id="L630" title="1 of 4 branches missed.">		if (detector != 5 &amp;&amp; detector != 10)// not an overlap</span>
+<span class="fc" id="L631">			return false;</span>
+
+<span class="fc bfc" id="L633" title="All 2 branches covered.">		if (bDirection1 == bDirection2) {</span>
+<span class="fc bfc" id="L634" title="All 2 branches covered.">			if (bDirection1) {</span>
+<span class="fc" id="L635">				m_shape.setNextVertex_(vertexC2, vertexA1); // B1&lt; &gt;B2</span>
+<span class="fc" id="L636">				m_shape.setPrevVertex_(vertexA1, vertexC2); // \ /</span>
+<span class="fc" id="L637">				m_shape.setNextVertex_(vertexC1, vertexA2); // A1A2</span>
+<span class="fc" id="L638">				m_shape.setPrevVertex_(vertexA2, vertexC1); // / \ //</span>
+															// C2&gt; &lt;C1
+			} else {
+<span class="fc" id="L641">				m_shape.setPrevVertex_(vertexC2, vertexA1); // B1&gt; &lt;B2</span>
+<span class="fc" id="L642">				m_shape.setNextVertex_(vertexA1, vertexC2); // \ /</span>
+<span class="fc" id="L643">				m_shape.setPrevVertex_(vertexC1, vertexA2); // A1A2</span>
+<span class="fc" id="L644">				m_shape.setNextVertex_(vertexA2, vertexC1); // / \ //</span>
+															// C2&lt; &gt;C1
+			}
+		} else {
+<span class="fc bfc" id="L648" title="All 2 branches covered.">			if (bDirection1) {</span>
+<span class="fc" id="L649">				m_shape.setPrevVertex_(vertexA1, vertexB2); // B1&lt; &lt;B2</span>
+<span class="fc" id="L650">				m_shape.setNextVertex_(vertexB2, vertexA1); // \ /</span>
+<span class="fc" id="L651">				m_shape.setPrevVertex_(vertexA2, vertexC1); // A1A2</span>
+<span class="fc" id="L652">				m_shape.setNextVertex_(vertexC1, vertexA2); // / \ //</span>
+															// C2&lt; &lt;C1
+
+			} else {
+<span class="fc" id="L656">				m_shape.setNextVertex_(vertexA1, vertexB2); // B1&gt; &gt;B2</span>
+<span class="fc" id="L657">				m_shape.setPrevVertex_(vertexB2, vertexA1); // \ /</span>
+<span class="fc" id="L658">				m_shape.setNextVertex_(vertexA2, vertexC1); // A1A2</span>
+<span class="fc" id="L659">				m_shape.setPrevVertex_(vertexC1, vertexA2); // / \ //</span>
+															// C2&gt; &gt;C1
+
+			}
+		}
+
+<span class="fc" id="L665">		return true;</span>
+	}
+
+	private void _resolveOverlap(boolean bDirection1, boolean bDirection2,
+			int vertexA1, int vertexB1, int vertexA2, int vertexB2) {
+<span class="fc" id="L670">		_resolveOverlapOddEven(bDirection1, bDirection2, vertexA1,</span>
+				vertexB1, vertexA2, vertexB2);
+<span class="fc" id="L672">	}</span>
+
+	private void _resolveOverlapOddEven(boolean bDirection1,
+			boolean bDirection2, int vertexA1, int vertexB1, int vertexA2,
+			int vertexB2) {
+<span class="fc bfc" id="L677" title="All 2 branches covered.">		if (bDirection1 != bDirection2) {</span>
+<span class="fc bfc" id="L678" title="All 2 branches covered.">			if (bDirection1) {</span>
+<span class="fc" id="L679">				m_shape.setNextVertex_(vertexA1, vertexA2); // B1&lt; B2</span>
+<span class="fc" id="L680">				m_shape.setPrevVertex_(vertexA2, vertexA1); // | |</span>
+<span class="fc" id="L681">				m_shape.setNextVertex_(vertexB2, vertexB1); // | |</span>
+<span class="fc" id="L682">				m_shape.setPrevVertex_(vertexB1, vertexB2); // A1 &gt;A2</span>
+
+<span class="fc" id="L684">				_transferVertexData(vertexA2, vertexA1);</span>
+<span class="fc" id="L685">				_beforeRemoveVertex(vertexA2, true);</span>
+<span class="fc" id="L686">				m_shape.removeVertexInternal_(vertexA2, true);</span>
+<span class="fc" id="L687">				_removeAngleSortInfo(vertexA1);</span>
+<span class="fc" id="L688">				_transferVertexData(vertexB2, vertexB1);</span>
+<span class="fc" id="L689">				_beforeRemoveVertex(vertexB2, true);</span>
+<span class="fc" id="L690">				m_shape.removeVertexInternal_(vertexB2, false);</span>
+<span class="fc" id="L691">				_removeAngleSortInfo(vertexB1);</span>
+			} else {
+<span class="fc" id="L693">				m_shape.setNextVertex_(vertexA2, vertexA1); // B1 B2&lt;</span>
+<span class="fc" id="L694">				m_shape.setPrevVertex_(vertexA1, vertexA2); // | |</span>
+<span class="fc" id="L695">				m_shape.setNextVertex_(vertexB1, vertexB2); // | |</span>
+<span class="fc" id="L696">				m_shape.setPrevVertex_(vertexB2, vertexB1); // A1&lt; A2</span>
+
+<span class="fc" id="L698">				_transferVertexData(vertexA2, vertexA1);</span>
+<span class="fc" id="L699">				_beforeRemoveVertex(vertexA2, true);</span>
+<span class="fc" id="L700">				m_shape.removeVertexInternal_(vertexA2, false);</span>
+<span class="fc" id="L701">				_removeAngleSortInfo(vertexA1);</span>
+<span class="fc" id="L702">				_transferVertexData(vertexB2, vertexB1);</span>
+<span class="fc" id="L703">				_beforeRemoveVertex(vertexB2, true);</span>
+<span class="fc" id="L704">				m_shape.removeVertexInternal_(vertexB2, true);</span>
+<span class="fc" id="L705">				_removeAngleSortInfo(vertexB1);</span>
+			}
+		} else// bDirection1 == bDirection2
+		{
+			{
+<span class="pc bpc" id="L710" title="1 of 2 branches missed.">				int a1 = bDirection1 ? vertexA1 : vertexB1;</span>
+<span class="pc bpc" id="L711" title="1 of 2 branches missed.">				int a2 = bDirection2 ? vertexA2 : vertexB2;</span>
+<span class="pc bpc" id="L712" title="1 of 2 branches missed.">				int b1 = bDirection1 ? vertexB1 : vertexA1;</span>
+<span class="pc bpc" id="L713" title="1 of 2 branches missed.">				int b2 = bDirection2 ? vertexB2 : vertexA2;</span>
+
+				// m_shape.dbgVerifyIntegrity(a1);//debug
+				// m_shape.dbgVerifyIntegrity(a2);//debug
+
+<span class="fc" id="L718">				boolean bVisitedA1 = false;</span>
+<span class="fc" id="L719">				m_shape.setNextVertex_(a1, a2);</span>
+<span class="fc" id="L720">				m_shape.setNextVertex_(a2, a1);</span>
+<span class="fc" id="L721">				m_shape.setPrevVertex_(b1, b2);</span>
+<span class="fc" id="L722">				m_shape.setPrevVertex_(b2, b1);</span>
+<span class="fc" id="L723">				int v = b2;</span>
+<span class="fc bfc" id="L724" title="All 2 branches covered.">				while (v != a2)</span>
+				{
+<span class="fc" id="L726">					int prev = m_shape.getPrevVertex(v);</span>
+<span class="fc" id="L727">					int next = m_shape.getNextVertex(v);</span>
+
+<span class="fc" id="L729">					m_shape.setPrevVertex_(v, next);</span>
+<span class="fc" id="L730">					m_shape.setNextVertex_(v, prev);</span>
+<span class="fc bfc" id="L731" title="All 2 branches covered.">					bVisitedA1 |= v == a1;</span>
+<span class="fc" id="L732">					v = next;</span>
+<span class="fc" id="L733">				}</span>
+
+<span class="fc bfc" id="L735" title="All 2 branches covered.">				if (!bVisitedA1) {</span>
+					// a case of two rings being merged
+<span class="fc" id="L737">					int prev = m_shape.getPrevVertex(a2);</span>
+<span class="fc" id="L738">					int next = m_shape.getNextVertex(a2);</span>
+<span class="fc" id="L739">					m_shape.setPrevVertex_(a2, next);</span>
+<span class="fc" id="L740">					m_shape.setNextVertex_(a2, prev);</span>
+				} else {
+					// merge happend on the same ring.
+				}
+
+				// m_shape.dbgVerifyIntegrity(b1);//debug
+				// m_shape.dbgVerifyIntegrity(a1);//debug
+
+<span class="fc" id="L748">				_transferVertexData(a2, a1);</span>
+<span class="fc" id="L749">				_beforeRemoveVertex(a2, true);</span>
+<span class="fc" id="L750">				m_shape.removeVertexInternal_(a2, false);</span>
+<span class="fc" id="L751">				_removeAngleSortInfo(a1);</span>
+<span class="fc" id="L752">				_transferVertexData(b2, b1);</span>
+<span class="fc" id="L753">				_beforeRemoveVertex(b2, true);</span>
+<span class="fc" id="L754">				m_shape.removeVertexInternal_(b2, false);</span>
+<span class="fc" id="L755">				_removeAngleSortInfo(b1);</span>
+
+				// m_shape.dbgVerifyIntegrity(b1);//debug
+				// m_shape.dbgVerifyIntegrity(a1);//debug
+			}
+		}
+<span class="fc" id="L761">	}</span>
+
+	private boolean _cleanupSpikes() {
+<span class="fc" id="L764">		boolean bModified = false;</span>
+<span class="fc bfc" id="L765" title="All 2 branches covered.">		for (int path = m_shape.getFirstPath(m_geometry); path != -1;) {</span>
+<span class="fc" id="L766">			int vertex = m_shape.getFirstVertex(path);</span>
+<span class="fc" id="L767">			for (int vindex = 0, n = m_shape.getPathSize(path); vindex &lt; n</span>
+<span class="pc bpc" id="L768" title="1 of 4 branches missed.">					&amp;&amp; n &gt; 1;) {</span>
+<span class="fc" id="L769">				int prev = m_shape.getPrevVertex(vertex);</span>
+<span class="fc" id="L770">				int next = m_shape.getNextVertex(vertex);</span>
+<span class="fc bfc" id="L771" title="All 2 branches covered.">				if (m_shape.isEqualXY(prev, next)) {</span>
+<span class="fc" id="L772">					bModified = true;</span>
+<span class="fc" id="L773">					_beforeRemoveVertex(vertex, false);</span>
+<span class="fc" id="L774">					m_shape.removeVertex(vertex, true);// not internal, because</span>
+														// path is valid at this
+														// point
+<span class="fc" id="L777">					_beforeRemoveVertex(next, false);</span>
+<span class="fc" id="L778">					m_shape.removeVertex(next, true);</span>
+<span class="fc" id="L779">					vertex = prev;</span>
+<span class="fc" id="L780">					vindex = 0;</span>
+<span class="fc" id="L781">					n = m_shape.getPathSize(path);</span>
+				} else {
+<span class="fc" id="L783">					vertex = next;</span>
+<span class="fc" id="L784">					vindex++;</span>
+				}
+<span class="fc" id="L786">			}</span>
+
+<span class="fc bfc" id="L788" title="All 2 branches covered.">			if (m_shape.getPathSize(path) &lt; 2) {</span>
+<span class="fc" id="L789">				int vertexL = m_shape.getFirstVertex(path);</span>
+<span class="pc bpc" id="L790" title="1 of 2 branches missed.">				for (int vindex = 0, n = m_shape.getPathSize(path); vindex &lt; n; vindex++) {</span>
+<span class="nc" id="L791">					_beforeRemoveVertex(vertexL, false);</span>
+<span class="nc" id="L792">					vertexL = m_shape.getNextVertex(vertexL);</span>
+				}
+
+<span class="fc" id="L795">				path = m_shape.removePath(path);</span>
+<span class="fc" id="L796">				bModified = true;</span>
+<span class="fc" id="L797">			} else</span>
+<span class="fc" id="L798">				path = m_shape.getNextPath(path);</span>
+<span class="fc" id="L799">		}</span>
+
+<span class="fc" id="L801">		return bModified;</span>
+	}
+
+	private boolean _removeSpike(int vertexIn) {
+		// m_shape.dbgVerifyIntegrity(vertex);//debug
+<span class="fc" id="L806">		int vertex = vertexIn;</span>
+
+		// m_shape.getPrevVertex(vertex)));
+<span class="fc" id="L809">		boolean bFound = false;</span>
+		while (true) {
+<span class="fc" id="L811">			int next = m_shape.getNextVertex(vertex);</span>
+<span class="fc" id="L812">			int prev = m_shape.getPrevVertex(vertex);</span>
+<span class="pc bpc" id="L813" title="1 of 2 branches missed.">			if (next == vertex) {// last vertex in a ring</span>
+<span class="nc" id="L814">				_beforeRemoveVertex(vertex, true);</span>
+<span class="nc" id="L815">				m_shape.removeVertexInternal_(vertex, false);</span>
+<span class="nc" id="L816">				return true;</span>
+			}
+
+<span class="fc bfc" id="L819" title="All 2 branches covered.">			if (!m_shape.isEqualXY(next, prev))</span>
+<span class="fc" id="L820">				break;</span>
+
+<span class="fc" id="L822">			bFound = true;</span>
+<span class="fc" id="L823">			_removeAngleSortInfo(prev);</span>
+<span class="fc" id="L824">			_removeAngleSortInfo(next);</span>
+<span class="fc" id="L825">			_beforeRemoveVertex(vertex, true);</span>
+<span class="fc" id="L826">			m_shape.removeVertexInternal_(vertex, false);</span>
+			// m_shape.dbgVerifyIntegrity(prev);//debug
+<span class="fc" id="L828">			_transferVertexData(next, prev);</span>
+<span class="fc" id="L829">			_beforeRemoveVertex(next, true);</span>
+<span class="fc" id="L830">			m_shape.removeVertexInternal_(next, true);</span>
+<span class="fc bfc" id="L831" title="All 2 branches covered.">			if (next == prev)</span>
+<span class="fc" id="L832">				break;// deleted the last vertex</span>
+
+			// m_shape.dbgVerifyIntegrity(prev);//debug
+
+<span class="fc" id="L836">			vertex = prev;</span>
+<span class="fc" id="L837">		}</span>
+<span class="fc" id="L838">		return bFound;</span>
+	}
+
+	private void _fixOrphanVertices() {
+<span class="fc" id="L842">		int pathCount = 0;</span>
+		// clean any path info
+<span class="fc" id="L844">		for (int node = m_sortedVertices.getFirst(m_sortedVertices</span>
+<span class="fc bfc" id="L845" title="All 2 branches covered.">				.getFirstList()); node != -1; node = m_sortedVertices</span>
+<span class="fc" id="L846">				.getNext(node)) {</span>
+<span class="fc" id="L847">			int vertex = m_sortedVertices.getData(node);</span>
+<span class="fc" id="L848">			m_shape.setPathToVertex_(vertex, -1);</span>
+		}
+<span class="fc" id="L850">		int geometrySize = 0;</span>
+<span class="fc bfc" id="L851" title="All 2 branches covered.">		for (int path = m_shape.getFirstPath(m_geometry); path != -1;) {</span>
+<span class="fc" id="L852">			int first = m_shape.getFirstVertex(path);</span>
+<span class="fc bfc" id="L853" title="All 4 branches covered.">			if (first == -1 || m_shape.getPathFromVertex(first) != -1) {</span>
+<span class="fc" id="L854">				int p = path;</span>
+<span class="fc" id="L855">				path = m_shape.getNextPath(path);</span>
+<span class="fc" id="L856">				m_shape.removePathOnly_(p);</span>
+<span class="fc" id="L857">				continue;</span>
+			}
+
+<span class="fc" id="L860">			m_shape.setPathToVertex_(first, path);</span>
+<span class="fc" id="L861">			int pathSize = 1;</span>
+<span class="fc bfc" id="L862" title="All 2 branches covered.">			for (int vertex = m_shape.getNextVertex(first); vertex != first; vertex = m_shape</span>
+<span class="fc" id="L863">					.getNextVertex(vertex)) {</span>
+<span class="fc" id="L864">				m_shape.setPathToVertex_(vertex, path);</span>
+<span class="fc" id="L865">				pathSize++;</span>
+			}
+<span class="fc" id="L867">			m_shape.setRingAreaValid_(path,false);</span>
+<span class="fc" id="L868">			m_shape.setPathSize_(path, pathSize);</span>
+<span class="fc" id="L869">			m_shape.setLastVertex_(path, m_shape.getPrevVertex(first));</span>
+<span class="fc" id="L870">			geometrySize += pathSize;</span>
+<span class="fc" id="L871">			pathCount++;</span>
+<span class="fc" id="L872">			path = m_shape.getNextPath(path);</span>
+<span class="fc" id="L873">		}</span>
+
+		// Some vertices do not belong to any path. We have to create new path
+		// objects for those.
+		// Produce new paths for the orphan vertices.
+<span class="fc" id="L878">		for (int node = m_sortedVertices.getFirst(m_sortedVertices</span>
+<span class="fc bfc" id="L879" title="All 2 branches covered.">				.getFirstList()); node != -1; node = m_sortedVertices</span>
+<span class="fc" id="L880">				.getNext(node)) {</span>
+<span class="fc" id="L881">			int vertex = m_sortedVertices.getData(node);</span>
+<span class="fc bfc" id="L882" title="All 2 branches covered.">			if (m_shape.getPathFromVertex(vertex) != -1)</span>
+<span class="fc" id="L883">				continue;</span>
+			
+<span class="fc" id="L885">			int path = m_shape.insertClosedPath_(m_geometry, -1, vertex, vertex, null);</span>
+<span class="fc" id="L886">			geometrySize += m_shape.getPathSize(path);</span>
+<span class="fc" id="L887">			pathCount++;</span>
+		}
+		
+<span class="fc" id="L890">		m_shape.setGeometryPathCount_(m_geometry, pathCount);</span>
+<span class="fc" id="L891">		m_shape.setGeometryVertexCount_(m_geometry, geometrySize);</span>
+<span class="fc" id="L892">		int totalPointCount = 0;</span>
+<span class="fc bfc" id="L893" title="All 2 branches covered.">		for (int geometry = m_shape.getFirstGeometry(); geometry != -1; geometry = m_shape.getNextGeometry(geometry)) {</span>
+<span class="fc" id="L894">			totalPointCount += m_shape.getPointCount(geometry);</span>
+		}
+		
+<span class="fc" id="L897">		m_shape.setTotalPointCount_(totalPointCount);</span>
+<span class="fc" id="L898">	}</span>
+
+	private int _getNextEdgeIndex(int indexIn) {
+<span class="fc" id="L901">		int index = indexIn;</span>
+<span class="fc bfc" id="L902" title="All 2 branches covered.">		for (int i = 0, n = m_bunchEdgeIndices.size() - 1; i &lt; n; i++) {</span>
+<span class="fc" id="L903">			index = (index + 1) % m_bunchEdgeIndices.size();</span>
+<span class="fc bfc" id="L904" title="All 2 branches covered.">			if (m_bunchEdgeIndices.get(index) != -1)</span>
+<span class="fc" id="L905">				return index;</span>
+		}
+<span class="fc" id="L907">		return -1;</span>
+	}
+
+	private void _transferVertexData(int vertexFrom, int vertexTo) {
+<span class="fc" id="L911">		int v1 = m_shape.getUserIndex(vertexTo, m_userIndexSortedIndexToVertex);</span>
+<span class="fc" id="L912">		int v2 = m_shape.getUserIndex(vertexTo,</span>
+				m_userIndexSortedAngleIndexToVertex);
+<span class="fc" id="L914">		m_shape.transferAllDataToTheVertex(vertexFrom, vertexTo);</span>
+<span class="fc" id="L915">		m_shape.setUserIndex(vertexTo, m_userIndexSortedIndexToVertex, v1);</span>
+<span class="fc" id="L916">		m_shape.setUserIndex(vertexTo, m_userIndexSortedAngleIndexToVertex, v2);</span>
+<span class="fc" id="L917">	}</span>
+
+	private void _removeAngleSortInfo(int vertex) {
+<span class="fc" id="L920">		int angleIndex = m_shape.getUserIndex(vertex,</span>
+				m_userIndexSortedAngleIndexToVertex);
+<span class="fc bfc" id="L922" title="All 2 branches covered.">		if (angleIndex != -1) {</span>
+<span class="fc" id="L923">			m_bunchEdgeIndices.set(angleIndex, -1);</span>
+<span class="fc" id="L924">			m_shape.setUserIndex(vertex, m_userIndexSortedAngleIndexToVertex,</span>
+					-1);
+		}
+<span class="fc" id="L927">	}</span>
+
+<span class="fc" id="L929">	protected Simplificator() {</span>
+<span class="fc" id="L930">	}</span>
+
+	public static boolean execute(EditShape shape, int geometry,
+			int knownSimpleResult, boolean fixSelfTangency, ProgressTracker progressTracker) {
+<span class="fc" id="L934">		Simplificator simplificator = new Simplificator();</span>
+<span class="fc" id="L935">		simplificator.m_shape = shape;</span>
+<span class="fc" id="L936">		simplificator.m_geometry = geometry;</span>
+		//simplificator.m_knownSimpleResult = knownSimpleResult;
+<span class="fc" id="L938">		simplificator.m_fixSelfTangency = fixSelfTangency;</span>
+<span class="fc" id="L939">		simplificator.m_progressTracker = progressTracker;</span>
+<span class="fc" id="L940">		return simplificator._simplify();</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

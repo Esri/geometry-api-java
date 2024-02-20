@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Transformation3D.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Transformation3D.java</span></div><h1>Transformation3D.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+/**
+ * The 3D affine transformation class.
+ * 
+ * We use matrices for transformations of the vectors as rows. That means the
+ * math expressions on the Geometry matrix operations should be writen like
+ * this: v' = v * M1 * M2 * M3 = ( (v * M1) * M2 ) * M3, where v is a vector, Mn
+ * are the matrices. This is equivalent to the following line of code:
+ * ResultVector = (M1.Mul(M2).Mul(M3)).Transform(Vector)
+ */
+final public class Transformation3D {
+
+	public double xx, yx, zx, xd, xy, yy, zy, yd, xz, yz, zz, zd;
+
+<span class="nc" id="L40">	public Transformation3D() {</span>
+
+<span class="nc" id="L42">	}</span>
+
+	/**
+	 * Sets all elements to 0, thus producing and invalid transformation.
+	 */
+	public void setZero() {
+<span class="nc" id="L48">		xx = 0.0;</span>
+<span class="nc" id="L49">		yx = 0.0;</span>
+<span class="nc" id="L50">		zx = 0.0;</span>
+<span class="nc" id="L51">		xy = 0.0;</span>
+<span class="nc" id="L52">		yy = 0.0;</span>
+<span class="nc" id="L53">		zy = 0.0;</span>
+<span class="nc" id="L54">		xz = 0.0;</span>
+<span class="nc" id="L55">		yz = 0.0;</span>
+<span class="nc" id="L56">		zz = 0.0;</span>
+<span class="nc" id="L57">		xd = 0.0;</span>
+<span class="nc" id="L58">		yd = 0.0;</span>
+<span class="nc" id="L59">		zd = 0.0;</span>
+<span class="nc" id="L60">	}</span>
+
+	public void setScale(double scaleX, double scaleY, double scaleZ) {
+<span class="nc" id="L63">		xx = scaleX;</span>
+<span class="nc" id="L64">		yx = 0.0;</span>
+<span class="nc" id="L65">		zx = 0.0;</span>
+<span class="nc" id="L66">		xy = 0.0;</span>
+<span class="nc" id="L67">		yy = scaleY;</span>
+<span class="nc" id="L68">		zy = 0.0;</span>
+<span class="nc" id="L69">		xz = 0.0;</span>
+<span class="nc" id="L70">		yz = 0.0;</span>
+<span class="nc" id="L71">		zz = scaleZ;</span>
+<span class="nc" id="L72">		xd = 0.0;</span>
+<span class="nc" id="L73">		yd = 0.0;</span>
+<span class="nc" id="L74">		zd = 0.0;</span>
+<span class="nc" id="L75">	}</span>
+
+	public void setTranslate(double deltax, double deltay, double deltaz) {
+<span class="nc" id="L78">		xx = 1.0;</span>
+<span class="nc" id="L79">		yx = 0.0;</span>
+<span class="nc" id="L80">		zx = 0.0;</span>
+<span class="nc" id="L81">		xy = 0.0;</span>
+<span class="nc" id="L82">		yy = 1.0;</span>
+<span class="nc" id="L83">		zy = 0.0;</span>
+<span class="nc" id="L84">		xz = 0.0;</span>
+<span class="nc" id="L85">		yz = 0.0;</span>
+<span class="nc" id="L86">		zz = 1.0;</span>
+<span class="nc" id="L87">		xd = deltax;</span>
+<span class="nc" id="L88">		yd = deltay;</span>
+<span class="nc" id="L89">		zd = deltaz;</span>
+<span class="nc" id="L90">	}</span>
+
+	public void translate(double deltax, double deltay, double deltaz) {
+<span class="nc" id="L93">		xd += deltax;</span>
+<span class="nc" id="L94">		yd += deltay;</span>
+<span class="nc" id="L95">		zd += deltaz;</span>
+<span class="nc" id="L96">	}</span>
+
+	/**
+	 * Transforms an envelope. The result is the bounding box of the transformed
+	 * envelope.
+	 */
+	public Envelope3D transform(Envelope3D env) {
+
+<span class="nc bnc" id="L104" title="All 2 branches missed.">		if (env.isEmpty())</span>
+<span class="nc" id="L105">			return env;</span>
+
+<span class="nc" id="L107">		Point3D[] buf = new Point3D[8];</span>
+<span class="nc" id="L108">		env.queryCorners(buf);</span>
+
+<span class="nc" id="L110">		transform(buf, 8, buf);</span>
+<span class="nc" id="L111">		env.setFromPoints(buf);</span>
+<span class="nc" id="L112">		return env;</span>
+	}
+
+	public void transform(Point3D[] pointsIn, int count, Point3D[] pointsOut) {
+<span class="nc bnc" id="L116" title="All 2 branches missed.">		for (int i = 0; i &lt; count; i++) {</span>
+<span class="nc" id="L117">			Point3D res = new Point3D();</span>
+<span class="nc" id="L118">			Point3D src = pointsIn[i];</span>
+<span class="nc" id="L119">			res.x = xx * src.x + xy * src.y + xz * src.z + xd;</span>
+<span class="nc" id="L120">			res.y = yx * src.x + yy * src.y + yz * src.z + yd;</span>
+<span class="nc" id="L121">			res.z = zx * src.x + zy * src.y + zz * src.z + zd;</span>
+<span class="nc" id="L122">			pointsOut[i] = res;</span>
+		}
+<span class="nc" id="L124">	}</span>
+
+	public Point3D transform(Point3D src) {
+<span class="nc" id="L127">		Point3D res = new Point3D();</span>
+<span class="nc" id="L128">		res.x = xx * src.x + xy * src.y + xz * src.z + xd;</span>
+<span class="nc" id="L129">		res.y = yx * src.x + yy * src.y + yz * src.z + yd;</span>
+<span class="nc" id="L130">		res.z = zx * src.x + zy * src.y + zz * src.z + zd;</span>
+<span class="nc" id="L131">		return res;</span>
+	}
+
+	public void transform(Point3D[] points, int start, int count) {
+<span class="nc" id="L135">		int n = Math.min(points.length, start + count);</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">		for (int i = start; i &lt; n; i++) {</span>
+<span class="nc" id="L137">			Point3D res = new Point3D();</span>
+<span class="nc" id="L138">			Point3D src = points[i];</span>
+<span class="nc" id="L139">			res.x = xx * src.x + xy * src.y + xz * src.z + xd;</span>
+<span class="nc" id="L140">			res.y = yx * src.x + yy * src.y + yz * src.z + yd;</span>
+<span class="nc" id="L141">			res.z = zx * src.x + zy * src.y + zz * src.z + zd;</span>
+<span class="nc" id="L142">			points[i] = res;</span>
+		}
+<span class="nc" id="L144">	}</span>
+
+	public void mul(Transformation3D right) {
+<span class="nc" id="L147">		multiply(this, right, this);</span>
+<span class="nc" id="L148">	}</span>
+
+	public void mulLeft(Transformation3D left) {
+<span class="nc" id="L151">		multiply(left, this, this);</span>
+<span class="nc" id="L152">	}</span>
+
+	/**
+	 * Performs multiplication of matrices a and b and places result into
+	 * result. The a, b, and result could point to same objects. &lt;br&gt;
+	 * Equivalent to result = a * b.
+	 */
+	// static
+	public static void multiply(Transformation3D a, Transformation3D b,
+			Transformation3D result) {
+		double xx, yx, zx;
+		double xy, yy, zy;
+		double xz, yz, zz;
+		double xd, yd, zd;
+
+<span class="nc" id="L167">		xx = a.xx * b.xx + a.yx * b.xy + a.zx * b.xz;</span>
+<span class="nc" id="L168">		yx = a.xx * b.yx + a.yx * b.yy + a.zx * b.yz;</span>
+<span class="nc" id="L169">		zx = a.xx * b.zx + a.yx * b.zy + a.zx * b.zz;</span>
+<span class="nc" id="L170">		xy = a.xy * b.xx + a.yy * b.xy + a.zy * b.xz;</span>
+<span class="nc" id="L171">		yy = a.xy * b.yx + a.yy * b.yy + a.zy * b.yz;</span>
+<span class="nc" id="L172">		zy = a.xy * b.zx + a.yy * b.zy + a.zy * b.zz;</span>
+<span class="nc" id="L173">		xz = a.xz * b.xx + a.yz * b.xy + a.zz * b.xz;</span>
+<span class="nc" id="L174">		yz = a.xz * b.yx + a.yz * b.yy + a.zz * b.yz;</span>
+<span class="nc" id="L175">		zz = a.xz * b.zx + a.yz * b.zy + a.zz * b.zz;</span>
+<span class="nc" id="L176">		xd = a.xd * b.xx + a.yd * b.xy + a.zd * b.xz + b.xd;</span>
+<span class="nc" id="L177">		yd = a.xd * b.yx + a.yd * b.yy + a.zd * b.yz + b.yd;</span>
+<span class="nc" id="L178">		zd = a.xd * b.zx + a.yd * b.zy + a.zd * b.zz + b.zd;</span>
+
+<span class="nc" id="L180">		result.xx = xx;</span>
+<span class="nc" id="L181">		result.yx = yx;</span>
+<span class="nc" id="L182">		result.zx = zx;</span>
+<span class="nc" id="L183">		result.xy = xy;</span>
+<span class="nc" id="L184">		result.yy = yy;</span>
+<span class="nc" id="L185">		result.zy = zy;</span>
+<span class="nc" id="L186">		result.xz = xz;</span>
+<span class="nc" id="L187">		result.yz = yz;</span>
+<span class="nc" id="L188">		result.zz = zz;</span>
+<span class="nc" id="L189">		result.xd = xd;</span>
+<span class="nc" id="L190">		result.yd = yd;</span>
+<span class="nc" id="L191">		result.zd = zd;</span>
+<span class="nc" id="L192">	}</span>
+
+	/**
+	 * Calculates the Inverse transformation.
+	 * 
+	 * @param src
+	 *            The input transformation.
+	 * @param result
+	 *            The inverse of the input transformation. Throws the
+	 *            GeometryException(&quot;math singularity&quot;) exception if the Inverse
+	 *            can not be calculated.
+	 */
+	public static void inverse(Transformation3D src, Transformation3D result) {
+<span class="nc" id="L205">		double det = src.xx * (src.yy * src.zz - src.zy * src.yz) - src.yx</span>
+				* (src.xy * src.zz - src.zy * src.xz) + src.zx
+				* (src.xy * src.yz - src.yy * src.xz);
+<span class="nc bnc" id="L208" title="All 2 branches missed.">		if (det != 0) {</span>
+			double xx, yx, zx;
+			double xy, yy, zy;
+			double xz, yz, zz;
+			double xd, yd, zd;
+
+<span class="nc" id="L214">			double det_1 = 1.0 / det;</span>
+<span class="nc" id="L215">			xx = (src.yy * src.zz - src.zy * src.yz) * det_1;</span>
+<span class="nc" id="L216">			xy = -(src.xy * src.zz - src.zy * src.xz) * det_1;</span>
+<span class="nc" id="L217">			xz = (src.xy * src.yz - src.yy * src.xz) * det_1;</span>
+
+<span class="nc" id="L219">			yx = -(src.yx * src.zz - src.yz * src.zx) * det_1;</span>
+<span class="nc" id="L220">			yy = (src.xx * src.zz - src.zx * src.xz) * det_1;</span>
+<span class="nc" id="L221">			yz = -(src.xx * src.yz - src.yx * src.xz) * det_1;</span>
+
+<span class="nc" id="L223">			zx = (src.yx * src.zy - src.zx * src.yy) * det_1;</span>
+<span class="nc" id="L224">			zy = -(src.xx * src.zy - src.zx * src.xy) * det_1;</span>
+<span class="nc" id="L225">			zz = (src.xx * src.yy - src.yx * src.xy) * det_1;</span>
+
+<span class="nc" id="L227">			xd = -(src.xd * xx + src.yd * xy + src.zd * xz);</span>
+<span class="nc" id="L228">			yd = -(src.xd * yx + src.yd * yy + src.zd * yz);</span>
+<span class="nc" id="L229">			zd = -(src.xd * zx + src.yd * zy + src.zd * zz);</span>
+
+<span class="nc" id="L231">			result.xx = xx;</span>
+<span class="nc" id="L232">			result.yx = yx;</span>
+<span class="nc" id="L233">			result.zx = zx;</span>
+<span class="nc" id="L234">			result.xy = xy;</span>
+<span class="nc" id="L235">			result.yy = yy;</span>
+<span class="nc" id="L236">			result.zy = zy;</span>
+<span class="nc" id="L237">			result.xz = xz;</span>
+<span class="nc" id="L238">			result.yz = yz;</span>
+<span class="nc" id="L239">			result.zz = zz;</span>
+<span class="nc" id="L240">			result.xd = xd;</span>
+<span class="nc" id="L241">			result.yd = yd;</span>
+<span class="nc" id="L242">			result.zd = zd;</span>
+<span class="nc" id="L243">		} else {</span>
+<span class="nc" id="L244">			throw new GeometryException(&quot;math singularity&quot;);</span>
+		}
+<span class="nc" id="L246">	}</span>
+
+	public Transformation3D copy() {
+<span class="nc" id="L249">		Transformation3D result = new Transformation3D();</span>
+<span class="nc" id="L250">		result.xx = xx;</span>
+<span class="nc" id="L251">		result.yx = yx;</span>
+<span class="nc" id="L252">		result.zx = zx;</span>
+<span class="nc" id="L253">		result.xy = xy;</span>
+<span class="nc" id="L254">		result.yy = yy;</span>
+<span class="nc" id="L255">		result.zy = zy;</span>
+<span class="nc" id="L256">		result.xz = xz;</span>
+<span class="nc" id="L257">		result.yz = yz;</span>
+<span class="nc" id="L258">		result.zz = zz;</span>
+<span class="nc" id="L259">		result.xd = xd;</span>
+<span class="nc" id="L260">		result.yd = yd;</span>
+<span class="nc" id="L261">		result.zd = zd;</span>
+<span class="nc" id="L262">		return result;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

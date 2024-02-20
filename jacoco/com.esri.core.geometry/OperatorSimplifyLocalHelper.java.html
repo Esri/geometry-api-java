@@ -1,0 +1,2211 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OperatorSimplifyLocalHelper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">OperatorSimplifyLocalHelper.java</span></div><h1>OperatorSimplifyLocalHelper.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+
+import com.esri.core.geometry.MultiVertexGeometryImpl.GeometryXSimple;
+
+<span class="fc" id="L33">class OperatorSimplifyLocalHelper {</span>
+	private static final class Edge {
+<span class="fc" id="L35">		Edge() {</span>
+<span class="fc" id="L36">			m_flags = 0;</span>
+			// m_segment.createInstance();
+<span class="fc" id="L38">		}</span>
+
+		Segment m_segment;
+		int m_vertexIndex;
+		int m_pathIndex;
+		int m_flags;
+
+		void setReversed(boolean bYesNo) {
+<span class="fc" id="L46">			m_flags &amp;= (~1);</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">			m_flags = m_flags | (bYesNo ? 1 : 0);</span>
+<span class="fc" id="L48">		}</span>
+
+		// The value returned by GetReversed is interpreted differently in
+		// checkSelfIntersections_ and checkValidRingOrientation_
+		boolean getReversed() /* const */
+		{
+<span class="fc bfc" id="L54" title="All 2 branches covered.">			return (m_flags &amp; 1) != 0;</span>
+		}
+
+		int getRightSide() /* const */
+		{
+<span class="fc bfc" id="L59" title="All 2 branches covered.">			return getReversed() ? 0 : 1; // 0 means there should be an</span>
+											// emptiness on the right side of
+											// the edge, 1 means there is
+											// interior
+		}
+	}
+
+	private final VertexDescription m_description;
+	private Geometry m_geometry;
+	private SpatialReferenceImpl m_sr;
+	private int m_dbgCounter; // debugging counter(for breakpoints)
+	private double m_toleranceIsSimple;
+	private double m_toleranceSimplify;
+	// private double m_toleranceCluster; //cluster tolerance needs to be
+	// sqrt(2) times larger than the tolerance of the other simplify processes.
+	private int m_knownSimpleResult;
+	private int m_attributeCount;
+
+	private ArrayList&lt;Edge&gt; m_edges;
+	private AttributeStreamOfInt32 m_FreeEdges;
+	private ArrayList&lt;Edge&gt; m_lineEdgesRecycle;
+	private AttributeStreamOfInt32 m_newEdges;
+	private SegmentIteratorImpl m_recycledSegIter;
+	private IndexMultiDCList m_crossOverHelperList;
+	private AttributeStreamOfInt32 m_paths_for_OGC_tests;
+
+	private ProgressTracker m_progressTracker;
+
+	private Treap m_AET;
+	private AttributeStreamOfInt32 m_xyToNode1; // for each vertex, contains -1,
+												// or the edge node.
+	private AttributeStreamOfInt32 m_xyToNode2; // for each vertex, contains -1,
+												// or the edge node.
+	private AttributeStreamOfInt32 m_pathOrientations; // 0 if undefined, -1 for
+														// counterclockwise, 1
+														// for clockwise.
+	private AttributeStreamOfInt32 m_pathParentage;
+	private int m_unknownOrientationPathCount;
+	private double m_yScanline;
+
+	private AttributeStreamOfDbl m_xy;
+	private AttributeStreamOfInt32 m_pairs;
+	private AttributeStreamOfInt32 m_pairIndices;
+
+	private EditShape m_editShape;
+	private boolean m_bOGCRestrictions;
+	private boolean m_bPlanarSimplify;
+
+	private int isSimplePlanarImpl_() {
+<span class="fc" id="L108">		m_bPlanarSimplify = true;</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">		if (Geometry.isMultiPath(m_geometry.getType().value())) {</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">			if (!checkStructure_()) // check structure of geometry(no zero</span>
+									// length paths, etc)
+<span class="fc" id="L112">				return 0;</span>
+
+<span class="fc bfc" id="L114" title="All 2 branches covered.">			if (!checkDegenerateSegments_(false)) // check for degenerate</span>
+													// segments(only 2D,no zs or
+													// other attributes)
+<span class="fc" id="L117">				return 0;</span>
+		}
+
+<span class="fc bfc" id="L120" title="All 2 branches covered.">		if (!checkClustering_()) // check clustering(points are either</span>
+									// coincident,or further than tolerance)
+<span class="fc" id="L122">			return 0;</span>
+
+<span class="fc bfc" id="L124" title="All 2 branches covered.">		if (!Geometry.isMultiPath(m_geometry.getType().value()))</span>
+<span class="fc" id="L125">			return 2; // multipoint is simple</span>
+
+<span class="fc bfc" id="L127" title="All 2 branches covered.">		if (!checkCracking_()) // check that there are no self intersections and</span>
+								// overlaps among segments.
+<span class="fc" id="L129">			return 0;</span>
+
+<span class="fc bfc" id="L131" title="All 2 branches covered.">		if (m_geometry.getType() == Geometry.Type.Polyline) {</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">			if (!checkSelfIntersectionsPolylinePlanar_())</span>
+<span class="fc" id="L133">				return 0;</span>
+
+<span class="fc" id="L135">			return 2; // polyline is simple</span>
+		}
+
+<span class="fc bfc" id="L138" title="All 2 branches covered.">		if (!checkSelfIntersections_()) // check that there are no other self</span>
+										// intersections (for the cases of
+										// several segments connect in a point)
+<span class="fc" id="L141">			return 0;</span>
+
+		// check that every hole is counterclockwise, and every exterior is
+		// clockwise.
+		// for the strong simple also check that exterior rings are followed by
+		// the interior rings.
+<span class="fc" id="L147">		return checkValidRingOrientation_();</span>
+	}
+
+	private boolean testToleranceDistance_(int xyindex1, int xyindex2) {
+<span class="fc" id="L151">		double x1 = m_xy.read(2 * xyindex1);</span>
+<span class="fc" id="L152">		double y1 = m_xy.read(2 * xyindex1 + 1);</span>
+<span class="fc" id="L153">		double x2 = m_xy.read(2 * xyindex2);</span>
+<span class="fc" id="L154">		double y2 = m_xy.read(2 * xyindex2 + 1);</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">		boolean b = !Clusterer.isClusterCandidate_(x1, y1, x2, y2,</span>
+				m_toleranceIsSimple * m_toleranceIsSimple);
+<span class="fc bfc" id="L157" title="All 2 branches covered.">		if (!b) {</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">			if (m_geometry.getDimension() == 0)</span>
+<span class="fc" id="L159">				return false;</span>
+
+<span class="pc bpc" id="L161" title="2 of 4 branches missed.">			return (x1 == x2 &amp;&amp; y1 == y2); // points either coincide or</span>
+											// further,than the tolerance
+		}
+
+<span class="fc" id="L165">		return b;</span>
+	}
+
+	private boolean checkStructure_() {
+<span class="fc" id="L169">		MultiPathImpl multiPathImpl = (MultiPathImpl) m_geometry._getImpl();</span>
+<span class="fc bfc" id="L170" title="All 2 branches covered.">		int minsize = multiPathImpl.m_bPolygon ? 3 : 2;</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">		for (int ipath = 0, npath = multiPathImpl.getPathCount(); ipath &lt; npath; ipath++) {</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">			if (multiPathImpl.getPathSize(ipath) &lt; minsize) {</span>
+<span class="fc" id="L173">				m_nonSimpleResult = new NonSimpleResult(</span>
+						NonSimpleResult.Reason.Structure, ipath, 0);
+<span class="fc" id="L175">				return false;</span>
+			}
+		}
+
+<span class="fc" id="L179">		return true;</span>
+	}
+
+	private boolean checkDegenerateSegments_(boolean bTestZs) {
+<span class="fc" id="L183">		MultiPathImpl multiPathImpl = (MultiPathImpl) m_geometry._getImpl();</span>
+<span class="fc" id="L184">		SegmentIteratorImpl segIter = multiPathImpl.querySegmentIterator();</span>
+		// Envelope2D env2D;
+<span class="fc" id="L186">		boolean bHasZ = multiPathImpl</span>
+<span class="fc" id="L187">				.hasAttribute(VertexDescription.Semantics.Z);</span>
+<span class="pc bpc" id="L188" title="1 of 2 branches missed.">		double ztolerance = !bHasZ ? 0 : InternalUtils</span>
+<span class="pc" id="L189">				.calculateZToleranceFromGeometry(m_sr, multiPathImpl, false);</span>
+<span class="fc bfc" id="L190" title="All 2 branches covered.">		while (segIter.nextPath()) {</span>
+<span class="fc bfc" id="L191" title="All 2 branches covered.">			while (segIter.hasNextSegment()) {</span>
+<span class="fc" id="L192">				/* const */Segment seg = segIter.nextSegment();</span>
+<span class="fc" id="L193">				double length = seg.calculateLength2D();</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">				if (length &gt; m_toleranceIsSimple)</span>
+<span class="fc" id="L195">					continue;</span>
+
+<span class="pc bpc" id="L197" title="1 of 4 branches missed.">				if (bTestZs &amp;&amp; bHasZ) {</span>
+<span class="nc" id="L198">					double z0 = seg.getStartAttributeAsDbl(</span>
+							VertexDescription.Semantics.Z, 0);
+<span class="nc" id="L200">					double z1 = seg.getStartAttributeAsDbl(</span>
+							VertexDescription.Semantics.Z, 0);
+<span class="nc bnc" id="L202" title="All 2 branches missed.">					if (Math.abs(z1 - z0) &gt; ztolerance)</span>
+<span class="nc" id="L203">						continue;</span>
+				}
+
+<span class="fc" id="L206">				m_nonSimpleResult = new NonSimpleResult(</span>
+						NonSimpleResult.Reason.DegenerateSegments,
+<span class="fc" id="L208">						segIter.getStartPointIndex(), -1);</span>
+<span class="fc" id="L209">				return false;</span>
+			}
+		}
+
+<span class="fc" id="L213">		return true;</span>
+	}
+
+	private boolean checkClustering_() {
+<span class="fc" id="L217">		MultiVertexGeometryImpl multiVertexImpl = (MultiVertexGeometryImpl) m_geometry</span>
+<span class="fc" id="L218">				._getImpl();</span>
+
+<span class="fc" id="L220">		MultiPathImpl multiPathImpl = null;</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">		if (Geometry.isMultiPath(m_geometry.getType().value()))</span>
+<span class="fc" id="L222">			multiPathImpl = (MultiPathImpl) m_geometry._getImpl();</span>
+
+<span class="pc bpc" id="L224" title="3 of 6 branches missed.">		boolean get_paths = (m_bPlanarSimplify || m_bOGCRestrictions)</span>
+				&amp;&amp; multiPathImpl != null;
+
+<span class="fc" id="L227">		int pointCount = multiVertexImpl.getPointCount();</span>
+<span class="fc" id="L228">		m_xy = (AttributeStreamOfDbl) multiVertexImpl</span>
+<span class="fc" id="L229">				.getAttributeStreamRef(VertexDescription.Semantics.POSITION);</span>
+<span class="fc" id="L230">		m_pairs = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L231">		m_pairs.reserve(pointCount * 2);</span>
+<span class="fc" id="L232">		m_pairIndices = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L233">		m_pairIndices.reserve(pointCount * 2);</span>
+<span class="fc bfc" id="L234" title="All 2 branches covered.">		if (get_paths) {</span>
+<span class="pc bpc" id="L235" title="1 of 2 branches missed.">			if (m_paths_for_OGC_tests == null)</span>
+<span class="fc" id="L236">				m_paths_for_OGC_tests = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L237">			m_paths_for_OGC_tests.reserve(pointCount);</span>
+		}
+<span class="fc" id="L239">		int ipath = 0;</span>
+<span class="fc bfc" id="L240" title="All 2 branches covered.">		for (int i = 0; i &lt; pointCount; i++) {</span>
+<span class="fc" id="L241">			m_pairs.add(2 * i); // y - tol(BOTTOM)</span>
+<span class="fc" id="L242">			m_pairs.add(2 * i + 1); // y + tol(TOP)</span>
+<span class="fc" id="L243">			m_pairIndices.add(2 * i);</span>
+<span class="fc" id="L244">			m_pairIndices.add(2 * i + 1);</span>
+<span class="fc bfc" id="L245" title="All 2 branches covered.">			if (get_paths) {</span>
+<span class="fc bfc" id="L246" title="All 2 branches covered.">				while (i &gt;= multiPathImpl.getPathEnd(ipath))</span>
+<span class="fc" id="L247">					ipath++;</span>
+
+<span class="fc" id="L249">				m_paths_for_OGC_tests.add(ipath);</span>
+			}
+
+		}
+
+<span class="fc" id="L254">		BucketSort sorter = new BucketSort();</span>
+<span class="fc" id="L255">		sorter.sort(m_pairIndices, 0, 2 * pointCount, new IndexSorter(this,</span>
+				get_paths));
+
+<span class="fc" id="L258">		m_AET.clear();</span>
+<span class="fc" id="L259">		m_AET.setComparator(new ClusterTestComparator(this));</span>
+<span class="fc" id="L260">		m_AET.setCapacity(pointCount);</span>
+<span class="fc bfc" id="L261" title="All 2 branches covered.">		for (int index = 0, n = pointCount * 2; index &lt; n; index++) {</span>
+<span class="fc" id="L262">			int pairIndex = m_pairIndices.get(index);</span>
+<span class="fc" id="L263">			int pair = m_pairs.get(pairIndex);</span>
+<span class="fc" id="L264">			int xyindex = pair &gt;&gt; 1; // k = 2n or 2n + 1 represent a vertical</span>
+										// segment for the same vertex.
+										// Therefore, k / 2 represents a vertex
+										// index
+			// Points need to be either exactly equal or further than 2 *
+			// tolerance apart.
+<span class="fc bfc" id="L270" title="All 2 branches covered.">			if ((pair &amp; 1) == 0) {// bottom element</span>
+<span class="fc" id="L271">				int aetNode = m_AET.addElement(xyindex, -1);</span>
+				// add it to the AET,end test it against its left and right
+				// neighbours.
+<span class="fc" id="L274">				int leftneighbour = m_AET.getPrev(aetNode);</span>
+<span class="fc bfc" id="L275" title="All 2 branches covered.">				if (leftneighbour != Treap.nullNode()</span>
+<span class="fc bfc" id="L276" title="All 2 branches covered.">						&amp;&amp; !testToleranceDistance_(</span>
+<span class="fc" id="L277">								m_AET.getElement(leftneighbour), xyindex)) {</span>
+<span class="fc" id="L278">					m_nonSimpleResult = new NonSimpleResult(</span>
+							NonSimpleResult.Reason.Clustering, xyindex,
+<span class="fc" id="L280">							m_AET.getElement(leftneighbour));</span>
+<span class="fc" id="L281">					return false;</span>
+				}
+<span class="fc" id="L283">				int rightneighbour = m_AET.getNext(aetNode);</span>
+<span class="fc bfc" id="L284" title="All 2 branches covered.">				if (rightneighbour != Treap.nullNode()</span>
+<span class="fc bfc" id="L285" title="All 2 branches covered.">						&amp;&amp; !testToleranceDistance_(</span>
+<span class="fc" id="L286">								m_AET.getElement(rightneighbour), xyindex)) {</span>
+<span class="fc" id="L287">					m_nonSimpleResult = new NonSimpleResult(</span>
+							NonSimpleResult.Reason.Clustering, xyindex,
+<span class="fc" id="L289">							m_AET.getElement(rightneighbour));</span>
+<span class="fc" id="L290">					return false;</span>
+				}
+<span class="fc" id="L292">			} else { // top</span>
+						// get left and right neighbours, and remove the element
+						// from AET. Then test the neighbours with the
+						// tolerance.
+<span class="fc" id="L296">				int aetNode = m_AET.search(xyindex, -1);</span>
+<span class="fc" id="L297">				int leftneighbour = m_AET.getPrev(aetNode);</span>
+<span class="fc" id="L298">				int rightneighbour = m_AET.getNext(aetNode);</span>
+<span class="fc" id="L299">				m_AET.deleteNode(aetNode, -1);</span>
+<span class="fc bfc" id="L300" title="All 2 branches covered.">				if (leftneighbour != Treap.nullNode()</span>
+<span class="fc bfc" id="L301" title="All 2 branches covered.">						&amp;&amp; rightneighbour != Treap.nullNode()</span>
+<span class="pc bpc" id="L302" title="1 of 2 branches missed.">						&amp;&amp; !testToleranceDistance_(</span>
+<span class="fc" id="L303">								m_AET.getElement(leftneighbour),</span>
+<span class="fc" id="L304">								m_AET.getElement(rightneighbour))) {</span>
+<span class="nc" id="L305">					m_nonSimpleResult = new NonSimpleResult(</span>
+							NonSimpleResult.Reason.Clustering,
+<span class="nc" id="L307">							m_AET.getElement(leftneighbour),</span>
+<span class="nc" id="L308">							m_AET.getElement(rightneighbour));</span>
+<span class="nc" id="L309">					return false;</span>
+				}
+			}
+		}
+
+<span class="fc" id="L314">		return true;</span>
+	}
+
+	private boolean checkCracking_() {
+<span class="fc" id="L318">		MultiVertexGeometryImpl multiVertexImpl = (MultiVertexGeometryImpl) m_geometry</span>
+<span class="fc" id="L319">				._getImpl();</span>
+<span class="fc" id="L320">		int pointCount = multiVertexImpl.getPointCount();</span>
+<span class="fc bfc" id="L321" title="All 2 branches covered.">		if (pointCount &lt; 10)// use brute force for smaller polygons</span>
+		{
+<span class="fc" id="L323">			return checkCrackingBrute_();</span>
+		} else {
+<span class="fc" id="L325">			return checkCrackingPlanesweep_();</span>
+		}
+	}
+
+	private boolean checkCrackingPlanesweep_() // cracker,that uses planesweep
+												// algorithm.
+	{
+<span class="fc" id="L332">		EditShape editShape = new EditShape();</span>
+<span class="fc" id="L333">		editShape.addGeometry(m_geometry);</span>
+<span class="fc" id="L334">		NonSimpleResult result = new NonSimpleResult();</span>
+<span class="fc" id="L335">		boolean bNonSimple = Cracker.needsCracking(false, editShape,</span>
+				m_toleranceIsSimple, result, m_progressTracker);
+<span class="fc bfc" id="L337" title="All 2 branches covered.">		if (bNonSimple) {</span>
+<span class="fc" id="L338">			result.m_vertexIndex1 = editShape</span>
+<span class="fc" id="L339">					.getVertexIndex(result.m_vertexIndex1);</span>
+<span class="fc" id="L340">			result.m_vertexIndex2 = editShape</span>
+<span class="fc" id="L341">					.getVertexIndex(result.m_vertexIndex2);</span>
+<span class="fc" id="L342">			m_nonSimpleResult.Assign(result);</span>
+<span class="fc" id="L343">			return false;</span>
+		} else
+<span class="fc" id="L345">			return true;</span>
+	}
+
+	private boolean checkCrackingBrute_() // cracker, that uses brute force (a
+											// double loop) to find segment
+											// intersections.
+	{
+<span class="fc" id="L352">		MultiPathImpl multiPathImpl = (MultiPathImpl) m_geometry._getImpl();</span>
+		// Implementation without a QuadTreeImpl accelerator
+<span class="fc" id="L354">		SegmentIteratorImpl segIter1 = multiPathImpl.querySegmentIterator();</span>
+<span class="fc" id="L355">		SegmentIteratorImpl segIter2 = multiPathImpl.querySegmentIterator();</span>
+		// Envelope2D env2D;
+<span class="fc bfc" id="L357" title="All 2 branches covered.">		while (segIter1.nextPath()) {</span>
+<span class="fc bfc" id="L358" title="All 2 branches covered.">			while (segIter1.hasNextSegment()) {</span>
+<span class="fc" id="L359">				/* const */Segment seg1 = segIter1.nextSegment();</span>
+<span class="fc bfc" id="L360" title="All 4 branches covered.">				if (!segIter1.isLastSegmentInPath() || !segIter1.isLastPath()) {</span>
+<span class="fc" id="L361">					segIter2.resetTo(segIter1);</span>
+					do {
+<span class="fc bfc" id="L363" title="All 2 branches covered.">						while (segIter2.hasNextSegment()) {</span>
+<span class="fc" id="L364">							/* const */Segment seg2 = segIter2.nextSegment();</span>
+<span class="fc" id="L365">							int res = seg1._isIntersecting(seg2,</span>
+									m_toleranceIsSimple, true);
+<span class="fc bfc" id="L367" title="All 2 branches covered.">							if (res != 0) {</span>
+<span class="fc bfc" id="L368" title="All 2 branches covered.">								NonSimpleResult.Reason reason = res == 2 ? NonSimpleResult.Reason.CrossOver</span>
+<span class="fc" id="L369">										: NonSimpleResult.Reason.Cracking;</span>
+<span class="fc" id="L370">								m_nonSimpleResult = new NonSimpleResult(reason,</span>
+<span class="fc" id="L371">										segIter1.getStartPointIndex(),</span>
+<span class="fc" id="L372">										segIter2.getStartPointIndex());</span>
+<span class="fc" id="L373">								return false;</span>
+							}
+<span class="fc" id="L375">						}</span>
+<span class="fc bfc" id="L376" title="All 2 branches covered.">					} while (segIter2.nextPath());</span>
+				}
+<span class="fc" id="L378">			}</span>
+		}
+<span class="fc" id="L380">		return true;</span>
+	}
+
+	private boolean checkSelfIntersections_() {
+<span class="fc" id="L384">		MultiPathImpl multiPathImpl = (MultiPathImpl) m_geometry._getImpl();</span>
+<span class="fc" id="L385">		m_edges.clear();</span>
+<span class="fc" id="L386">		m_edges.ensureCapacity(20);// we reuse the edges while going through a</span>
+		// polygon.
+<span class="fc" id="L388">		m_lineEdgesRecycle.clear();</span>
+<span class="fc" id="L389">		m_lineEdgesRecycle.ensureCapacity(20);// we reuse the edges while going</span>
+												// through a polygon.
+
+<span class="fc" id="L392">		m_recycledSegIter = multiPathImpl.querySegmentIterator();</span>
+<span class="fc" id="L393">		m_recycledSegIter.setCirculator(true);</span>
+
+<span class="fc" id="L395">		AttributeStreamOfInt32 bunch = new AttributeStreamOfInt32(0);// stores</span>
+																		// coincident
+																		// vertices
+<span class="fc" id="L398">		bunch.reserve(10);</span>
+<span class="fc" id="L399">		int pointCount = multiPathImpl.getPointCount();</span>
+<span class="fc" id="L400">		double xprev = NumberUtils.TheNaN;</span>
+<span class="fc" id="L401">		double yprev = 0;</span>
+		// We already have a sorted list of vertices from clustering check.
+<span class="fc bfc" id="L403" title="All 2 branches covered.">		for (int index = 0, n = pointCount * 2; index &lt; n; index++) {</span>
+<span class="fc" id="L404">			int pairIndex = m_pairIndices.get(index);</span>
+<span class="fc" id="L405">			int pair = m_pairs.get(pairIndex);</span>
+<span class="fc bfc" id="L406" title="All 2 branches covered.">			if ((pair &amp; 1) != 0)</span>
+<span class="fc" id="L407">				continue; // m_pairs array is redundant. See checkClustering_.</span>
+
+<span class="fc" id="L409">			int xyindex = pair &gt;&gt; 1;</span>
+
+<span class="fc" id="L411">			double x = m_xy.read(2 * xyindex);</span>
+<span class="fc" id="L412">			double y = m_xy.read(2 * xyindex + 1);</span>
+<span class="fc bfc" id="L413" title="All 2 branches covered.">			if (bunch.size() != 0) {</span>
+<span class="fc bfc" id="L414" title="All 4 branches covered.">				if (x != xprev || y != yprev) {</span>
+<span class="fc bfc" id="L415" title="All 2 branches covered.">					if (!processBunchForSelfIntersectionTest_(bunch))</span>
+<span class="fc" id="L416">						return false;</span>
+<span class="pc bpc" id="L417" title="1 of 2 branches missed.">					if (bunch != null)</span>
+<span class="fc" id="L418">						bunch.clear(false);</span>
+				}
+			}
+
+<span class="fc" id="L422">			bunch.add(xyindex);</span>
+<span class="fc" id="L423">			xprev = x;</span>
+<span class="fc" id="L424">			yprev = y;</span>
+		}
+
+<span class="pc bpc" id="L427" title="1 of 2 branches missed.">		assert (bunch.size() &gt; 0);// cannot be empty</span>
+
+<span class="pc bpc" id="L429" title="1 of 2 branches missed.">		if (!processBunchForSelfIntersectionTest_(bunch))</span>
+<span class="nc" id="L430">			return false;</span>
+
+<span class="fc" id="L432">		return true;</span>
+	}
+
+<span class="nc" id="L435">	static final class Vertex_info {</span>
+		double x, y;
+		int ipath;
+		int ivertex;
+		boolean boundary;
+	};
+
+<span class="fc" id="L442">	static final class Vertex_info_pl {</span>
+		double x;
+		double y;
+		int ipath;
+		int ivertex;
+		boolean boundary;
+		boolean end_point;
+	};
+
+	boolean checkSelfIntersectionsPolylinePlanar_() {
+<span class="fc" id="L452">		MultiPathImpl multiPathImpl = (MultiPathImpl) m_geometry._getImpl();</span>
+
+<span class="fc" id="L454">		boolean closedPaths[] = new boolean[multiPathImpl.getPathCount()];</span>
+<span class="fc bfc" id="L455" title="All 2 branches covered.">		for (int ipath = 0, npaths = multiPathImpl.getPathCount(); ipath &lt; npaths; ipath++) {</span>
+<span class="fc" id="L456">			closedPaths[ipath] = multiPathImpl.isClosedPathInXYPlane(ipath);</span>
+		}
+
+<span class="fc" id="L459">		Vertex_info_pl vi_prev = new Vertex_info_pl();</span>
+		boolean is_closed_path;
+		int path_start;
+		int path_last;
+
+<span class="fc" id="L464">		Point2D pt = new Point2D();</span>
+
+		{// scope
+<span class="fc" id="L467">			int pairIndex = m_pairIndices.get(0);</span>
+<span class="fc" id="L468">			int pair = m_pairs.get(pairIndex);</span>
+<span class="fc" id="L469">			int xyindex = pair &gt;&gt; 1;</span>
+<span class="fc" id="L470">			m_xy.read(2 * xyindex, pt);</span>
+<span class="fc" id="L471">			int ipath = m_paths_for_OGC_tests.get(xyindex);</span>
+<span class="fc" id="L472">			is_closed_path = closedPaths[ipath];</span>
+<span class="fc" id="L473">			path_start = multiPathImpl.getPathStart(ipath);</span>
+<span class="fc" id="L474">			path_last = multiPathImpl.getPathEnd(ipath) - 1;</span>
+<span class="fc bfc" id="L475" title="All 4 branches covered.">			vi_prev.end_point = (xyindex == path_start)</span>
+					|| (xyindex == path_last);
+<span class="pc bpc" id="L477" title="1 of 2 branches missed.">			if (m_bOGCRestrictions)</span>
+<span class="pc bpc" id="L478" title="1 of 4 branches missed.">				vi_prev.boundary = !is_closed_path &amp;&amp; vi_prev.end_point;</span>
+			else {
+				// for regular planar simplify, only the end points are allowed
+				// to coincide
+<span class="nc" id="L482">				vi_prev.boundary = vi_prev.end_point;</span>
+			}
+			
+<span class="fc" id="L485">			vi_prev.ipath = ipath;</span>
+<span class="fc" id="L486">			vi_prev.x = pt.x;</span>
+<span class="fc" id="L487">			vi_prev.y = pt.y;</span>
+<span class="fc" id="L488">			vi_prev.ivertex = xyindex;</span>
+		}
+
+<span class="fc" id="L491">		Vertex_info_pl vi = new Vertex_info_pl();</span>
+
+<span class="fc bfc" id="L493" title="All 2 branches covered.">		for (int index = 1, n = m_pairIndices.size(); index &lt; n; index++) {</span>
+<span class="fc" id="L494">			int pairIndex = m_pairIndices.get(index);</span>
+<span class="fc" id="L495">			int pair = m_pairs.get(pairIndex);</span>
+<span class="fc bfc" id="L496" title="All 2 branches covered.">			if ((pair &amp; 1) != 0)</span>
+<span class="fc" id="L497">				continue;</span>
+
+<span class="fc" id="L499">			int xyindex = pair &gt;&gt; 1;</span>
+<span class="fc" id="L500">			m_xy.read(2 * xyindex, pt);</span>
+<span class="fc" id="L501">			int ipath = m_paths_for_OGC_tests.get(xyindex);</span>
+<span class="fc bfc" id="L502" title="All 2 branches covered.">			if (ipath != vi_prev.ipath) {</span>
+<span class="fc" id="L503">				is_closed_path = closedPaths[ipath];</span>
+<span class="fc" id="L504">				path_start = multiPathImpl.getPathStart(ipath);</span>
+<span class="fc" id="L505">				path_last = multiPathImpl.getPathEnd(ipath) - 1;</span>
+			}
+			boolean boundary;
+<span class="fc bfc" id="L508" title="All 4 branches covered.">			boolean end_point = (xyindex == path_start)</span>
+					|| (xyindex == path_last);
+<span class="pc bpc" id="L510" title="1 of 2 branches missed.">			if (m_bOGCRestrictions)</span>
+<span class="fc bfc" id="L511" title="All 4 branches covered.">				boundary = !is_closed_path &amp;&amp; end_point;</span>
+			else
+				// for regular planar simplify, only the end points are allowed
+				// to coincide
+<span class="nc" id="L515">				boundary = end_point;</span>
+
+<span class="fc" id="L517">			vi.x = pt.x;</span>
+<span class="fc" id="L518">			vi.y = pt.y;</span>
+<span class="fc" id="L519">			vi.ipath = ipath;</span>
+<span class="fc" id="L520">			vi.ivertex = xyindex;</span>
+<span class="fc" id="L521">			vi.boundary = boundary;</span>
+<span class="fc" id="L522">			vi.end_point = end_point;</span>
+
+<span class="fc bfc" id="L524" title="All 4 branches covered.">			if (vi.x == vi_prev.x &amp;&amp; vi.y == vi_prev.y) {</span>
+<span class="pc bpc" id="L525" title="1 of 2 branches missed.">				if (m_bOGCRestrictions) {</span>
+<span class="pc bpc" id="L526" title="1 of 4 branches missed.">					if (!vi.boundary || !vi_prev.boundary) {</span>
+						 // check that this is not the endpoints of a closed path						
+<span class="pc bpc" id="L528" title="1 of 6 branches missed.">						if ((vi.ipath != vi_prev.ipath)</span>
+								|| (!vi.end_point &amp;&amp; !vi_prev.end_point)) {
+							// one of coincident vertices is not on the boundary
+							// this is either NonSimpleResult.CrossOver or
+							// NonSimpleResult.OGCPolylineSelfTangency.
+							// too expensive to distinguish between the two.
+<span class="fc" id="L534">							m_nonSimpleResult = new NonSimpleResult(</span>
+									NonSimpleResult.Reason.OGCPolylineSelfTangency,
+									vi.ivertex, vi_prev.ivertex);
+<span class="fc" id="L537">							return false;// common point not on the boundary</span>
+						}
+					}
+				} else {
+<span class="nc bnc" id="L541" title="All 4 branches missed.">					if (!vi.end_point || !vi_prev.end_point) {</span>
+						 //one of coincident vertices is not an endpoint
+<span class="nc" id="L543">						 m_nonSimpleResult = new NonSimpleResult(</span>
+								NonSimpleResult.Reason.CrossOver, vi.ivertex,
+								vi_prev.ivertex);
+<span class="nc" id="L546">						return false;// common point not on the boundary</span>
+					}
+				}
+			}
+
+<span class="fc" id="L551">			Vertex_info_pl tmp = vi_prev;</span>
+<span class="fc" id="L552">			vi_prev = vi;</span>
+<span class="fc" id="L553">			vi = tmp;</span>
+		}
+
+<span class="fc" id="L556">		return true;</span>
+	}
+
+	final static class Vertex_info_pg {
+		double x;
+		double y;
+		int ipath;
+		int ivertex;
+		int ipolygon;
+
+		Vertex_info_pg(double x_, double y_, int ipath_, int xyindex_,
+<span class="fc" id="L567">				int polygon_) {</span>
+<span class="fc" id="L568">			x = x_;</span>
+<span class="fc" id="L569">			y = y_;</span>
+<span class="fc" id="L570">			ipath = ipath_;</span>
+<span class="fc" id="L571">			ivertex = xyindex_;</span>
+<span class="fc" id="L572">			ipolygon = polygon_;</span>
+<span class="fc" id="L573">		}</span>
+
+		boolean is_equal(Vertex_info_pg other) {
+<span class="nc bnc" id="L576" title="All 10 branches missed.">			return x == other.x &amp;&amp; y == other.y &amp;&amp; ipath == other.ipath</span>
+					&amp;&amp; ivertex == other.ivertex &amp;&amp; ipolygon == other.ipolygon;
+		}
+	};
+
+	boolean check_self_intersections_polygons_OGC_() {
+<span class="fc" id="L582">		MultiPathImpl multiPathImpl = (MultiPathImpl) (m_geometry._getImpl());</span>
+		// OGC MultiPolygon is simple when each Polygon is simple and Polygons a
+		// allowed only touch at finite number of vertices.
+		// OGC Polygon is simple if it consist of simple LinearRings.
+		// LinearRings cannot cross.
+		// Any two LinearRings of a OGC Polygon are allowed to touch at single
+		// vertex only.
+		// The OGC Polygon interior has to be a connected set.
+
+		// At this point we assume that the ring order has to be correct (holes
+		// follow corresponding exterior ring).
+		// No Rings cross. Exterior rings can only touch at finite number of
+		// vertices.
+
+		// Fill a mapping of ring to
+<span class="fc" id="L597">		int[] ring_to_polygon = new int[multiPathImpl.getPathCount()];</span>
+<span class="fc" id="L598">		int exteriors = -1;</span>
+<span class="fc" id="L599">		boolean has_holes = false;</span>
+<span class="fc bfc" id="L600" title="All 2 branches covered.">		for (int ipath = 0, n = multiPathImpl.getPathCount(); ipath &lt; n; ipath++) {</span>
+<span class="fc bfc" id="L601" title="All 2 branches covered.">			if (multiPathImpl.isExteriorRing(ipath)) {</span>
+<span class="fc" id="L602">				has_holes = false;</span>
+<span class="fc" id="L603">				exteriors++;</span>
+<span class="fc bfc" id="L604" title="All 2 branches covered.">				if (ipath &lt; n - 1) {</span>
+<span class="fc bfc" id="L605" title="All 2 branches covered.">					if (!multiPathImpl.isExteriorRing(ipath + 1))</span>
+<span class="fc" id="L606">						has_holes = true;</span>
+				}
+			}
+
+			// For OGC polygons with no holes, store -1.
+			// For polygons with holes, store polygon index for each ring.
+<span class="fc bfc" id="L612" title="All 2 branches covered.">			ring_to_polygon[ipath] = has_holes ? exteriors : -1;</span>
+		}
+
+		// Use already sorted m_pairIndices
+<span class="fc" id="L616">		Vertex_info_pg vi_prev = null;</span>
+<span class="fc" id="L617">		Point2D pt = new Point2D();</span>
+		{// scope
+<span class="fc" id="L619">			int pairIndex = m_pairIndices.get(0);</span>
+<span class="fc" id="L620">			int pair = m_pairs.get(pairIndex);</span>
+<span class="fc" id="L621">			int xyindex = pair &gt;&gt; 1;</span>
+<span class="fc" id="L622">			m_xy.read(2 * xyindex, pt);</span>
+<span class="fc" id="L623">			int ipath = m_paths_for_OGC_tests.get(xyindex);</span>
+<span class="fc" id="L624">			vi_prev = new Vertex_info_pg(pt.x, pt.y, ipath, xyindex,</span>
+					ring_to_polygon[ipath]);
+		}
+
+<span class="fc" id="L628">		ArrayList&lt;Vertex_info_pg&gt; intersections = new ArrayList&lt;Vertex_info_pg&gt;(</span>
+<span class="fc" id="L629">				multiPathImpl.getPathCount() * 2);</span>
+<span class="fc bfc" id="L630" title="All 2 branches covered.">		for (int index = 1, n = m_pairIndices.size(); index &lt; n; index++) {</span>
+<span class="fc" id="L631">			int pairIndex = m_pairIndices.get(index);</span>
+<span class="fc" id="L632">			int pair = m_pairs.get(pairIndex);</span>
+<span class="fc bfc" id="L633" title="All 2 branches covered.">			if ((pair &amp; 1) != 0)</span>
+<span class="fc" id="L634">				continue;</span>
+<span class="fc" id="L635">			int xyindex = pair &gt;&gt; 1;</span>
+<span class="fc" id="L636">			m_xy.read(2 * xyindex, pt);</span>
+<span class="fc" id="L637">			int ipath = m_paths_for_OGC_tests.get(xyindex);</span>
+<span class="fc" id="L638">			Vertex_info_pg vi = new Vertex_info_pg(pt.x, pt.y, ipath, xyindex,</span>
+					ring_to_polygon[ipath]);
+
+<span class="pc bpc" id="L641" title="1 of 4 branches missed.">			if (vi.x == vi_prev.x &amp;&amp; vi.y == vi_prev.y) {</span>
+<span class="fc bfc" id="L642" title="All 2 branches covered.">				if (vi.ipath == vi_prev.ipath) {// the ring has self tangency</span>
+<span class="fc" id="L643">					m_nonSimpleResult = new NonSimpleResult(</span>
+							NonSimpleResult.Reason.OGCPolygonSelfTangency,
+							vi.ivertex, vi_prev.ivertex);
+<span class="fc" id="L646">					return false;</span>
+<span class="pc bpc" id="L647" title="1 of 4 branches missed.">				} else if (ring_to_polygon[vi.ipath] &gt;= 0</span>
+						&amp;&amp; ring_to_polygon[vi.ipath] == ring_to_polygon[vi_prev.ipath]) {// only
+																							// add
+																							// rings
+																							// from
+																							// polygons
+																							// with
+																							// holes.
+																							// Only
+																							// interested
+																							// in
+																							// touching
+																							// rings
+																							// that
+																							// belong
+																							// to
+																							// the
+																							// same
+																							// polygon
+<span class="fc bfc" id="L666" title="All 2 branches covered.">					if (intersections.size() == 0</span>
+<span class="pc bpc" id="L667" title="1 of 2 branches missed.">							|| intersections.get(intersections.size() - 1) != vi_prev)</span>
+<span class="fc" id="L668">						intersections.add(vi_prev);</span>
+<span class="fc" id="L669">					intersections.add(vi);</span>
+				}
+			}
+
+<span class="fc" id="L673">			vi_prev = vi;</span>
+		}
+
+<span class="fc bfc" id="L676" title="All 2 branches covered.">		if (intersections.size() == 0)</span>
+<span class="fc" id="L677">			return true;</span>
+
+		// Find disconnected interior cases (OGC spec: Interior of polygon has
+		// to be a closed set)
+
+		// Note: Now we'll reuse ring_to_polygon for different purpose - to
+		// store mapping from the rings to the graph nodes.
+
+<span class="fc" id="L685">		IndexMultiDCList graph = new IndexMultiDCList(true);</span>
+<span class="fc" id="L686">		Arrays.fill(ring_to_polygon, -1);</span>
+<span class="fc" id="L687">		int vnode_index = -1;</span>
+<span class="fc" id="L688">		Point2D prev = new Point2D();</span>
+<span class="fc" id="L689">		prev.setNaN();</span>
+<span class="fc bfc" id="L690" title="All 2 branches covered.">		for (int i = 0, n = intersections.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L691">			Vertex_info_pg cur = intersections.get(i);</span>
+<span class="fc bfc" id="L692" title="All 4 branches covered.">			if (cur.x != prev.x || cur.y != prev.y) {</span>
+<span class="fc" id="L693">				vnode_index = graph.createList(0);</span>
+<span class="fc" id="L694">				prev.x = cur.x;</span>
+<span class="fc" id="L695">				prev.y = cur.y;</span>
+			}
+
+<span class="fc" id="L698">			int rnode_index = ring_to_polygon[cur.ipath];</span>
+<span class="fc bfc" id="L699" title="All 2 branches covered.">			if (rnode_index == -1) {</span>
+<span class="fc" id="L700">				rnode_index = graph.createList(2);</span>
+<span class="fc" id="L701">				ring_to_polygon[cur.ipath] = rnode_index;</span>
+			}
+<span class="fc" id="L703">			graph.addElement(rnode_index, vnode_index); // add to rnode</span>
+														// adjacency list the
+														// current vnode
+<span class="fc" id="L706">			graph.addElement(vnode_index, rnode_index); // add to vnode</span>
+														// adjacency list the
+														// rnode
+		}
+
+<span class="fc" id="L711">		AttributeStreamOfInt32 depth_first_stack = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L712">		depth_first_stack.reserve(10);</span>
+
+<span class="fc bfc" id="L714" title="All 2 branches covered.">		for (int node = graph.getFirstList(); node != -1; node = graph</span>
+<span class="fc" id="L715">				.getNextList(node)) {</span>
+<span class="fc" id="L716">			int ncolor = graph.getListData(node);</span>
+<span class="fc bfc" id="L717" title="All 4 branches covered.">			if ((ncolor &amp; 1) != 0 || (ncolor &amp; 2) == 0)</span>
+<span class="fc" id="L718">				continue;// already visited or this is a vnode (we do not want</span>
+							// to start from vnode).
+
+<span class="fc" id="L721">			int bad_rnode = -1;</span>
+<span class="fc" id="L722">			depth_first_stack.add(node);</span>
+<span class="fc" id="L723">			depth_first_stack.add(-1);// parent</span>
+<span class="fc bfc" id="L724" title="All 2 branches covered.">			while (depth_first_stack.size() &gt; 0) {</span>
+<span class="fc" id="L725">				int cur_node_parent = depth_first_stack.getLast();</span>
+<span class="fc" id="L726">				depth_first_stack.removeLast();</span>
+<span class="fc" id="L727">				int cur_node = depth_first_stack.getLast();</span>
+<span class="fc" id="L728">				depth_first_stack.removeLast();</span>
+<span class="fc" id="L729">				int color = graph.getListData(cur_node);</span>
+<span class="fc bfc" id="L730" title="All 2 branches covered.">				if ((color &amp; 1) != 0) {</span>
+					// already visited this node. This means we found a loop.
+<span class="pc bpc" id="L732" title="1 of 2 branches missed.">					if ((color &amp; 2) == 0) {// closing on vnode</span>
+<span class="nc" id="L733">						bad_rnode = cur_node_parent;</span>
+					} else
+<span class="fc" id="L735">						bad_rnode = cur_node;</span>
+
+					// assert(bad_rnode != -1);
+<span class="fc" id="L738">					break;</span>
+				}
+
+<span class="fc" id="L741">				graph.setListData(cur_node, color | 1);</span>
+<span class="fc bfc" id="L742" title="All 2 branches covered.">				for (int adjacent_node = graph.getFirst(cur_node); adjacent_node != -1; adjacent_node = graph</span>
+<span class="fc" id="L743">						.getNext(adjacent_node)) {</span>
+<span class="fc" id="L744">					int adjacent_node_data = graph.getData(adjacent_node);</span>
+<span class="fc bfc" id="L745" title="All 2 branches covered.">					if (adjacent_node_data == cur_node_parent)</span>
+<span class="fc" id="L746">						continue;// avoid going back to where we just came from</span>
+<span class="fc" id="L747">					depth_first_stack.add(adjacent_node_data);</span>
+<span class="fc" id="L748">					depth_first_stack.add(cur_node);// push cur_node as parent</span>
+													// of adjacent_node
+				}
+<span class="fc" id="L751">			}</span>
+
+<span class="fc bfc" id="L753" title="All 2 branches covered.">			if (bad_rnode != -1) {</span>
+<span class="fc" id="L754">				int bad_ring_index = -1;</span>
+<span class="pc bpc" id="L755" title="1 of 2 branches missed.">				for (int i = 0, n = ring_to_polygon.length; i &lt; n; i++)</span>
+<span class="fc bfc" id="L756" title="All 2 branches covered.">					if (ring_to_polygon[i] == bad_rnode) {</span>
+<span class="fc" id="L757">						bad_ring_index = i;</span>
+<span class="fc" id="L758">						break;</span>
+					}
+
+				// bad_ring_index is any ring in a problematic chain of touching
+				// rings.
+				// When chain of touching rings form a loop, the result is a
+				// disconnected interior,
+				// which is non-simple for OGC spec.
+<span class="fc" id="L766">				m_nonSimpleResult = new NonSimpleResult(</span>
+						NonSimpleResult.Reason.OGCDisconnectedInterior,
+						bad_ring_index, -1);
+<span class="fc" id="L769">				return false;</span>
+			}
+		}
+
+<span class="fc" id="L773">		return true;</span>
+	}
+
+	private int checkValidRingOrientation_() {
+<span class="fc" id="L777">		MultiPathImpl multiPathImpl = (MultiPathImpl) m_geometry._getImpl();</span>
+<span class="fc" id="L778">		double totalArea = multiPathImpl.calculateArea2D();</span>
+<span class="fc bfc" id="L779" title="All 2 branches covered.">		if (totalArea &lt;= 0) {</span>
+<span class="fc" id="L780">			m_nonSimpleResult = new NonSimpleResult(</span>
+					NonSimpleResult.Reason.RingOrientation,
+<span class="fc bfc" id="L782" title="All 2 branches covered.">					multiPathImpl.getPathCount() == 1 ? 1 : -1, -1);</span>
+<span class="fc" id="L783">			return 0;</span>
+		}
+
+<span class="fc bfc" id="L786" title="All 2 branches covered.">		if (multiPathImpl.getPathCount() == 1) {// optimization for a single</span>
+												// polygon
+<span class="fc bfc" id="L788" title="All 2 branches covered.">			if (m_bOGCRestrictions) {</span>
+<span class="fc bfc" id="L789" title="All 2 branches covered.">				if (!check_self_intersections_polygons_OGC_())</span>
+<span class="fc" id="L790">					return 0;</span>
+			}
+
+<span class="fc" id="L793">			return 2;</span>
+		}
+
+		// 1.Go through all vertices in the sorted order.
+		// 2.For each vertex,insert any non-horizontal segment that has the
+		// vertex as low point(there can be max two segments)
+<span class="fc" id="L799">		m_pathOrientations = new AttributeStreamOfInt32(</span>
+<span class="fc" id="L800">				multiPathImpl.getPathCount(), 0);</span>
+
+<span class="fc" id="L802">		m_pathParentage = new AttributeStreamOfInt32(</span>
+<span class="fc" id="L803">				multiPathImpl.getPathCount(), -1);</span>
+
+<span class="fc" id="L805">		int parent_ring = -1;</span>
+<span class="fc" id="L806">		double exteriorArea = 0;</span>
+<span class="fc bfc" id="L807" title="All 2 branches covered.">		for (int ipath = 0, n = multiPathImpl.getPathCount(); ipath &lt; n; ipath++) {</span>
+<span class="fc" id="L808">			double area = multiPathImpl.calculateRingArea2D(ipath);</span>
+<span class="fc bfc" id="L809" title="All 2 branches covered.">			m_pathOrientations.write(ipath, area &lt; 0 ? 0 : 256); // 8th bit</span>
+																	// is
+																	// existing
+																	// orientation
+<span class="fc bfc" id="L813" title="All 2 branches covered.">			if (area &gt; 0) {</span>
+<span class="fc" id="L814">				parent_ring = ipath;</span>
+<span class="fc" id="L815">				exteriorArea = area;</span>
+<span class="pc bpc" id="L816" title="1 of 2 branches missed.">			} else if (area == 0) {</span>
+<span class="nc" id="L817">				m_nonSimpleResult = new NonSimpleResult(</span>
+						NonSimpleResult.Reason.RingOrientation, ipath, -1);
+<span class="nc" id="L819">				return 0;</span>
+			} else {
+				// area &lt; 0: this is a hole.
+				// We write the parent exterior
+				// ring for it (assumed to be first previous exterior ring)
+<span class="pc bpc" id="L824" title="1 of 4 branches missed.">				if (parent_ring &lt; 0 || exteriorArea &lt; Math.abs(area)) {</span>
+					// The first ring is a hole - this is a wrong ring ordering.
+					// Or the hole's area is bigger than the previous exterior
+					// area - this means ring order is broken,
+					// because holes are always smaller. This is not the only
+					// condition when ring order is broken though.
+<span class="fc" id="L830">					m_nonSimpleResult = new NonSimpleResult(</span>
+							NonSimpleResult.Reason.RingOrder, ipath, -1);
+<span class="fc bfc" id="L832" title="All 2 branches covered.">					if (m_bOGCRestrictions)</span>
+<span class="fc" id="L833">						return 0;</span>
+				}
+<span class="fc" id="L835">				m_pathParentage.write(ipath, parent_ring);</span>
+			}
+		}
+
+<span class="fc" id="L839">		m_unknownOrientationPathCount = multiPathImpl.getPathCount();</span>
+<span class="fc" id="L840">		m_newEdges = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L841">		m_newEdges.reserve(10);</span>
+
+<span class="fc" id="L843">		int pointCount = multiPathImpl.getPointCount();</span>
+<span class="fc" id="L844">		m_yScanline = NumberUtils.TheNaN;</span>
+<span class="fc" id="L845">		AttributeStreamOfInt32 bunch = new AttributeStreamOfInt32(0); // stores</span>
+																		// coincident
+																		// vertices
+<span class="fc" id="L848">		bunch.reserve(10);</span>
+		// Each vertex has two edges attached.These two arrays map vertices to
+		// edges as nodes in the m_AET
+<span class="fc" id="L851">		m_xyToNode1 = new AttributeStreamOfInt32(pointCount, Treap.nullNode());</span>
+<span class="fc" id="L852">		m_xyToNode2 = new AttributeStreamOfInt32(pointCount, Treap.nullNode());</span>
+<span class="pc bpc" id="L853" title="1 of 2 branches missed.">		if (m_FreeEdges != null)</span>
+<span class="nc" id="L854">			m_FreeEdges.clear(false);</span>
+		else
+<span class="fc" id="L856">			m_FreeEdges = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L857">		m_FreeEdges.reserve(10);</span>
+
+<span class="fc" id="L859">		m_AET.clear();</span>
+<span class="fc" id="L860">		m_AET.setComparator(new RingOrientationTestComparator(this));</span>
+<span class="fc" id="L861">		for (int index = 0, n = pointCount * 2; m_unknownOrientationPathCount &gt; 0</span>
+<span class="pc bpc" id="L862" title="1 of 4 branches missed.">				&amp;&amp; index &lt; n; index++) {</span>
+<span class="fc" id="L863">			int pairIndex = m_pairIndices.get(index);</span>
+<span class="fc" id="L864">			int pair = m_pairs.get(pairIndex);</span>
+<span class="fc bfc" id="L865" title="All 2 branches covered.">			if ((pair &amp; 1) != 0)</span>
+<span class="fc" id="L866">				continue;// m_pairs array is redundant.See checkClustering_.</span>
+
+<span class="fc" id="L868">			int xyindex = pair &gt;&gt; 1;</span>
+<span class="fc" id="L869">			double y = m_xy.read(2 * xyindex + 1);</span>
+
+<span class="fc bfc" id="L871" title="All 4 branches covered.">			if (y != m_yScanline &amp;&amp; bunch.size() != 0) {</span>
+<span class="fc bfc" id="L872" title="All 2 branches covered.">				if (!processBunchForRingOrientationTest_(bunch)) {</span>
+					// m_nonSimpleResult is set in the
+					// processBunchForRingOrientationTest_
+<span class="fc" id="L875">					return 0;</span>
+				}
+<span class="pc bpc" id="L877" title="1 of 2 branches missed.">				if (bunch != null)</span>
+<span class="fc" id="L878">					bunch.clear(false);</span>
+			}
+
+<span class="fc" id="L881">			bunch.add(xyindex);// all vertices that have same y are added to the</span>
+			// bunch
+<span class="fc" id="L883">			m_yScanline = y;</span>
+		}
+
+<span class="pc bpc" id="L886" title="1 of 2 branches missed.">		if (m_unknownOrientationPathCount &gt; 0</span>
+<span class="nc bnc" id="L887" title="All 2 branches missed.">				&amp;&amp; !processBunchForRingOrientationTest_(bunch)) {</span>
+			// m_nonSimpleResult is set in the
+			// processBunchForRingOrientationTest_
+<span class="nc" id="L890">			return 0;</span>
+		}
+
+<span class="fc bfc" id="L893" title="All 2 branches covered.">		if (m_bOGCRestrictions) {</span>
+<span class="pc bpc" id="L894" title="1 of 2 branches missed.">			if (m_nonSimpleResult.m_reason != NonSimpleResult.Reason.NotDetermined)</span>
+<span class="nc" id="L895">				return 0;// cannot proceed with OGC verification if the ring</span>
+							// order is broken (cannot decide polygons then).
+
+<span class="fc bfc" id="L898" title="All 2 branches covered.">			if (!check_self_intersections_polygons_OGC_())</span>
+<span class="fc" id="L899">				return 0;</span>
+
+<span class="fc" id="L901">			return 2;// everything is good</span>
+		} else {
+<span class="fc bfc" id="L903" title="All 2 branches covered.">			if (m_nonSimpleResult.m_reason == NonSimpleResult.Reason.NotDetermined)</span>
+<span class="fc" id="L904">				return 2;// everything is good</span>
+
+			// weak simple
+<span class="fc" id="L907">			return 1;</span>
+		}
+	}
+
+	private boolean processBunchForSelfIntersectionTest_(
+			AttributeStreamOfInt32 bunch) {
+<span class="pc bpc" id="L913" title="1 of 2 branches missed.">		assert (bunch.size() &gt; 0);</span>
+<span class="fc bfc" id="L914" title="All 2 branches covered.">		if (bunch.size() == 1)</span>
+<span class="fc" id="L915">			return true;</span>
+
+<span class="pc bpc" id="L917" title="1 of 2 branches missed.">		assert (m_edges.size() == 0);</span>
+
+		// Bunch contains vertices that have exactly same x and y.
+		// We populate m_edges array with the edges that originate in the
+		// vertices of the bunch.
+<span class="fc bfc" id="L922" title="All 2 branches covered.">		for (int i = 0, n = bunch.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L923">			int xyindex = bunch.get(i);</span>
+<span class="fc" id="L924">			m_recycledSegIter.resetToVertex(xyindex);// the iterator is</span>
+														// circular.
+<span class="fc" id="L926">			/* const */Segment seg1 = m_recycledSegIter.previousSegment();</span>
+<span class="fc" id="L927">			m_edges.add(createEdge_(seg1, xyindex,</span>
+<span class="fc" id="L928">					m_recycledSegIter.getPathIndex(), true));</span>
+<span class="fc" id="L929">			m_recycledSegIter.nextSegment();// Need to skip one,because of the</span>
+											// previousSegment call
+			// before (otherwise will get same segment again)
+<span class="fc" id="L932">			/* const */Segment seg2 = m_recycledSegIter.nextSegment();</span>
+<span class="fc" id="L933">			m_edges.add(createEdge_(seg2, xyindex,</span>
+<span class="fc" id="L934">					m_recycledSegIter.getPathIndex(), false));</span>
+		}
+
+<span class="pc bpc" id="L937" title="1 of 2 branches missed.">		assert ((m_edges.size() &amp; 1) == 0); // even size</span>
+
+		// Analyze the bunch edges for self intersections(the edges touch at the
+		// end points only at this stage of IsSimple)
+		// 1.sort the edges by angle between edge and the unit vector along axis
+		// x,using the cross product sign.Precondition:no overlaps occur at this
+		// stage.
+
+<span class="fc" id="L945">		Collections.sort(m_edges, new EdgeComparerForSelfIntersection(this));</span>
+
+		// 2.Analyze the bunch.There can be no edges between edges that share
+		// same vertex coordinates.
+		// We populate a doubly linked list with the edge indices and iterate
+		// over this list getting rid of the neighbouring pairs of vertices.
+		// The process is similar to peeling an onion.
+		// If the list becomes empty,there are no crossovers,otherwise,the
+		// geometry has cross-over.
+<span class="fc" id="L954">		int list = m_crossOverHelperList.getFirstList();</span>
+
+<span class="fc bfc" id="L956" title="All 2 branches covered.">		if (list == -1)</span>
+<span class="fc" id="L957">			list = m_crossOverHelperList.createList(0);</span>
+
+<span class="fc" id="L959">		m_crossOverHelperList.reserveNodes(m_edges.size());</span>
+
+<span class="fc bfc" id="L961" title="All 2 branches covered.">		for (int i = 0, n = m_edges.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L962">			m_crossOverHelperList.addElement(list, i);</span>
+		}
+
+		// Peel the onion
+<span class="fc" id="L966">		boolean bContinue = true;</span>
+<span class="fc" id="L967">		int i1 = -1;</span>
+<span class="fc" id="L968">		int i2 = -1;</span>
+<span class="fc bfc" id="L969" title="All 2 branches covered.">		while (bContinue) {</span>
+<span class="fc" id="L970">			bContinue = false;</span>
+<span class="fc" id="L971">			int listnode = m_crossOverHelperList.getFirst(list);</span>
+<span class="fc bfc" id="L972" title="All 2 branches covered.">			if (listnode == -1)</span>
+<span class="fc" id="L973">				break;</span>
+
+<span class="fc" id="L975">			int nextnode = m_crossOverHelperList.getNext(listnode);</span>
+<span class="fc bfc" id="L976" title="All 2 branches covered.">			while (nextnode != -1) {</span>
+<span class="fc" id="L977">				int edgeindex1 = m_crossOverHelperList.getData(listnode);</span>
+<span class="fc" id="L978">				int edgeindex2 = m_crossOverHelperList.getData(nextnode);</span>
+<span class="fc" id="L979">				i1 = m_edges.get(edgeindex1).m_vertexIndex;</span>
+<span class="fc" id="L980">				i2 = m_edges.get(edgeindex2).m_vertexIndex;</span>
+<span class="fc bfc" id="L981" title="All 2 branches covered.">				if (i1 == i2) {</span>
+<span class="fc" id="L982">					bContinue = true;</span>
+<span class="fc" id="L983">					m_crossOverHelperList.deleteElement(list, listnode);</span>
+<span class="fc" id="L984">					listnode = m_crossOverHelperList.getPrev(nextnode);</span>
+<span class="fc" id="L985">					nextnode = m_crossOverHelperList.deleteElement(list,</span>
+							nextnode);
+<span class="fc bfc" id="L987" title="All 4 branches covered.">					if (nextnode == -1 || listnode == -1)</span>
+<span class="fc" id="L988">						break;</span>
+					else
+						continue;
+				}
+<span class="fc" id="L992">				listnode = nextnode;</span>
+<span class="fc" id="L993">				nextnode = m_crossOverHelperList.getNext(listnode);</span>
+<span class="fc" id="L994">			}</span>
+<span class="fc" id="L995">		}</span>
+
+<span class="fc" id="L997">		int listSize = m_crossOverHelperList.getListSize(list);</span>
+<span class="fc" id="L998">		m_crossOverHelperList.clear(list);</span>
+<span class="fc bfc" id="L999" title="All 2 branches covered.">		if (listSize &gt; 0) {</span>
+			// There is self-intersection here.
+<span class="fc" id="L1001">			m_nonSimpleResult = new NonSimpleResult(</span>
+					NonSimpleResult.Reason.CrossOver, i1, i2);
+<span class="fc" id="L1003">			return false;</span>
+		}
+
+		// Recycle the bunch to save on object creation
+<span class="fc bfc" id="L1007" title="All 2 branches covered.">		for (int i = 0, n = bunch.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L1008">			recycleEdge_(m_edges.get(i));</span>
+		}
+
+<span class="fc" id="L1011">		m_edges.clear();</span>
+<span class="fc" id="L1012">		return true;</span>
+	}
+
+	private boolean processBunchForRingOrientationTest_(
+			AttributeStreamOfInt32 bunch) {
+<span class="fc" id="L1017">		m_dbgCounter++;</span>
+<span class="pc bpc" id="L1018" title="1 of 2 branches missed.">		assert (bunch.size() &gt; 0);</span>
+
+		// remove nodes that go out of scope
+<span class="fc bfc" id="L1021" title="All 2 branches covered.">		for (int i = 0, n = bunch.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L1022">			int xyindex = bunch.get(i);</span>
+<span class="fc" id="L1023">			int aetNode = m_xyToNode1.read(xyindex);</span>
+<span class="fc bfc" id="L1024" title="All 2 branches covered.">			if (aetNode != Treap.nullNode()) {// We found that there is an edge</span>
+												// in AET, attached to the
+												// xyindex vertex. This edge
+												// goes out of scope. Delete it
+												// from AET.
+<span class="fc" id="L1029">				int edgeIndex = m_AET.getElement(aetNode);</span>
+<span class="fc" id="L1030">				m_FreeEdges.add(edgeIndex);</span>
+<span class="fc" id="L1031">				m_AET.deleteNode(aetNode, -1);</span>
+<span class="fc" id="L1032">				recycleEdge_(m_edges.get(edgeIndex));</span>
+<span class="fc" id="L1033">				m_edges.set(edgeIndex, null);</span>
+<span class="fc" id="L1034">				m_xyToNode1.write(xyindex, Treap.nullNode());</span>
+			}
+
+<span class="fc" id="L1037">			aetNode = m_xyToNode2.read(xyindex);</span>
+<span class="fc bfc" id="L1038" title="All 2 branches covered.">			if (aetNode != Treap.nullNode()) {// We found that there is an edge</span>
+												// in AET, attached to the
+												// xyindex vertex. This edge
+												// goes out of scope. Delete it
+												// from AET.
+<span class="fc" id="L1043">				int edgeIndex = m_AET.getElement(aetNode);</span>
+<span class="fc" id="L1044">				m_FreeEdges.add(edgeIndex);</span>
+<span class="fc" id="L1045">				m_AET.deleteNode(aetNode, -1);</span>
+<span class="fc" id="L1046">				recycleEdge_(m_edges.get(edgeIndex));</span>
+<span class="fc" id="L1047">				m_edges.set(edgeIndex, null);</span>
+<span class="fc" id="L1048">				m_xyToNode2.write(xyindex, Treap.nullNode());</span>
+			}
+		}
+
+		// add new edges to AET
+<span class="fc bfc" id="L1053" title="All 2 branches covered.">		for (int i = 0, n = bunch.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L1054">			int xyindex = bunch.get(i);</span>
+<span class="fc" id="L1055">			m_recycledSegIter.resetToVertex(xyindex);// the iterator is</span>
+														// circular.
+<span class="fc" id="L1057">			Segment seg1 = m_recycledSegIter.previousSegment();// this</span>
+																// segment
+																// has
+																// end
+																// point
+																// at
+																// xyindex
+<span class="fc bfc" id="L1064" title="All 2 branches covered.">			if (seg1.getStartY() &gt; seg1.getEndY())// do not allow horizontal</span>
+			// segments in here
+			{
+				// get the top vertex index.We use it to determine what segments
+				// to get rid of.
+<span class="fc" id="L1069">				int edgeTopIndex = m_recycledSegIter.getStartPointIndex();</span>
+<span class="fc" id="L1070">				Edge edge = createEdge_(seg1, xyindex,</span>
+<span class="fc" id="L1071">						m_recycledSegIter.getPathIndex(), true);</span>
+				int edgeIndex;
+<span class="fc bfc" id="L1073" title="All 2 branches covered.">				if (m_FreeEdges.size() &gt; 0) {</span>
+<span class="fc" id="L1074">					edgeIndex = m_FreeEdges.getLast();</span>
+<span class="fc" id="L1075">					m_FreeEdges.removeLast();</span>
+<span class="fc" id="L1076">					m_edges.set(edgeIndex, edge);</span>
+				} else {
+<span class="fc" id="L1078">					edgeIndex = m_edges.size();</span>
+<span class="fc" id="L1079">					m_edges.add(edge);</span>
+				}
+
+<span class="fc" id="L1082">				int aetNode = m_AET.addElement(edgeIndex, -1);</span>
+				// Remember AET nodes in the vertex to AET node maps.
+<span class="fc bfc" id="L1084" title="All 2 branches covered.">				if (m_xyToNode1.read(edgeTopIndex) == Treap.nullNode())</span>
+<span class="fc" id="L1085">					m_xyToNode1.write(edgeTopIndex, aetNode);</span>
+				else {
+<span class="pc bpc" id="L1087" title="1 of 2 branches missed.">					assert (m_xyToNode2.read(edgeTopIndex) == Treap.nullNode());</span>
+<span class="fc" id="L1088">					m_xyToNode2.write(edgeTopIndex, aetNode);</span>
+				}
+
+				// If this edge belongs to a path that has not have direction
+				// figured out yet,
+				// add it to m_newEdges for post processing
+<span class="fc bfc" id="L1094" title="All 2 branches covered.">				if ((m_pathOrientations.read(m_recycledSegIter.getPathIndex()) &amp; 3) == 0)</span>
+<span class="fc" id="L1095">					m_newEdges.add(aetNode);</span>
+			}
+
+<span class="fc" id="L1098">			m_recycledSegIter.nextSegment();// Need to skip one,because of the</span>
+			// previousSegment call
+			// before(otherwise will get same
+			// segment again)
+			// seg1 is invalid now
+<span class="fc" id="L1103">			Segment seg2 = m_recycledSegIter.nextSegment();</span>
+			// start has to be lower than end for this one
+<span class="fc bfc" id="L1105" title="All 2 branches covered.">			if (seg2.getStartY() &lt; seg2.getEndY())// do not allow horizontal</span>
+			// segments in here
+			{
+				// get the top vertex index.We use it to determine what segments
+				// to get rid of.
+<span class="fc" id="L1110">				int edgeTopIndex = m_recycledSegIter.getEndPointIndex();</span>
+<span class="fc" id="L1111">				Edge edge = createEdge_(seg2, xyindex,</span>
+<span class="fc" id="L1112">						m_recycledSegIter.getPathIndex(), false);</span>
+				int edgeIndex;
+<span class="fc bfc" id="L1114" title="All 2 branches covered.">				if (m_FreeEdges.size() &gt; 0) {</span>
+<span class="fc" id="L1115">					edgeIndex = m_FreeEdges.getLast();</span>
+<span class="fc" id="L1116">					m_FreeEdges.removeLast();</span>
+<span class="fc" id="L1117">					m_edges.set(edgeIndex, edge);</span>
+				} else {
+<span class="fc" id="L1119">					edgeIndex = m_edges.size();</span>
+<span class="fc" id="L1120">					m_edges.add(edge);</span>
+				}
+
+<span class="fc" id="L1123">				int aetNode = m_AET.addElement(edgeIndex, -1);</span>
+<span class="fc bfc" id="L1124" title="All 2 branches covered.">				if (m_xyToNode1.read(edgeTopIndex) == Treap.nullNode())</span>
+<span class="fc" id="L1125">					m_xyToNode1.write(edgeTopIndex, aetNode);</span>
+				else {
+<span class="pc bpc" id="L1127" title="1 of 2 branches missed.">					assert (m_xyToNode2.read(edgeTopIndex) == Treap.nullNode());</span>
+<span class="fc" id="L1128">					m_xyToNode2.write(edgeTopIndex, aetNode);</span>
+				}
+
+				// If this edge belongs to a path that has not have direction
+				// figured out yet,
+				// add it to m_newEdges for post processing
+<span class="fc bfc" id="L1134" title="All 2 branches covered.">				if ((m_pathOrientations.read(m_recycledSegIter.getPathIndex()) &amp; 3) == 0)</span>
+<span class="fc" id="L1135">					m_newEdges.add(aetNode);</span>
+			}
+		}
+
+<span class="fc" id="L1139">		for (int i = 0, n = m_newEdges.size(); i &lt; n</span>
+<span class="pc bpc" id="L1140" title="1 of 4 branches missed.">				&amp;&amp; m_unknownOrientationPathCount &gt; 0; i++) {</span>
+<span class="fc" id="L1141">			int aetNode = m_newEdges.get(i);</span>
+<span class="fc" id="L1142">			int edgeIndexInitial = m_AET.getElement(aetNode);</span>
+<span class="fc" id="L1143">			Edge edgeInitial = m_edges.get(edgeIndexInitial);</span>
+<span class="fc" id="L1144">			int pathIndexInitial = edgeInitial.m_pathIndex;</span>
+<span class="fc" id="L1145">			int directionInitial = m_pathOrientations.read(pathIndexInitial);</span>
+<span class="fc bfc" id="L1146" title="All 2 branches covered.">			if ((directionInitial &amp; 3) == 0) {</span>
+<span class="fc" id="L1147">				int prevExteriorPath = -1;</span>
+<span class="fc" id="L1148">				int node = m_AET.getPrev(aetNode);</span>
+<span class="fc" id="L1149">				int prevNode = aetNode;</span>
+<span class="fc" id="L1150">				int oddEven = 0;</span>
+				{// scope
+<span class="fc" id="L1152">					int edgeIndex = -1;</span>
+<span class="fc" id="L1153">					Edge edge = null;</span>
+<span class="fc" id="L1154">					int pathIndex = -1;</span>
+<span class="fc" id="L1155">					int dir = 0;</span>
+					// find the leftmost edge for which the ring orientation is
+					// known
+<span class="fc bfc" id="L1158" title="All 2 branches covered.">					while (node != Treap.nullNode()) {</span>
+<span class="fc" id="L1159">						edgeIndex = m_AET.getElement(node);</span>
+<span class="fc" id="L1160">						edge = m_edges.get(edgeIndex);</span>
+<span class="fc" id="L1161">						pathIndex = edge.m_pathIndex;</span>
+<span class="fc" id="L1162">						dir = m_pathOrientations.read(pathIndex);</span>
+<span class="fc bfc" id="L1163" title="All 2 branches covered.">						if ((dir &amp; 3) != 0)</span>
+<span class="fc" id="L1164">							break;</span>
+
+<span class="fc" id="L1166">						prevNode = node;</span>
+<span class="fc" id="L1167">						node = m_AET.getPrev(node);</span>
+					}
+
+<span class="fc bfc" id="L1170" title="All 2 branches covered.">					if (node == Treap.nullNode()) {// if no edges have ring</span>
+													// orientation known, then
+													// start
+													// from the left most and it
+													// has
+													// to be exterior ring.
+<span class="fc" id="L1176">						oddEven = 1;</span>
+<span class="fc" id="L1177">						node = prevNode;</span>
+					} else {
+<span class="fc bfc" id="L1179" title="All 2 branches covered.">						if ((dir &amp; 3) == 1) {</span>
+<span class="fc" id="L1180">							prevExteriorPath = pathIndex;</span>
+						} else {
+<span class="fc" id="L1182">							prevExteriorPath = m_pathParentage.read(pathIndex);</span>
+						}
+
+<span class="fc bfc" id="L1185" title="All 2 branches covered.">						oddEven = (edge.getRightSide() != 0) ? 0 : 1;</span>
+<span class="fc" id="L1186">						node = m_AET.getNext(node);</span>
+					}
+				}
+
+				do {
+<span class="fc" id="L1191">					int edgeIndex = m_AET.getElement(node);</span>
+<span class="fc" id="L1192">					Edge edge = m_edges.get(edgeIndex);</span>
+<span class="fc" id="L1193">					int pathIndex = edge.m_pathIndex;</span>
+<span class="fc" id="L1194">					int direction = m_pathOrientations.read(pathIndex);</span>
+<span class="fc bfc" id="L1195" title="All 2 branches covered.">					if ((direction &amp; 3) == 0) {</span>
+<span class="fc bfc" id="L1196" title="All 2 branches covered.">						if (oddEven != edge.getRightSide()) {</span>
+<span class="fc" id="L1197">							m_nonSimpleResult = new NonSimpleResult(</span>
+									NonSimpleResult.Reason.RingOrientation,
+									pathIndex, -1);
+<span class="fc" id="L1200">							return false;// wrong ring orientation</span>
+						}
+
+<span class="pc bpc" id="L1203" title="1 of 4 branches missed.">						int dir = (oddEven != 0 &amp;&amp; !edge.getReversed()) ? 1 : 2;</span>
+<span class="fc" id="L1204">						direction = (direction &amp; 0xfc) | dir;</span>
+<span class="fc" id="L1205">						m_pathOrientations.write(pathIndex, dir);</span>
+<span class="fc bfc" id="L1206" title="All 4 branches covered.">						if (dir == 2</span>
+								&amp;&amp; m_nonSimpleResult.m_reason == NonSimpleResult.Reason.NotDetermined) {
+							// check that this hole has a correct parent
+							// exterior ring.
+<span class="fc" id="L1210">							int parent = m_pathParentage.read(pathIndex);</span>
+<span class="pc bpc" id="L1211" title="1 of 2 branches missed.">							if (parent != prevExteriorPath) {</span>
+<span class="nc" id="L1212">								m_nonSimpleResult = new NonSimpleResult(</span>
+										NonSimpleResult.Reason.RingOrder,
+										pathIndex, -1);
+<span class="nc bnc" id="L1215" title="All 2 branches missed.">								if (m_bOGCRestrictions)</span>
+<span class="nc" id="L1216">									return false;</span>
+							}
+						}
+
+<span class="fc" id="L1220">						m_unknownOrientationPathCount--;</span>
+<span class="fc bfc" id="L1221" title="All 2 branches covered.">						if (m_unknownOrientationPathCount == 0)// if(!m_unknownOrientationPathCount)</span>
+<span class="fc" id="L1222">							return true;</span>
+					}
+
+<span class="fc bfc" id="L1225" title="All 2 branches covered.">					if ((direction &amp; 3) == 1) {</span>
+<span class="fc" id="L1226">						prevExteriorPath = pathIndex;</span>
+					}
+
+<span class="fc" id="L1229">					prevNode = node;</span>
+<span class="fc" id="L1230">					node = m_AET.getNext(node);</span>
+<span class="fc bfc" id="L1231" title="All 2 branches covered.">					oddEven = oddEven != 0 ? 0 : 1;</span>
+<span class="fc bfc" id="L1232" title="All 2 branches covered.">				} while (prevNode != aetNode);</span>
+			}
+		}
+
+<span class="pc bpc" id="L1236" title="1 of 2 branches missed.">		if (m_newEdges != null)</span>
+<span class="fc" id="L1237">			m_newEdges.clear(false);</span>
+		else
+<span class="nc" id="L1239">			m_newEdges = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L1240">		return true;</span>
+	}
+
+	private Edge createEdge_(/* const */Segment seg, int xyindex, int pathIndex,
+			boolean bReversed) {
+		Edge edge;
+<span class="fc" id="L1246">		Geometry.Type gt = seg.getType();</span>
+<span class="pc bpc" id="L1247" title="1 of 2 branches missed.">		if (gt == Geometry.Type.Line) {</span>
+<span class="fc" id="L1248">			edge = createEdgeLine_(seg);</span>
+		} else {
+<span class="nc" id="L1250">			throw GeometryException.GeometryInternalError(); // implement</span>
+															// recycling for
+															// curves
+		}
+<span class="fc" id="L1254">		edge.m_vertexIndex = xyindex;</span>
+<span class="fc" id="L1255">		edge.m_pathIndex = pathIndex;</span>
+<span class="fc" id="L1256">		edge.m_flags = 0;</span>
+<span class="fc" id="L1257">		edge.setReversed(bReversed);</span>
+
+<span class="fc" id="L1259">		return edge;</span>
+	}
+
+	private Edge createEdgeLine_(/* const */Segment seg) {
+<span class="fc" id="L1263">		Edge edge = null;</span>
+<span class="fc bfc" id="L1264" title="All 2 branches covered.">		if (m_lineEdgesRecycle.size() &gt; 0) {</span>
+<span class="fc" id="L1265">			int indexLast = m_lineEdgesRecycle.size() - 1;</span>
+<span class="fc" id="L1266">			edge = m_lineEdgesRecycle.get(indexLast);</span>
+<span class="fc" id="L1267">			m_lineEdgesRecycle.remove(indexLast);</span>
+<span class="fc" id="L1268">			seg.copyTo(edge.m_segment);</span>
+<span class="fc" id="L1269">		} else {</span>
+<span class="fc" id="L1270">			edge = new Edge();</span>
+<span class="fc" id="L1271">			edge.m_segment = (Segment) Segment._clone(seg);</span>
+		}
+
+<span class="fc" id="L1274">		return edge;</span>
+	}
+
+	private void recycleEdge_(/* const */Edge edge) {
+<span class="fc" id="L1278">		Geometry.Type gt = edge.m_segment.getType();</span>
+<span class="pc bpc" id="L1279" title="1 of 2 branches missed.">		if (gt == Geometry.Type.Line) {</span>
+<span class="fc" id="L1280">			m_lineEdgesRecycle.add(edge);</span>
+		}
+<span class="fc" id="L1282">	}</span>
+
+	private static final class ClusterTestComparator extends Treap.Comparator {
+		OperatorSimplifyLocalHelper m_helper;
+
+<span class="fc" id="L1287">		ClusterTestComparator(OperatorSimplifyLocalHelper helper) {</span>
+<span class="fc" id="L1288">			m_helper = helper;</span>
+<span class="fc" id="L1289">		}</span>
+
+		@Override
+		int compare(/* const */Treap treap, int xy1, int node) {
+<span class="fc" id="L1293">			int xy2 = treap.getElement(node);</span>
+<span class="fc" id="L1294">			double x1 = m_helper.m_xy.read(2 * xy1);</span>
+<span class="fc" id="L1295">			double x2 = m_helper.m_xy.read(2 * xy2);</span>
+<span class="fc" id="L1296">			double dx = x1 - x2;</span>
+<span class="fc bfc" id="L1297" title="All 4 branches covered.">			return dx &lt; 0 ? -1 : (dx &gt; 0 ? 1 : 0);</span>
+		}
+	}
+
+<span class="fc" id="L1301">	private static final class RingOrientationTestComparator extends</span>
+			Treap.Comparator {
+		private OperatorSimplifyLocalHelper m_helper;
+
+<span class="fc" id="L1305">		RingOrientationTestComparator(OperatorSimplifyLocalHelper helper) {</span>
+<span class="fc" id="L1306">			m_helper = helper;</span>
+<span class="fc" id="L1307">		}</span>
+
+		@Override
+		int compare(/* const */Treap treap, int left, int node) {
+<span class="fc" id="L1311">			int right = treap.getElement(node);</span>
+<span class="fc" id="L1312">			Edge edge1 = m_helper.m_edges.get(left);</span>
+<span class="fc" id="L1313">			Edge edge2 = m_helper.m_edges.get(right);</span>
+<span class="fc" id="L1314">			boolean bEdge1Reversed = edge1.getReversed();</span>
+<span class="fc" id="L1315">			boolean bEdge2Reversed = edge2.getReversed();</span>
+
+<span class="fc" id="L1317">			double x1 = edge1.m_segment.intersectionOfYMonotonicWithAxisX(</span>
+<span class="fc" id="L1318">					m_helper.m_yScanline, 0);</span>
+<span class="fc" id="L1319">			double x2 = edge2.m_segment.intersectionOfYMonotonicWithAxisX(</span>
+<span class="fc" id="L1320">					m_helper.m_yScanline, 0);</span>
+
+<span class="fc bfc" id="L1322" title="All 2 branches covered.">			if (x1 == x2) {</span>
+				// apparently these edges originate from same vertex and the
+				// scanline is on the vertex.move scanline a little.
+<span class="fc bfc" id="L1325" title="All 2 branches covered.">				double y1 = bEdge1Reversed ? edge1.m_segment.getStartY()</span>
+<span class="fc" id="L1326">						: edge1.m_segment.getEndY();</span>
+<span class="fc bfc" id="L1327" title="All 2 branches covered.">				double y2 = bEdge2Reversed ? edge2.m_segment.getStartY()</span>
+<span class="fc" id="L1328">						: edge2.m_segment.getEndY();</span>
+<span class="fc" id="L1329">				double miny = Math.min(y1, y2);</span>
+<span class="fc" id="L1330">				double y = (miny - m_helper.m_yScanline) * 0.5</span>
+<span class="fc" id="L1331">						+ m_helper.m_yScanline;</span>
+<span class="pc bpc" id="L1332" title="1 of 2 branches missed.">				if (y == m_helper.m_yScanline) {</span>
+					// assert(0); //ST: not a bug. just curious to see this
+					// happens.
+<span class="nc" id="L1335">					y = miny; // apparently, one of the segments is almost</span>
+								// horizontal line.
+				}
+<span class="fc" id="L1338">				x1 = edge1.m_segment.intersectionOfYMonotonicWithAxisX(y, 0);</span>
+<span class="fc" id="L1339">				x2 = edge2.m_segment.intersectionOfYMonotonicWithAxisX(y, 0);</span>
+<span class="pc bpc" id="L1340" title="1 of 2 branches missed.">				assert (x1 != x2);</span>
+			}
+
+<span class="pc bpc" id="L1343" title="1 of 4 branches missed.">			return x1 &lt; x2 ? -1 : (x1 &gt; x2 ? 1 : 0);</span>
+		}
+	}
+
+	int multiPointIsSimpleAsFeature_() {
+<span class="fc" id="L1348">		MultiVertexGeometryImpl multiVertexImpl = (MultiVertexGeometryImpl) m_geometry</span>
+<span class="fc" id="L1349">				._getImpl();</span>
+		// sort lexicographically: by y,then by x, then by other attributes in
+		// the order.
+		// Go through the sorted list and make sure no points coincide exactly
+		// (no tolerance is taken into account).
+<span class="fc" id="L1354">		int pointCount = multiVertexImpl.getPointCount();</span>
+
+<span class="fc" id="L1356">		AttributeStreamOfInt32 indices = new AttributeStreamOfInt32(0);</span>
+
+<span class="fc bfc" id="L1358" title="All 2 branches covered.">		for (int i = 0; i &lt; pointCount; i++) {</span>
+<span class="fc" id="L1359">			indices.add(i);</span>
+		}
+
+<span class="fc" id="L1362">		indices.Sort(0, pointCount, new MultiPointVertexComparer(this));</span>
+
+<span class="fc bfc" id="L1364" title="All 2 branches covered.">		for (int i = 1; i &lt; pointCount; i++) {</span>
+<span class="fc bfc" id="L1365" title="All 2 branches covered.">			if (compareVerticesMultiPoint_(indices.get(i - 1), indices.get(i)) == 0) {</span>
+<span class="fc" id="L1366">				m_nonSimpleResult = new NonSimpleResult(</span>
+<span class="fc" id="L1367">						NonSimpleResult.Reason.Clustering, indices.get(i - 1),</span>
+<span class="fc" id="L1368">						indices.get(i));</span>
+<span class="fc" id="L1369">				return 0;// points are coincident-simplify.</span>
+			}
+		}
+
+<span class="fc" id="L1373">		return 2;</span>
+	}
+
+	int polylineIsSimpleAsFeature_() {
+<span class="fc bfc" id="L1377" title="All 2 branches covered.">		if (!checkStructure_())</span>
+<span class="fc" id="L1378">			return 0;</span>
+		// Non planar IsSimple.
+		// Go through all line segments and make sure no line segments are
+		// degenerate.
+		// Degenerate segment is the one which has its length shorter than
+		// tolerance or Z projection shorter than z tolerance.
+<span class="fc bfc" id="L1384" title="All 2 branches covered.">		return checkDegenerateSegments_(true) ? 2 : 0;</span>
+	}
+
+	int polygonIsSimpleAsFeature_() {
+<span class="fc" id="L1388">		return isSimplePlanarImpl_();</span>
+	}
+
+	MultiPoint multiPointSimplifyAsFeature_() {
+<span class="fc" id="L1392">		MultiVertexGeometryImpl multiVertexImpl = (MultiVertexGeometryImpl) m_geometry</span>
+<span class="fc" id="L1393">				._getImpl();</span>
+		// sort lexicographically:by y,then by x,then by other attributes in the
+		// order.
+<span class="fc" id="L1396">		int pointCount = multiVertexImpl.getPointCount();</span>
+<span class="pc bpc" id="L1397" title="1 of 2 branches missed.">		assert (pointCount &gt; 0);</span>
+
+<span class="fc" id="L1399">		AttributeStreamOfInt32 indices = new AttributeStreamOfInt32(0);</span>
+
+<span class="fc bfc" id="L1401" title="All 2 branches covered.">		for (int i = 0; i &lt; pointCount; i++) {</span>
+<span class="fc" id="L1402">			indices.add(i);</span>
+		}
+
+<span class="fc" id="L1405">		indices.Sort(0, pointCount, new MultiPointVertexComparer2(this));</span>
+
+		// Mark vertices that are unique
+<span class="fc" id="L1408">		boolean[] indicesOut = new boolean[pointCount];</span>
+
+<span class="fc" id="L1410">		indicesOut[indices.get(0)] = true;</span>
+
+<span class="fc bfc" id="L1412" title="All 2 branches covered.">		for (int i = 1; i &lt; pointCount; i++) {</span>
+<span class="fc" id="L1413">			int ind1 = indices.get(i - 1);</span>
+<span class="fc" id="L1414">			int ind2 = indices.get(i);</span>
+<span class="fc bfc" id="L1415" title="All 2 branches covered.">			if (compareVerticesMultiPoint_(ind1, ind2) == 0) {</span>
+<span class="fc" id="L1416">				indicesOut[ind2] = false;</span>
+<span class="fc" id="L1417">				continue;</span>
+			}
+
+<span class="fc" id="L1420">			indicesOut[ind2] = true;</span>
+		}
+
+		// get rid of non-unique vertices.
+		// We preserve the order of MultiPoint vertices.Among duplicate
+		// vertices,those that have
+		// higher index are deleted.
+<span class="fc" id="L1427">		MultiPoint dst = (MultiPoint) m_geometry.createInstance();</span>
+<span class="fc" id="L1428">		MultiPoint src = (MultiPoint) m_geometry;</span>
+<span class="fc" id="L1429">		int istart = 0;</span>
+<span class="fc" id="L1430">		int iend = 1;</span>
+<span class="fc bfc" id="L1431" title="All 2 branches covered.">		for (int i = 0; i &lt; pointCount; i++) {</span>
+<span class="fc bfc" id="L1432" title="All 2 branches covered.">			if (indicesOut[i])</span>
+<span class="fc" id="L1433">				iend = i + 1;</span>
+			else {
+<span class="pc bpc" id="L1435" title="1 of 2 branches missed.">				if (istart &lt; iend) {</span>
+<span class="fc" id="L1436">					dst.add(src, istart, iend);</span>
+				}
+
+<span class="fc" id="L1439">				istart = i + 1;</span>
+			}
+		}
+
+<span class="fc bfc" id="L1443" title="All 2 branches covered.">		if (istart &lt; iend) {</span>
+<span class="fc" id="L1444">			dst.add(src, istart, iend);</span>
+		}
+
+<span class="fc" id="L1447">		((MultiVertexGeometryImpl) dst._getImpl()).setIsSimple(</span>
+				GeometryXSimple.Strong, m_toleranceSimplify, false);
+<span class="fc" id="L1449">		return dst;</span>
+	}
+
+	Polyline polylineSimplifyAsFeature_() {
+		// Non planar simplify.
+		// Go through all line segments and make sure no line segments are
+		// degenerate.
+		// Degenerate segment is the one which has its length shorter than
+		// tolerance or Z projection shorter than z tolerance.
+		// The algorithm processes each path symmetrically from each end to
+		// ensure the result of simplify does not depend on the direction of the
+		// path.
+
+<span class="fc" id="L1462">		MultiPathImpl multiPathImpl = (MultiPathImpl) m_geometry._getImpl();</span>
+<span class="fc" id="L1463">		SegmentIteratorImpl segIterFwd = multiPathImpl.querySegmentIterator();</span>
+<span class="fc" id="L1464">		SegmentIteratorImpl segIterBwd = multiPathImpl.querySegmentIterator();</span>
+<span class="fc" id="L1465">		Polyline dst = (Polyline) m_geometry.createInstance();</span>
+<span class="fc" id="L1466">		Polyline src = (Polyline) m_geometry;</span>
+		// Envelope2D env2D;
+<span class="fc" id="L1468">		boolean bHasZ = multiPathImpl</span>
+<span class="fc" id="L1469">				.hasAttribute(VertexDescription.Semantics.Z);</span>
+<span class="pc bpc" id="L1470" title="1 of 2 branches missed.">		double ztolerance = !bHasZ ? 0.0 : InternalUtils</span>
+<span class="pc" id="L1471">				.calculateZToleranceFromGeometry(m_sr, multiPathImpl, true);</span>
+<span class="fc" id="L1472">		AttributeStreamOfInt32 fwdStack = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L1473">		AttributeStreamOfInt32 bwdStack = new AttributeStreamOfInt32(0);</span>
+<span class="fc" id="L1474">		fwdStack.reserve(multiPathImpl.getPointCount() / 2 + 1);</span>
+<span class="fc" id="L1475">		bwdStack.reserve(multiPathImpl.getPointCount() / 2 + 1);</span>
+<span class="fc bfc" id="L1476" title="All 2 branches covered.">		while (segIterFwd.nextPath()) {</span>
+<span class="fc" id="L1477">			segIterBwd.nextPath();</span>
+<span class="fc bfc" id="L1478" title="All 2 branches covered.">			if (multiPathImpl.getPathSize(segIterFwd.getPathIndex()) &lt; 2)</span>
+<span class="fc" id="L1479">				continue;</span>
+
+<span class="fc" id="L1481">			segIterBwd.resetToLastSegment();</span>
+<span class="fc" id="L1482">			double lengthFwd = 0;</span>
+<span class="fc" id="L1483">			double lengthBwd = 0;</span>
+<span class="fc" id="L1484">			boolean bFirst = true;</span>
+<span class="fc bfc" id="L1485" title="All 2 branches covered.">			while (segIterFwd.hasNextSegment()) {</span>
+<span class="pc bpc" id="L1486" title="1 of 2 branches missed.">				assert (segIterBwd.hasPreviousSegment());</span>
+
+<span class="fc" id="L1488">				/* const */Segment segFwd = segIterFwd.nextSegment();</span>
+<span class="fc" id="L1489">				/* const */Segment segBwd = segIterBwd.previousSegment();</span>
+
+<span class="fc" id="L1491">				int idx1 = segIterFwd.getStartPointIndex();</span>
+<span class="fc" id="L1492">				int idx2 = segIterBwd.getStartPointIndex();</span>
+<span class="fc bfc" id="L1493" title="All 2 branches covered.">				if (idx1 &gt; idx2)</span>
+<span class="fc" id="L1494">					break;</span>
+
+<span class="fc bfc" id="L1496" title="All 2 branches covered.">				if (bFirst) {</span>
+					// add the very first and the very last point indices
+<span class="fc" id="L1498">					fwdStack.add(segIterFwd.getStartPointIndex());// first goes</span>
+																	// to
+																	// fwdStack
+<span class="fc" id="L1501">					bwdStack.add(segIterBwd.getEndPointIndex());// last goes to</span>
+																// bwdStack
+<span class="fc" id="L1503">					bFirst = false;</span>
+				}
+
+				{
+<span class="fc" id="L1507">					int index0 = fwdStack.getLast();</span>
+<span class="fc" id="L1508">					int index1 = segIterFwd.getEndPointIndex();</span>
+<span class="pc bpc" id="L1509" title="1 of 2 branches missed.">					if (index1 - index0 &gt; 1) {</span>
+<span class="nc" id="L1510">						Point2D pt = new Point2D();</span>
+<span class="nc" id="L1511">						pt.sub(multiPathImpl.getXY(index0),</span>
+<span class="nc" id="L1512">								multiPathImpl.getXY(index1));</span>
+<span class="nc" id="L1513">						lengthFwd = pt.length();</span>
+<span class="nc" id="L1514">					} else {</span>
+<span class="fc" id="L1515">						lengthFwd = segFwd.calculateLength2D();</span>
+					}
+				}
+
+				{
+<span class="fc" id="L1520">					int index0 = bwdStack.getLast();</span>
+<span class="fc" id="L1521">					int index1 = segIterBwd.getStartPointIndex();</span>
+<span class="pc bpc" id="L1522" title="1 of 2 branches missed.">					if (index1 - index0 &gt; 1) {</span>
+<span class="nc" id="L1523">						Point2D pt = new Point2D();</span>
+<span class="nc" id="L1524">						pt.sub(multiPathImpl.getXY(index0),</span>
+<span class="nc" id="L1525">								multiPathImpl.getXY(index1));</span>
+<span class="nc" id="L1526">						lengthBwd = pt.length();</span>
+<span class="nc" id="L1527">					} else {</span>
+<span class="fc" id="L1528">						lengthBwd = segBwd.calculateLength2D();</span>
+					}
+				}
+
+<span class="fc bfc" id="L1532" title="All 2 branches covered.">				if (lengthFwd &gt; m_toleranceSimplify) {</span>
+<span class="fc" id="L1533">					fwdStack.add(segIterFwd.getEndPointIndex());</span>
+<span class="fc" id="L1534">					lengthFwd = 0;</span>
+				} else {
+<span class="pc bpc" id="L1536" title="1 of 2 branches missed.">					if (bHasZ) {</span>
+<span class="nc" id="L1537">						double z0 = multiPathImpl.getAttributeAsDbl(</span>
+								VertexDescription.Semantics.Z,
+<span class="nc" id="L1539">								fwdStack.getLast(), 0);</span>
+<span class="nc" id="L1540">						double z1 = segFwd.getEndAttributeAsDbl(</span>
+								VertexDescription.Semantics.Z, 0);
+<span class="nc bnc" id="L1542" title="All 2 branches missed.">						if (Math.abs(z1 - z0) &gt; ztolerance) {</span>
+<span class="nc" id="L1543">							fwdStack.add(segIterFwd.getEndPointIndex());</span>
+<span class="nc" id="L1544">							lengthFwd = 0;</span>
+						}
+					}
+				}
+
+<span class="fc bfc" id="L1549" title="All 2 branches covered.">				if (lengthBwd &gt; m_toleranceSimplify) {</span>
+<span class="fc" id="L1550">					bwdStack.add(segIterBwd.getStartPointIndex());</span>
+<span class="fc" id="L1551">					lengthBwd = 0;</span>
+				} else {
+<span class="pc bpc" id="L1553" title="1 of 2 branches missed.">					if (bHasZ) {</span>
+<span class="nc" id="L1554">						double z0 = multiPathImpl.getAttributeAsDbl(</span>
+								VertexDescription.Semantics.Z,
+<span class="nc" id="L1556">								bwdStack.getLast(), 0);</span>
+<span class="nc" id="L1557">						double z1 = segBwd.getEndAttributeAsDbl(</span>
+								VertexDescription.Semantics.Z, 0);
+<span class="nc bnc" id="L1559" title="All 2 branches missed.">						if (Math.abs(z1 - z0) &gt; ztolerance) {</span>
+<span class="nc" id="L1560">							bwdStack.add(segIterBwd.getStartPointIndex());</span>
+<span class="nc" id="L1561">							lengthBwd = 0;</span>
+						}
+					}
+				}
+<span class="fc" id="L1565">			}</span>
+
+			// assert(fwdStack.getLast() &lt;= bwdStack.getLast());
+<span class="fc bfc" id="L1568" title="All 2 branches covered.">			if (fwdStack.getLast() &lt; bwdStack.getLast()) {</span>
+				// There is degenerate segment in the middle. Remove.
+				// If the path degenerate, this will make fwdStack.size() +
+				// bwdStack.size() &lt; 2.
+<span class="fc bfc" id="L1572" title="All 2 branches covered.">				if (fwdStack.size() &gt; bwdStack.size())</span>
+<span class="fc" id="L1573">					fwdStack.removeLast();</span>
+				else
+<span class="fc" id="L1575">					bwdStack.removeLast();</span>
+<span class="fc bfc" id="L1576" title="All 2 branches covered.">			} else if (fwdStack.getLast() == bwdStack.getLast()) {</span>
+<span class="fc" id="L1577">				bwdStack.removeLast();</span>
+			} else {
+<span class="pc bpc" id="L1579" title="1 of 2 branches missed.">				assert (fwdStack.getLast() - bwdStack.getLast() == 1);</span>
+<span class="fc" id="L1580">				bwdStack.removeLast();</span>
+<span class="fc" id="L1581">				bwdStack.removeLast();</span>
+			}
+
+<span class="fc bfc" id="L1584" title="All 2 branches covered.">			if (bwdStack.size() + fwdStack.size() &gt;= 2) {</span>
+				// Completely ignore the curves for now.
+<span class="fc" id="L1586">				Point point = new Point();</span>
+<span class="fc bfc" id="L1587" title="All 2 branches covered.">				for (int i = 0, n = fwdStack.size(); i &lt; n; i++) {</span>
+<span class="fc" id="L1588">					src.getPointByVal(fwdStack.get(i), point);</span>
+<span class="fc bfc" id="L1589" title="All 2 branches covered.">					if (i == 0)</span>
+<span class="fc" id="L1590">						dst.startPath(point);</span>
+					else
+<span class="fc" id="L1592">						dst.lineTo(point);</span>
+				}
+
+				// int prevIdx = fwdStack.getLast();
+<span class="fc bfc" id="L1596" title="All 2 branches covered.">				for (int i = bwdStack.size() - 1; i &gt; 0; i--) {</span>
+<span class="fc" id="L1597">					src.getPointByVal(bwdStack.get(i), point);</span>
+<span class="fc" id="L1598">					dst.lineTo(point);</span>
+				}
+
+<span class="pc bpc" id="L1601" title="1 of 2 branches missed.">				if (src.isClosedPath(segIterFwd.getPathIndex())) {</span>
+<span class="nc" id="L1602">					dst.closePathWithLine();</span>
+				} else {
+<span class="fc bfc" id="L1604" title="All 2 branches covered.">					if (bwdStack.size() &gt; 0) {</span>
+<span class="fc" id="L1605">						src.getPointByVal(bwdStack.get(0), point);</span>
+<span class="fc" id="L1606">						dst.lineTo(point);</span>
+					}
+				}
+			} else {
+				// degenerate path won't be added
+			}
+
+<span class="pc bpc" id="L1613" title="1 of 2 branches missed.">			if (fwdStack != null)</span>
+<span class="fc" id="L1614">				fwdStack.clear(false);</span>
+<span class="pc bpc" id="L1615" title="1 of 2 branches missed.">			if (bwdStack != null)</span>
+<span class="fc" id="L1616">				bwdStack.clear(false);</span>
+<span class="fc" id="L1617">		}</span>
+
+<span class="fc" id="L1619">		((MultiVertexGeometryImpl) dst._getImpl()).setIsSimple(</span>
+				GeometryXSimple.Strong, m_toleranceSimplify, false);
+<span class="fc" id="L1621">		return dst;</span>
+	}
+
+	Polygon polygonSimplifyAsFeature_() {
+<span class="fc" id="L1625">		return (Polygon) simplifyPlanar_();</span>
+	}
+
+	MultiVertexGeometry simplifyPlanar_() {
+		// do clustering/cracking loop
+		// if (false)
+		// {
+		// ((MultiPathImpl)m_geometry._getImpl()).saveToTextFileDbg(&quot;c:/temp/_simplifyDbg0.txt&quot;);
+		// }
+
+<span class="pc bpc" id="L1635" title="1 of 2 branches missed.">		if (m_geometry.getType() == Geometry.Type.Polygon) {</span>
+<span class="fc bfc" id="L1636" title="All 2 branches covered.">			if (((Polygon) m_geometry).getFillRule() == Polygon.FillRule.enumFillRuleWinding) {</span>
+				// when the fill rule is winding, we need to call a special
+				// method.
+<span class="fc" id="L1639">				return TopologicalOperations.planarSimplify(</span>
+						(MultiVertexGeometry) m_geometry, m_toleranceSimplify,
+						true, false, m_progressTracker);
+			}
+		}
+		
+<span class="fc" id="L1645">		m_editShape = new EditShape();</span>
+<span class="fc" id="L1646">		m_editShape.addGeometry(m_geometry);</span>
+
+<span class="pc bpc" id="L1648" title="1 of 2 branches missed.">		if (m_editShape.getTotalPointCount() != 0) {</span>
+<span class="pc bpc" id="L1649" title="1 of 2 branches missed.">			assert (m_knownSimpleResult != GeometryXSimple.Strong);</span>
+<span class="pc bpc" id="L1650" title="1 of 2 branches missed.">			if (m_knownSimpleResult != GeometryXSimple.Weak) {</span>
+<span class="fc" id="L1651">				CrackAndCluster.execute(m_editShape, m_toleranceSimplify,</span>
+						m_progressTracker, true);
+			}
+	
+<span class="pc bpc" id="L1655" title="1 of 2 branches missed.">			if (m_geometry.getType().equals(Geometry.Type.Polygon)) {</span>
+<span class="fc" id="L1656">				Simplificator.execute(m_editShape, m_editShape.getFirstGeometry(),</span>
+						m_knownSimpleResult, false, m_progressTracker);
+			}
+		}
+		
+<span class="fc" id="L1661">		m_geometry = m_editShape.getGeometry(m_editShape.getFirstGeometry()); // extract</span>
+																				// the
+																				// result
+																				// of
+																				// simplify
+
+<span class="pc bpc" id="L1667" title="1 of 2 branches missed.">		if (m_geometry.getType().equals(Geometry.Type.Polygon)) {</span>
+<span class="fc" id="L1668">			((MultiPathImpl)m_geometry._getImpl())._updateOGCFlags();</span>
+<span class="fc" id="L1669">			((Polygon)m_geometry).setFillRule(Polygon.FillRule.enumFillRuleOddEven);</span>
+		}
+
+		// We have simplified the geometry using the given tolerance. Now mark
+		// the geometry as strong simple,
+		// So that the next call will not have to repeat these steps.
+
+<span class="fc" id="L1676">		((MultiVertexGeometryImpl) m_geometry._getImpl()).setIsSimple(</span>
+				GeometryXSimple.Strong, m_toleranceSimplify, false);
+
+<span class="fc" id="L1679">		return (MultiVertexGeometry) (m_geometry);</span>
+	}
+
+	NonSimpleResult m_nonSimpleResult;
+
+	OperatorSimplifyLocalHelper(Geometry geometry,
+			SpatialReference spatialReference, int knownSimpleResult,
+<span class="fc" id="L1686">			ProgressTracker progressTracker, boolean bOGCRestrictions) {</span>
+
+<span class="fc" id="L1688">		m_description = geometry.getDescription();</span>
+<span class="fc" id="L1689">		m_geometry = geometry;</span>
+<span class="fc" id="L1690">		m_sr = (SpatialReferenceImpl) spatialReference;</span>
+<span class="fc" id="L1691">		m_dbgCounter = 0;</span>
+<span class="fc" id="L1692">		m_toleranceIsSimple = InternalUtils.calculateToleranceFromGeometry(</span>
+				m_sr, geometry, false);
+<span class="fc" id="L1694">		m_toleranceSimplify = InternalUtils.calculateToleranceFromGeometry(</span>
+				m_sr, geometry, true);
+		// m_toleranceCluster = m_toleranceSimplify * Math.sqrt(2.0) * 1.00001;
+<span class="fc" id="L1697">		m_knownSimpleResult = knownSimpleResult;</span>
+<span class="fc" id="L1698">		m_attributeCount = m_description.getAttributeCount();</span>
+<span class="fc" id="L1699">		m_edges = new ArrayList&lt;Edge&gt;();</span>
+<span class="fc" id="L1700">		m_lineEdgesRecycle = new ArrayList&lt;Edge&gt;();</span>
+<span class="fc" id="L1701">		m_crossOverHelperList = new IndexMultiDCList();</span>
+<span class="fc" id="L1702">		m_AET = new Treap();</span>
+<span class="fc" id="L1703">		m_nonSimpleResult = new NonSimpleResult();</span>
+<span class="fc" id="L1704">		m_bOGCRestrictions = bOGCRestrictions;</span>
+<span class="fc" id="L1705">		m_bPlanarSimplify = m_bOGCRestrictions;</span>
+<span class="fc" id="L1706">	}</span>
+
+	// Returns 0 non-simple, 1 weak simple, 2 strong simple
+	/**
+	 * The code is executed in the 2D plane only.Attributes are ignored.
+	 * MultiPoint-check for clustering. Polyline -check for clustering and
+	 * cracking. Polygon -check for clustering,cracking,absence of
+	 * self-intersections,and correct ring ordering.
+	 */
+	static protected int isSimplePlanar(/* const */Geometry geometry, /* const */
+	SpatialReference spatialReference, boolean bForce,
+			ProgressTracker progressTracker) {
+<span class="nc" id="L1718">		assert (false); // this code is not called yet.</span>
+<span class="nc bnc" id="L1719" title="All 2 branches missed.">		if (geometry.isEmpty())</span>
+<span class="nc" id="L1720">			return 1;</span>
+<span class="nc" id="L1721">		Geometry.Type gt = geometry.getType();</span>
+<span class="nc bnc" id="L1722" title="All 2 branches missed.">		if (gt == Geometry.Type.Point)</span>
+<span class="nc" id="L1723">			return 1;</span>
+<span class="nc bnc" id="L1724" title="All 2 branches missed.">		else if (gt == Geometry.Type.Envelope) {</span>
+<span class="nc" id="L1725">			Envelope2D env2D = new Envelope2D();</span>
+<span class="nc" id="L1726">			geometry.queryEnvelope2D(env2D);</span>
+<span class="nc bnc" id="L1727" title="All 2 branches missed.">			boolean bReturnValue = !env2D.isDegenerate(InternalUtils</span>
+<span class="nc" id="L1728">					.calculateToleranceFromGeometry(spatialReference, geometry,</span>
+							false));
+<span class="nc bnc" id="L1730" title="All 2 branches missed.">			return bReturnValue ? 1 : 0;</span>
+<span class="nc bnc" id="L1731" title="All 2 branches missed.">		} else if (Geometry.isSegment(gt.value())) {</span>
+<span class="nc" id="L1732">			throw GeometryException.GeometryInternalError();</span>
+			// return seg.IsSimple(m_tolerance);
+<span class="nc bnc" id="L1734" title="All 2 branches missed.">		} else if (!Geometry.isMultiVertex(gt.value())) {</span>
+<span class="nc" id="L1735">			throw GeometryException.GeometryInternalError();// What else?</span>
+		}
+
+<span class="nc" id="L1738">		double tolerance = InternalUtils.calculateToleranceFromGeometry(</span>
+				spatialReference, geometry, false);
+
+<span class="nc" id="L1741">		double geomTolerance = 0;</span>
+<span class="nc" id="L1742">		int isSimple = ((MultiVertexGeometryImpl) geometry._getImpl())</span>
+<span class="nc" id="L1743">				.getIsSimple(tolerance);</span>
+<span class="nc bnc" id="L1744" title="All 2 branches missed.">		int knownSimpleResult = bForce ? -1 : isSimple;</span>
+		// TODO: need to distinguish KnownSimple between SimpleAsFeature and
+		// SimplePlanar. The SimplePlanar implies SimpleAsFeature.
+<span class="nc bnc" id="L1747" title="All 2 branches missed.">		if (knownSimpleResult != -1)</span>
+<span class="nc" id="L1748">			return knownSimpleResult;</span>
+
+<span class="nc bnc" id="L1750" title="All 2 branches missed.">		if (knownSimpleResult == GeometryXSimple.Weak) {</span>
+<span class="nc bnc" id="L1751" title="All 2 branches missed.">			assert (tolerance &lt;= geomTolerance);</span>
+<span class="nc" id="L1752">			tolerance = geomTolerance;// OVERRIDE the tolerance.</span>
+		}
+
+<span class="nc" id="L1755">		OperatorSimplifyLocalHelper helper = new OperatorSimplifyLocalHelper(</span>
+				geometry, spatialReference, knownSimpleResult, progressTracker,
+				false);
+<span class="nc" id="L1758">		knownSimpleResult = helper.isSimplePlanarImpl_();</span>
+<span class="nc" id="L1759">		((MultiVertexGeometryImpl) geometry._getImpl()).setIsSimple(</span>
+				knownSimpleResult, tolerance, false);
+<span class="nc" id="L1761">		return knownSimpleResult;</span>
+	}
+
+	/**
+	 * Checks if Geometry is simple for storing in DB:
+	 * 
+	 * MultiPoint:check that no points coincide.tolerance is ignored.
+	 * Polyline:ensure there no segments degenerate segments. Polygon:Same as
+	 * IsSimplePlanar.
+	 */
+	static protected int isSimpleAsFeature(/* const */Geometry geometry, /* const */
+	SpatialReference spatialReference, boolean bForce, NonSimpleResult result,
+			ProgressTracker progressTracker) {
+<span class="fc bfc" id="L1774" title="All 2 branches covered.">		if (result != null) {</span>
+<span class="fc" id="L1775">			result.m_reason = NonSimpleResult.Reason.NotDetermined;</span>
+<span class="fc" id="L1776">			result.m_vertexIndex1 = -1;</span>
+<span class="fc" id="L1777">			result.m_vertexIndex2 = -1;</span>
+		}
+<span class="fc bfc" id="L1779" title="All 2 branches covered.">		if (geometry.isEmpty())</span>
+<span class="fc" id="L1780">			return 1;</span>
+<span class="fc" id="L1781">		Geometry.Type gt = geometry.getType();</span>
+<span class="fc bfc" id="L1782" title="All 2 branches covered.">		if (gt == Geometry.Type.Point)</span>
+<span class="fc" id="L1783">			return 1;</span>
+
+<span class="fc" id="L1785">		double tolerance = InternalUtils.calculateToleranceFromGeometry(</span>
+				spatialReference, geometry, false);
+<span class="fc bfc" id="L1787" title="All 2 branches covered.">		if (gt == Geometry.Type.Envelope) {</span>
+<span class="fc" id="L1788">			/* const */Envelope env = (Envelope) geometry;</span>
+<span class="fc" id="L1789">			Envelope2D env2D = new Envelope2D();</span>
+<span class="fc" id="L1790">			env.queryEnvelope2D(env2D);</span>
+<span class="fc bfc" id="L1791" title="All 2 branches covered.">			if (env2D.isDegenerate(tolerance)) {</span>
+<span class="pc bpc" id="L1792" title="1 of 2 branches missed.">				if (result != null) {</span>
+<span class="nc" id="L1793">					result.m_reason = NonSimpleResult.Reason.DegenerateSegments;</span>
+<span class="nc" id="L1794">					result.m_vertexIndex1 = -1;</span>
+<span class="nc" id="L1795">					result.m_vertexIndex2 = -1;</span>
+				}
+<span class="fc" id="L1797">				return 0;</span>
+			}
+<span class="fc" id="L1799">			return 1;</span>
+<span class="fc bfc" id="L1800" title="All 2 branches covered.">		} else if (Geometry.isSegment(gt.value())) {</span>
+<span class="fc" id="L1801">			/* const */Segment seg = (Segment) geometry;</span>
+<span class="fc" id="L1802">			Polyline polyline = new Polyline(seg.getDescription());</span>
+<span class="fc" id="L1803">			polyline.addSegment(seg, true);</span>
+<span class="fc" id="L1804">			return isSimpleAsFeature(polyline, spatialReference, bForce,</span>
+					result, progressTracker);
+		}
+
+		// double geomTolerance = 0;
+<span class="fc" id="L1809">		int isSimple = ((MultiVertexGeometryImpl) geometry._getImpl())</span>
+<span class="fc" id="L1810">				.getIsSimple(tolerance);</span>
+<span class="fc bfc" id="L1811" title="All 2 branches covered.">		int knownSimpleResult = bForce ? -1 : isSimple;</span>
+		// TODO: need to distinguish KnownSimple between SimpleAsFeature and
+		// SimplePlanar.
+		// From the first sight it seems the SimplePlanar implies
+		// SimpleAsFeature.
+<span class="fc bfc" id="L1816" title="All 2 branches covered.">		if (knownSimpleResult != -1)</span>
+<span class="fc" id="L1817">			return knownSimpleResult;</span>
+
+<span class="fc" id="L1819">		OperatorSimplifyLocalHelper helper = new OperatorSimplifyLocalHelper(</span>
+				geometry, spatialReference, knownSimpleResult, progressTracker,
+				false);
+
+<span class="fc bfc" id="L1823" title="All 2 branches covered.">		if (gt == Geometry.Type.MultiPoint) {</span>
+<span class="fc" id="L1824">			knownSimpleResult = helper.multiPointIsSimpleAsFeature_();</span>
+<span class="fc bfc" id="L1825" title="All 2 branches covered.">		} else if (gt == Geometry.Type.Polyline) {</span>
+<span class="fc" id="L1826">			knownSimpleResult = helper.polylineIsSimpleAsFeature_();</span>
+<span class="pc bpc" id="L1827" title="1 of 2 branches missed.">		} else if (gt == Geometry.Type.Polygon) {</span>
+<span class="fc" id="L1828">			knownSimpleResult = helper.polygonIsSimpleAsFeature_();</span>
+		} else {
+<span class="nc" id="L1830">			throw GeometryException.GeometryInternalError();// what else?</span>
+		}
+
+<span class="fc" id="L1833">		((MultiVertexGeometryImpl) (geometry._getImpl())).setIsSimple(</span>
+				knownSimpleResult, tolerance, false);
+<span class="fc bfc" id="L1835" title="All 4 branches covered.">		if (result != null &amp;&amp; knownSimpleResult == 0)</span>
+<span class="fc" id="L1836">			result.Assign(helper.m_nonSimpleResult);</span>
+<span class="fc" id="L1837">		return knownSimpleResult;</span>
+	}
+
+	static int isSimpleOGC(/* const */Geometry geometry, /* const */
+	SpatialReference spatialReference, boolean bForce, NonSimpleResult result,
+			ProgressTracker progressTracker) {
+<span class="fc bfc" id="L1843" title="All 2 branches covered.">		if (result != null) {</span>
+<span class="fc" id="L1844">			result.m_reason = NonSimpleResult.Reason.NotDetermined;</span>
+<span class="fc" id="L1845">			result.m_vertexIndex1 = -1;</span>
+<span class="fc" id="L1846">			result.m_vertexIndex2 = -1;</span>
+		}
+<span class="pc bpc" id="L1848" title="1 of 2 branches missed.">		if (geometry.isEmpty())</span>
+<span class="nc" id="L1849">			return 1;</span>
+<span class="fc" id="L1850">		Geometry.Type gt = geometry.getType();</span>
+<span class="pc bpc" id="L1851" title="1 of 2 branches missed.">		if (gt == Geometry.Type.Point)</span>
+<span class="nc" id="L1852">			return 1;</span>
+
+<span class="fc" id="L1854">		double tolerance = InternalUtils.calculateToleranceFromGeometry(</span>
+				spatialReference, geometry, false);
+<span class="pc bpc" id="L1856" title="1 of 2 branches missed.">		if (gt == Geometry.Type.Envelope) {</span>
+<span class="nc" id="L1857">			/* const */Envelope env = (Envelope) geometry;</span>
+<span class="nc" id="L1858">			Envelope2D env2D = new Envelope2D();</span>
+<span class="nc" id="L1859">			env.queryEnvelope2D(env2D);</span>
+<span class="nc bnc" id="L1860" title="All 2 branches missed.">			if (env2D.isDegenerate(tolerance)) {</span>
+<span class="nc bnc" id="L1861" title="All 2 branches missed.">				if (result != null) {</span>
+<span class="nc" id="L1862">					result.m_reason = NonSimpleResult.Reason.DegenerateSegments;</span>
+<span class="nc" id="L1863">					result.m_vertexIndex1 = -1;</span>
+<span class="nc" id="L1864">					result.m_vertexIndex2 = -1;</span>
+				}
+<span class="nc" id="L1866">				return 0;</span>
+			}
+<span class="nc" id="L1868">			return 1;</span>
+<span class="pc bpc" id="L1869" title="1 of 2 branches missed.">		} else if (Geometry.isSegment(gt.value())) {</span>
+<span class="nc" id="L1870">			/* const */Segment seg = (Segment) geometry;</span>
+<span class="nc" id="L1871">			Polyline polyline = new Polyline(seg.getDescription());</span>
+<span class="nc" id="L1872">			polyline.addSegment(seg, true);</span>
+<span class="nc" id="L1873">			return isSimpleAsFeature(polyline, spatialReference, bForce,</span>
+					result, progressTracker);
+		}
+
+<span class="fc" id="L1877">		int knownSimpleResult = -1;</span>
+
+<span class="fc" id="L1879">		OperatorSimplifyLocalHelper helper = new OperatorSimplifyLocalHelper(</span>
+				geometry, spatialReference, knownSimpleResult, progressTracker,
+				true);
+
+<span class="pc bpc" id="L1883" title="1 of 6 branches missed.">		if (gt == Geometry.Type.MultiPoint || gt == Geometry.Type.Polyline</span>
+				|| gt == Geometry.Type.Polygon) {
+<span class="fc" id="L1885">			knownSimpleResult = helper.isSimplePlanarImpl_();</span>
+		} else {
+<span class="nc" id="L1887">			throw GeometryException.GeometryInternalError();// what else?</span>
+		}
+
+<span class="fc bfc" id="L1890" title="All 2 branches covered.">		if (result != null)</span>
+<span class="fc" id="L1891">			result.Assign(helper.m_nonSimpleResult);</span>
+
+<span class="fc" id="L1893">		return knownSimpleResult;</span>
+	}
+
+	/**
+	 * Simplifies geometries for storing in DB:
+	 * 
+	 * MultiPoint:check that no points coincide.tolerance is ignored.
+	 * Polyline:ensure there no segments degenerate segments. Polygon:cracks and
+	 * clusters using cluster tolerance and resolves all self intersections,
+	 * orients rings properly and arranges the rings in the OGC order.
+	 * 
+	 * Returns simplified geometry.
+	 */
+	static protected Geometry simplifyAsFeature(/* const */Geometry geometry, /* const */
+	SpatialReference spatialReference, boolean bForce,
+			ProgressTracker progressTracker) {
+<span class="fc bfc" id="L1909" title="All 2 branches covered.">		if (geometry.isEmpty())</span>
+<span class="fc" id="L1910">			return geometry;</span>
+<span class="fc" id="L1911">		Geometry.Type gt = geometry.getType();</span>
+<span class="pc bpc" id="L1912" title="1 of 2 branches missed.">		if (gt == Geometry.Type.Point)</span>
+<span class="nc" id="L1913">			return geometry;</span>
+
+<span class="fc" id="L1915">		double tolerance = InternalUtils.calculateToleranceFromGeometry(</span>
+				spatialReference, geometry, false);
+<span class="pc bpc" id="L1917" title="1 of 2 branches missed.">		if (gt == Geometry.Type.Envelope) {</span>
+<span class="nc" id="L1918">			Envelope env = (Envelope) geometry;</span>
+<span class="nc" id="L1919">			Envelope2D env2D = new Envelope2D();</span>
+<span class="nc" id="L1920">			env.queryEnvelope2D(env2D);</span>
+<span class="nc bnc" id="L1921" title="All 2 branches missed.">			if (env2D.isDegenerate(tolerance)) {</span>
+<span class="nc" id="L1922">				return (Geometry) (env.createInstance()); // return empty</span>
+															// geometry
+			}
+<span class="nc" id="L1925">			return geometry;</span>
+<span class="pc bpc" id="L1926" title="1 of 2 branches missed.">		} else if (Geometry.isSegment(gt.value())) {</span>
+<span class="nc" id="L1927">			Segment seg = (Segment) geometry;</span>
+<span class="nc" id="L1928">			Polyline polyline = new Polyline(seg.getDescription());</span>
+<span class="nc" id="L1929">			polyline.addSegment(seg, true);</span>
+<span class="nc" id="L1930">			return simplifyAsFeature(polyline, spatialReference, bForce,</span>
+					progressTracker);
+		}
+
+<span class="fc" id="L1934">		double geomTolerance = 0;</span>
+<span class="fc" id="L1935">		int isSimple = ((MultiVertexGeometryImpl) geometry._getImpl())</span>
+<span class="fc" id="L1936">				.getIsSimple(tolerance);</span>
+<span class="fc bfc" id="L1937" title="All 2 branches covered.">		int knownSimpleResult = bForce ? GeometryXSimple.Unknown : isSimple;</span>
+
+		// TODO: need to distinguish KnownSimple between SimpleAsFeature and
+		// SimplePlanar.
+		// From the first sight it seems the SimplePlanar implies
+		// SimpleAsFeature.
+<span class="fc bfc" id="L1943" title="All 2 branches covered.">		if (knownSimpleResult == GeometryXSimple.Strong) {</span>
+<span class="pc bpc" id="L1944" title="2 of 4 branches missed.">	        if (gt == Geometry.Type.Polygon &amp;&amp; ((Polygon)geometry).getFillRule() != Polygon.FillRule.enumFillRuleOddEven)</span>
+	        {
+<span class="nc" id="L1946">	          Geometry res = geometry.copy();</span>
+<span class="nc" id="L1947">	          ((Polygon)res).setFillRule(Polygon.FillRule.enumFillRuleOddEven);//standardize on odd_even fill rule</span>
+<span class="nc" id="L1948">	          return res;</span>
+	        }			
+	        
+<span class="fc" id="L1951">			return geometry;</span>
+		}
+
+<span class="fc" id="L1954">		OperatorSimplifyLocalHelper helper = new OperatorSimplifyLocalHelper(</span>
+				geometry, spatialReference, knownSimpleResult, progressTracker,
+				false);
+
+		Geometry result;
+
+<span class="fc bfc" id="L1960" title="All 2 branches covered.">		if (gt == Geometry.Type.MultiPoint) {</span>
+<span class="fc" id="L1961">			result = (Geometry) (helper.multiPointSimplifyAsFeature_());</span>
+<span class="fc bfc" id="L1962" title="All 2 branches covered.">		} else if (gt == Geometry.Type.Polyline) {</span>
+<span class="fc" id="L1963">			result = (Geometry) (helper.polylineSimplifyAsFeature_());</span>
+<span class="pc bpc" id="L1964" title="1 of 2 branches missed.">		} else if (gt == Geometry.Type.Polygon) {</span>
+<span class="fc" id="L1965">			result = (Geometry) (helper.polygonSimplifyAsFeature_());</span>
+		} else {
+<span class="nc" id="L1967">			throw GeometryException.GeometryInternalError(); // what else?</span>
+		}
+
+<span class="fc" id="L1970">		return result;</span>
+	}
+
+	/**
+	 * Simplifies geometries for storing in OGC format:
+	 * 
+	 * MultiPoint:check that no points coincide.tolerance is ignored.
+	 * Polyline:ensure there no segments degenerate segments. Polygon:cracks and
+	 * clusters using cluster tolerance and resolves all self intersections,
+	 * orients rings properly and arranges the rings in the OGC order.
+	 * 
+	 * Returns simplified geometry.
+	 */
+	static Geometry simplifyOGC(/* const */Geometry geometry, /* const */
+	SpatialReference spatialReference, boolean bForce,
+			ProgressTracker progressTracker) {
+<span class="pc bpc" id="L1986" title="1 of 2 branches missed.">		if (geometry.isEmpty())</span>
+<span class="nc" id="L1987">			return geometry;</span>
+<span class="fc" id="L1988">		Geometry.Type gt = geometry.getType();</span>
+<span class="pc bpc" id="L1989" title="1 of 2 branches missed.">		if (gt == Geometry.Type.Point)</span>
+<span class="nc" id="L1990">			return geometry;</span>
+
+<span class="fc" id="L1992">		double tolerance = InternalUtils.calculateToleranceFromGeometry(</span>
+				spatialReference, geometry, false);
+<span class="pc bpc" id="L1994" title="1 of 2 branches missed.">		if (gt == Geometry.Type.Envelope) {</span>
+<span class="nc" id="L1995">			Envelope env = (Envelope) geometry;</span>
+<span class="nc" id="L1996">			Envelope2D env2D = new Envelope2D();</span>
+<span class="nc" id="L1997">			env.queryEnvelope2D(env2D);</span>
+<span class="nc bnc" id="L1998" title="All 2 branches missed.">			if (env2D.isDegenerate(tolerance)) {</span>
+<span class="nc" id="L1999">				return (Geometry) (env.createInstance()); // return empty</span>
+															// geometry
+			}
+<span class="nc" id="L2002">			return geometry;</span>
+<span class="pc bpc" id="L2003" title="1 of 2 branches missed.">		} else if (Geometry.isSegment(gt.value())) {</span>
+<span class="nc" id="L2004">			Segment seg = (Segment) geometry;</span>
+<span class="nc" id="L2005">			Polyline polyline = new Polyline(seg.getDescription());</span>
+<span class="nc" id="L2006">			polyline.addSegment(seg, true);</span>
+<span class="nc" id="L2007">			return simplifyOGC(polyline, spatialReference, bForce,</span>
+					progressTracker);
+		}
+
+<span class="pc bpc" id="L2011" title="1 of 2 branches missed.">		if (!Geometry.isMultiVertex(gt.value())) {</span>
+<span class="nc" id="L2012">			throw new GeometryException(&quot;OGC simplify is not implemented for this geometry type&quot; + gt);</span>
+		}
+
+<span class="fc" id="L2015">		MultiVertexGeometry result = TopologicalOperations.simplifyOGC(</span>
+				(MultiVertexGeometry) geometry, tolerance, false, progressTracker);
+
+<span class="fc" id="L2018">		return result;</span>
+	}
+
+	private int compareVertices_(int i1, int i2, boolean get_paths) {
+<span class="pc bpc" id="L2022" title="1 of 2 branches missed.">		if (i1 == i2)</span>
+<span class="nc" id="L2023">			return 0;</span>
+
+<span class="fc" id="L2025">		int pair1 = m_pairs.get(i1);</span>
+<span class="fc" id="L2026">		int pair2 = m_pairs.get(i2);</span>
+<span class="fc" id="L2027">		int xy1 = pair1 &gt;&gt; 1;</span>
+<span class="fc" id="L2028">		int xy2 = pair2 &gt;&gt; 1;</span>
+<span class="fc" id="L2029">		Point2D pt1 = new Point2D();</span>
+<span class="fc" id="L2030">		Point2D pt2 = new Point2D();</span>
+<span class="fc" id="L2031">		m_xy.read(2 * xy1, pt1);</span>
+<span class="fc bfc" id="L2032" title="All 2 branches covered.">		pt1.y += (((pair1 &amp; 1) != 0) ? m_toleranceIsSimple</span>
+<span class="fc" id="L2033">				: -m_toleranceIsSimple);</span>
+<span class="fc" id="L2034">		m_xy.read(2 * xy2, pt2);</span>
+<span class="fc bfc" id="L2035" title="All 2 branches covered.">		pt2.y += (((pair2 &amp; 1) != 0) ? m_toleranceIsSimple</span>
+<span class="fc" id="L2036">				: -m_toleranceIsSimple);</span>
+<span class="fc" id="L2037">		int res = pt1.compare(pt2);</span>
+<span class="fc bfc" id="L2038" title="All 4 branches covered.">		if (res == 0 &amp;&amp; get_paths) {</span>
+<span class="fc" id="L2039">			int di = m_paths_for_OGC_tests.get(xy1)</span>
+<span class="fc" id="L2040">					- m_paths_for_OGC_tests.get(xy2);</span>
+<span class="fc bfc" id="L2041" title="All 4 branches covered.">			return di &lt; 0 ? -1 : di &gt; 0 ? 1 : 0;</span>
+		}
+<span class="fc" id="L2043">		return res;</span>
+	}
+
+	private static final class VertexComparer extends
+			AttributeStreamOfInt32.IntComparator {
+		OperatorSimplifyLocalHelper parent;
+		boolean get_paths;
+
+<span class="fc" id="L2051">		VertexComparer(OperatorSimplifyLocalHelper parent_, boolean get_paths_) {</span>
+<span class="fc" id="L2052">			parent = parent_;</span>
+<span class="fc" id="L2053">			get_paths = get_paths_;</span>
+<span class="fc" id="L2054">		}</span>
+
+		@Override
+		public int compare(int i1, int i2) {
+<span class="fc" id="L2058">			return parent.compareVertices_(i1, i2, get_paths);</span>
+		}
+	}
+
+	private static final class IndexSorter extends ClassicSort {
+		OperatorSimplifyLocalHelper parent;
+		private boolean get_paths;
+<span class="fc" id="L2065">		private Point2D pt1_dummy = new Point2D();</span>
+
+<span class="fc" id="L2067">		IndexSorter(OperatorSimplifyLocalHelper parent_, boolean get_paths_) {</span>
+<span class="fc" id="L2068">			parent = parent_;</span>
+<span class="fc" id="L2069">			get_paths = get_paths_;</span>
+<span class="fc" id="L2070">		}</span>
+
+		@Override
+		public void userSort(int begin, int end, AttributeStreamOfInt32 indices) {
+<span class="fc" id="L2074">			indices.Sort(begin, end, new VertexComparer(parent, get_paths));</span>
+<span class="fc" id="L2075">		}</span>
+
+		@Override
+		public double getValue(int index) /* const */
+		{
+<span class="fc" id="L2080">			int pair = parent.m_pairs.get(index);</span>
+<span class="fc" id="L2081">			int xy1 = pair &gt;&gt; 1;</span>
+<span class="fc" id="L2082">			parent.m_xy.read(2 * xy1, pt1_dummy);</span>
+<span class="fc" id="L2083">			double y = pt1_dummy.y</span>
+<span class="fc bfc" id="L2084" title="All 2 branches covered.">					+ (((pair &amp; 1) != 0) ? parent.m_toleranceIsSimple</span>
+<span class="fc" id="L2085">							: -parent.m_toleranceIsSimple);</span>
+<span class="fc" id="L2086">			return y;</span>
+		}
+	}
+
+	private int compareVerticesMultiPoint_(int i1, int i2) {
+<span class="pc bpc" id="L2091" title="1 of 2 branches missed.">		if (i1 == i2)</span>
+<span class="nc" id="L2092">			return 0;</span>
+<span class="fc" id="L2093">		MultiVertexGeometryImpl multiVertexImpl = (MultiVertexGeometryImpl) m_geometry</span>
+<span class="fc" id="L2094">				._getImpl();</span>
+<span class="fc" id="L2095">		Point2D pt1 = multiVertexImpl.getXY(i1);</span>
+<span class="fc" id="L2096">		Point2D pt2 = multiVertexImpl.getXY(i2);</span>
+
+<span class="fc bfc" id="L2098" title="All 2 branches covered.">		if (pt1.x &lt; pt2.x)</span>
+<span class="fc" id="L2099">			return -1;</span>
+<span class="fc bfc" id="L2100" title="All 2 branches covered.">		if (pt1.x &gt; pt2.x)</span>
+<span class="fc" id="L2101">			return 1;</span>
+<span class="fc bfc" id="L2102" title="All 2 branches covered.">		if (pt1.y &lt; pt2.y)</span>
+<span class="fc" id="L2103">			return -1;</span>
+<span class="fc bfc" id="L2104" title="All 2 branches covered.">		if (pt1.y &gt; pt2.y)</span>
+<span class="fc" id="L2105">			return 1;</span>
+
+<span class="pc bpc" id="L2107" title="1 of 2 branches missed.">		for (int attrib = 1; attrib &lt; m_attributeCount; attrib++) {</span>
+<span class="nc" id="L2108">			int semantics = m_description.getSemantics(attrib);</span>
+<span class="nc" id="L2109">			int nords = VertexDescription.getComponentCount(semantics);</span>
+<span class="nc bnc" id="L2110" title="All 2 branches missed.">			for (int ord = 0; ord &lt; nords; ord++) {</span>
+<span class="nc" id="L2111">				double v1 = multiVertexImpl.getAttributeAsDbl(semantics, i1,</span>
+						ord);
+<span class="nc" id="L2113">				double v2 = multiVertexImpl.getAttributeAsDbl(semantics, i2,</span>
+						ord);
+<span class="nc bnc" id="L2115" title="All 2 branches missed.">				if (v1 &lt; v2)</span>
+<span class="nc" id="L2116">					return -1;</span>
+<span class="nc bnc" id="L2117" title="All 2 branches missed.">				if (v1 &gt; v2)</span>
+<span class="nc" id="L2118">					return 1;</span>
+			}
+		}
+
+<span class="fc" id="L2122">		return 0;</span>
+	}
+
+	private int compareVerticesMultiPoint2_(int i1, int i2) {
+<span class="fc" id="L2126">		int res = compareVerticesMultiPoint_(i1, i2);</span>
+<span class="fc bfc" id="L2127" title="All 2 branches covered.">		if (res == 0)</span>
+<span class="pc bpc" id="L2128" title="1 of 2 branches missed.">			return i1 &lt; i2 ? -1 : 1;</span>
+		else
+<span class="fc" id="L2130">			return res;</span>
+	}
+
+	private static final class EdgeComparerForSelfIntersection implements
+			Comparator&lt;Edge&gt; {
+		OperatorSimplifyLocalHelper parent;
+
+<span class="fc" id="L2137">		EdgeComparerForSelfIntersection(OperatorSimplifyLocalHelper parent_) {</span>
+<span class="fc" id="L2138">			parent = parent_;</span>
+<span class="fc" id="L2139">		}</span>
+
+		// Recall that the total ordering [&lt;] induced by compare satisfies e1
+		// [&lt;] e2 if and only if compare(e1, e2) &lt; 0.
+
+		@Override
+		public int compare(Edge e1, Edge e2) {
+<span class="fc" id="L2146">			return parent.edgeAngleCompare_(e1, e2);</span>
+		}
+	}
+
+	private static final class MultiPointVertexComparer extends
+			AttributeStreamOfInt32.IntComparator {
+		OperatorSimplifyLocalHelper parent;
+
+<span class="fc" id="L2154">		MultiPointVertexComparer(OperatorSimplifyLocalHelper parent_) {</span>
+<span class="fc" id="L2155">			parent = parent_;</span>
+<span class="fc" id="L2156">		}</span>
+
+		@Override
+		public int compare(int i1, int i2) {
+<span class="fc" id="L2160">			return parent.compareVerticesMultiPoint_(i1, i2);</span>
+		}
+	}
+
+	private static final class MultiPointVertexComparer2 extends
+			AttributeStreamOfInt32.IntComparator {
+		OperatorSimplifyLocalHelper parent;
+
+<span class="fc" id="L2168">		MultiPointVertexComparer2(OperatorSimplifyLocalHelper parent_) {</span>
+<span class="fc" id="L2169">			parent = parent_;</span>
+<span class="fc" id="L2170">		}</span>
+
+		@Override
+		public int compare(int i1, int i2) {
+<span class="fc" id="L2174">			return parent.compareVerticesMultiPoint2_(i1, i2);</span>
+		}
+	}
+
+	// compares angles between two edges
+	private int edgeAngleCompare_(/* const */Edge edge1, /* const */Edge edge2) {
+<span class="pc bpc" id="L2180" title="1 of 2 branches missed.">		if (edge1.equals(edge2))</span>
+<span class="nc" id="L2181">			return 0;</span>
+
+<span class="fc bfc" id="L2183" title="All 2 branches covered.">		Point2D v1 = edge1.m_segment._getTangent(edge1.getReversed() ? 1.0</span>
+<span class="fc" id="L2184">				: 0.0);</span>
+<span class="fc bfc" id="L2185" title="All 2 branches covered.">		if (edge1.getReversed())</span>
+<span class="fc" id="L2186">			v1.negate();</span>
+<span class="fc bfc" id="L2187" title="All 2 branches covered.">		Point2D v2 = edge2.m_segment._getTangent(edge2.getReversed() ? 1.0</span>
+<span class="fc" id="L2188">				: 0.0);</span>
+<span class="fc bfc" id="L2189" title="All 2 branches covered.">		if (edge2.getReversed())</span>
+<span class="fc" id="L2190">			v2.negate();</span>
+
+<span class="fc" id="L2192">		int q1 = v1._getQuarter();</span>
+<span class="fc" id="L2193">		int q2 = v2._getQuarter();</span>
+
+<span class="fc bfc" id="L2195" title="All 2 branches covered.">		if (q2 == q1) {</span>
+<span class="fc" id="L2196">			double cross = v1.crossProduct(v2);</span>
+<span class="fc" id="L2197">			double crossError = 4 * NumberUtils.doubleEps()</span>
+<span class="fc" id="L2198">					* (Math.abs(v2.x * v1.y) + Math.abs(v2.y * v1.x));</span>
+<span class="pc bpc" id="L2199" title="1 of 2 branches missed.">			if (Math.abs(cross) &lt;= crossError) {</span>
+<span class="nc" id="L2200">				cross--; // To avoid warning of &quot;this line has no effect&quot; from</span>
+							// cross = cross.
+<span class="nc" id="L2202">				cross++;</span>
+			}
+<span class="pc bpc" id="L2204" title="1 of 2 branches missed.">			assert (Math.abs(cross) &gt; crossError);</span>
+<span class="pc bpc" id="L2205" title="1 of 4 branches missed.">			return cross &lt; 0 ? 1 : (cross &gt; 0 ? -1 : 0);</span>
+		} else {
+<span class="fc bfc" id="L2207" title="All 2 branches covered.">			return q1 &lt; q2 ? -1 : 1;</span>
+		}
+	}
+};
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

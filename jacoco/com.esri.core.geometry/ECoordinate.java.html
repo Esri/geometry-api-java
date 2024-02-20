@@ -1,0 +1,386 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ECoordinate.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">ECoordinate.java</span></div><h1>ECoordinate.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+class ECoordinate {
+	private double m_value;
+	private double m_eps;
+
+<span class="fc" id="L30">	ECoordinate() {</span>
+<span class="fc" id="L31">		set(0.0, 0.0);</span>
+<span class="fc" id="L32">	}</span>
+
+<span class="nc" id="L34">	ECoordinate(double v) {</span>
+<span class="nc" id="L35">		set(v);</span>
+<span class="nc" id="L36">	}</span>
+
+<span class="nc" id="L38">	ECoordinate(ECoordinate v) {</span>
+<span class="nc" id="L39">		set(v);</span>
+<span class="nc" id="L40">	}</span>
+
+	double epsCoordinate() {
+<span class="fc" id="L43">		return NumberUtils.doubleEps();</span>
+	}
+
+	void scaleError(double f) {
+<span class="nc" id="L47">		m_eps *= f;</span>
+<span class="nc" id="L48">	}</span>
+
+	void setError(double e) {
+<span class="nc" id="L51">		m_eps = e;</span>
+<span class="nc" id="L52">	}</span>
+
+	void set(double v, double e) {
+<span class="fc" id="L55">		m_value = v;</span>
+<span class="fc" id="L56">		m_eps = e;</span>
+<span class="fc" id="L57">	}</span>
+
+	void set(double v) {
+<span class="fc" id="L60">		m_value = v;</span>
+<span class="fc" id="L61">		m_eps = 0;</span>
+<span class="fc" id="L62">	}</span>
+
+	void set(ECoordinate v) {
+<span class="nc" id="L65">		m_value = v.m_value;</span>
+<span class="nc" id="L66">		m_eps = v.m_eps;</span>
+<span class="nc" id="L67">	}</span>
+
+	double value() {
+<span class="fc" id="L70">		return m_value;</span>
+	}
+
+	double eps() {
+<span class="nc" id="L74">		return m_eps;</span>
+	}
+
+	void resetError() {
+<span class="nc" id="L78">		m_eps = 0;</span>
+<span class="nc" id="L79">	}</span>
+
+	void add(ECoordinate v) // +=
+	{
+<span class="nc" id="L83">		double r = m_value + v.m_value;</span>
+<span class="nc" id="L84">		double e = m_eps + v.m_eps + epsCoordinate() * Math.abs(r);</span>
+<span class="nc" id="L85">		m_value = r;</span>
+<span class="nc" id="L86">		m_eps = e;</span>
+<span class="nc" id="L87">	}</span>
+
+	void add(double v) // +=
+	{
+<span class="nc" id="L91">		double r = m_value + v;</span>
+<span class="nc" id="L92">		double e = m_eps + epsCoordinate() * Math.abs(r);</span>
+<span class="nc" id="L93">		m_value = r;</span>
+<span class="nc" id="L94">		m_eps = e;</span>
+<span class="nc" id="L95">	}</span>
+
+	void sub(ECoordinate v) // -=
+	{
+<span class="fc" id="L99">		double r = m_value - v.m_value;</span>
+<span class="fc" id="L100">		double e = m_eps + v.m_eps + epsCoordinate() * Math.abs(r);</span>
+<span class="fc" id="L101">		m_value = r;</span>
+<span class="fc" id="L102">		m_eps = e;</span>
+<span class="fc" id="L103">	}</span>
+
+	void sub(double v) // -=
+	{
+<span class="fc" id="L107">		double r = m_value - v;</span>
+<span class="fc" id="L108">		double e = m_eps + epsCoordinate() * Math.abs(r);</span>
+<span class="fc" id="L109">		m_value = r;</span>
+<span class="fc" id="L110">		m_eps = e;</span>
+<span class="fc" id="L111">	}</span>
+
+	void add(ECoordinate v_1, ECoordinate v_2) // +
+	{
+<span class="nc" id="L115">		m_value = v_1.m_value + v_2.m_value;</span>
+<span class="nc" id="L116">		m_eps = v_1.m_eps + v_2.m_eps + epsCoordinate() * Math.abs(m_value);</span>
+<span class="nc" id="L117">	}</span>
+
+	void add(double v_1, double v_2) // +
+	{
+<span class="nc" id="L121">		m_value = v_1 + v_2;</span>
+<span class="nc" id="L122">		m_eps = epsCoordinate() * Math.abs(m_value);</span>
+<span class="nc" id="L123">	}</span>
+
+	void add(ECoordinate v_1, double v_2) // +
+	{
+<span class="nc" id="L127">		m_value = v_1.m_value + v_2;</span>
+<span class="nc" id="L128">		m_eps = v_1.m_eps + epsCoordinate() * Math.abs(m_value);</span>
+<span class="nc" id="L129">	}</span>
+
+	void add(double v_1, ECoordinate v_2) // +
+	{
+<span class="nc" id="L133">		m_value = v_1 + v_2.m_value;</span>
+<span class="nc" id="L134">		m_eps = v_2.m_eps + epsCoordinate() * Math.abs(m_value);</span>
+<span class="nc" id="L135">	}</span>
+
+	void sub(ECoordinate v_1, ECoordinate v_2) // -
+	{
+<span class="nc" id="L139">		m_value = v_1.m_value - v_2.m_value;</span>
+<span class="nc" id="L140">		m_eps = v_1.m_eps + v_2.m_eps + epsCoordinate() * Math.abs(m_value);</span>
+<span class="nc" id="L141">	}</span>
+
+	void sub(double v_1, double v_2) // -
+	{
+<span class="nc" id="L145">		m_value = v_1 - v_2;</span>
+<span class="nc" id="L146">		m_eps = epsCoordinate() * Math.abs(m_value);</span>
+<span class="nc" id="L147">	}</span>
+
+	void sub(ECoordinate v_1, double v_2) // -
+	{
+<span class="nc" id="L151">		m_value = v_1.m_value - v_2;</span>
+<span class="nc" id="L152">		m_eps = v_1.m_eps + epsCoordinate() * Math.abs(m_value);</span>
+<span class="nc" id="L153">	}</span>
+
+	void sub(double v_1, ECoordinate v_2) // -
+	{
+<span class="nc" id="L157">		m_value = v_1 - v_2.m_value;</span>
+<span class="nc" id="L158">		m_eps = v_2.m_eps + epsCoordinate() * Math.abs(m_value);</span>
+<span class="nc" id="L159">	}</span>
+
+	void mul(ECoordinate v) {
+<span class="fc" id="L162">		double r = m_value * v.m_value;</span>
+<span class="fc" id="L163">		m_eps = m_eps * Math.abs(v.m_value) + v.m_eps * Math.abs(m_value)</span>
+<span class="fc" id="L164">				+ m_eps * v.m_eps + epsCoordinate() * Math.abs(r);</span>
+<span class="fc" id="L165">		m_value = r;</span>
+<span class="fc" id="L166">	}</span>
+
+	void mul(double v) {
+<span class="nc" id="L169">		double r = m_value * v;</span>
+<span class="nc" id="L170">		m_eps = m_eps * Math.abs(v) + epsCoordinate() * Math.abs(r);</span>
+<span class="nc" id="L171">		m_value = r;</span>
+<span class="nc" id="L172">	}</span>
+
+	void mul(ECoordinate v_1, ECoordinate v_2) {
+<span class="nc" id="L175">		double r = v_1.m_value * v_2.m_value;</span>
+<span class="nc" id="L176">		m_eps = v_1.m_eps * Math.abs(v_2.m_value) + v_2.m_eps</span>
+<span class="nc" id="L177">				* Math.abs(v_1.m_value) + v_1.m_eps * v_2.m_eps</span>
+<span class="nc" id="L178">				+ epsCoordinate() * Math.abs(r);</span>
+<span class="nc" id="L179">		m_value = r;</span>
+<span class="nc" id="L180">	}</span>
+
+	void mul(double v_1, double v_2) {
+<span class="nc" id="L183">		m_value = v_1 * v_2;</span>
+<span class="nc" id="L184">		m_eps = epsCoordinate() * Math.abs(m_value);</span>
+<span class="nc" id="L185">	}</span>
+
+	void mul(ECoordinate v_1, double v_2) {
+<span class="nc" id="L188">		set(v_1);</span>
+<span class="nc" id="L189">		mul(v_2);</span>
+<span class="nc" id="L190">	}</span>
+
+	void mul(double v_1, ECoordinate v_2) {
+<span class="nc" id="L193">		set(v_2);</span>
+<span class="nc" id="L194">		mul(v_1);</span>
+<span class="nc" id="L195">	}</span>
+
+	void div(ECoordinate divis) {
+<span class="nc" id="L198">		double fabsdivis = Math.abs(divis.m_value);</span>
+<span class="nc" id="L199">		double r = m_value / divis.m_value;</span>
+<span class="nc" id="L200">		double e = (m_eps + Math.abs(r) * divis.m_eps) / fabsdivis;</span>
+<span class="nc bnc" id="L201" title="All 2 branches missed.">		if (divis.m_eps &gt; 0.01 * fabsdivis) {// more accurate error calculation</span>
+												// for very inaccurate divisor
+<span class="nc" id="L203">			double rr = divis.m_eps / fabsdivis;</span>
+<span class="nc" id="L204">			e *= (1.0 + (1.0 + rr) * rr);</span>
+		}
+<span class="nc" id="L206">		m_value = r;</span>
+<span class="nc" id="L207">		m_eps = e + epsCoordinate() * Math.abs(r);</span>
+<span class="nc" id="L208">	}</span>
+
+	void div(double v) {
+<span class="nc" id="L211">		double fabsdivis = Math.abs(v);</span>
+<span class="nc" id="L212">		m_value /= v;</span>
+<span class="nc" id="L213">		m_eps = m_eps / fabsdivis + epsCoordinate() * Math.abs(m_value);</span>
+<span class="nc" id="L214">	}</span>
+
+	void div(ECoordinate v_1, ECoordinate v_2) {
+<span class="nc" id="L217">		set(v_1);</span>
+<span class="nc" id="L218">		div(v_2);</span>
+<span class="nc" id="L219">	}</span>
+
+	void div(double v_1, double v_2) {
+<span class="nc" id="L222">		m_value = v_1 / v_2;</span>
+<span class="nc" id="L223">		m_eps = epsCoordinate() * Math.abs(m_value);</span>
+<span class="nc" id="L224">	}</span>
+
+	void div(ECoordinate v_1, double v_2) {
+<span class="nc" id="L227">		set(v_1);</span>
+<span class="nc" id="L228">		div(v_2);</span>
+<span class="nc" id="L229">	}</span>
+
+	void div(double v_1, ECoordinate v_2) {
+<span class="nc" id="L232">		set(v_1);</span>
+<span class="nc" id="L233">		div(v_2);</span>
+<span class="nc" id="L234">	}</span>
+
+	void sqrt() {
+		double r, dr;
+
+<span class="nc bnc" id="L239" title="All 2 branches missed.">		if (m_value &gt;= 0) { // assume non-negative input</span>
+<span class="nc" id="L240">			r = Math.sqrt(m_value);</span>
+<span class="nc bnc" id="L241" title="All 2 branches missed.">			if (m_value &gt; 10.0 * m_eps) {</span>
+<span class="nc" id="L242">				dr = 0.5 * m_eps / r;</span>
+			} else {
+<span class="nc bnc" id="L244" title="All 2 branches missed.">				dr = (m_value &gt; m_eps) ? r - Math.sqrt(m_value - m_eps) : Math</span>
+<span class="nc" id="L245">						.max(r, Math.sqrt(m_value + m_eps) - r);</span>
+			}
+
+<span class="nc" id="L248">			dr += epsCoordinate() * Math.abs(r);</span>
+		} else {
+<span class="nc bnc" id="L250" title="All 2 branches missed.">			if (m_value &lt; -m_eps) { // Assume negative input. Return value</span>
+									// undefined
+<span class="nc" id="L252">				r = NumberUtils.TheNaN;</span>
+<span class="nc" id="L253">				dr = NumberUtils.TheNaN;</span>
+			} else { // assume zero input
+<span class="nc" id="L255">				r = 0.0;</span>
+<span class="nc" id="L256">				dr = Math.sqrt(m_eps);</span>
+			}
+		}
+
+<span class="nc" id="L260">		m_value = r;</span>
+<span class="nc" id="L261">		m_eps = dr;</span>
+<span class="nc" id="L262">	}</span>
+
+	void sqr() {
+<span class="nc" id="L265">		double r = m_value * m_value;</span>
+<span class="nc" id="L266">		m_eps = 2 * m_eps * m_value + m_eps * m_eps + epsCoordinate() * r;</span>
+<span class="nc" id="L267">		m_value = r;</span>
+<span class="nc" id="L268">	}</span>
+
+	// Assigns sin(angle) to this coordinate.
+	void sin(ECoordinate angle) {
+<span class="nc" id="L272">		double sinv = Math.sin(angle.m_value);</span>
+<span class="nc" id="L273">		double cosv = Math.cos(angle.m_value);</span>
+<span class="nc" id="L274">		m_value = sinv;</span>
+<span class="nc" id="L275">		double absv = Math.abs(sinv);</span>
+<span class="nc" id="L276">		m_eps = (Math.abs(cosv) + absv * 0.5 * angle.m_eps) * angle.m_eps</span>
+<span class="nc" id="L277">				+ epsCoordinate() * absv;</span>
+<span class="nc" id="L278">	}</span>
+
+	// Assigns cos(angle) to this coordinate.
+	void cos(ECoordinate angle) {
+<span class="nc" id="L282">		double sinv = Math.sin(angle.m_value);</span>
+<span class="nc" id="L283">		double cosv = Math.cos(angle.m_value);</span>
+<span class="nc" id="L284">		m_value = cosv;</span>
+<span class="nc" id="L285">		double absv = Math.abs(cosv);</span>
+<span class="nc" id="L286">		m_eps = (Math.abs(sinv) + absv * 0.5 * angle.m_eps) * angle.m_eps</span>
+<span class="nc" id="L287">				+ epsCoordinate() * absv;</span>
+<span class="nc" id="L288">	}</span>
+
+	// Calculates natural log of v and assigns to this coordinate
+	void log(ECoordinate v) {
+<span class="nc" id="L292">		double d = v.m_eps / v.m_value;</span>
+<span class="nc" id="L293">		m_value = Math.log(v.m_value);</span>
+<span class="nc" id="L294">		m_eps = d * (1.0 + 0.5 * d) + epsCoordinate() * Math.abs(m_value);</span>
+<span class="nc" id="L295">	}</span>
+
+	// void SinAndCos(ECoordinate&amp; _sin, ECoordinate&amp; _cos);
+	// ECoordinate abs();
+	// ECoordinate exp();
+	// ECoordinate acos();
+	// ECoordinate asin();
+	// ECoordinate atan();
+
+	boolean eq(ECoordinate v) // ==
+	{
+<span class="nc bnc" id="L306" title="All 2 branches missed.">		return Math.abs(m_value - v.m_value) &lt;= m_eps + v.m_eps;</span>
+	}
+
+	boolean ne(ECoordinate v) // !=
+	{
+<span class="nc bnc" id="L311" title="All 2 branches missed.">		return !eq(v);</span>
+	}
+
+	boolean GT(ECoordinate v) // &gt;
+	{
+<span class="nc bnc" id="L316" title="All 2 branches missed.">		return m_value - v.m_value &gt; m_eps + v.m_eps;</span>
+	}
+
+	boolean lt(ECoordinate v) // &lt;
+	{
+<span class="nc bnc" id="L321" title="All 2 branches missed.">		return v.m_value - m_value &gt; m_eps + v.m_eps;</span>
+	}
+
+	boolean ge(ECoordinate v) // &gt;=
+	{
+<span class="nc bnc" id="L326" title="All 2 branches missed.">		return !lt(v);</span>
+	}
+
+	boolean le(ECoordinate v) // &lt;=
+	{
+<span class="nc bnc" id="L331" title="All 2 branches missed.">		return !GT(v);</span>
+	}
+
+	// The following methods take into account the rounding erros as well as
+	// user defined tolerance.
+	boolean tolEq(ECoordinate v, double tolerance) // ! == with tolerance
+	{
+<span class="nc bnc" id="L338" title="All 4 branches missed.">		return Math.abs(m_value - v.m_value) &lt;= tolerance || eq(v);</span>
+	}
+
+	boolean tol_ne(ECoordinate v, double tolerance) // ! !=
+	{
+<span class="nc bnc" id="L343" title="All 2 branches missed.">		return !tolEq(v, tolerance);</span>
+	}
+
+	boolean tolGT(ECoordinate v, double tolerance) // ! &gt;
+	{
+<span class="nc bnc" id="L348" title="All 4 branches missed.">		return (m_value - v.m_value &gt; tolerance) &amp;&amp; GT(v);</span>
+	}
+
+	boolean tollt(ECoordinate v, double tolerance) // ! &lt;
+	{
+<span class="nc bnc" id="L353" title="All 4 branches missed.">		return (v.m_value - m_value &gt; tolerance) &amp;&amp; lt(v);</span>
+	}
+
+	boolean tolge(ECoordinate v, double tolerance) // ! &gt;=
+	{
+<span class="nc bnc" id="L358" title="All 2 branches missed.">		return !tollt(v, tolerance);</span>
+	}
+
+	boolean tolle(ECoordinate v, double tolerance) // ! &lt;=
+	{
+<span class="nc bnc" id="L363" title="All 2 branches missed.">		return !tolGT(v, tolerance);</span>
+	}
+
+	boolean isZero() {
+<span class="fc bfc" id="L367" title="All 2 branches covered.">		return Math.abs(m_value) &lt;= m_eps;</span>
+	}
+
+	boolean isFuzzyZero() {
+<span class="fc bfc" id="L371" title="All 4 branches covered.">		return isZero() &amp;&amp; m_eps != 0.0;</span>
+	}
+
+	boolean tolIsZero(double tolerance) {
+<span class="nc bnc" id="L375" title="All 2 branches missed.">		return Math.abs(m_value) &lt;= Math.max(m_eps, tolerance);</span>
+	}
+
+	void setPi() {
+<span class="nc" id="L379">		set(Math.PI, epsCoordinate());</span>
+<span class="nc" id="L380">	}</span>
+
+	void setE() {
+<span class="nc" id="L383">		set(2.71828182845904523536, epsCoordinate());</span>
+<span class="nc" id="L384">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

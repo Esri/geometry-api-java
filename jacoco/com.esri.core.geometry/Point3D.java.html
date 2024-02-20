@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Point3D.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">Point3D.java</span></div><h1>Point3D.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+
+package com.esri.core.geometry;
+
+import java.io.Serializable;
+
+/**
+ * 
+ * Basic 3D point class.
+ * 
+ */
+public final class Point3D implements Serializable {
+	private static final long serialVersionUID = 1L;
+	
+	public double x;
+	public double y;
+	public double z;
+
+<span class="fc" id="L42">	public Point3D() {</span>
+<span class="fc" id="L43">	}</span>
+
+<span class="nc" id="L45">	public Point3D(Point3D other) {</span>
+<span class="nc" id="L46">		setCoords(other);</span>
+<span class="nc" id="L47">	}</span>
+
+<span class="nc" id="L49">	public Point3D(double x, double y, double z) {</span>
+<span class="nc" id="L50">		setCoords(x, y, z);</span>
+<span class="nc" id="L51">	}</span>
+	
+	public static Point3D construct(double x, double y, double z) {
+<span class="nc" id="L54">		Point3D pt = new Point3D();</span>
+<span class="nc" id="L55">		pt.setCoords(x, y, z);</span>
+<span class="nc" id="L56">		return pt;</span>
+	}
+
+	public void setCoords(double x, double y, double z) {
+<span class="fc" id="L60">		this.x = x;</span>
+<span class="fc" id="L61">		this.y = y;</span>
+<span class="fc" id="L62">		this.z = z;</span>
+<span class="fc" id="L63">	}</span>
+
+	public void setCoords(Point3D other) {
+<span class="nc" id="L66">		setCoords(other.x, other.y, other.z);</span>
+<span class="nc" id="L67">	}</span>
+	
+	public void setZero() {
+<span class="nc" id="L70">		x = 0.0;</span>
+<span class="nc" id="L71">		y = 0.0;</span>
+<span class="nc" id="L72">		z = 0.0;</span>
+<span class="nc" id="L73">	}</span>
+
+	public void normalize() {
+<span class="nc" id="L76">		double len = length();</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">		if (len == 0) {</span>
+<span class="nc" id="L78">			x = 1.0;</span>
+<span class="nc" id="L79">			y = 0.0;</span>
+<span class="nc" id="L80">			z = 0.0;</span>
+		} else {
+<span class="nc" id="L82">			x /= len;</span>
+<span class="nc" id="L83">			y /= len;</span>
+<span class="nc" id="L84">			z /= len;</span>
+		}
+<span class="nc" id="L86">	}</span>
+
+	public double dotProduct(Point3D other) {
+<span class="nc" id="L89">		return x * other.x + y * other.y + z * other.z;</span>
+	}
+
+	public double sqrLength() {
+<span class="nc" id="L93">		return x * x + y * y + z * z;</span>
+	}
+
+	public double length() {
+<span class="nc" id="L97">		return Math.sqrt(x * x + y * y + z * z);</span>
+	}
+
+	public void sub(Point3D other)
+	{
+<span class="nc" id="L102">		x -= other.x;</span>
+<span class="nc" id="L103">		y -= other.y;</span>
+<span class="nc" id="L104">		z -= other.z;</span>
+<span class="nc" id="L105">	}</span>
+
+	public void sub(Point3D p1, Point3D p2) {
+<span class="nc" id="L108">		x = p1.x - p2.x;</span>
+<span class="nc" id="L109">		y = p1.y - p2.y;</span>
+<span class="nc" id="L110">		z = p1.z - p2.z;</span>
+<span class="nc" id="L111">	}</span>
+
+	public void scale(double f, Point3D other) {
+<span class="nc" id="L114">		x = f * other.x;</span>
+<span class="nc" id="L115">		y = f * other.y;</span>
+<span class="nc" id="L116">		z = f * other.z;</span>
+<span class="nc" id="L117">	}</span>
+
+	public void mul(double factor) {
+<span class="nc" id="L120">		x *= factor;</span>
+<span class="nc" id="L121">		y *= factor;</span>
+<span class="nc" id="L122">		z *= factor;</span>
+<span class="nc" id="L123">	}</span>
+
+	void _setNan() {
+<span class="nc" id="L126">		x = NumberUtils.NaN();</span>
+<span class="nc" id="L127">		y = NumberUtils.NaN();</span>
+<span class="nc" id="L128">		z = NumberUtils.NaN();</span>
+<span class="nc" id="L129">	}</span>
+
+	boolean _isNan() {
+<span class="nc bnc" id="L132" title="All 6 branches missed.">		return NumberUtils.isNaN(x) || NumberUtils.isNaN(y) || NumberUtils.isNaN(z);</span>
+	}
+
+	public boolean equals(Point3D other) {
+		//note that for nan value this returns false.
+		//this is by design for this class.
+<span class="nc bnc" id="L138" title="All 6 branches missed.">		return x == other.x &amp;&amp; y == other.y &amp;&amp; z == other.z;</span>
+	}
+	
+	@Override
+	public boolean equals(Object other_) {
+<span class="nc bnc" id="L143" title="All 2 branches missed.">		if (other_ == this)</span>
+<span class="nc" id="L144">			return true;</span>
+
+<span class="nc bnc" id="L146" title="All 2 branches missed.">		if (!(other_ instanceof Point3D))</span>
+<span class="nc" id="L147">			return false;</span>
+		
+<span class="nc" id="L149">		Point3D other = (Point3D)other_;</span>
+		//note that for nan value this returns false.
+		//this is by design for this class.
+<span class="nc bnc" id="L152" title="All 6 branches missed.">		return x == other.x &amp;&amp; y == other.y &amp;&amp; z == other.z;</span>
+	}
+
+	@Override
+	public int hashCode() {
+<span class="nc" id="L157">		int hash = NumberUtils.hash(x);</span>
+<span class="nc" id="L158">		hash = NumberUtils.hash(hash, y);</span>
+<span class="nc" id="L159">		hash = NumberUtils.hash(hash, z);</span>
+<span class="nc" id="L160">		return hash;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

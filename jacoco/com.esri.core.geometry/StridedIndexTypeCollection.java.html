@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StridedIndexTypeCollection.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">StridedIndexTypeCollection.java</span></div><h1>StridedIndexTypeCollection.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2018 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+package com.esri.core.geometry;
+
+import java.io.Serializable;
+
+import static com.esri.core.geometry.SizeOf.SIZE_OF_STRIDED_INDEX_TYPE_COLLECTION;
+import static com.esri.core.geometry.SizeOf.sizeOfIntArray;
+import static com.esri.core.geometry.SizeOf.sizeOfObjectArray;
+
+/**
+ * A collection of strides of Index_type elements. To be used when one needs a
+ * collection of homogeneous elements that contain only integer fields (i.e.
+ * structs with Index_type members) Recycles the strides. Allows for constant
+ * time creation and deletion of an element.
+ */
+final class StridedIndexTypeCollection implements Serializable {
+	private static final long serialVersionUID = 1L;
+	
+<span class="fc" id="L41">	private int[][] m_buffer = null;</span>
+<span class="fc" id="L42">	private int m_firstFree = -1;</span>
+<span class="fc" id="L43">	private int m_last = 0;</span>
+<span class="fc" id="L44">	private int m_size = 0;</span>
+<span class="fc" id="L45">	private int m_capacity = 0;</span>
+<span class="fc" id="L46">	private int m_bufferSize = 0;</span>
+	private int m_stride;
+	private int m_realStride;
+	private int m_blockSize;
+
+	/*
+	 private final static int m_realBlockSize = 2048;//if you change this, change m_blockSize, m_blockPower, m_blockMask, and st_sizes
+	 private final static int m_blockMask = 0x7FF;
+	 private final static int m_blockPower = 11;
+	 private final static int[] st_sizes = {16, 32, 64, 128, 256, 512, 1024, 2048};
+	 */
+
+	private final static int m_realBlockSize = 16384;// if you change this,
+														// change m_blockSize,
+														// m_blockPower,
+														// m_blockMask, and
+														// st_sizes
+	private final static int m_blockMask = 0x3FFF;
+	private final static int m_blockPower = 14;
+<span class="fc" id="L65">	private final static int[] st_sizes = { 16, 32, 64, 128, 256, 512, 1024,</span>
+			2048, 4096, 8192, 16384 };
+
+<span class="fc" id="L68">	StridedIndexTypeCollection(int stride) {</span>
+<span class="fc" id="L69">		m_stride = stride;</span>
+<span class="fc" id="L70">		m_realStride = stride;</span>
+<span class="fc" id="L71">		m_blockSize = m_realBlockSize / m_realStride;</span>
+<span class="fc" id="L72">	}</span>
+
+	private boolean dbgdelete_(int element) {
+<span class="fc" id="L75">		m_buffer[element &gt;&gt; m_blockPower][(element &amp; m_blockMask) + 1] = -0x7eadbeed;</span>
+<span class="fc" id="L76">		return true;</span>
+	}
+	
+	void deleteElement(int element) {
+<span class="pc bpc" id="L80" title="1 of 2 branches missed.">		assert(dbgdelete_(element));</span>
+<span class="fc" id="L81">		int totalStrides = (element &gt;&gt; m_blockPower) * m_blockSize</span>
+				* m_realStride + (element &amp; m_blockMask);
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">		if (totalStrides &lt; m_last * m_realStride) {</span>
+<span class="fc" id="L84">			m_buffer[element &gt;&gt; m_blockPower][element &amp; m_blockMask] = m_firstFree;</span>
+<span class="fc" id="L85">			m_firstFree = element;</span>
+		} else {
+<span class="nc bnc" id="L87" title="All 2 branches missed.">			assert (totalStrides == m_last * m_realStride);</span>
+<span class="nc" id="L88">			m_last--;</span>
+		}
+<span class="fc" id="L90">		m_size--;</span>
+<span class="fc" id="L91">	}</span>
+
+	// Returns the given field of the element.
+	int getField(int element, int field) {
+<span class="pc bpc" id="L95" title="1 of 2 branches missed.">		assert(m_buffer[element &gt;&gt; m_blockPower][(element &amp; m_blockMask) + 1] != -0x7eadbeed);</span>
+<span class="fc" id="L96">		return m_buffer[element &gt;&gt; m_blockPower][(element &amp; m_blockMask)</span>
+				+ field];
+	}
+
+	// Sets the given field of the element.
+	void setField(int element, int field, int value) {
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">		assert(m_buffer[element &gt;&gt; m_blockPower][(element &amp; m_blockMask) + 1] != -0x7eadbeed);</span>
+<span class="fc" id="L103">		m_buffer[element &gt;&gt; m_blockPower][(element &amp; m_blockMask) + field] = value;</span>
+<span class="fc" id="L104">	}</span>
+
+	// Returns the stride size
+	int getStride() {
+<span class="nc" id="L108">		return m_stride;</span>
+	}
+
+	// Creates the new element. This is a constant time operation.
+	// All fields are initialized to -1.
+	int newElement() {
+<span class="fc" id="L114">		int element = m_firstFree;</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">		if (element == -1) {</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">			if (m_last == m_capacity) {</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">				long newcap = m_capacity != 0 ? (((long) m_capacity + 1) * 3 / 2)</span>
+<span class="fc" id="L118">						: (long) 1;</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">				if (newcap &gt; Integer.MAX_VALUE)</span>
+<span class="nc" id="L120">					newcap = Integer.MAX_VALUE;// cannot grow past 2gb elements</span>
+												// presently
+
+<span class="pc bpc" id="L123" title="1 of 2 branches missed.">				if (newcap == m_capacity)</span>
+<span class="nc" id="L124">					throw new IndexOutOfBoundsException();</span>
+
+<span class="fc" id="L126">				grow_(newcap);</span>
+			}
+
+<span class="fc" id="L129">			element = ((m_last / m_blockSize) &lt;&lt; m_blockPower)</span>
+					+ (m_last % m_blockSize) * m_realStride;
+<span class="fc" id="L131">			m_last++;</span>
+		} else {
+<span class="fc" id="L133">			m_firstFree = m_buffer[element &gt;&gt; m_blockPower][element</span>
+					&amp; m_blockMask];
+		}
+
+<span class="fc" id="L137">		m_size++;</span>
+<span class="fc" id="L138">		int ar[] = m_buffer[element &gt;&gt; m_blockPower];</span>
+<span class="fc" id="L139">		int ind = element &amp; m_blockMask;</span>
+<span class="fc bfc" id="L140" title="All 2 branches covered.">		for (int i = 0; i &lt; m_stride; i++) {</span>
+<span class="fc" id="L141">			ar[ind + i] = -1;</span>
+		}
+<span class="fc" id="L143">		return element;</span>
+	}
+
+	int elementToIndex(int element) {
+<span class="fc" id="L147">		return (element &gt;&gt; m_blockPower) * m_blockSize</span>
+				+ (element &amp; m_blockMask) / m_realStride;
+	}
+
+	// Deletes all elements and frees all the memory if b_free_memory is True.
+	void deleteAll(boolean b_free_memory) {
+<span class="fc" id="L153">		m_firstFree = -1;</span>
+<span class="fc" id="L154">		m_last = 0;</span>
+<span class="fc" id="L155">		m_size = 0;</span>
+<span class="fc bfc" id="L156" title="All 2 branches covered.">		if (b_free_memory) {</span>
+<span class="fc" id="L157">			m_buffer = null;</span>
+<span class="fc" id="L158">			m_capacity = 0;</span>
+		}
+<span class="fc" id="L160">	}</span>
+
+	// Returns the count of existing elements
+	int size() {
+<span class="fc" id="L164">		return m_size;</span>
+	}
+
+	// Sets the capcity of the collection. Only applied if current capacity is
+	// smaller.
+	void setCapacity(int capacity) {
+<span class="fc bfc" id="L170" title="All 2 branches covered.">		if (capacity &gt; m_capacity)</span>
+<span class="fc" id="L171">			grow_(capacity);</span>
+<span class="fc" id="L172">	}</span>
+
+	// Returns the capacity of the collection
+	int capacity() {
+<span class="fc" id="L176">		return m_capacity;</span>
+	}
+
+	// Swaps content of two elements (each field of the stride)
+	void swap(int element1, int element2) {
+<span class="nc" id="L181">		int ar1[] = m_buffer[element1 &gt;&gt; m_blockPower];</span>
+<span class="nc" id="L182">		int ar2[] = m_buffer[element2 &gt;&gt; m_blockPower];</span>
+<span class="nc" id="L183">		int ind1 = element1 &amp; m_blockMask;</span>
+<span class="nc" id="L184">		int ind2 = element2 &amp; m_blockMask;</span>
+<span class="nc bnc" id="L185" title="All 2 branches missed.">		for (int i = 0; i &lt; m_stride; i++) {</span>
+<span class="nc" id="L186">			int tmp = ar1[ind1 + i];</span>
+<span class="nc" id="L187">			ar1[ind1 + i] = ar2[ind2 + i];</span>
+<span class="nc" id="L188">			ar2[ind2 + i] = tmp;</span>
+		}
+<span class="nc" id="L190">	}</span>
+
+	// Swaps content of two fields
+	void swapField(int element1, int element2, int field) {
+<span class="fc" id="L194">		int ar1[] = m_buffer[element1 &gt;&gt; m_blockPower];</span>
+<span class="fc" id="L195">		int ar2[] = m_buffer[element2 &gt;&gt; m_blockPower];</span>
+<span class="fc" id="L196">		int ind1 = (element1 &amp; m_blockMask) + field;</span>
+<span class="fc" id="L197">		int ind2 = (element2 &amp; m_blockMask) + field;</span>
+<span class="fc" id="L198">		int tmp = ar1[ind1];</span>
+<span class="fc" id="L199">		ar1[ind1] = ar2[ind2];</span>
+<span class="fc" id="L200">		ar2[ind2] = tmp;</span>
+<span class="fc" id="L201">	}</span>
+
+	// Returns a value of the index, that never will be returned by new_element
+	// and is neither -1 nor impossible_index_3.
+	static int impossibleIndex2() {
+<span class="fc" id="L206">		return -2;</span>
+	}
+
+	// Returns a value of the index, that never will be returned by new_element
+	// and is neither -1 nor impossible_index_2.
+	static int impossibleIndex3() {
+<span class="fc" id="L212">		return -3;</span>
+	}
+
+	static boolean isValidElement(int element) {
+<span class="fc bfc" id="L216" title="All 2 branches covered.">		return element &gt;= 0;</span>
+	}
+
+	private void ensureBufferBlocksCapacity(int blocks) {
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">		if (m_buffer.length &lt; blocks) {</span>
+<span class="nc" id="L221">			int[][] newBuffer = new int[blocks][];</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">			for (int i = 0; i &lt; m_buffer.length; i++) {</span>
+<span class="nc" id="L223">				newBuffer[i] = m_buffer[i];</span>
+			}
+
+<span class="nc" id="L226">			m_buffer = newBuffer;</span>
+		}
+<span class="fc" id="L228">	}</span>
+
+	private void grow_(long newsize) {
+<span class="fc bfc" id="L231" title="All 2 branches covered.">		if (m_buffer == null) {</span>
+<span class="fc" id="L232">			m_bufferSize = 0;</span>
+<span class="fc" id="L233">			m_buffer = new int[8][];</span>
+		}
+
+<span class="pc bpc" id="L236" title="1 of 2 branches missed.">		assert (newsize &gt; m_capacity);</span>
+
+<span class="fc" id="L238">		long nblocks = (newsize + m_blockSize - 1) / m_blockSize;</span>
+<span class="pc bpc" id="L239" title="1 of 2 branches missed.">		if (nblocks &gt; Integer.MAX_VALUE)</span>
+<span class="nc" id="L240">			throw new IndexOutOfBoundsException();</span>
+
+<span class="fc" id="L242">		ensureBufferBlocksCapacity((int) nblocks);</span>
+<span class="fc bfc" id="L243" title="All 2 branches covered.">		if (nblocks == 1) {</span>
+			// When less than one block is needed we allocate smaller arrays
+			// than m_realBlockSize to avoid initialization cost.
+<span class="fc bfc" id="L246" title="All 2 branches covered.">			int oldsz = m_capacity &gt; 0 ? m_capacity : 0;</span>
+<span class="pc bpc" id="L247" title="1 of 2 branches missed.">			assert (oldsz &lt; newsize);</span>
+<span class="fc" id="L248">			int i = 0;</span>
+<span class="fc" id="L249">			int realnewsize = (int) newsize * m_realStride;</span>
+<span class="fc bfc" id="L250" title="All 2 branches covered.">			while (realnewsize &gt; st_sizes[i])</span>
+				// get the size to allocate. Using fixed sizes to reduce
+				// fragmentation.
+<span class="fc" id="L253">				i++;</span>
+<span class="fc" id="L254">			int[] b = new int[st_sizes[i]];</span>
+<span class="fc bfc" id="L255" title="All 2 branches covered.">			if (m_bufferSize == 1) {</span>
+<span class="fc" id="L256">				System.arraycopy(m_buffer[0], 0, b, 0, m_buffer[0].length);</span>
+<span class="fc" id="L257">				m_buffer[0] = b;</span>
+			} else {
+<span class="fc" id="L259">				m_buffer[m_bufferSize] = b;</span>
+<span class="fc" id="L260">				m_bufferSize++;</span>
+			}
+<span class="fc" id="L262">			m_capacity = b.length / m_realStride;</span>
+<span class="fc" id="L263">		} else {</span>
+<span class="pc bpc" id="L264" title="1 of 2 branches missed.">			if (nblocks * m_blockSize &gt; Integer.MAX_VALUE)</span>
+<span class="nc" id="L265">				throw new IndexOutOfBoundsException();</span>
+
+<span class="fc bfc" id="L267" title="All 2 branches covered.">			if (m_bufferSize == 1) {</span>
+<span class="pc bpc" id="L268" title="1 of 2 branches missed.">				if (m_buffer[0].length &lt; m_realBlockSize) {</span>
+					// resize the first buffer to ensure it is equal the
+					// m_realBlockSize.
+<span class="nc" id="L271">					int[] b = new int[m_realBlockSize];</span>
+<span class="nc" id="L272">					System.arraycopy(m_buffer[0], 0, b, 0, m_buffer[0].length);</span>
+<span class="nc" id="L273">					m_buffer[0] = b;</span>
+<span class="nc" id="L274">					m_capacity = m_blockSize;</span>
+				}
+			}
+
+<span class="fc bfc" id="L278" title="All 2 branches covered.">			while (m_bufferSize &lt; nblocks) {</span>
+<span class="fc" id="L279">				m_buffer[m_bufferSize++] = new int[m_realBlockSize];</span>
+<span class="fc" id="L280">				m_capacity += m_blockSize;</span>
+			}
+		}
+<span class="fc" id="L283">	}</span>
+
+	public long estimateMemorySize()
+	{
+<span class="nc" id="L287">		long size = SIZE_OF_STRIDED_INDEX_TYPE_COLLECTION;</span>
+<span class="nc bnc" id="L288" title="All 2 branches missed.">		if (m_buffer != null) {</span>
+<span class="nc" id="L289">			size += sizeOfObjectArray(m_buffer.length);</span>
+<span class="nc bnc" id="L290" title="All 2 branches missed.">			for (int i = 0; i&lt; m_buffer.length; i++) {</span>
+<span class="nc bnc" id="L291" title="All 2 branches missed.">				if (m_buffer[i] != null) {</span>
+<span class="nc" id="L292">					size += sizeOfIntArray(m_buffer[i].length);</span>
+				}
+			}
+		}
+<span class="nc" id="L296">		return size;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

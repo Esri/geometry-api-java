@@ -1,0 +1,541 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OperatorProximity2DLocal.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Esri Geometry API for Java</a> &gt; <a href="index.source.html" class="el_package">com.esri.core.geometry</a> &gt; <span class="el_source">OperatorProximity2DLocal.java</span></div><h1>OperatorProximity2DLocal.java</h1><pre class="source lang-java linenums">/*
+ Copyright 1995-2015 Esri
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ For additional information, contact:
+ Environmental Systems Research Institute, Inc.
+ Attn: Contracts Dept
+ 380 New York Street
+ Redlands, California, USA 92373
+
+ email: contracts@esri.com
+ */
+
+package com.esri.core.geometry;
+
+import com.esri.core.geometry.VertexDescription.Semantics;
+import java.util.ArrayList;
+import java.util.Collections;
+
+<span class="fc" id="L31">class OperatorProximity2DLocal extends OperatorProximity2D {</span>
+
+<span class="fc" id="L33">	class Side_helper {</span>
+		int m_i1;
+		int m_i2;
+		boolean m_bRight1;
+		boolean m_bRight2;
+
+		void reset() {
+<span class="fc" id="L40">			m_i1 = -1;</span>
+<span class="fc" id="L41">			m_i2 = -1;</span>
+<span class="fc" id="L42">			m_bRight1 = false;</span>
+<span class="fc" id="L43">			m_bRight2 = false;</span>
+<span class="fc" id="L44">		}</span>
+
+		int find_non_degenerate(SegmentIterator segIter, int vertexIndex,
+				int pathIndex) {
+<span class="fc" id="L48">			segIter.resetToVertex(vertexIndex, pathIndex);</span>
+
+<span class="pc bpc" id="L50" title="1 of 2 branches missed.">			while (segIter.hasNextSegment()) {</span>
+<span class="fc" id="L51">				Segment segment = segIter.nextSegment();</span>
+<span class="fc" id="L52">				double length = segment.calculateLength2D();</span>
+
+<span class="pc bpc" id="L54" title="1 of 2 branches missed.">				if (length != 0.0)</span>
+<span class="fc" id="L55">					return segIter.getStartPointIndex();</span>
+<span class="nc" id="L56">			}</span>
+
+<span class="nc" id="L58">			segIter.resetToVertex(vertexIndex, pathIndex);</span>
+
+<span class="nc bnc" id="L60" title="All 2 branches missed.">			while (segIter.hasPreviousSegment()) {</span>
+<span class="nc" id="L61">				Segment segment = segIter.previousSegment();</span>
+<span class="nc" id="L62">				double length = segment.calculateLength2D();</span>
+
+<span class="nc bnc" id="L64" title="All 2 branches missed.">				if (length != 0)</span>
+<span class="nc" id="L65">					return segIter.getStartPointIndex();</span>
+<span class="nc" id="L66">			}</span>
+
+<span class="nc" id="L68">			return -1;</span>
+		}
+
+		int find_prev_non_degenerate(SegmentIterator segIter, int index) {
+<span class="nc" id="L72">			segIter.resetToVertex(index, -1);</span>
+
+<span class="nc bnc" id="L74" title="All 2 branches missed.">			while (segIter.hasPreviousSegment()) {</span>
+<span class="nc" id="L75">				Segment segment = segIter.previousSegment();</span>
+<span class="nc" id="L76">				double length = segment.calculateLength2D();</span>
+
+<span class="nc bnc" id="L78" title="All 2 branches missed.">				if (length != 0)</span>
+<span class="nc" id="L79">					return segIter.getStartPointIndex();</span>
+<span class="nc" id="L80">			}</span>
+
+<span class="nc" id="L82">			return -1;</span>
+		}
+
+		int find_next_non_degenerate(SegmentIterator segIter, int index) {
+<span class="fc" id="L86">			segIter.resetToVertex(index, -1);</span>
+<span class="fc" id="L87">			segIter.nextSegment();</span>
+
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">			while (segIter.hasNextSegment()) {</span>
+<span class="fc" id="L90">				Segment segment = segIter.nextSegment();</span>
+<span class="fc" id="L91">				double length = segment.calculateLength2D();</span>
+
+<span class="pc bpc" id="L93" title="1 of 2 branches missed.">				if (length != 0)</span>
+<span class="fc" id="L94">					return segIter.getStartPointIndex();</span>
+<span class="nc" id="L95">			}</span>
+
+<span class="nc" id="L97">			return -1;</span>
+		}
+
+		void find_analysis_pair_from_index(Point2D inputPoint,
+				SegmentIterator segIter, int vertexIndex, int pathIndex) {
+<span class="fc" id="L102">			m_i1 = find_non_degenerate(segIter, vertexIndex, pathIndex);</span>
+
+<span class="pc bpc" id="L104" title="1 of 2 branches missed.">			if (m_i1 != -1) {</span>
+<span class="fc" id="L105">				segIter.resetToVertex(m_i1, -1);</span>
+<span class="fc" id="L106">				Segment segment1 = segIter.nextSegment();</span>
+<span class="fc" id="L107">				double t1 = segment1.getClosestCoordinate(inputPoint, false);</span>
+<span class="fc" id="L108">				Point2D p1 = segment1.getCoord2D(t1);</span>
+<span class="fc" id="L109">				double d1 = Point2D.sqrDistance(p1, inputPoint);</span>
+<span class="fc" id="L110">				Point2D pq = new Point2D();</span>
+<span class="fc" id="L111">				pq.setCoords(p1);</span>
+<span class="fc" id="L112">				pq.sub(segment1.getStartXY());</span>
+<span class="fc" id="L113">				Point2D pr = new Point2D();</span>
+<span class="fc" id="L114">				pr.setCoords(inputPoint);</span>
+<span class="fc" id="L115">				pr.sub(segment1.getStartXY());</span>
+<span class="pc bpc" id="L116" title="1 of 2 branches missed.">				m_bRight1 = (pq.crossProduct(pr) &lt; 0);</span>
+
+<span class="fc" id="L118">				m_i2 = find_next_non_degenerate(segIter, m_i1);</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">				if (m_i2 != -1) {</span>
+<span class="fc" id="L120">					segIter.resetToVertex(m_i2, -1);</span>
+<span class="fc" id="L121">					Segment segment2 = segIter.nextSegment();</span>
+<span class="fc" id="L122">					double t2 = segment2</span>
+<span class="fc" id="L123">							.getClosestCoordinate(inputPoint, false);</span>
+<span class="fc" id="L124">					Point2D p2 = segment2.getCoord2D(t2);</span>
+<span class="fc" id="L125">					double d2 = Point2D.sqrDistance(p2, inputPoint);</span>
+
+<span class="pc bpc" id="L127" title="1 of 2 branches missed.">					if (d2 &gt; d1) {</span>
+<span class="nc" id="L128">						m_i2 = -1;</span>
+					} else {
+<span class="fc" id="L130">						pq.setCoords(p2);</span>
+<span class="fc" id="L131">						pq.sub(segment2.getStartXY());</span>
+<span class="fc" id="L132">						pr.setCoords(inputPoint);</span>
+<span class="fc" id="L133">						pr.sub(segment2.getStartXY());</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">						m_bRight2 = (pq.crossProduct(pr) &lt; 0);</span>
+					}
+				}
+
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">				if (m_i2 == -1) {</span>
+<span class="nc" id="L139">					m_i2 = find_prev_non_degenerate(segIter, m_i1);</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">					if (m_i2 != -1) {</span>
+<span class="nc" id="L141">						segIter.resetToVertex(m_i2, -1);</span>
+<span class="nc" id="L142">						Segment segment2 = segIter.nextSegment();</span>
+<span class="nc" id="L143">						double t2 = segment2.getClosestCoordinate(inputPoint,</span>
+								false);
+<span class="nc" id="L145">						Point2D p2 = segment2.getCoord2D(t2);</span>
+<span class="nc" id="L146">						double d2 = Point2D.sqrDistance(p2, inputPoint);</span>
+
+<span class="nc bnc" id="L148" title="All 2 branches missed.">						if (d2 &gt; d1)</span>
+<span class="nc" id="L149">							m_i2 = -1;</span>
+						else {
+<span class="nc" id="L151">							pq.setCoords(p2);</span>
+<span class="nc" id="L152">							pq.sub(segment2.getStartXY());</span>
+<span class="nc" id="L153">							pr.setCoords(inputPoint);</span>
+<span class="nc" id="L154">							pr.sub(segment2.getStartXY());</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">							m_bRight2 = (pq.crossProduct(pr) &lt; 0);</span>
+
+<span class="nc" id="L157">							int itemp = m_i1;</span>
+<span class="nc" id="L158">							m_i1 = m_i2;</span>
+<span class="nc" id="L159">							m_i2 = itemp;</span>
+
+<span class="nc" id="L161">							boolean btemp = m_bRight1;</span>
+<span class="nc" id="L162">							m_bRight1 = m_bRight2;</span>
+<span class="nc" id="L163">							m_bRight2 = btemp;</span>
+						}
+					}
+				}
+			}
+<span class="fc" id="L168">		}</span>
+
+		// Try to find two segements that are not degenerate
+		boolean calc_side(Point2D inputPoint, boolean bRight,
+				MultiPath multipath, int vertexIndex, int pathIndex) {
+<span class="fc" id="L173">			SegmentIterator segIter = multipath.querySegmentIterator();</span>
+
+<span class="fc" id="L175">			find_analysis_pair_from_index(inputPoint, segIter, vertexIndex,</span>
+					pathIndex);
+
+<span class="pc bpc" id="L178" title="2 of 4 branches missed.">			if (m_i1 != -1 &amp;&amp; m_i2 == -1) {// could not find a pair of segments</span>
+<span class="nc" id="L179">				return m_bRight1;</span>
+			}
+
+<span class="pc bpc" id="L182" title="2 of 4 branches missed.">			if (m_i1 != -1 &amp;&amp; m_i2 != -1) {</span>
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">				if (m_bRight1 == m_bRight2)</span>
+<span class="fc" id="L184">					return m_bRight1;// no conflicting result for the side</span>
+				else {
+					// the conflicting result, that we are trying to resolve,
+					// happens in the obtuse (outer) side of the turn only.
+<span class="nc" id="L188">					segIter.resetToVertex(m_i1, -1);</span>
+<span class="nc" id="L189">					Segment segment1 = segIter.nextSegment();</span>
+<span class="nc" id="L190">					Point2D tang1 = segment1._getTangent(1.0);</span>
+
+<span class="nc" id="L192">					segIter.resetToVertex(m_i2, -1);</span>
+<span class="nc" id="L193">					Segment segment2 = segIter.nextSegment();</span>
+<span class="nc" id="L194">					Point2D tang2 = segment2._getTangent(0.0);</span>
+
+<span class="nc" id="L196">					double cross = tang1.crossProduct(tang2);</span>
+
+<span class="nc bnc" id="L198" title="All 2 branches missed.">					if (cross &gt;= 0) // the obtuse angle is on the right side</span>
+					{
+<span class="nc" id="L200">						return true;</span>
+					} else // the obtuse angle is on the right side
+					{
+<span class="nc" id="L203">						return false;</span>
+					}
+				}
+			} else {
+<span class="nc bnc" id="L207" title="All 4 branches missed.">				assert (m_i1 == -1 &amp;&amp; m_i2 == -1);</span>
+<span class="nc" id="L208">				return bRight;// could not resolve the side. So just return the</span>
+								// old value.
+			}
+		}
+	}
+
+	@Override
+	public Proximity2DResult getNearestCoordinate(Geometry geom,
+			Point inputPoint, boolean bTestPolygonInterior) {
+
+<span class="fc" id="L218">		return getNearestCoordinate(geom, inputPoint, bTestPolygonInterior,</span>
+				false);
+	}
+
+	@Override
+	public Proximity2DResult getNearestCoordinate(Geometry geom,
+			Point inputPoint, boolean bTestPolygonInterior,
+			boolean bCalculateLeftRightSide) {
+<span class="pc bpc" id="L226" title="1 of 2 branches missed.">		if (geom.isEmpty())</span>
+<span class="nc" id="L227">			return new Proximity2DResult();</span>
+
+<span class="fc" id="L229">		Point2D inputPoint2D = inputPoint.getXY();</span>
+
+<span class="fc" id="L231">		Geometry proxmityTestGeom = geom;</span>
+<span class="fc" id="L232">		int gt = geom.getType().value();</span>
+
+<span class="fc bfc" id="L234" title="All 2 branches covered.">		if (gt == Geometry.GeometryType.Envelope) {</span>
+<span class="fc" id="L235">			Polygon polygon = new Polygon();</span>
+<span class="fc" id="L236">			polygon.addEnvelope((Envelope) geom, false);</span>
+<span class="fc" id="L237">			proxmityTestGeom = polygon;</span>
+<span class="fc" id="L238">			gt = Geometry.GeometryType.Polygon;</span>
+		}
+<span class="pc bpc" id="L240" title="3 of 4 branches missed.">		switch (gt) {</span>
+		case Geometry.GeometryType.Point:
+<span class="nc" id="L242">			return pointGetNearestVertex((Point) proxmityTestGeom, inputPoint2D);</span>
+		case Geometry.GeometryType.MultiPoint:
+<span class="nc" id="L244">			return multiVertexGetNearestVertex(</span>
+					(MultiVertexGeometry) proxmityTestGeom, inputPoint2D);
+		case Geometry.GeometryType.Polyline:
+		case Geometry.GeometryType.Polygon:
+<span class="fc" id="L248">			return multiPathGetNearestCoordinate((MultiPath) proxmityTestGeom,</span>
+					inputPoint2D, bTestPolygonInterior, bCalculateLeftRightSide);
+		default: {
+<span class="nc" id="L251">			throw new GeometryException(&quot;not implemented&quot;);</span>
+		}
+		}
+	}
+
+	@Override
+	public Proximity2DResult getNearestVertex(Geometry geom, Point inputPoint) {
+<span class="pc bpc" id="L258" title="1 of 2 branches missed.">		if (geom.isEmpty())</span>
+<span class="nc" id="L259">			return new Proximity2DResult();</span>
+
+<span class="fc" id="L261">		Point2D inputPoint2D = inputPoint.getXY();</span>
+
+<span class="fc" id="L263">		Geometry proxmityTestGeom = geom;</span>
+<span class="fc" id="L264">		int gt = geom.getType().value();</span>
+
+<span class="fc bfc" id="L266" title="All 2 branches covered.">		if (gt == Geometry.GeometryType.Envelope) {</span>
+<span class="fc" id="L267">			Polygon polygon = new Polygon();</span>
+<span class="fc" id="L268">			polygon.addEnvelope((Envelope) geom, false);</span>
+<span class="fc" id="L269">			proxmityTestGeom = polygon;</span>
+<span class="fc" id="L270">			gt = Geometry.GeometryType.Polygon;</span>
+		}
+<span class="pc bpc" id="L272" title="1 of 3 branches missed.">		switch (gt) {</span>
+		case Geometry.GeometryType.Point:
+<span class="fc" id="L274">			return pointGetNearestVertex((Point) proxmityTestGeom, inputPoint2D);</span>
+		case Geometry.GeometryType.MultiPoint:
+		case Geometry.GeometryType.Polyline:
+		case Geometry.GeometryType.Polygon:
+<span class="fc" id="L278">			return multiVertexGetNearestVertex(</span>
+					(MultiVertexGeometry) proxmityTestGeom, inputPoint2D);
+		default: {
+<span class="nc" id="L281">			throw new GeometryException(&quot;not implemented&quot;);</span>
+		}
+		}
+	}
+
+	@Override
+	public Proximity2DResult[] getNearestVertices(Geometry geom,
+			Point inputPoint, double searchRadius, int maxVertexCountToReturn) {
+<span class="pc bpc" id="L289" title="1 of 2 branches missed.">		if (maxVertexCountToReturn &lt; 0)</span>
+<span class="nc" id="L290">			throw new IllegalArgumentException();</span>
+
+<span class="pc bpc" id="L292" title="1 of 2 branches missed.">		if (geom.isEmpty())</span>
+<span class="nc" id="L293">			return new Proximity2DResult[] {};</span>
+
+<span class="fc" id="L295">		Point2D inputPoint2D = inputPoint.getXY();</span>
+
+<span class="fc" id="L297">		Geometry proxmityTestGeom = geom;</span>
+<span class="fc" id="L298">		int gt = geom.getType().value();</span>
+
+<span class="pc bpc" id="L300" title="1 of 2 branches missed.">		if (gt == Geometry.GeometryType.Envelope) {</span>
+<span class="nc" id="L301">			Polygon polygon = new Polygon();</span>
+<span class="nc" id="L302">			polygon.addEnvelope((Envelope) geom, false);</span>
+<span class="nc" id="L303">			proxmityTestGeom = polygon;</span>
+<span class="nc" id="L304">			gt = Geometry.GeometryType.Polygon;</span>
+		}
+<span class="pc bpc" id="L306" title="1 of 3 branches missed.">		switch (gt) {</span>
+		case Geometry.GeometryType.Point:
+<span class="fc" id="L308">			return pointGetNearestVertices((Point) proxmityTestGeom,</span>
+					inputPoint2D, searchRadius, maxVertexCountToReturn);
+		case Geometry.GeometryType.MultiPoint:
+		case Geometry.GeometryType.Polyline:
+		case Geometry.GeometryType.Polygon:
+<span class="fc" id="L313">			return multiVertexGetNearestVertices(</span>
+					(MultiVertexGeometry) proxmityTestGeom, inputPoint2D,
+					searchRadius, maxVertexCountToReturn);
+		default: {
+<span class="nc" id="L317">			throw new GeometryException(&quot;not implemented&quot;);</span>
+		}
+		}
+	}
+
+	Proximity2DResult multiPathGetNearestCoordinate(MultiPath geom,
+			Point2D inputPoint, boolean bTestPolygonInterior,
+			boolean bCalculateLeftRightSide) {
+<span class="fc bfc" id="L325" title="All 4 branches covered.">		if (geom.getType() == Geometry.Type.Polygon &amp;&amp; bTestPolygonInterior) {</span>
+<span class="fc" id="L326">			Envelope2D env = new Envelope2D();</span>
+<span class="fc" id="L327">			geom.queryEnvelope2D(env);</span>
+<span class="fc" id="L328">			double tolerance = InternalUtils.calculateToleranceFromGeometry(</span>
+					null, env, false);
+
+			PolygonUtils.PiPResult pipResult;
+
+<span class="fc bfc" id="L333" title="All 2 branches covered.">			if (bCalculateLeftRightSide)</span>
+<span class="fc" id="L334">				pipResult = PolygonUtils.isPointInPolygon2D((Polygon) geom,</span>
+						inputPoint, 0.0);
+			else
+<span class="fc" id="L337">				pipResult = PolygonUtils.isPointInPolygon2D((Polygon) geom,</span>
+						inputPoint, tolerance);
+
+<span class="fc bfc" id="L340" title="All 2 branches covered.">			if (pipResult != PolygonUtils.PiPResult.PiPOutside) {</span>
+<span class="fc" id="L341">				Proximity2DResult result = new Proximity2DResult(inputPoint, 0,</span>
+						0.0);
+
+<span class="pc bpc" id="L344" title="1 of 2 branches missed.">				if (bCalculateLeftRightSide)</span>
+<span class="nc" id="L345">					result.setRightSide(true);</span>
+
+<span class="fc" id="L347">				return result;</span>
+			}
+		}
+
+<span class="fc" id="L351">		SegmentIterator segIter = geom.querySegmentIterator();</span>
+
+<span class="fc" id="L353">		Point2D closest = new Point2D();</span>
+<span class="fc" id="L354">		int closestVertexIndex = -1;</span>
+<span class="fc" id="L355">		int closestPathIndex = -1;</span>
+<span class="fc" id="L356">		double closestDistanceSq = NumberUtils.doubleMax();</span>
+<span class="fc" id="L357">		boolean bRight = false;</span>
+<span class="fc" id="L358">		int num_candidates = 0;</span>
+
+<span class="fc bfc" id="L360" title="All 2 branches covered.">		while (segIter.nextPath()) {</span>
+<span class="fc bfc" id="L361" title="All 2 branches covered.">			while (segIter.hasNextSegment()) {</span>
+<span class="fc" id="L362">				Segment segment = segIter.nextSegment();</span>
+<span class="fc" id="L363">				double t = segment.getClosestCoordinate(inputPoint, false);</span>
+
+<span class="fc" id="L365">				Point2D point = segment.getCoord2D(t);</span>
+
+<span class="fc" id="L367">				double distanceSq = Point2D.sqrDistance(point, inputPoint);</span>
+<span class="fc bfc" id="L368" title="All 2 branches covered.">				if (distanceSq &lt; closestDistanceSq) {</span>
+<span class="fc" id="L369">					num_candidates = 1;</span>
+<span class="fc" id="L370">					closest = point;</span>
+<span class="fc" id="L371">					closestVertexIndex = segIter.getStartPointIndex();</span>
+<span class="fc" id="L372">					closestPathIndex = segIter.getPathIndex();</span>
+<span class="fc" id="L373">					closestDistanceSq = distanceSq;</span>
+<span class="fc bfc" id="L374" title="All 2 branches covered.">				} else if (distanceSq == closestDistanceSq) {</span>
+<span class="fc" id="L375">					num_candidates++;</span>
+				}
+<span class="fc" id="L377">			}</span>
+		}
+
+<span class="fc" id="L380">		Proximity2DResult result = new Proximity2DResult(closest,</span>
+<span class="fc" id="L381">				closestVertexIndex, Math.sqrt(closestDistanceSq));</span>
+
+<span class="fc bfc" id="L383" title="All 2 branches covered.">		if (bCalculateLeftRightSide) {</span>
+<span class="fc" id="L384">			segIter.resetToVertex(closestVertexIndex, closestPathIndex);</span>
+<span class="fc" id="L385">			Segment segment = segIter.nextSegment();</span>
+<span class="pc bpc" id="L386" title="1 of 2 branches missed.">			bRight = (Point2D.orientationRobust(inputPoint,</span>
+<span class="fc" id="L387">					segment.getStartXY(), segment.getEndXY()) &lt; 0);</span>
+
+<span class="fc bfc" id="L389" title="All 2 branches covered.">			if (num_candidates &gt; 1) {</span>
+<span class="fc" id="L390">				Side_helper sideHelper = new Side_helper();</span>
+<span class="fc" id="L391">				sideHelper.reset();</span>
+<span class="fc" id="L392">				bRight = sideHelper.calc_side(inputPoint, bRight, geom,</span>
+						closestVertexIndex, closestPathIndex);
+			}
+
+<span class="fc" id="L396">			result.setRightSide(bRight);</span>
+		}
+
+<span class="fc" id="L399">		return result;</span>
+	}
+
+	Proximity2DResult pointGetNearestVertex(Point geom, Point2D input_point) {
+<span class="fc" id="L403">		Point2D pt = geom.getXY();</span>
+<span class="fc" id="L404">		double distance = Point2D.distance(pt, input_point);</span>
+<span class="fc" id="L405">		return new Proximity2DResult(pt, 0, distance);</span>
+	}
+
+	Proximity2DResult multiVertexGetNearestVertex(MultiVertexGeometry geom,
+			Point2D inputPoint) {
+<span class="fc" id="L410">		MultiVertexGeometryImpl mpImpl = (MultiVertexGeometryImpl) geom</span>
+<span class="fc" id="L411">				._getImpl();</span>
+<span class="fc" id="L412">		AttributeStreamOfDbl position = (AttributeStreamOfDbl) mpImpl</span>
+<span class="fc" id="L413">				.getAttributeStreamRef((Semantics.POSITION));</span>
+<span class="fc" id="L414">		int pointCount = geom.getPointCount();</span>
+
+<span class="fc" id="L416">		int closestIndex = 0;</span>
+<span class="fc" id="L417">		double closestx = 0.0;</span>
+<span class="fc" id="L418">		double closesty = 0.0;</span>
+<span class="fc" id="L419">		double closestDistanceSq = NumberUtils.doubleMax();</span>
+<span class="fc bfc" id="L420" title="All 2 branches covered.">		for (int i = 0; i &lt; pointCount; i++) {</span>
+<span class="fc" id="L421">			Point2D pt = new Point2D();</span>
+<span class="fc" id="L422">			position.read(2 * i, pt);</span>
+
+<span class="fc" id="L424">			double distanceSq = Point2D.sqrDistance(pt, inputPoint);</span>
+<span class="fc bfc" id="L425" title="All 2 branches covered.">			if (distanceSq &lt; closestDistanceSq) {</span>
+<span class="fc" id="L426">				closestx = pt.x;</span>
+<span class="fc" id="L427">				closesty = pt.y;</span>
+<span class="fc" id="L428">				closestIndex = i;</span>
+<span class="fc" id="L429">				closestDistanceSq = distanceSq;</span>
+			}
+		}
+
+<span class="fc" id="L433">		Proximity2DResult result = new Proximity2DResult();</span>
+<span class="fc" id="L434">		result._setParams(closestx, closesty, closestIndex,</span>
+<span class="fc" id="L435">				Math.sqrt(closestDistanceSq));</span>
+
+<span class="fc" id="L437">		return result;</span>
+	}
+
+	Proximity2DResult[] pointGetNearestVertices(Point geom, Point2D inputPoint,
+			double searchRadius, int maxVertexCountToReturn) {
+		Proximity2DResult[] resultArray;
+
+<span class="pc bpc" id="L444" title="1 of 2 branches missed.">		if (maxVertexCountToReturn == 0) {</span>
+<span class="nc" id="L445">			resultArray = new Proximity2DResult[] {};</span>
+<span class="nc" id="L446">			return resultArray;</span>
+		}
+
+<span class="fc" id="L449">		double searchRadiusSq = searchRadius * searchRadius;</span>
+<span class="fc" id="L450">		Point2D pt = geom.getXY();</span>
+
+<span class="fc" id="L452">		double distanceSq = Point2D.sqrDistance(pt, inputPoint);</span>
+<span class="pc bpc" id="L453" title="1 of 2 branches missed.">		if (distanceSq &lt;= searchRadiusSq) {</span>
+<span class="fc" id="L454">			resultArray = new Proximity2DResult[1];</span>
+
+<span class="fc" id="L456">			Proximity2DResult result = new Proximity2DResult();</span>
+<span class="fc" id="L457">			result._setParams(pt.x, pt.y, 0, Math.sqrt(distanceSq));</span>
+<span class="fc" id="L458">			resultArray[0] = result;</span>
+<span class="fc" id="L459">		} else {</span>
+<span class="nc" id="L460">			resultArray = new Proximity2DResult[0];</span>
+		}
+
+<span class="fc" id="L463">		return resultArray;</span>
+	}
+
+	Proximity2DResult[] multiVertexGetNearestVertices(MultiVertexGeometry geom,
+			Point2D inputPoint, double searchRadius, int maxVertexCountToReturn) {
+		Proximity2DResult[] resultArray;
+
+<span class="pc bpc" id="L470" title="1 of 2 branches missed.">		if (maxVertexCountToReturn == 0) {</span>
+<span class="nc" id="L471">			resultArray = new Proximity2DResult[0];</span>
+<span class="nc" id="L472">			return resultArray;</span>
+		}
+
+<span class="fc" id="L475">		MultiVertexGeometryImpl mpImpl = (MultiVertexGeometryImpl) geom</span>
+<span class="fc" id="L476">				._getImpl();</span>
+<span class="fc" id="L477">		AttributeStreamOfDbl position = (AttributeStreamOfDbl) mpImpl</span>
+<span class="fc" id="L478">				.getAttributeStreamRef((Semantics.POSITION));</span>
+<span class="fc" id="L479">		int pointCount = geom.getPointCount();</span>
+
+<span class="fc" id="L481">		ArrayList&lt;Proximity2DResult&gt; v = new ArrayList&lt;Proximity2DResult&gt;(</span>
+				maxVertexCountToReturn);
+
+<span class="fc" id="L484">		int count = 0;</span>
+<span class="fc" id="L485">		double searchRadiusSq = searchRadius * searchRadius;</span>
+<span class="fc bfc" id="L486" title="All 2 branches covered.">		for (int i = 0; i &lt; pointCount; i++) {</span>
+<span class="fc" id="L487">			double x = position.read(2 * i);</span>
+<span class="fc" id="L488">			double y = position.read(2 * i + 1);</span>
+
+<span class="fc" id="L490">			double xDiff = inputPoint.x - x;</span>
+<span class="fc" id="L491">			double yDiff = inputPoint.y - y;</span>
+
+<span class="fc" id="L493">			double distanceSq = xDiff * xDiff + yDiff * yDiff;</span>
+<span class="fc bfc" id="L494" title="All 2 branches covered.">			if (distanceSq &lt;= searchRadiusSq) {</span>
+<span class="fc" id="L495">				Proximity2DResult result = new Proximity2DResult();</span>
+<span class="fc" id="L496">				result._setParams(x, y, i, Math.sqrt(distanceSq));</span>
+
+<span class="fc" id="L498">				count++;</span>
+<span class="fc" id="L499">				v.add(result);</span>
+
+			}
+		}
+
+<span class="fc" id="L504">		int vsize = v.size();</span>
+<span class="fc" id="L505">		Collections.sort(v, new Proximity2DResultComparator());</span>
+
+<span class="fc bfc" id="L507" title="All 2 branches covered.">		if (maxVertexCountToReturn &gt;= vsize)</span>
+<span class="fc" id="L508">			return v.toArray(new Proximity2DResult[0]);</span>
+<span class="fc" id="L509">		return v.subList(0, maxVertexCountToReturn).toArray(</span>
+				new Proximity2DResult[0]);
+
+	}
+
+	/*
+	 * if (distanceSq &lt;= searchRadiusSq) { if (count &gt;= maxVertexCountToReturn +
+	 * 1) { count++; double frontDistance = v.get(0).getDistance(); if
+	 * (frontDistance * frontDistance &lt;= distanceSq) continue; }
+	 * 
+	 * Proximity2DResult result = new Proximity2DResult(); result._setParams(x,
+	 * y, i, Math.sqrt(distanceSq));
+	 * 
+	 * count++;
+	 * 
+	 * if (count &lt;= maxVertexCountToReturn) { v.add(result); } // else // { //
+	 * if (count == maxVertexCountToReturn + 1) // MAKEHEAP(v,
+	 * Proximity2DResult, Proximity2DResult::_Compare); // // PUSHHEAP(v,
+	 * result, Proximity2DResult, Proximity2DResult::_Compare); // POPHEAP(v,
+	 * Proximity2DResult, Proximity2DResult::_Compare); // } } }
+	 * 
+	 * int vsize = v.size(); Collections.sort(v, new
+	 * Proximity2DResultComparator());
+	 * 
+	 * // SORTDYNAMICARRAY(v, Proximity2DResult, 0, vsize,
+	 * Proximity2DResult::_Compare); resultArray = new Proximity2DResult[vsize];
+	 * for (int i = 0; i &lt; vsize; i++) { resultArray[i] =
+	 * (Proximity2DResult)v.get(i); }
+	 * 
+	 * return resultArray; }
+	 */
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
