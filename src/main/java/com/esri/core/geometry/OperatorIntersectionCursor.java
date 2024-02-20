@@ -25,6 +25,8 @@
 package com.esri.core.geometry;
 
 import java.util.ArrayList;
+import java.io.File;
+import java.io.FileWriter;
 
 class OperatorIntersectionCursor extends GeometryCursor {
 
@@ -40,6 +42,36 @@ class OperatorIntersectionCursor extends GeometryCursor {
 	int m_index;
 	int m_dimensionMask;
 	boolean m_bEmpty;
+
+	static private void coverageHelper(String id) {
+		String tempFilePath = "target/temp/coverage_tryFastIntersectPolylinePolygon.txt";
+
+		// Create a File object with the specified path
+		File tempFile = new File(tempFilePath);
+
+		try {
+			// Check if the file exists
+			if (!tempFile.exists()) {
+				// Create the file if it doesn't exist
+				if (tempFile.getParentFile() != null) {
+					tempFile.getParentFile().mkdirs(); // Create parent directories if necessary
+				}
+				tempFile.createNewFile(); // Create the file
+				System.out.println("Temporary file created at: " + tempFile.getAbsolutePath());
+			}
+			FileWriter writer = new FileWriter(tempFile, true);
+			// Write the new content to the file
+			writer.write(id);
+			writer.write(System.lineSeparator()); // Add a newline after the new content
+
+			// Close the FileWriter
+			writer.close();
+
+		} catch (Exception e) {
+			System.err.println(e.getMessage());
+		}
+
+	}
 
 	OperatorIntersectionCursor(GeometryCursor inputGeoms,
 			GeometryCursor geomIntersector, SpatialReference sr,
@@ -418,6 +450,7 @@ class OperatorIntersectionCursor extends GeometryCursor {
 		clipEnvelope.inflate(10 * tolerance, 10 * tolerance);
 
 		if (true) {
+			coverageHelper("0");
 			double tol = 0;
 			Geometry clippedPolyline = Clipper.clip(polyline, clipEnvelope,
 					tol, 0.0);
@@ -429,33 +462,47 @@ class OperatorIntersectionCursor extends GeometryCursor {
 		int unresolvedSegments = -1;
 		GeometryAccelerators accel = polygonImpl._getAccelerators();
 		if (accel != null) {
+			coverageHelper("1");
 			RasterizedGeometry2D rgeom = accel.getRasterizedGeometry();
 			if (rgeom != null) {
+				coverageHelper("2");
 				unresolvedSegments = 0;
 				clipResult.reserve(polylineImpl.getPointCount()
 						+ polylineImpl.getPathCount());
 				Envelope2D seg_env = new Envelope2D();
 				SegmentIteratorImpl iter = polylineImpl.querySegmentIterator();
 				while (iter.nextPath()) {
+					coverageHelper("3");
 					while (iter.hasNextSegment()) {
+						coverageHelper("4");
 						Segment seg = iter.nextSegment();
 						seg.queryEnvelope2D(seg_env);
 						RasterizedGeometry2D.HitType hit = rgeom
 								.queryEnvelopeInGeometry(seg_env);
 						if (hit == RasterizedGeometry2D.HitType.Inside) {
+							coverageHelper("5");
 							clipResult.add(1);
 						} else if (hit == RasterizedGeometry2D.HitType.Outside) {
+							coverageHelper("6");
 							clipResult.add(0);
 						} else {
+							coverageHelper("7");
 							clipResult.add(-1);
 							unresolvedSegments++;
 						}
 					}
 				}
 			}
+			else{
+				coverageHelper("55");
+			}
+		}
+		else{
+			coverageHelper("56");
 		}
 
 		if (polygon.getPointCount() > 5) {
+			coverageHelper("8");
 			double tol = 0;
 			Geometry clippedPolygon = Clipper.clip(polygon, clipEnvelope, tol,
 					0.0);
@@ -464,9 +511,16 @@ class OperatorIntersectionCursor extends GeometryCursor {
 			polygonImpl = (MultiPathImpl) polygon._getImpl();
 			accel = polygonImpl._getAccelerators();// update accelerators
 		}
+		else{
+			coverageHelper("57");
+		}
 
 		if (unresolvedSegments < 0) {
+			coverageHelper("9");
 			unresolvedSegments = polylineImpl.getSegmentCount();
+		}
+		else{
+			coverageHelper("58");
 		}
 
 		// Some heuristics to decide if it makes sense to go with fast intersect
@@ -479,21 +533,35 @@ class OperatorIntersectionCursor extends GeometryCursor {
 		double empiricConstantFactorPlaneSweep = 4;
 		if (thisAlgorithmComplexity > planesweepComplexity
 				* empiricConstantFactorPlaneSweep) {
+			coverageHelper("10");
 			// Based on the number of input points, we deduced that the
 			// plansweep performance should be better than the brute force
 			// performance.
 			return null; // resort to planesweep if quadtree does not help
+		}
+		else{
+			coverageHelper("59");
 		}
 
 		QuadTreeImpl polygonQuadTree = null;
 		SegmentIteratorImpl polygonIter = polygonImpl.querySegmentIterator();
 		// Some logic to decide if it makes sense to build a quadtree on the
 		// polygon segments
-		if (accel != null && accel.getQuadTree() != null)
+		if (accel != null && accel.getQuadTree() != null){
+			coverageHelper("11");
 			polygonQuadTree = accel.getQuadTree();
+		}
+		else{
+			coverageHelper("59");
+		}
+
 
 		if (polygonQuadTree == null && polygonImpl.getPointCount() > 20) {
+			coverageHelper("12");
 			polygonQuadTree = InternalUtils.buildQuadTree(polygonImpl);
+		}
+		else{
+			coverageHelper("60");
 		}
 
 		Polyline result_polyline = (Polyline) polyline.createInstance();
@@ -525,6 +593,7 @@ class OperatorIntersectionCursor extends GeometryCursor {
 		int polylinePathIndex = -1;
 
 		while (polylineIter.nextPath()) {
+			coverageHelper("13");
 			polylinePathIndex = polylineIter.getPathIndex();
 			int stateNewPath = 0;
 			int stateAddSegment = 1;
@@ -536,25 +605,31 @@ class OperatorIntersectionCursor extends GeometryCursor {
 			inCount = 0;
 
 			while (polylineIter.hasNextSegment()) {
+				coverageHelper("14");
 				int clipStatus = bOptimized ? (int) clipResult.get(segIndex)
 						: -1;
 				segIndex++;
 				Segment polylineSeg = polylineIter.nextSegment();
 				if (clipStatus < 0) {
+					coverageHelper("15");
 					assert (clipStatus == -1);
 					// Analyse polyline segment for intersection with the
 					// polygon.
 					if (polygonQuadTree != null) {
+						coverageHelper("16");
 						if (qIter == null) {
+							coverageHelper("17");
 							qIter = polygonQuadTree.getIterator(polylineSeg,
 									tolerance);
 						} else {
+							coverageHelper("18");
 							qIter.resetIterator(polylineSeg, tolerance);
 						}
 
 						int path_index = -1;
 						for (int ind = qIter.next(); ind != -1; ind = qIter
 								.next()) {
+							coverageHelper("19");
 							polygonIter.resetToVertex(polygonQuadTree
 									.getElement(ind)); // path_index
 							path_index = polygonIter.getPathIndex();
@@ -566,9 +641,12 @@ class OperatorIntersectionCursor extends GeometryCursor {
 								intersections.add(params[i]);
 						}
 					} else {// no quadtree built
+						coverageHelper("20");
 						polygonIter.resetToFirstPath();
 						while (polygonIter.nextPath()) {
+							coverageHelper("21");
 							while (polygonIter.hasNextSegment()) {
+								coverageHelper("22");
 								Segment polygonSeg = polygonIter.nextSegment();
 								// intersect polylineSeg and polygonSeg.
 								int count = polylineSeg.intersect(polygonSeg,
@@ -580,6 +658,7 @@ class OperatorIntersectionCursor extends GeometryCursor {
 					}
 
 					if (intersections.size() > 0) {// intersections detected.
+						coverageHelper("23");
 						intersections.sort(0, intersections.size()); // std::sort(intersections.begin(),
 																		// intersections.end());
 
@@ -587,71 +666,94 @@ class OperatorIntersectionCursor extends GeometryCursor {
 						intersections.add(1.0);
 						int status = -1;
 						for (int i = 0, n = intersections.size(); i < n; i++) {
+							coverageHelper("24");
 							double t = intersections.get(i);
 							if (t == t0) {
+								coverageHelper("25");
 								continue;
 							}
 							boolean bWholeSegment = false;
 							Segment resSeg;
 							if (t0 != 0 || t != 1.0) {
+								coverageHelper("26");
 								polylineSeg.cut(t0, t, segmentBuffer);
 								resSeg = segmentBuffer.get();
 							} else {
+								coverageHelper("27");
 								resSeg = polylineSeg;
 								bWholeSegment = true;
 							}
 
 							if (state >= stateManySegments) {
+								coverageHelper("28");
 								resultPolylineImpl.addSegmentsFromPath(
 										polylineImpl, polylinePathIndex,
 										start_index, inCount,
 										state == stateManySegmentsNewPath);
 								if (analyseClipSegment_(polygon,
 										resSeg.getStartXY(), tolerance) != 1) {
+									coverageHelper("29");
 									if (analyseClipSegment_(polygon, resSeg,
 											tolerance) != 1) {
+										coverageHelper("30");
 										return null; // someting went wrong we'll falback to slower but robust
 														// planesweep code.
 									}
+									else{
+										coverageHelper("61");
+									}
+								}
+								else{
+									coverageHelper("62");
 								}
 
 								resultPolylineImpl.addSegment(resSeg, false);
 								state = stateAddSegment;
 								inCount = 0;
 							} else {
+								coverageHelper("31");
 								status = analyseClipSegment_(polygon, resSeg,
 										tolerance);
 								switch (status) {
 									case 1:
+										coverageHelper("32");
 										if (!bWholeSegment) {
+											coverageHelper("33");
 											resultPolylineImpl.addSegment(resSeg,
 													state == stateNewPath);
 											state = stateAddSegment;
 										} else {
+											coverageHelper("34");
 											if (state < stateManySegments) {
+												coverageHelper("35");
 												start_index = polylineIter
 														.getStartPointIndex()
 														- polylineImpl
 																.getPathStart(polylinePathIndex);
 												inCount = 1;
 
-												if (state == stateNewPath)
-													state = stateManySegmentsNewPath;
+												if (state == stateNewPath){
+													coverageHelper("36");
+													state = stateManySegmentsNewPath;}
 												else {
+													coverageHelper("37");
 													assert (state == stateAddSegment);
 													state = stateManySegmentsContinuePath;
 												}
-											} else
-												inCount++;
+											} else{
+												coverageHelper("38");
+												inCount++;}
 										}
 
 										break;
 									case 0:
+										coverageHelper("39");
 										state = stateNewPath;
 										start_index = -1;
 										inCount = 0;
 										break;
 									default:
+										coverageHelper("40");
 										return null;// may happen if a segment
 													// coincides with the border.
 								}
@@ -660,6 +762,7 @@ class OperatorIntersectionCursor extends GeometryCursor {
 							t0 = t;
 						}
 					} else {
+						coverageHelper("41");
 						clipStatus = analyseClipSegment_(polygon,
 								polylineSeg.getStartXY(), tolerance);// simple
 																		// case
@@ -671,29 +774,41 @@ class OperatorIntersectionCursor extends GeometryCursor {
 																		// be
 																		// inside.
 						if (clipStatus < 0) {
+							coverageHelper("42");
 							assert (clipStatus >= 0);
 							return null;// something goes wrong, resort to
 										// planesweep
+						}
+						else{
+							coverageHelper("63");
 						}
 
 						assert (analyseClipSegment_(polygon,
 								polylineSeg.getEndXY(), tolerance) == clipStatus);
 						if (clipStatus == 1) {// the whole segment inside
+							coverageHelper("43");
 							if (state < stateManySegments) {
+								coverageHelper("44");
 								assert (inCount == 0);
 								start_index = polylineIter.getStartPointIndex()
 										- polylineImpl
 												.getPathStart(polylinePathIndex);
-								if (state == stateNewPath)
-									state = stateManySegmentsNewPath;
+								if (state == stateNewPath){
+									coverageHelper("45");
+									state = stateManySegmentsNewPath;}
 								else {
+									coverageHelper("46");
 									assert (state == stateAddSegment);
 									state = stateManySegmentsContinuePath;
 								}
 							}
+							else{
+								coverageHelper("64");
+							}
 
 							inCount++;
 						} else {
+							coverageHelper("47");
 							assert (state < stateManySegments);
 							start_index = -1;
 							inCount = 0;
@@ -702,41 +817,57 @@ class OperatorIntersectionCursor extends GeometryCursor {
 
 					intersections.clear(false);
 				} else {// clip status is determined by other means
+					coverageHelper("48");
 					if (clipStatus == 0) {// outside
+						coverageHelper("49");
 						assert (analyseClipSegment_(polygon, polylineSeg,
 								tolerance) == 0);
 						assert (start_index < 0);
 						assert (inCount == 0);
 						continue;
 					}
+					else{
+						coverageHelper("65");
+					}
 
 					if (clipStatus == 1) {
+						coverageHelper("50");
 						assert (analyseClipSegment_(polygon, polylineSeg,
 								tolerance) == 1);
 						if (state == stateNewPath) {
+							coverageHelper("51");
 							state = stateManySegmentsNewPath;
 							start_index = polylineIter.getStartPointIndex()
 									- polylineImpl
 											.getPathStart(polylinePathIndex);
 						} else if (state == stateAddSegment) {
+							coverageHelper("52");
 							state = stateManySegmentsContinuePath;
 							start_index = polylineIter.getStartPointIndex()
 									- polylineImpl
 											.getPathStart(polylinePathIndex);
-						} else
-							assert (state >= stateManySegments);
+						} else{
+							coverageHelper("53");
+							assert (state >= stateManySegments);}
 
 						inCount++;
 						continue;
+					}
+					else{
+						coverageHelper("66");
 					}
 				}
 			}
 
 			if (state >= stateManySegments) {
+				coverageHelper("54");
 				resultPolylineImpl.addSegmentsFromPath(polylineImpl,
 						polylinePathIndex, start_index, inCount,
 						state == stateManySegmentsNewPath);
 				start_index = -1;
+			}
+			else{
+				coverageHelper("67");
 			}
 		}
 

@@ -51,6 +51,7 @@ public class CoverageSummary {
         CoverageSummary cs = new CoverageSummary();
         cs.checkCoverageFromFile("target/temp/coverage_geodesic_distance_ngs.txt", 85, "geodesic_distance_ngs");
         cs.checkCoverageFromFile("target/temp/coverage_importFromWkbPolygon.txt", 106, "importFromWkbPolygon");
+        cs.checkCoverageFromFile("target/temp/coverage_tryFastIntersectPolylinePolygon.txt", 68, "tryFastIntersectPolylinePolygon");
     }
 
 }
