@@ -633,7 +633,7 @@ class Cutter {
 		int polyline = shape.getFirstGeometry();
 		for (int ipath = shape.getFirstPath(polyline); ipath != -1; ipath = shape
 				.getNextPath(ipath)) {
-					coverageHelper("89");
+					coverageHelper("2");
 			int cut;
 			int cutPrev = OperatorCutLocal.Side.Uncut;
 			int ipartCuttee = -1;
@@ -669,26 +669,26 @@ class Cutter {
 			for (int ivertex = shape.getFirstVertex(ipath), n = shape
 					.getPathSize(ipath), i = 0; i < n; ivertex = shape
 					.getNextVertex(ivertex), i++) {
-						coverageHelper("90");
+						coverageHelper("3");
 				segmentCuttee = shape.getSegment(ivertex);
 				if (segmentCuttee == null) {
-					coverageHelper("3");
+					coverageHelper("4");
 					if (!shape.queryLineConnector(ivertex, lineCuttee))
 						continue;
 					segmentCuttee = lineCuttee;
-					coverageHelper("4");
+					coverageHelper("5");
 				}
 
 				if (ivertexCutteePrev == -1)
 					ivertexCutteePrev = ivertex;
-					coverageHelper("5");
+					coverageHelper("6");
 
 				double lastScalarCuttee = 0.0; // last scalar along the current
 												// segment
 
 				while (icutEvent < cutEvents.size()
 						&& ivertex == cutEvents.get(icutEvent).m_ivertexCuttee) {
-							coverageHelper("6");
+							coverageHelper("7");
 					ipartCuttee = cutEvents.get(icutEvent).m_ipartCuttee;
 					ivertexCuttee = cutEvents.get(icutEvent).m_ivertexCuttee;
 					scalarCuttee = cutEvents.get(icutEvent).m_scalarCuttee0;
@@ -697,11 +697,11 @@ class Cutter {
 					scalarCutter = cutEvents.get(icutEvent).m_scalarCutter0;
 
 					if (cutEvents.get(icutEvent).m_count == 2) {
-						coverageHelper("7");
+						coverageHelper("8");
 						// We have an overlap
 
 						if (!bCoincidentNotAdded) {
-							coverageHelper("8");
+							coverageHelper("9");
 							ipartCutteePrev = ipartCuttee;
 							ivertexCutteePrev = ivertexCuttee;
 							scalarCutteePrev = scalarCuttee;
@@ -714,7 +714,7 @@ class Cutter {
 							if (cutPairs != null)
 								multipath = new Polyline();
 							else
-							coverageHelper("9");
+							coverageHelper("10");
 								segmentCount = 0;
 
 							bCreateNewMultiPath = false;
@@ -725,14 +725,14 @@ class Cutter {
 						scalarCutter = cutEvents.get(icutEvent).m_scalarCutter1;
 
 						if (cutPairs != null) {
-							coverageHelper("10");
+							coverageHelper("11");
 							segmentCuttee.cut(lastScalarCuttee,
 									cutEvents.get(icutEvent).m_scalarCuttee1,
 									segmentBufferCuttee);
 							multipath.addSegment(segmentBufferCuttee.get(),
 									bStartNewPath);
 						} else
-						coverageHelper("11");
+						coverageHelper("12");
 							segmentCount++;
 
 						lastScalarCuttee = scalarCuttee;
@@ -745,9 +745,9 @@ class Cutter {
 								|| cutEvents.get(icutEvent + 1).m_count != 2
 								|| cutEvents.get(icutEvent + 1).m_ivertexCuttee == ivertexCuttee
 								&& cutEvents.get(icutEvent + 1).m_scalarCuttee0 != lastScalarCuttee) {
-									coverageHelper("12");
+									coverageHelper("13");
 							if (cutPairs != null) {
-								coverageHelper("13");
+								coverageHelper("14");
 								cutPair = new OperatorCutLocal.CutPair(
 										(Geometry) multipath,
 										OperatorCutLocal.Side.Coincident,
@@ -759,7 +759,7 @@ class Cutter {
 										ivertexCutterPrev, scalarCutterPrev);
 								cutPairs.add(cutPair);
 							} else {
-								coverageHelper("14");
+								coverageHelper("15");
 								segmentCounts.add(segmentCount);
 							}
 
@@ -789,34 +789,34 @@ class Cutter {
 							&& cutEvents.get(icutEvent + 1).m_ivertexCuttee == ivertexCutteePlus
 							&& cutEvents.get(icutEvent + 1).m_ivertexCutter == ivertexCutter
 							&& cutEvents.get(icutEvent + 1).m_count == 2) {
-								coverageHelper("15");
+								coverageHelper("16");
 						if (scalarCuttee != lastScalarCuttee) {
-							coverageHelper("16");
+							coverageHelper("17");
 							if (bCreateNewMultiPath) {
-								coverageHelper("17");
+								coverageHelper("18");
 								if (cutPairs != null)
 									multipath = new Polyline();
 								else
-								coverageHelper("18");
+								coverageHelper("19");
 									segmentCount = 0;
 							}
 
 							if (icutEvent > 0
 									&& cutEvents.get(icutEvent - 1).m_ipartCuttee == ipartCuttee) {
-										coverageHelper("19");
+										coverageHelper("20");
 								if (cutPrev == OperatorCutLocal.Side.Right)
 									cut = OperatorCutLocal.Side.Left;
 								else if (cutPrev == OperatorCutLocal.Side.Left)
 									cut = OperatorCutLocal.Side.Right;
 								else
 									cut = OperatorCutLocal.Side.Undefined;
-									coverageHelper("20");
+									coverageHelper("21");
 							} else
-							coverageHelper("21");
+							coverageHelper("22");
 								cut = OperatorCutLocal.Side.Undefined;
 
 							if (cutPairs != null) {
-								coverageHelper("22");
+								coverageHelper("23");
 								segmentCuttee.cut(lastScalarCuttee,
 										scalarCuttee, segmentBufferCuttee);
 								multipath.addSegment(segmentBufferCuttee.get(),
@@ -831,7 +831,7 @@ class Cutter {
 										scalarCutterPrev);
 								cutPairs.add(cutPair);
 							} else {
-								coverageHelper("23");
+								coverageHelper("24");
 								segmentCount++;
 								segmentCounts.add(segmentCount);
 							}
@@ -859,7 +859,7 @@ class Cutter {
 					boolean bContinue = _cutterTangents(bConsiderTouch, shape,
 							cutEvents, icutEvent, tangent0, tangent1);
 					if (bContinue) {
-						coverageHelper("24");
+						coverageHelper("25");
 						icutEvent++;
 						continue;
 					}
@@ -875,7 +875,7 @@ class Cutter {
 							&& !tangent1.isEqual(tangent2)
 							&& !tangent0.isEqual(tangent3)
 							&& !tangent1.isEqual(tangent3)) {
-								coverageHelper("25");
+								coverageHelper("26");
 						tangents[0].setCoords(tangent0);
 						tangents[1].setCoords(tangent1);
 						tangents[2].setCoords(tangent2);
@@ -891,110 +891,110 @@ class Cutter {
 						Point2D value3 = (Point2D) tangents[3];
 
 						if (value0.isEqual(tangent0)) {
-							coverageHelper("26");
+							coverageHelper("27");
 							if (value1.isEqual(tangent1)) {
-								coverageHelper("27");
+								coverageHelper("28");
 								if (!bConsiderTouch)
 									bCut = false;
 								else {
-									coverageHelper("28");
+									coverageHelper("29");
 									bCut = true;
 									bTouch = true;
 									bCutRight = false;
 								}
 							} else if (value3.isEqual(tangent1)) {
-								coverageHelper("29");
+								coverageHelper("30");
 								if (!bConsiderTouch)
 									bCut = false;
 								else {
-									coverageHelper("30");
+									coverageHelper("31");
 									bCut = true;
 									bTouch = true;
 									bCutRight = true;
 								}
 							} else {
-								coverageHelper("31");
+								coverageHelper("32");
 								bCut = true;
 								bCutRight = value1.isEqual(tangent2);
 							}
 						} else if (value1.isEqual(tangent0)) {
-							coverageHelper("32");
+							coverageHelper("33");
 							if (value2.isEqual(tangent1)) {
-								coverageHelper("33");
+								coverageHelper("34");
 								if (!bConsiderTouch)
 									bCut = false;
 								else {
-									coverageHelper("34");
+									coverageHelper("35");
 									bCut = true;
 									bTouch = true;
 									bCutRight = false;
 								}
 							} else if (value0.isEqual(tangent1)) {
-								coverageHelper("35");
+								coverageHelper("36");
 								if (!bConsiderTouch)
 									bCut = false;
 								else {
-									coverageHelper("36");
+									coverageHelper("37");
 									bCut = true;
 									bTouch = true;
 									bCutRight = true;
 								}
 							} else {
-								coverageHelper("37");
+								coverageHelper("38");
 								bCut = true;
 								bCutRight = value2.isEqual(tangent2);
 							}
 						} else if (value2.isEqual(tangent0)) {
-							coverageHelper("38");
+							coverageHelper("39");
 							if (value3.isEqual(tangent1)) {
-								coverageHelper("39");
+								coverageHelper("40");
 								if (!bConsiderTouch)
 									bCut = false;
 								else {
-									coverageHelper("40");
+									coverageHelper("41");
 									bCut = true;
 									bTouch = true;
 									bCutRight = false;
 								}
 							} else if (value1.isEqual(tangent1)) {
-								coverageHelper("41");
+								coverageHelper("42");
 								if (!bConsiderTouch)
 									bCut = false;
 								else {
-									coverageHelper("42");
+									coverageHelper("43");
 									bCut = true;
 									bTouch = true;
 									bCutRight = true;
 								}
 							} else {
-								coverageHelper("43");
+								coverageHelper("44");
 								bCut = true;
 								bCutRight = value3.isEqual(tangent2);
 							}
 						} else {
-							coverageHelper("44");
+							coverageHelper("45");
 							if (value0.isEqual(tangent1)) {
-								coverageHelper("45");
+								coverageHelper("46");
 								if (!bConsiderTouch)
 									bCut = false;
 								else {
-									coverageHelper("46");
+									coverageHelper("47");
 									bCut = true;
 									bTouch = true;
 									bCutRight = false;
 								}
 							} else if (value2.isEqual(tangent1)) {
-								coverageHelper("47");
+								coverageHelper("48");
 								if (!bConsiderTouch)
 									bCut = false;
 								else {
-									coverageHelper("48");
+									coverageHelper("49");
 									bCut = true;
 									bTouch = true;
 									bCutRight = true;
 								}
 							} else {
-								coverageHelper("49");
+								coverageHelper("50");
 								bCut = true;
 								bCutRight = value0.isEqual(tangent2);
 							}
@@ -1002,45 +1002,45 @@ class Cutter {
 					}
 
 					if (bCut) {
-						coverageHelper("50");
+						coverageHelper("51");
 						boolean bIsFirstSegmentInPath = (ivertex == ivertexCuttee);
 
 						if (scalarCuttee != lastScalarCuttee
 								|| bIsFirstSegmentInPath
 								&& lastScalarCuttee == 0.0) {
-									coverageHelper("51");
+									coverageHelper("52");
 							if (bCreateNewMultiPath) {
-								coverageHelper("52");
+								coverageHelper("53");
 								if (cutPairs != null)
 									multipath = new Polyline();
 								else
-								coverageHelper("53");
+								coverageHelper("54");
 									segmentCount = 0;
 							}
 
 							if (cutPairs != null) {
-								coverageHelper("54");
+								coverageHelper("55");
 								segmentCuttee.cut(lastScalarCuttee,
 										scalarCuttee, segmentBufferCuttee);
 								multipath.addSegment(segmentBufferCuttee.get(),
 										bStartNewPath);
 							} else
-							coverageHelper("55");
+							coverageHelper("56");
 								segmentCount++;
 						}
 
 						if (bCutRight) {
-							coverageHelper("56");
+							coverageHelper("57");
 							if (cutPrev != OperatorCutLocal.Side.Right
 									|| bLocalCutsOnly) {
-										coverageHelper("57");
+										coverageHelper("58");
 								if (scalarCuttee != lastScalarCuttee
 										|| bIsFirstSegmentInPath
 										&& lastScalarCuttee == 0.0
 										|| bLocalCutsOnly) {
-											coverageHelper("58");
+											coverageHelper("59");
 									if (cutPairs != null) {
-										coverageHelper("59");
+										coverageHelper("60");
 										cutPair = new OperatorCutLocal.CutPair(
 												multipath,
 												OperatorCutLocal.Side.Right,
@@ -1055,7 +1055,7 @@ class Cutter {
 												scalarCutterPrev);
 										cutPairs.add(cutPair);
 									} else {
-										coverageHelper("60");
+										coverageHelper("61");
 										segmentCounts.add(segmentCount);
 									}
 								}
@@ -1065,14 +1065,14 @@ class Cutter {
 								else if (icutEvent == cutEvents.size() - 2
 										|| cutEvents.get(icutEvent + 2).m_ipartCuttee != ipartCuttee)
 									cutPrev = OperatorCutLocal.Side.Left;
-									coverageHelper("61");
+									coverageHelper("62");
 							} else {
-								coverageHelper("62");
+								coverageHelper("63");
 								if (scalarCuttee != lastScalarCuttee
 										|| bIsFirstSegmentInPath
 										&& lastScalarCuttee == 0.0
 										|| bLocalCutsOnly) {
-											coverageHelper("63");
+											coverageHelper("64");
 									if (cutPairs != null) {
 										cutPair = new OperatorCutLocal.CutPair(
 												multipath,
@@ -1088,7 +1088,7 @@ class Cutter {
 												scalarCutterPrev);
 										cutPairs.add(cutPair);
 									} else {
-										coverageHelper("64");
+										coverageHelper("65");
 										segmentCounts.add(segmentCount);
 									}
 								}
@@ -1096,17 +1096,17 @@ class Cutter {
 								cutPrev = OperatorCutLocal.Side.Right;
 							}
 						} else {
-							coverageHelper("65");
+							coverageHelper("66");
 							if (cutPrev != OperatorCutLocal.Side.Left
 									|| bLocalCutsOnly) {
-										coverageHelper("66");
+										coverageHelper("67");
 								if (scalarCuttee != lastScalarCuttee
 										|| bIsFirstSegmentInPath
 										&& lastScalarCuttee == 0.0
 										|| bLocalCutsOnly) {
-											coverageHelper("67");
+											coverageHelper("68");
 									if (cutPairs != null) {
-										coverageHelper("68");
+										coverageHelper("69");
 										cutPair = new OperatorCutLocal.CutPair(
 												multipath,
 												OperatorCutLocal.Side.Left,
@@ -1121,7 +1121,7 @@ class Cutter {
 												scalarCutterPrev);
 										cutPairs.add(cutPair);
 									} else {
-										coverageHelper("69");
+										coverageHelper("70");
 										segmentCounts.add(segmentCount);
 									}
 								}
@@ -1131,16 +1131,16 @@ class Cutter {
 								else if (icutEvent == cutEvents.size() - 2
 										|| cutEvents.get(icutEvent + 2).m_ipartCuttee != ipartCuttee)
 									cutPrev = OperatorCutLocal.Side.Right;
-									coverageHelper("70");
+									coverageHelper("71");
 							} else {
-								coverageHelper("71");
+								coverageHelper("72");
 								if (scalarCuttee != lastScalarCuttee
 										|| bIsFirstSegmentInPath
 										&& lastScalarCuttee == 0.0
 										|| bLocalCutsOnly) {
-											coverageHelper("72");
+											coverageHelper("73");
 									if (cutPairs != null) {
-										coverageHelper("73");
+										coverageHelper("74");
 										cutPair = new OperatorCutLocal.CutPair(
 												multipath,
 												OperatorCutLocal.Side.Undefined,
@@ -1155,7 +1155,7 @@ class Cutter {
 												scalarCutterPrev);
 										cutPairs.add(cutPair);
 									} else {
-										coverageHelper("74");
+										coverageHelper("75");
 										segmentCounts.add(segmentCount);
 									}
 								}
@@ -1167,7 +1167,7 @@ class Cutter {
 						if (scalarCuttee != lastScalarCuttee
 								|| bIsFirstSegmentInPath
 								&& lastScalarCuttee == 0.0 || bLocalCutsOnly) {
-									coverageHelper("75");
+									coverageHelper("76");
 							lastScalarCuttee = scalarCuttee;
 
 							ipartCutteePrev = ipartCuttee;
@@ -1186,26 +1186,27 @@ class Cutter {
 
 					icutEvent++;
 				}
+				coverageHelper("77");
 
 				if (lastScalarCuttee != 1.0) {
-					coverageHelper("76");
+					coverageHelper("78");
 					if (bCreateNewMultiPath) {
-						coverageHelper("77");
+						coverageHelper("79");
 						if (cutPairs != null)
 							multipath = new Polyline();
 						else
-						coverageHelper("78");
+						coverageHelper("80");
 							segmentCount = 0;
 					}
 
 					if (cutPairs != null) {
-						coverageHelper("79");
+						coverageHelper("81");
 						segmentCuttee.cut(lastScalarCuttee, 1.0,
 								segmentBufferCuttee);
 						multipath.addSegment(segmentBufferCuttee.get(),
 								bStartNewPath);
 					} else
-					coverageHelper("80");
+					coverageHelper("82");
 						segmentCount++;
 
 					bCreateNewMultiPath = false;
@@ -1215,7 +1216,7 @@ class Cutter {
 			}
 
 			if (bCurrentMultiPathNotAdded) {
-				coverageHelper("81");
+				coverageHelper("83");
 				scalarCuttee = 1.0;
 				ivertexCuttee = shape.getLastVertex(ipath);
 				ivertexCuttee = shape.getPrevVertex(ivertexCuttee);
@@ -1225,9 +1226,9 @@ class Cutter {
 				scalarCutter = NumberUtils.NaN();
 
 				if (bNoCutYet) {
-					coverageHelper("82");
+					coverageHelper("84");
 					if (cutPairs != null) {
-						coverageHelper("83");
+						coverageHelper("85");
 						cutPair = new OperatorCutLocal.CutPair(multipath,
 								OperatorCutLocal.Side.Uncut, ipartCuttee,
 								ivertexCuttee, scalarCuttee, cutPrev,
@@ -1237,21 +1238,21 @@ class Cutter {
 								ivertexCutterPrev, scalarCutterPrev);
 						cutPairs.add(cutPair);
 					} else {
-						coverageHelper("84");
+						coverageHelper("86");
 						segmentCounts.add(segmentCount);
 					}
 				} else {
-					coverageHelper("85");
+					coverageHelper("87");
 					if (cutPrev == OperatorCutLocal.Side.Right)
 						cut = OperatorCutLocal.Side.Left;
 					else if (cutPrev == OperatorCutLocal.Side.Left)
 						cut = OperatorCutLocal.Side.Right;
 					else
-					coverageHelper("86");
+					coverageHelper("88");
 						cut = OperatorCutLocal.Side.Undefined;
 
 					if (cutPairs != null) {
-						coverageHelper("87");
+						coverageHelper("89");
 						cutPair = new OperatorCutLocal.CutPair(multipath, cut,
 								ipartCuttee, ivertexCuttee, scalarCuttee,
 								cutPrev, ipartCutteePrev, ivertexCutteePrev,
@@ -1260,7 +1261,7 @@ class Cutter {
 								ivertexCutterPrev, scalarCutterPrev);
 						cutPairs.add(cutPair);
 					} else {
-						coverageHelper("88");
+						coverageHelper("90");
 						segmentCounts.add(segmentCount);
 					}
 				}
