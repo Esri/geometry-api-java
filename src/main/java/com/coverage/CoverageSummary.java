@@ -53,6 +53,7 @@ public class CoverageSummary {
         cs.checkCoverageFromFile("target/temp/coverage_importFromWkbPolygon.txt", 106, "importFromWkbPolygon");
         cs.checkCoverageFromFile("target/temp/coverage_tryFastIntersectPolylinePolygon.txt", 68, "tryFastIntersectPolylinePolygon");
         cs.checkCoverageFromFile("target/temp/coverage__Cut.txt", 90, "_Cut");
+        cs.checkCoverageFromFile("target/temp/coverage_exportMultiPathToESRIShape.txt", 90, "exportMultiPathToESRIShape.txt");
     }
 
 }

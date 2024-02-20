@@ -25,6 +25,9 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.VertexDescription.Semantics;
+
+import java.io.File;
+import java.io.FileWriter;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -597,6 +600,35 @@ class OperatorExportToESRIShapeCursor extends ByteBufferCursor {
 		return offset;
 	}
 
+	static private void coverageHelper(String id){
+		String tempFilePath = "target/temp/coverage_exportMultiPathToESRIShape.txt";
+
+		// Create a File object with the specified path
+ 		File tempFile = new File(tempFilePath);
+
+ 		try {
+ 			// Check if the file exists
+ 			if (!tempFile.exists()) {
+ 				// Create the file if it doesn't exist
+ 				if (tempFile.getParentFile() != null) {
+ 					tempFile.getParentFile().mkdirs(); // Create parent directories if necessary
+ 				}
+ 				tempFile.createNewFile(); // Create the file
+ 				System.out.println("Temporary file created at: " + tempFile.getAbsolutePath());
+ 			}
+ 			FileWriter writer = new FileWriter(tempFile, true);
+ 			// Write the new content to the file
+ 			writer.write(id);
+ 			writer.write(System.lineSeparator()); // Add a newline after the new content
+
+ 			// Close the FileWriter
+ 			writer.close();
+
+ 		} catch (Exception e) {
+ 			System.err.println(e.getMessage());
+ 		}
+	}
+
 	/**
 	 * Cyclomatic Complexity
 	 * Decisions: if: 42, &&: 6, ||: 9, ?: 14, while: 0, for: 13 = 84
@@ -605,6 +637,7 @@ class OperatorExportToESRIShapeCursor extends ByteBufferCursor {
 	 */
 	private static int exportMultiPathToESRIShape(boolean bPolygon,
 			int exportFlags, MultiPath multipath, ByteBuffer shapeBuffer) {
+		coverageHelper("0");
 		MultiPathImpl multipathImpl = (MultiPathImpl) multipath._getImpl();
 
 		boolean bExportZs = multipathImpl.hasAttribute(Semantics.Z)
@@ -620,85 +653,180 @@ class OperatorExportToESRIShapeCursor extends ByteBufferCursor {
 		int pointCount = multipathImpl.getPointCount();
 
 		if (!bPolygon) {
-			for (int ipart = 0; ipart < partCount; ipart++)
-				if (multipath.isClosedPath(ipart))
+			coverageHelper("1");
+			for (int ipart = 0; ipart < partCount; ipart++){
+				coverageHelper("2");
+				if (multipath.isClosedPath(ipart)){
+					coverageHelper("3");
 					pointCount++;
-		} else
+				}
+				else{
+					coverageHelper("4");
+				}
+			}
+		} else{
+			coverageHelper("5");
 			pointCount += partCount;
+		}
 
 		int size = (4 /* type */) + (4 * 8 /* envelope */) + (4 /* part count */)
 				+ (4 /* point count */) + (partCount * 4 /* start indices */)
 				+ pointCount * 2 * 8 /* xy coordinates */;
 
-		if (bExportZs)
+		if (bExportZs){
+			coverageHelper("6");
 			size += (2 * 8 /* min max */) + (pointCount * 8 /* zs */);
-		if (bExportMs)
+		}
+		else{
+			coverageHelper("7");
+		}
+		if (bExportMs){
+			coverageHelper("8");
 			size += (2 * 8 /* min max */) + (pointCount * 8 /* ms */);
-		if (bExportIDs)
+		}
+		else{
+			coverageHelper("9");
+		}
+		if (bExportIDs){
+			coverageHelper("10");
 			size += pointCount * 4 /* ids */;
+		}
+		else{
+			coverageHelper("11");
+		}
 		if (bHasCurves) {
+			coverageHelper("11");
 			// to-do: curves
 		}
+		else{
+			coverageHelper("12");
+		}
 
-		if (size >= NumberUtils.intMax())
+		if (size >= NumberUtils.intMax()){
+			coverageHelper("13");
 			throw new GeometryException("invalid call");
-
-		if (shapeBuffer == null)
+		}
+		else{
+			coverageHelper("14");
+		}
+		if (shapeBuffer == null){
+			coverageHelper("15");
 			return size;
-		else if (shapeBuffer.capacity() < size)
+		}		
+		else if (shapeBuffer.capacity() < size){
+			coverageHelper("16");
 			throw new GeometryException("buffer is too small");
-
+		}
+		else{
+			coverageHelper("17");
+		}
 		int offset = 0;
 
 		// Determine the shape type
 		int type;
 		if (!bExportZs && !bExportMs) {
+			coverageHelper("18");
 			if (bExportIDs || bHasCurves) {
+				coverageHelper("19");
 				type = bPolygon ? ShapeType.ShapeGeneralPolygon
 						: ShapeType.ShapeGeneralPolyline;
-				if (bExportIDs)
+				if (bExportIDs){
+					coverageHelper("20");
 					type |= ShapeModifiers.ShapeHasIDs;
-				if (bHasCurves)
+				}
+				else{
+					coverageHelper("21");
+				}
+				if (bHasCurves){
+					coverageHelper("22");
 					type |= ShapeModifiers.ShapeHasCurves;
-			} else
+				}
+				else{
+					coverageHelper("23");
+				}
+			} else{
+				coverageHelper("24");
 				type = bPolygon ? ShapeType.ShapePolygon
-						: ShapeType.ShapePolyline;
+				: ShapeType.ShapePolyline;
+			}
 		} else if (bExportZs && !bExportMs) {
+			coverageHelper("25");
 			if (bExportIDs || bHasCurves) {
+				coverageHelper("26");
 				type = bPolygon ? ShapeType.ShapeGeneralPolygon
 						: ShapeType.ShapeGeneralPolyline;
 				type |= ShapeModifiers.ShapeHasZs;
-				if (bExportIDs)
+				if (bExportIDs){
+					coverageHelper("27");
 					type |= ShapeModifiers.ShapeHasIDs;
-				if (bHasCurves)
+				}
+				else{
+					coverageHelper("28");
+				}
+				if (bHasCurves){
+					coverageHelper("29");
 					type |= ShapeModifiers.ShapeHasCurves;
-			} else
+				}
+				else{
+					coverageHelper("30");
+				}
+			} else{
+				coverageHelper("31");
 				type = bPolygon ? ShapeType.ShapePolygonZ
-						: ShapeType.ShapePolylineZ;
+				: ShapeType.ShapePolylineZ;
+			}
 		} else if (bExportMs && !bExportZs) {
+			coverageHelper("32");
 			if (bExportIDs || bHasCurves) {
+				coverageHelper("33");
 				type = bPolygon ? ShapeType.ShapeGeneralPolygon
 						: ShapeType.ShapeGeneralPolyline;
 				type |= ShapeModifiers.ShapeHasMs;
-				if (bExportIDs)
+				if (bExportIDs){
+					coverageHelper("34");
 					type |= ShapeModifiers.ShapeHasIDs;
-				if (bHasCurves)
+				}
+				else{
+					coverageHelper("35");
+				}
+				if (bHasCurves){
+					coverageHelper("36");
 					type |= ShapeModifiers.ShapeHasCurves;
-			} else
+				}
+				else{
+					coverageHelper("37");
+				}
+			} else{
+				coverageHelper("38");
 				type = bPolygon ? ShapeType.ShapePolygonM
-						: ShapeType.ShapePolylineM;
+				: ShapeType.ShapePolylineM;
+			}
 		} else {
+			coverageHelper("39");
 			if (bExportIDs || bHasCurves) {
+				coverageHelper("40");
 				type = bPolygon ? ShapeType.ShapeGeneralPolygon
 						: ShapeType.ShapeGeneralPolyline;
 				type |= ShapeModifiers.ShapeHasZs | ShapeModifiers.ShapeHasMs;
-				if (bExportIDs)
+				if (bExportIDs){
+					coverageHelper("41");
 					type |= ShapeModifiers.ShapeHasIDs;
-				if (bHasCurves)
+				}
+				else{
+					coverageHelper("42");
+				}
+				if (bHasCurves){
+					coverageHelper("43");
 					type |= ShapeModifiers.ShapeHasCurves;
-			} else
+				}
+				else{
+					coverageHelper("44");
+				}
+			} else{
+				coverageHelper("45");
 				type = bPolygon ? ShapeType.ShapePolygonZM
-						: ShapeType.ShapePolylineZM;
+				: ShapeType.ShapePolylineZM;
+			}
 		}
 
 		// write type
@@ -728,23 +856,32 @@ class OperatorExportToESRIShapeCursor extends ByteBufferCursor {
 		// write start indices for each part
 		int pointIndexDelta = 0;
 		for (int ipart = 0; ipart < partCount; ipart++) {
+			coverageHelper("46");
 			int istart = multipathImpl.getPathStart(ipart) + pointIndexDelta;
 			shapeBuffer.putInt(offset, istart);
 			offset += 4;
-			if (bPolygon || multipathImpl.isClosedPath(ipart))
+			if (bPolygon || multipathImpl.isClosedPath(ipart)){
+				coverageHelper("47");
 				pointIndexDelta++;
+			}
+			else{
+				coverageHelper("48");
+			}
 		}
 
 		if (pointCount > 0) {
+			coverageHelper("49");
 			// write xy coordinates
 			AttributeStreamBase positionStream = multipathImpl
 					.getAttributeStreamRef(Semantics.POSITION);
 			AttributeStreamOfDbl position = (AttributeStreamOfDbl) positionStream;
 
 			for (int ipart = 0; ipart < partCount; ipart++) {
+				coverageHelper("50");
 				int partStart = multipathImpl.getPathStart(ipart);
 				int partEnd = multipathImpl.getPathEnd(ipart);
 				for (int i = partStart; i < partEnd; i++) {
+					coverageHelper("51");
 					double x = position.read(2 * i);
 					double y = position.read(2 * i + 1);
 
@@ -757,6 +894,7 @@ class OperatorExportToESRIShapeCursor extends ByteBufferCursor {
 				// If the part is closed, then we need to duplicate the start
 				// point
 				if (bPolygon || multipathImpl.isClosedPath(ipart)) {
+					coverageHelper("52");
 					double x = position.read(2 * partStart);
 					double y = position.read(2 * partStart + 1);
 
@@ -765,11 +903,15 @@ class OperatorExportToESRIShapeCursor extends ByteBufferCursor {
 					shapeBuffer.putDouble(offset, y);
 					offset += 8;
 				}
+				else{
+					coverageHelper("53");
+				}
 			}
 		}
 
 		// write Zs
 		if (bExportZs) {
+			coverageHelper("54");
 			Envelope1D zInterval = multipathImpl.queryInterval(Semantics.Z, 0);
 			shapeBuffer.putDouble(offset,
 					bArcViewNaNs ? Interop.translateToAVNaN(zInterval.vmin)
@@ -781,13 +923,17 @@ class OperatorExportToESRIShapeCursor extends ByteBufferCursor {
 			offset += 8;
 
 			if (pointCount > 0) {
+				coverageHelper("55");
 				if (multipathImpl._attributeStreamIsAllocated(Semantics.Z)) {
+					coverageHelper("56");
 					AttributeStreamOfDbl zs = (AttributeStreamOfDbl) multipathImpl
 							.getAttributeStreamRef(Semantics.Z);
 					for (int ipart = 0; ipart < partCount; ipart++) {
+						coverageHelper("57");
 						int partStart = multipathImpl.getPathStart(ipart);
 						int partEnd = multipathImpl.getPathEnd(ipart);
 						for (int i = partStart; i < partEnd; i++) {
+							coverageHelper("58");
 							double z = zs.read(i);
 							shapeBuffer.putDouble(offset,
 									bArcViewNaNs ? Interop.translateToAVNaN(z)
@@ -798,26 +944,42 @@ class OperatorExportToESRIShapeCursor extends ByteBufferCursor {
 						// If the part is closed, then we need to duplicate the
 						// start z
 						if (bPolygon || multipathImpl.isClosedPath(ipart)) {
+							coverageHelper("59");
 							double z = zs.read(partStart);
 							shapeBuffer.putDouble(offset, z);
 							offset += 8;
 						}
+						else{
+							coverageHelper("60");
+						}
 					}
 				} else {
+					coverageHelper("61");
 					double z = VertexDescription.getDefaultValue(Semantics.Z);
 
-					if (bArcViewNaNs)
+					if (bArcViewNaNs){
+						coverageHelper("62");
 						z = Interop.translateToAVNaN(z);
+					}
+					else{
+						coverageHelper("63");
+					}
 
-					for (int i = 0; i < pointCount; i++)
+					for (int i = 0; i < pointCount; i++){
+						coverageHelper("64");
 						shapeBuffer.putDouble(offset, z);
+					}
 					offset += 8;
 				}
 			}
 		}
+		else{
+			coverageHelper("65");
+		}
 
 		// write Ms
 		if (bExportMs) {
+			coverageHelper("66");
 			Envelope1D mInterval = multipathImpl.queryInterval(Semantics.M, 0);
 			shapeBuffer.putDouble(offset,
 					bArcViewNaNs ? Interop.translateToAVNaN(mInterval.vmin)
@@ -829,13 +991,17 @@ class OperatorExportToESRIShapeCursor extends ByteBufferCursor {
 			offset += 8;
 
 			if (pointCount > 0) {
+				coverageHelper("67");
 				if (multipathImpl._attributeStreamIsAllocated(Semantics.M)) {
+					coverageHelper("68");
 					AttributeStreamOfDbl ms = (AttributeStreamOfDbl) multipathImpl
 							.getAttributeStreamRef(Semantics.M);
 					for (int ipart = 0; ipart < partCount; ipart++) {
+						coverageHelper("69");
 						int partStart = multipathImpl.getPathStart(ipart);
 						int partEnd = multipathImpl.getPathEnd(ipart);
 						for (int i = partStart; i < partEnd; i++) {
+							coverageHelper("70");
 							double m = ms.read(i);
 							shapeBuffer.putDouble(offset,
 									bArcViewNaNs ? Interop.translateToAVNaN(m)
@@ -846,39 +1012,63 @@ class OperatorExportToESRIShapeCursor extends ByteBufferCursor {
 						// If the part is closed, then we need to duplicate the
 						// start m
 						if (bPolygon || multipathImpl.isClosedPath(ipart)) {
+							coverageHelper("71");
 							double m = ms.read(partStart);
 							shapeBuffer.putDouble(offset, m);
 							offset += 8;
 						}
+						else{
+							coverageHelper("72");
+						}
 					}
 				} else {
+					coverageHelper("73");
 					double m = VertexDescription.getDefaultValue(Semantics.M);
 
-					if (bArcViewNaNs)
+					if (bArcViewNaNs){
+						coverageHelper("74");
 						m = Interop.translateToAVNaN(m);
+					}
+					else{
+						coverageHelper("75");
+					}
 
-					for (int i = 0; i < pointCount; i++)
+					for (int i = 0; i < pointCount; i++){
+						coverageHelper("76");
 						shapeBuffer.putDouble(offset, m);
+					}
 					offset += 8;
 				}
 			}
 		}
+		else{
+			coverageHelper("77");
+		}
 
 		// write Curves
 		if (bHasCurves) {
+			coverageHelper("78");
 			// to-do: We'll finish this later
+		}
+		else{
+			coverageHelper("79");
 		}
 
 		// write IDs
 		if (bExportIDs) {
+			coverageHelper("80");
 			if (pointCount > 0) {
+				coverageHelper("81");
 				if (multipathImpl._attributeStreamIsAllocated(Semantics.ID)) {
+					coverageHelper("82");
 					AttributeStreamOfInt32 ids = (AttributeStreamOfInt32) multipathImpl
 							.getAttributeStreamRef(Semantics.ID);
 					for (int ipart = 0; ipart < partCount; ipart++) {
+						coverageHelper("83");
 						int partStart = multipathImpl.getPathStart(ipart);
 						int partEnd = multipathImpl.getPathEnd(ipart);
 						for (int i = partStart; i < partEnd; i++) {
+							coverageHelper("84");
 							int id = ids.read(i);
 							shapeBuffer.putInt(offset, id);
 							offset += 4;
@@ -887,19 +1077,29 @@ class OperatorExportToESRIShapeCursor extends ByteBufferCursor {
 						// If the part is closed, then we need to duplicate the
 						// start id
 						if (bPolygon || multipathImpl.isClosedPath(ipart)) {
+							coverageHelper("85");
 							int id = ids.read(partStart);
 							shapeBuffer.putInt(offset, id);
 							offset += 4;
 						}
+						else{
+							coverageHelper("86");
+						}
 					}
 				} else {
+					coverageHelper("87");
 					int id = (int) VertexDescription
 							.getDefaultValue(Semantics.ID);
-					for (int i = 0; i < pointCount; i++)
+					for (int i = 0; i < pointCount; i++){
+						coverageHelper("88");
 						shapeBuffer.putInt(offset, id);
+					}
 					offset += 4;
 				}
 			}
+		}
+		else{
+			coverageHelper("89");
 		}
 
 		return offset;
