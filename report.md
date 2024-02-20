@@ -33,11 +33,11 @@ Choice of functions:
 
 ### Results
 
-1.
-2.
-3.
+1. 
+2. 49
+3. 82
 4. 81
-5.
+5. 44
 
 ### Questions
 
