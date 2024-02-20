@@ -30,6 +30,9 @@ import com.esri.core.geometry.OperatorCutLocal;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import javax.sound.sampled.Line;
+import javax.swing.text.Segment;
+
 class Cutter {
 	static class CompareVertices {
 		int m_orderIndex;
@@ -557,6 +560,12 @@ class Cutter {
 
 	}
 
+	/**
+	 * Cyclomatic complexity:
+	 * Decisions: if: 70, &&: 15, ||: 17, ?: 0, while: 1, for: 2 = 105 
+	 * Exit points: return: 0, Throws: 0, Exceptions: 0
+	 * Total: 105 - 0 + 2 = 107
+	 */
 	static void _Cut(boolean bConsiderTouch, boolean bLocalCutsOnly,
 			ArrayList<CutEvent> cutEvents, EditShape shape,
 			ArrayList<OperatorCutLocal.CutPair> cutPairs,

@@ -33,7 +33,7 @@ Choice of functions:
 
 ### Results
 
-1. 
+1. 107
 2. 49
 3. 82
 4. 81
