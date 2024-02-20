@@ -184,8 +184,7 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
       boolean skip_coordinates,
       int recursion
     ) throws JsonGeometryException {
-      BranchCover bCover = BranchCover.getInstance3();
-      bCover.setLength(48);
+      BranchCover bCover = new BranchCover(49, "importFromGeoJsonImpl");
 
       OperatorImportFromGeoJsonHelper geo_json_helper = this;
       boolean b_type_found = false;
@@ -214,6 +213,7 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
           bCover.add(1);
           if (b_type_found) {
             bCover.add(2);
+            bCover.saveResults();
             throw new JsonGeometryException("parsing error");
           } else {
             bCover.add(3);
@@ -224,6 +224,7 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
 
           if (current_token != JsonReader.Token.VALUE_STRING) {
             bCover.add(4);
+            bCover.saveResults();
             throw new JsonGeometryException("parsing error");
           } else {
             bCover.add(5);
@@ -235,6 +236,7 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
             bCover.add(6);
           } catch (Exception ex) {
             bCover.add(7);
+            bCover.saveResults();
             throw new JsonGeometryException(s);
           }
 
@@ -242,6 +244,7 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
             bCover.add(8);
             if (type != Geometry.Type.Unknown) {
               bCover.add(9);
+              bCover.saveResults();
               throw new JsonGeometryException("parsing error");
             } else {
               bCover.add(10);
@@ -256,7 +259,7 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
           bCover.add(12);
           if (type != Geometry.Type.Unknown) {
             bCover.add(13);
-
+            bCover.saveResults();
             throw new JsonGeometryException("parsing error");
           } else {
             bCover.add(14);
@@ -264,7 +267,7 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
 
           if (recursion > 10) {
             bCover.add(15);
-
+            bCover.saveResults();
             throw new JsonGeometryException("deep geojson");
           } else {
             bCover.add(16);
@@ -303,7 +306,7 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
               }
             } else if (current_token != JsonReader.Token.VALUE_NULL) {
               bCover.add(21);
-
+              bCover.saveResults();
               throw new JsonGeometryException("parsing error");
             } else {
               bCover.add(22);
@@ -314,7 +317,7 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
 
           if (b_coordinates_found) {
             bCover.add(24);
-
+            bCover.saveResults();
             throw new JsonGeometryException("parsing error");
           } else {
             bCover.add(25);
@@ -337,7 +340,7 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
 
               if (current_token != JsonReader.Token.START_ARRAY) {
                 bCover.add(29);
-
+                bCover.saveResults();
                 throw new JsonGeometryException("parsing error");
               } else {
                 bCover.add(30);
@@ -355,6 +358,7 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
           bCover.add(32);
           if (b_crs_found || b_crsURN_found) {
             bCover.add(33);
+            bCover.saveResults();
             throw new JsonGeometryException("parsing error");
           } else {
             bCover.add(34);
@@ -374,6 +378,7 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
           bCover.add(37);
           if (b_crs_found || b_crsURN_found) {
             bCover.add(38);
+            bCover.saveResults();
             throw new JsonGeometryException("parsing error");
           } else {
             bCover.add(39);
@@ -398,7 +403,7 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
         (!b_geometry_collection && !b_coordinates_found && !skip_coordinates)
       ) {
         bCover.add(41);
-
+        bCover.saveResults();
         throw new JsonGeometryException("parsing error");
       } else {
         bCover.add(42);
@@ -409,7 +414,7 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
         (b_geometry_collection && !b_geometries_found)
       ) {
         bCover.add(43);
-
+        bCover.saveResults();
         throw new JsonGeometryException("parsing error"); //found "geometries" but did not see "GeometryCollection"
       } else {
         bCover.add(44);
@@ -446,6 +451,7 @@ class OperatorImportFromGeoJsonLocal extends OperatorImportFromGeoJson {
       }
 
       ms.m_spatialReference = spatial_reference;
+      bCover.saveResults();
       return ms;
     }
 

@@ -65,8 +65,7 @@ class OperatorImportFromESRIShapeCursor extends GeometryCursor {
 	private Geometry importFromESRIShape(ByteBuffer shapeBuffer) {
 		ByteOrder initialOrder = shapeBuffer.order();
 		shapeBuffer.order(ByteOrder.LITTLE_ENDIAN);
-		BranchCover bCover = BranchCover.getInstance4();
-		bCover.setLength(35);
+		BranchCover bCover = new BranchCover(35, "importFromESRIShape");
 
 		try {
 			// read type
@@ -190,10 +189,12 @@ class OperatorImportFromESRIShapeCursor extends GeometryCursor {
 			// Null Geometry
 			case ShapeType.ShapeNull:
 				bCover.add(20);
+				bCover.saveResults();
 				return null;
 
 			default:
 				bCover.add(21);
+				bCover.saveResults();
 				throw new GeometryException("invalid shape type");
 			}
 
@@ -204,10 +205,12 @@ class OperatorImportFromESRIShapeCursor extends GeometryCursor {
 						&& m_type != Geometry.GeometryType.Unknown
 						&& m_type != Geometry.GeometryType.Envelope){
 							bCover.add(23);
+							bCover.saveResults();
 							throw new GeometryException("invalid shape type");
 				} else{
 					bCover.add(24);
 				}
+				bCover.saveResults();
 				return importFromESRIShapeMultiPath(true, modifiers,
 						shapeBuffer);
 
@@ -217,11 +220,12 @@ class OperatorImportFromESRIShapeCursor extends GeometryCursor {
 						&& m_type != Geometry.GeometryType.Unknown
 						&& m_type != Geometry.GeometryType.Envelope){
 							bCover.add(26);
+							bCover.saveResults();
 							throw new GeometryException("invalid shape type");
 				} else {
 					bCover.add(27);
 				}
-					
+				bCover.saveResults();
 				return importFromESRIShapeMultiPath(false, modifiers,
 						shapeBuffer);
 
@@ -231,11 +235,12 @@ class OperatorImportFromESRIShapeCursor extends GeometryCursor {
 						&& m_type != Geometry.GeometryType.Unknown
 						&& m_type != Geometry.GeometryType.Envelope){
 							bCover.add(29);
+							bCover.saveResults();
 							throw new GeometryException("invalid shape type");
 				} else {
 					bCover.add(30);
 				}
-					
+				bCover.saveResults();
 				return importFromESRIShapeMultiPoint(modifiers, shapeBuffer);
 
 			case ShapeType.ShapeGeneralPoint:
@@ -246,13 +251,15 @@ class OperatorImportFromESRIShapeCursor extends GeometryCursor {
 						&& m_type != Geometry.GeometryType.Envelope)
 						{
 							bCover.add(32);
+							bCover.saveResults();
 							throw new GeometryException("invalid shape type");
 				} else {
 					bCover.add(33);
+					bCover.saveResults();
 					return importFromESRIShapePoint(modifiers, shapeBuffer);
 				}				
 			}
-
+			bCover.saveResults();
 			return null;
 		} finally {
 			bCover.add(34);

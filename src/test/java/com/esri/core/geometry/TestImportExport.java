@@ -37,12 +37,6 @@ public class TestImportExport extends TestCase {
 		super.setUp();
 	}
 
-	@Override
-	protected void tearDown() throws Exception {
-		BranchCover bCover = BranchCover.getInstance1();
-		System.out.println(bCover.toString());
-		super.tearDown();
-	}
 
 	@Test
 	public static void testImportExportShapePolygon() {

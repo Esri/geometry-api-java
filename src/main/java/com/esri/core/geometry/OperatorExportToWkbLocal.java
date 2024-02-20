@@ -1016,9 +1016,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 
 	private static int exportEnvelopeToWKB(int exportFlags, Envelope envelope,
 			ByteBuffer wkbBuffer) {
-		BranchCover bCover = BranchCover.getInstance2();
-		bCover.setLength(52); //will change
-
+		BranchCover bCover = new BranchCover(52, "exportEnvelopeToWKB");
 		
 		boolean bExportZs = envelope
 				.hasAttribute(VertexDescription.Semantics.Z)
@@ -1058,14 +1056,18 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 			{bCover.add(4);}
 		if (size >= NumberUtils.intMax())
 			{bCover.add(5);
+
+			bCover.saveResults();
 			throw new GeometryException("invalid call");}
 		else
 			{bCover.add(6);}
 		if (wkbBuffer == null)
 			{bCover.add(7);
+				bCover.saveResults();
 			return size;}
 		else if (wkbBuffer.capacity() < size)
 			{bCover.add(8);
+				bCover.saveResults();
 			throw new GeometryException("buffer is too small");}
 		else
 			{bCover.add(9);}
@@ -1176,6 +1178,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 
 		if (partCount == 0)
 			{bCover.add(26);
+				bCover.saveResults();
 			return offset;}
 		else {
 			bCover.add(51);
@@ -1332,6 +1335,7 @@ class OperatorExportToWkbLocal extends OperatorExportToWkb {
 			bCover.add(50);
 		}
 
+		bCover.saveResults();
 		return offset;
 	}
 
