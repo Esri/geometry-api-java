@@ -167,7 +167,7 @@ class OperatorIntersectionCursor extends GeometryCursor {
 			for (int i = inext; i < res_vec.length - 1; i++)
 				res_vec[i] = res_vec[i + 1];
 		}
-		
+
 		if (inext != 3) {
 			Geometry[] r = new Geometry[inext];
 			for (int i = 0; i < inext; i++)
@@ -196,7 +196,7 @@ class OperatorIntersectionCursor extends GeometryCursor {
 
 		// Preprocess geometries to be clipped to the extent of intersection to
 		// get rid of extra segments.
-		
+
 		Envelope2D env = new Envelope2D();
 		m_geomIntersector.queryEnvelope2D(env);
 		env.inflate(2 * t, 2 * t);
@@ -255,7 +255,7 @@ class OperatorIntersectionCursor extends GeometryCursor {
 			input_geom.queryEnvelope2D(env2D1);
 			Envelope2D env2D2 = new Envelope2D();
 			m_geomIntersector.queryEnvelope2D(env2D2);
-                        env2D2.inflate(2.0 * tolerance, 2.0 * tolerance);
+			env2D2.inflate(2.0 * tolerance, 2.0 * tolerance);
 			bResultIsEmpty = !env2D1.isIntersecting(env2D2);
 		}
 
@@ -395,6 +395,10 @@ class OperatorIntersectionCursor extends GeometryCursor {
 		return null;
 	}
 
+	// ----------------- Cyclomatic Complexity Count --------------------
+	// Decisions: If: 31, ?: 1, For: 4, While: 6, ||: 1, &&: 2, case: 2 = 47
+	// Exit points: return: 5, throw: 0
+	// CC: 47 - 5 + 2 = 44
 	Geometry tryFastIntersectPolylinePolygon_(Polyline polyline, Polygon polygon) {
 		MultiPathImpl polylineImpl = (MultiPathImpl) polyline._getImpl();
 		MultiPathImpl polygonImpl = (MultiPathImpl) polygon._getImpl();
@@ -406,7 +410,7 @@ class OperatorIntersectionCursor extends GeometryCursor {
 			polygonImpl.queryEnvelope2D(clipEnvelope);
 			Envelope2D env1 = new Envelope2D();
 			polylineImpl.queryEnvelope2D(env1);
-                        env1.inflate(2.0 * tolerance, 2.0 * tolerance);
+			env1.inflate(2.0 * tolerance, 2.0 * tolerance);
 			clipEnvelope.intersect(env1);
 			assert (!clipEnvelope.isEmpty());
 		}
@@ -458,7 +462,7 @@ class OperatorIntersectionCursor extends GeometryCursor {
 
 			polygon = (Polygon) clippedPolygon;
 			polygonImpl = (MultiPathImpl) polygon._getImpl();
-            accel = polygonImpl._getAccelerators();//update accelerators
+			accel = polygonImpl._getAccelerators();// update accelerators
 		}
 
 		if (unresolvedSegments < 0) {
@@ -606,7 +610,8 @@ class OperatorIntersectionCursor extends GeometryCursor {
 										resSeg.getStartXY(), tolerance) != 1) {
 									if (analyseClipSegment_(polygon, resSeg,
 											tolerance) != 1) {
-										return null;  //someting went wrong we'll falback to slower but robust planesweep code.
+										return null; // someting went wrong we'll falback to slower but robust
+														// planesweep code.
 									}
 								}
 
@@ -617,38 +622,38 @@ class OperatorIntersectionCursor extends GeometryCursor {
 								status = analyseClipSegment_(polygon, resSeg,
 										tolerance);
 								switch (status) {
-								case 1:
-									if (!bWholeSegment) {
-										resultPolylineImpl.addSegment(resSeg,
-												state == stateNewPath);
-										state = stateAddSegment;
-									} else {
-										if (state < stateManySegments) {
-											start_index = polylineIter
-													.getStartPointIndex()
-													- polylineImpl
-															.getPathStart(polylinePathIndex);
-											inCount = 1;
+									case 1:
+										if (!bWholeSegment) {
+											resultPolylineImpl.addSegment(resSeg,
+													state == stateNewPath);
+											state = stateAddSegment;
+										} else {
+											if (state < stateManySegments) {
+												start_index = polylineIter
+														.getStartPointIndex()
+														- polylineImpl
+																.getPathStart(polylinePathIndex);
+												inCount = 1;
 
-											if (state == stateNewPath)
-												state = stateManySegmentsNewPath;
-											else {
-												assert (state == stateAddSegment);
-												state = stateManySegmentsContinuePath;
-											}
-										} else
-											inCount++;
-									}
+												if (state == stateNewPath)
+													state = stateManySegmentsNewPath;
+												else {
+													assert (state == stateAddSegment);
+													state = stateManySegmentsContinuePath;
+												}
+											} else
+												inCount++;
+										}
 
-									break;
-								case 0:
-									state = stateNewPath;
-									start_index = -1;
-									inCount = 0;
-									break;
-								default:
-									return null;// may happen if a segment
-												// coincides with the border.
+										break;
+									case 0:
+										state = stateNewPath;
+										start_index = -1;
+										inCount = 0;
+										break;
+									default:
+										return null;// may happen if a segment
+													// coincides with the border.
 								}
 							}
 
