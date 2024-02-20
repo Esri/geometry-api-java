@@ -55,7 +55,6 @@ public class BranchCover {
 
     public void add(final int index){
         ica[index] = true;
-        this.setLength(index + 1)
     }
 
 	public void setLength(int length) {
