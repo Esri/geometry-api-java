@@ -15,36 +15,35 @@ The Esri Geometry API for Java enables developers to write custom applications f
 ## Onboarding experience
 
 Did it build and run as documented?
-    
+
 See the assignment for details; if everything works out of the box,
 there is no need to write much here. If the first project(s) you picked
 ended up being unsuitable, you can describe the "onboarding experience"
 for each project, along with reason(s) why you changed to a different one.
 
-
 ## Complexity
 
 Choice of functions:
 
-1. _Cut (Cutter.java) (nloc: 509 , cc: 106)
+1. \_Cut (Cutter.java) (nloc: 509 , cc: 106)
 2. geodesic_distance_ngs (GeoDist.java) (nloc: 270, cc: 53)
 3. exportMultiPathToESRIShape (OperatorExportToESRIShapeCursor.java) (nloc: 247, cc: 85)
 4. importFromWkbPolygon (OperatorImportFromWkbLocal.java) (nloc: 271, cc: 81)
-5. tryFastIntersectPolylinePolygon_ (OperatorIntersectionCursor.java) (nloc: 278, cc: 48)
+5. tryFastIntersectPolylinePolygon\_ (OperatorIntersectionCursor.java) (nloc: 278, cc: 48)
 
 ### Results
 
 1. 
-2. 
+2. 49
 3.
 4.
-5.
+5. 44
 
 ### Questions
 
 1. What are your results for five complex functions?
-   * Did all methods (tools vs. manual count) get the same result?
-   * Are the results clear?
+   - Did all methods (tools vs. manual count) get the same result?
+   - Are the results clear?
 2. Are the functions just complex, or also long?
 3. What is the purpose of the functions?
 4. Are exceptions taken into account in the given measurements?
