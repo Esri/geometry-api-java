@@ -233,13 +233,17 @@ final class GeoDist {
 					coverageHelper("13");
 
 				if (p_az12 != null) {
+					if (phi1 > 0.0) coverageHelper("77");
+					else coverageHelper("78");
 					p_az12.val = phi1 > 0.0 ? lam_delta(PE_PI - lam_delta(lam2))
-																: lam_delta(lam2);
+					: lam_delta(lam2);
 					coverageHelper("14");
 				} else 
-					coverageHelper("15");
-
+				coverageHelper("15");
+				
 				if (p_az21 != null){
+					if (phi1 > 0.0) coverageHelper("79");
+					else coverageHelper("80");
 					p_az21.val = phi1 > 0.0 ? lam_delta(lam2) : lam_delta(PE_PI
 							- lam_delta(lam2));
 					coverageHelper("16");
@@ -296,6 +300,8 @@ final class GeoDist {
 				if (PE_EQ(PE_ABS(phi1), PE_PI2)) /* Origin at N or S Pole */
 				{
 					coverageHelper("30");
+					if (phi1 < 0.0) coverageHelper("81");
+					else coverageHelper("82");
 					p_az12.val = phi1 < 0.0 ? lam2 : lam_delta(PE_PI - lam2);
 				} else {
 					coverageHelper("31");
@@ -310,6 +316,8 @@ final class GeoDist {
 				if (PE_EQ(PE_ABS(phi2), PE_PI2)) /* Destination at N or S Pole */
 				{
 					coverageHelper("34");
+					if (phi2 < 0.0) coverageHelper("83");
+					else coverageHelper("84");
 					p_az21.val = phi2 < 0.0 ? lam1 : lam_delta(PE_PI - lam1);
 				} else {
 					coverageHelper("35");

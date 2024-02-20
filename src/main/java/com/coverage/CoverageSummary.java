@@ -48,7 +48,7 @@ public class CoverageSummary{
     }
     public static void main(String[] args) {
         CoverageSummary cs = new CoverageSummary();
-        cs.checkCoverageFromFile("target/temp/coverage_geodesic_distance_ngs.txt", 77, "geodesic_distance_ngs");
+        cs.checkCoverageFromFile("target/temp/coverage_geodesic_distance_ngs.txt", 85, "geodesic_distance_ngs");
     }
         
 }
