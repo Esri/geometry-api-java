@@ -49,10 +49,11 @@ public class CoverageSummary {
 
     public static void main(String[] args) {
         CoverageSummary cs = new CoverageSummary();
+        cs.checkCoverageFromFile("target/temp/coverage__Cut.txt", 130, "_Cut");
         cs.checkCoverageFromFile("target/temp/coverage_geodesic_distance_ngs.txt", 85, "geodesic_distance_ngs");
         cs.checkCoverageFromFile("target/temp/coverage_importFromWkbPolygon.txt", 106, "importFromWkbPolygon");
-        cs.checkCoverageFromFile("target/temp/coverage_tryFastIntersectPolylinePolygon.txt", 68, "tryFastIntersectPolylinePolygon");
-        cs.checkCoverageFromFile("target/temp/coverage__Cut.txt", 109, "_Cut"); 
+        cs.checkCoverageFromFile("target/temp/coverage_tryFastIntersectPolylinePolygon.txt", 68,
+                "tryFastIntersectPolylinePolygon");
 
     }
 
