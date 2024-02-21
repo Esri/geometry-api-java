@@ -78,6 +78,7 @@ public class BranchCover {
             String line = reader.readLine();
             String[] strings = line.split(" ");
             int length = strings.length;
+
             boolean[] branches = new boolean[length];
             while(line != null){
                 strings = line.split(" ");
@@ -91,17 +92,17 @@ public class BranchCover {
 
             StringBuilder resultsBuilder = new StringBuilder("Results : \n");
             int count = 0;
-            for(int i = 0; i < length; i++){
+            for(int i = 1; i < length; i++){
                 if(branches[i]) count++;
-                resultsBuilder.append(i).append(" : ").append(branches[i]).append("\n");
+                resultsBuilder.append(i-1).append(" : ").append(branches[i]).append("\n");
             }
 
             resultsBuilder.append("Coverage : ")
                 .append(count)
                 .append(" / ")
-                .append(length)
+                .append(length-1)
                 .append(", ")
-                .append(((float)count*100)/length)
+                .append(((float)count*100)/(length-1))
                 .append(" %");
             
             
