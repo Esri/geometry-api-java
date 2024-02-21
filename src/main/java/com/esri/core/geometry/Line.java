@@ -336,7 +336,6 @@ public final class Line extends Segment implements Serializable {
 				return (ordinate == m_yEnd) ? -1 : 0;}
 
 			double t = (ordinate - m_yStart) / a;
-
 			if (t < 0.0 || t > 1.0){
 				coverageHelper("2");
 				return 0;}
