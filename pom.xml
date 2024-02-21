@@ -249,24 +249,43 @@
 					<autoReleaseAfterClose>true</autoReleaseAfterClose>
 				</configuration>
 			</plugin>
-			 <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>exec-maven-plugin</artifactId>
-            <version>3.0.0</version> <!-- Or the version you want to use -->
-            <executions>
-                <execution>
-                    <id>run-CoverageSummary</id>
-                    <phase>test</phase> <!-- Run after tests -->
-                    <goals>
-                        <goal>java</goal>
-                    </goals>
-                    <configuration>
-                        <mainClass>com.coverage.CoverageSummary</mainClass>
-                        <!-- Additional configuration if needed -->
-                    </configuration>
-                </execution>
-            </executions>
-        </plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>3.0.0</version> <!-- Or the version you want to use -->
+				<executions>
+					<execution>
+						<id>run-CoverageSummary</id>
+						<phase>test</phase> <!-- Run after tests -->
+						<goals>
+							<goal>java</goal>
+						</goals>
+						<configuration>
+							<mainClass>com.coverage.CoverageSummary</mainClass>
+							<!-- Additional configuration if needed -->
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.7</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 </project>
