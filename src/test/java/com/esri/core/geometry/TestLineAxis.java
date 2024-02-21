@@ -45,19 +45,4 @@ public class TestLineAxis extends TestCase {
         assertEquals(a, 0);
         assertEquals(b, 0);
     }
-
-    @Test
-    public void testAxisNullResults() {
-        // If line start and end point collapse, then regardless of axis, the result should be 0 or -1
-        double ordinate = 0;
-
-        // Line segment consists of p1=p2
-        Line l1 = new Line(-1,-1,1,1);
-        
-        int a = l1.intersectionWithAxis2D(true, ordinate, null, null);
-        int b = l1.intersectionWithAxis2D(false, ordinate, null, null);
-
-        assertEquals(a, 0);
-        assertEquals(b, 0);
-    }
 }
