@@ -68,7 +68,7 @@ class OperatorDifferenceLocal extends OperatorDifference {
 		env_merged.merge(env_b);
 
 		double tolerance = InternalUtils.calculateToleranceFromGeometry(
-				spatial_reference, env_merged, false);
+				spatial_reference, env_merged, true);
 		double tolerance_cluster = tolerance * Math.sqrt(2.0) * 1.00001;
 
 		Envelope2D env_a_inflated = new Envelope2D();

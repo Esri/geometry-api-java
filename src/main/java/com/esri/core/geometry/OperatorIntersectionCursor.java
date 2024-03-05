@@ -244,7 +244,7 @@ class OperatorIntersectionCursor extends GeometryCursor {
 		Envelope2D mergedExtent = InternalUtils.getMergedExtent(input_geom,
 				m_geomIntersector);
 		double tolerance = InternalUtils.calculateToleranceFromGeometry(
-				m_spatial_reference, mergedExtent, false);
+				m_spatial_reference, mergedExtent, true);
 
 		int gtInput = input_geom.getType().value();
 		boolean bInputEmpty = input_geom.isEmpty();
