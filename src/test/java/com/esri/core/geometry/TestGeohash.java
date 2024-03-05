@@ -85,12 +85,12 @@ public class TestGeohash {
     int chrLen = 5;
 
     String p0Hash = Geohash.toGeohash(p0, 1);
-
     String p1Hash = Geohash.toGeohash(p1, chrLen);
     String p2Hash = Geohash.toGeohash(p2, chrLen);
     String p3Hash = Geohash.toGeohash(p3, chrLen);
     String p4Hash = Geohash.toGeohash(p4, chrLen);
     String p5Hash = Geohash.toGeohash(p5, 6);
+    String p6Hash = Geohash.toGeohash(p5, 25);
 
     assertEquals("s", p0Hash);
     assertEquals("gbsuv", p1Hash);
@@ -98,6 +98,7 @@ public class TestGeohash {
     assertEquals("sqdnk", p3Hash);
     assertEquals("bb9su", p4Hash);
     assertEquals("bb9sug", p5Hash);
+    assertEquals("bb9sugymrp0vwb2kzfsq1mzzz", p6Hash);
   }
 
   @Test
@@ -129,34 +130,34 @@ public class TestGeohash {
 
   @Test
   public void testContainingGeohash2() {
-      Envelope2D envelope = new Envelope2D(18.078, 59.3564, 18.1, 59.3344);
-      assertEquals("u6sce", Geohash.containingGeohash(envelope));
+    Envelope2D envelope = new Envelope2D(18.078, 59.3564, 18.1, 59.3344);
+    assertEquals("u6sce", Geohash.containingGeohash(envelope));
   }
-    
+
   @Test
   public void testCoveringGeohashEmptyEnvelope() {
     Envelope2D emptyEnv = new Envelope2D();
-    String [] coverage = Geohash.coveringGeohash(emptyEnv);
+    String[] coverage = Geohash.coveringGeohash(emptyEnv);
   }
 
   @Test
   public void testCoveringGeohashOneGeohash() {
     Envelope2D env = new Envelope2D(-180, -90, -149, -49);
-    String [] coverage = Geohash.coveringGeohash(env);
+    String[] coverage = Geohash.coveringGeohash(env);
     assertEquals("0", coverage[0]);
   }
 
   @Test
   public void testCoveringGeohashPoint() {
-    Envelope2D env = new Envelope2D(180,90,180,90);
-    String [] coverage = Geohash.coveringGeohash(env);
+    Envelope2D env = new Envelope2D(180, 90, 180, 90);
+    String[] coverage = Geohash.coveringGeohash(env);
     assertEquals("zzzzzz", coverage[0]);
   }
 
   @Test
   public void testCoveringGeohashTwoGeohashes() {
     Envelope2D env = new Envelope2D(-180, -90, -180, -35);
-    String [] coverage = Geohash.coveringGeohash(env);
+    String[] coverage = Geohash.coveringGeohash(env);
     assertEquals("0", coverage[0]);
     assertEquals("2", coverage[1]);
   }
@@ -164,7 +165,7 @@ public class TestGeohash {
   @Test
   public void testCoveringGeohashThreeGeohashes() {
     Envelope2D env = new Envelope2D(-180, -90, -180, 5);
-    String [] coverage = Geohash.coveringGeohash(env);
+    String[] coverage = Geohash.coveringGeohash(env);
     assertEquals("0", coverage[0]);
     assertEquals("2", coverage[1]);
     assertEquals("8", coverage[2]);
@@ -173,7 +174,7 @@ public class TestGeohash {
   @Test
   public void testCoveringGeohashFourGeohashes() {
     Envelope2D env = new Envelope2D(-180, -90, -130, -40);
-    String [] coverage = Geohash.coveringGeohash(env);
+    String[] coverage = Geohash.coveringGeohash(env);
     assertEquals("0", coverage[0]);
     assertEquals("2", coverage[1]);
     assertEquals("1", coverage[2]);
