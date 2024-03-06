@@ -55,28 +55,29 @@
 
         double lat = -90;
         double latPrecision = 90;
+		long temp = 1;
         for (int i = 0; i < latBitsSize; i++) {
-        if (((1 << (latBitsSize - 1 - i)) & latBits) != 0) {
-            lat += latPrecision;
-        }
-        latPrecision /= 2;
+			if (((temp << (latBitsSize - 1 - i)) & latBits) != 0) {
+				lat += latPrecision;
+			}
+			latPrecision /= 2;
         }
 
         double lon = -180;
         double lonPrecision = 180;
         for (int i = 0; i < lonBitsSize; i++) {
-        if (((1 << (lonBitsSize - 1 - i)) & lonBits) != 0) {
-            lon += lonPrecision;
-        }
-        lonPrecision /= 2;
+			if (((1 << (lonBitsSize - 1 - i)) & lonBits) != 0) {
+				lon += lonPrecision;
+			}
+			lonPrecision /= 2;
         }
 
         return new Envelope2D(
-        lon,
-        lat,
-        lon + lonPrecision * 2,
-        lat + latPrecision * 2
-        );
+			lon,
+			lat,
+			lon + lonPrecision * 2,
+			lat + latPrecision * 2
+			);
     }
 
     /**
@@ -87,32 +88,32 @@
      */
     public static String toGeohash(Point2D pt, int characterLength) {
         if (characterLength < 1) {
-        throw new InvalidParameterException(
-            "CharacterLength cannot be less than 1"
+			throw new InvalidParameterException(
+				"CharacterLength cannot be less than 1"
         );
         }
-        if (characterLength > 25) {
-        throw new InvalidParameterException("Max characterLength of 25");
+        if (characterLength > 24) {
+			throw new InvalidParameterException(GEOHASH_EXCEED_MAX_PRECISION_MESSAGE);
         }
 
         int precision = 63;
         double lat = pt.y;
         double lon = pt.x;
         long latBit = Geohash.convertToBinary(
-        lat,
-        new double[] { -90, 90 },
-        precision
+			lat,
+			new double[] { -90, 90 },
+			precision
         );
 
         long lonBit = Geohash.convertToBinary(
-        lon,
-        new double[] { -180, 180 },
-        precision
+			lon,
+			new double[] { -180, 180 },
+			precision
         );
 
         return Geohash
-        .binaryToBase32(lonBit, latBit, precision)
-        .substring(0, characterLength);
+			.binaryToBase32(lonBit, latBit, precision)
+			.substring(0, characterLength);
     }
 
     /**
@@ -129,24 +130,24 @@
         long curr = 1;
         int currLen = 0;
         while (i >= 0) {
-        long currLon = (lonBits >>> i) & 1;
-        long currLat = (latBits >>> i) & 1;
-        if (currLen >= 5) {
-            base32Str.append(base32.charAt((int) (curr & 0x1F)));
-            curr = 1;
-            currLen = 0;
-        }
-        curr = (curr << 1) | currLon;
-        currLen++;
-        if (currLen >= 5) {
-            base32Str.append(base32.charAt((int) (curr & 0x1F)));
-            curr = 1;
-            currLen = 0;
-        }
-        curr = (curr << 1) | currLat;
-        currLen++;
+			long currLon = (lonBits >>> i) & 1;
+			long currLat = (latBits >>> i) & 1;
+			if (currLen >= 5) {
+				base32Str.append(base32.charAt((int) (curr & 0x1F)));
+				curr = 1;
+				currLen = 0;
+			}
+			curr = (curr << 1) | currLon;
+			currLen++;
+			if (currLen >= 5) {
+				base32Str.append(base32.charAt((int) (curr & 0x1F)));
+				curr = 1;
+				currLen = 0;
+			}
+			curr = (curr << 1) | currLat;
+			currLen++;
 
-        i--;
+			i--;
         }
 
         return base32Str.toString();
@@ -163,15 +164,15 @@
     private static long convertToBinary(double value, double[] r, int precision) {
         long binVal = 1;
         for (int i = 0; i < precision; i++) {
-        double mid = (r[0] + r[1]) / 2;
-        if (value >= mid) {
-            binVal = binVal << 1;
-            binVal = binVal | 1;
-            r[0] = mid;
-        } else {
-            binVal = binVal << 1;
-            r[1] = mid;
-        }
+			double mid = (r[0] + r[1]) / 2;
+			if (value >= mid) {
+				binVal = binVal << 1;
+				binVal = binVal | 1;
+				r[0] = mid;
+			} else {
+				binVal = binVal << 1;
+				r[1] = mid;
+			}
         }
         return binVal;
     }
@@ -195,20 +196,20 @@
         double deltaLat = 180;
 
         while (xmin == xmax && ymin == ymax && chars < 7) {
-        if (chars % 2 == 0) {
-            deltaLon = deltaLon / 8;
-            deltaLat = deltaLat / 4;
-        } else {
-            deltaLon = deltaLon / 4;
-            deltaLat = deltaLat / 8;
-        }
+			if (chars % 2 == 0) {
+				deltaLon = deltaLon / 8;
+				deltaLat = deltaLat / 4;
+			} else {
+				deltaLon = deltaLon / 4;
+				deltaLat = deltaLat / 8;
+			}
 
-        xmin = Math.floor(posMinX / deltaLon);
-        xmax = Math.floor(posMaxX / deltaLon);
-        ymin = Math.floor(posMinY / deltaLat);
-        ymax = Math.floor(posMaxY / deltaLat);
+			xmin = Math.floor(posMinX / deltaLon);
+			xmax = Math.floor(posMaxX / deltaLon);
+			ymin = Math.floor(posMinY / deltaLat);
+			ymax = Math.floor(posMaxY / deltaLat);
 
-        chars++;
+			chars++;
         }
 
         if (chars == 1) return "";
@@ -228,11 +229,11 @@
         double ymax = envelope.ymax;
 
         if (NumberUtils.isNaN(xmax)) {
-        return new String[] { "" };
+			return new String[] { "" };
         }
         String[] geoHash = { containingGeohash(envelope) };
         if (geoHash[0] != "") {
-        return geoHash;
+			return geoHash;
         }
 
         int grid = 45;
@@ -245,14 +246,14 @@
         String[] geoHashes = new String[deltaLon * deltaLat];
 
         if (deltaLon * deltaLat > 4) {
-        return new String[] { "" };
+			return new String[] { "" };
         } else {
-        for (int i = 0; i < deltaLon; i++) {
-            for (int j = 0; j < deltaLat; j++) {
-            Point2D p = new Point2D(xmin + i * grid, ymin + j * grid);
-            geoHashes[i * deltaLat + j] = toGeohash(p, 1);
-            }
-        }
+			for (int i = 0; i < deltaLon; i++) {
+				for (int j = 0; j < deltaLat; j++) {
+					Point2D p = new Point2D(xmin + i * grid, ymin + j * grid);
+					geoHashes[i * deltaLat + j] = toGeohash(p, 1);
+				}
+			}
         }
         return geoHashes;
     }
