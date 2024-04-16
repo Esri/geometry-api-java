@@ -81,7 +81,7 @@ public abstract class OperatorBuffer extends Operator {
     *Note that max_deviation can be exceeded because geometry is generalized with 0.25 * real_deviation, also input segments closer than 0.25 * real_deviation are 
     *snapped to a point.
     */
-    abstract GeometryCursor execute(GeometryCursor input_geometries, SpatialReference sr, double[] distances, double max_deviation, int max_vertices_in_full_circle, boolean b_union, ProgressTracker progress_tracker);
+    public abstract GeometryCursor execute(GeometryCursor input_geometries, SpatialReference sr, double[] distances, double max_deviation, int max_vertices_in_full_circle, boolean b_union, ProgressTracker progress_tracker);
 	
 	public static OperatorBuffer local() {
 		return (OperatorBuffer) OperatorFactoryLocal.getInstance().getOperator(
