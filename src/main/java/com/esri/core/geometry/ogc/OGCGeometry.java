@@ -466,7 +466,7 @@ public abstract class OGCGeometry {
 		return OGCGeometry.createFromEsriGeometry(cursor.next(), esriSR);
 	}
 
-	public OGCGeometry buffer(double distance, int max_vertices_in_full_circle) {
+	public OGCGeometry buffer(double distance, int max_vertices_in_full_circle, double max_deviation) {
 		OperatorBuffer op = (OperatorBuffer) OperatorFactoryLocal.getInstance()
 				.getOperator(Operator.Type.Buffer);
 		if (distance == 0) {// when distance is 0, return self (maybe we should
@@ -476,7 +476,7 @@ public abstract class OGCGeometry {
 
 		double d[] = { distance };
 		com.esri.core.geometry.GeometryCursor cursor = op.execute(
-				getEsriGeometryCursor(), getEsriSpatialReference(), d, Double.NaN, max_vertices_in_full_circle, true,
+				getEsriGeometryCursor(), getEsriSpatialReference(), d, max_deviation, max_vertices_in_full_circle, true,
 				null);
 		return OGCGeometry.createFromEsriGeometry(cursor.next(), esriSR);
 	}
