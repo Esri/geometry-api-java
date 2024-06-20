@@ -24,7 +24,6 @@
 
 package com.esri.core.geometry;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -658,6 +657,13 @@ public class GeometryEngine {
 
 		return cutsList.toArray(new Geometry[0]);
 	}
+
+	public static Polygon[] buffer(Geometry[] geometries,
+			SpatialReference spatialReference, double[] distances,
+			boolean toUnionResults) {
+		return buffer(geometries, spatialReference, distances, 0, toUnionResults);
+	}
+
 	/**
 	 * Calculates a buffer polygon for each geometry at each of the 
 	 * corresponding specified distances.  It is assumed that all geometries have
@@ -669,11 +675,12 @@ public class GeometryEngine {
 	 * @param geometries An array of geometries to be buffered.
 	 * @param spatialReference The spatial reference of the geometries.
 	 * @param distances The corresponding distances for the input geometries to be buffered.
+	 * @param max_vertices_in_full_circle Max vertices of circle for buffer edge.
 	 * @param toUnionResults TRUE if all geometries buffered at a given distance are to be unioned into a single polygon.
 	 * @return The buffer of the geometries.
 	 */
 	public static Polygon[] buffer(Geometry[] geometries,
-			SpatialReference spatialReference, double[] distances,
+			SpatialReference spatialReference, double[] distances, int max_vertices_in_full_circle,
 			boolean toUnionResults) {
 		// initially assume distances are in unit of spatial reference
 		double[] bufferDistances = distances;
@@ -685,7 +692,7 @@ public class GeometryEngine {
 			SimpleGeometryCursor inputGeometriesCursor = new SimpleGeometryCursor(
 					geometries);
 			GeometryCursor result = op.execute(inputGeometriesCursor,
-					spatialReference, bufferDistances, toUnionResults, null);
+          spatialReference, bufferDistances, max_vertices_in_full_circle, toUnionResults, null);
 
 			ArrayList<Polygon> resultGeoms = new ArrayList<Polygon>();
 			Geometry g;
@@ -698,10 +705,15 @@ public class GeometryEngine {
 			Polygon[] buffers = new Polygon[geometries.length];
 			for (int i = 0; i < geometries.length; i++) {
 				buffers[i] = (Polygon) op.execute(geometries[i],
-						spatialReference, bufferDistances[i], null);
+	          spatialReference, bufferDistances[i], max_vertices_in_full_circle, null);
 			}
 			return buffers;
 		}
+	}
+
+	public static Polygon buffer(Geometry geometry,
+			SpatialReference spatialReference, double distance) {
+		return buffer(geometry, spatialReference, 0, distance);
 	}
 
 	/**
@@ -713,16 +725,18 @@ public class GeometryEngine {
 	 * @param geometry Geometry to be buffered.
 	 * @param spatialReference The spatial reference of the geometry.
 	 * @param distance The specified distance for buffer. Same units as the spatial reference.
+	 * @param max_vertices_in_full_circle Max vertices of circle for buffer edge.
 	 * @return The buffer polygon at the specified distances.
 	 */
 	public static Polygon buffer(Geometry geometry,
-			SpatialReference spatialReference, double distance) {
+			SpatialReference spatialReference, int max_vertices_in_full_circle, double distance) {
 		double bufferDistance = distance;
 
 		OperatorBuffer op = (OperatorBuffer) factory
 				.getOperator(Operator.Type.Buffer);
 		Geometry result = op.execute(geometry, spatialReference,
-				bufferDistance, null);
+																 bufferDistance, max_vertices_in_full_circle, null
+		);
 		return (Polygon) result;
 	}
 
