@@ -34,6 +34,7 @@ public class JsonParserReader implements JsonReader {
 
 	private JsonParser m_jsonParser;
 
+	@Deprecated
 	public JsonParserReader(JsonParser jsonParser) {
 		m_jsonParser = jsonParser;
 	}
@@ -46,7 +47,7 @@ public class JsonParserReader implements JsonReader {
 		try {
 			JsonFactory factory = new JsonFactory();
 			JsonParser jsonParser = factory.createParser(str);
-	
+
 			jsonParser.nextToken();
 			return new JsonParserReader(jsonParser);
 		}
@@ -168,4 +169,3 @@ public class JsonParserReader implements JsonReader {
 		throw new JsonGeometryException("Not a boolean");
 	}
 }
-
