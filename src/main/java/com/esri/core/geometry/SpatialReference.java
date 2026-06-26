@@ -74,6 +74,7 @@ public abstract class SpatialReference implements Serializable {
 	}
 
 	/**
+	 * @deprecated String
 	 * Returns spatial reference from the JsonParser.
 	 * 
 	 * @param parser
@@ -83,6 +84,7 @@ public abstract class SpatialReference implements Serializable {
 	 * @throws Exception
 	 *             if parsing has failed
 	 */
+	@Deprecated
 	public static SpatialReference fromJson(JsonParser parser) throws Exception {
 		return fromJson(new JsonParserReader(parser));
 	}
