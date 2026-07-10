@@ -27,7 +27,7 @@ package com.esri.core.geometry;
 import com.fasterxml.jackson.core.*;
 
 /**
- * @deprecated Intended for internal use by Spatial-Framework-for-Hadoop only.
+ * @deprecated Intended for internal use by geometry-api-java only.
  * A throw-in JsonReader built around Jackson.
  */
 @Deprecated
