@@ -30,6 +30,7 @@ import com.fasterxml.jackson.core.*;
  * @deprecated Intended for internal use by Spatial-Framework-for-Hadoop only.
  * A throw-in JsonReader built around Jackson.
  */
+@Deprecated
 public class JsonParserReader implements JsonReader {
 
 	private JsonParser m_jsonParser;
