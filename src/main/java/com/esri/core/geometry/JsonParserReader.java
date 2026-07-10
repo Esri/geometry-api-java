@@ -35,10 +35,6 @@ public class JsonParserReader implements JsonReader {
 
 	private JsonParser m_jsonParser;
 
-	/**
-	 * @deprecated Use createFromString(String)
-	 */
-	@Deprecated  // Intended for internal use only.
 	public JsonParserReader(JsonParser jsonParser) {
 		m_jsonParser = jsonParser;
 	}
