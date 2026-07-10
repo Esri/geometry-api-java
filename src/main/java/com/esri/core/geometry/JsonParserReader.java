@@ -27,14 +27,17 @@ package com.esri.core.geometry;
 import com.fasterxml.jackson.core.*;
 
 /**
- * A throw in JsonReader built around the Jackson JsonParser.
+ * A throw-in JsonReader built around Jackson.
  * 
  */
 public class JsonParserReader implements JsonReader {
 
 	private JsonParser m_jsonParser;
 
-	@Deprecated
+	/**
+	 * @deprecated Use createFromString(String)
+	 */
+	@Deprecated  // Intended for internal use only.
 	public JsonParserReader(JsonParser jsonParser) {
 		m_jsonParser = jsonParser;
 	}
