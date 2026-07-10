@@ -44,7 +44,7 @@ public class GeometryEngine {
 
 
 	/**
-	 * @deprecated String
+	 * @deprecated Use jsonToGeometry(String)
 	 * Imports the MapGeometry from its JSON representation. M and Z values are
 	 * not imported from JSON representation.
 	 * 
