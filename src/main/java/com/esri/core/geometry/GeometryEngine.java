@@ -44,6 +44,7 @@ public class GeometryEngine {
 
 
 	/**
+	 * @deprecated Use jsonToGeometry(String)
 	 * Imports the MapGeometry from its JSON representation. M and Z values are
 	 * not imported from JSON representation.
 	 * 
@@ -55,6 +56,7 @@ public class GeometryEngine {
 	 * @return The MapGeometry instance containing the imported geometry and its
 	 *         spatial reference.
 	 */
+	@Deprecated
 	public static MapGeometry jsonToGeometry(JsonParser json) {
 		MapGeometry geom = OperatorImportFromJson.local().execute(Geometry.Type.Unknown, new JsonParserReader(json));
 		return geom;
@@ -95,11 +97,11 @@ public class GeometryEngine {
 	}
 	
 	/**
-	 * Exports the specified geometry instance to it's JSON representation.
+	 * Exports the specified geometry instance to its JSON representation.
 	 * 
 	 * See OperatorExportToJson.
 	 * 
-	 * @see GeometryEngine#geometryToJson(SpatialReference spatialiReference,
+	 * @see GeometryEngine#geometryToJson(SpatialReference spatialReference,
 	 *      Geometry geometry)
 	 * @param wkid
 	 *            The spatial reference Well Known ID to be used for the JSON
@@ -114,7 +116,7 @@ public class GeometryEngine {
 	}
 
 	/**
-	 * Exports the specified geometry instance to it's JSON representation. M
+	 * Exports the specified geometry instance to its JSON representation. M
 	 * and Z values are not imported from JSON representation.
 	 * 
 	 * See OperatorExportToJson.
@@ -177,7 +179,7 @@ public class GeometryEngine {
 	}
 
 	/**
-	 * Exports the specified geometry instance to it's JSON representation.
+	 * Exports the specified geometry instance to its JSON representation.
 	 *
 	 * See OperatorImportFromGeoJson.
 	 *

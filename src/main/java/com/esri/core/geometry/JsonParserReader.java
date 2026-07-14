@@ -27,9 +27,10 @@ package com.esri.core.geometry;
 import com.fasterxml.jackson.core.*;
 
 /**
- * A throw in JsonReader built around the Jackson JsonParser.
- * 
+ * @deprecated Intended for internal use by geometry-api-java only.
+ * A throw-in JsonReader built around Jackson.
  */
+@Deprecated
 public class JsonParserReader implements JsonReader {
 
 	private JsonParser m_jsonParser;
@@ -46,7 +47,7 @@ public class JsonParserReader implements JsonReader {
 		try {
 			JsonFactory factory = new JsonFactory();
 			JsonParser jsonParser = factory.createParser(str);
-	
+
 			jsonParser.nextToken();
 			return new JsonParserReader(jsonParser);
 		}
@@ -168,4 +169,3 @@ public class JsonParserReader implements JsonReader {
 		throw new JsonGeometryException("Not a boolean");
 	}
 }
-
