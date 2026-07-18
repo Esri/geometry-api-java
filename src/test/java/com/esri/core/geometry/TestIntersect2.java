@@ -25,6 +25,7 @@
 package com.esri.core.geometry;
 
 import com.esri.core.geometry.Geometry.Type;
+import com.esri.core.geometry.ogc.OGCGeometry;
 import junit.framework.TestCase;
 import org.junit.Test;
 
@@ -37,6 +38,16 @@ public class TestIntersect2 extends TestCase {
 	@Override
 	protected void tearDown() throws Exception {
 		super.tearDown();
+	}
+
+	@Test
+	public void testIntersectsLinestringAndMultilinestring() {
+		// https://github.com/Esri/geometry-api-java/issues/326
+		OGCGeometry line = OGCGeometry.fromText("LINESTRING(1 0, 1 1)");
+		OGCGeometry multiLine = OGCGeometry.fromText("MULTILINESTRING((0 0, 0 1), (2 0, 2 1))");
+
+		assertFalse(line.intersects(multiLine));
+		assertFalse(multiLine.intersects(line));
 	}
 
 	@Test
