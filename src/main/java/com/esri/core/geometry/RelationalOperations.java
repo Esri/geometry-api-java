@@ -1609,7 +1609,7 @@ class RelationalOperations {
         PairwiseIntersectorImpl intersector_paths = new PairwiseIntersectorImpl(multi_path_impl_a, multi_path_impl_b, tolerance, true);
 
         if (!intersector_paths.next())
-            return false;
+            return true;
 
 		return !linearPathIntersectsLinearPath_(polyline_a, polyline_b,
 				tolerance);
