@@ -24,7 +24,7 @@ The project is also available as a [Maven](http://maven.apache.org/) dependency:
 <dependency>
   <groupId>com.esri.geometry</groupId>
   <artifactId>esri-geometry-api</artifactId>
-  <version>2.2.4</version>
+  <version>2.3.0</version>
 </dependency>
 ```
 
@@ -41,7 +41,7 @@ The project is also available as a [Maven](http://maven.apache.org/) dependency:
 
 ## Resources
 
-* [ArcGIS Geodata Resource Center]( http://resources.arcgis.com/en/communities/geodata/)
+* [ArcGIS Geodata Resource Center](http://resources.arcgis.com/en/communities/geodata/)
 * [ArcGIS Blog](http://blogs.esri.com/esri/arcgis/)
 * [twitter@esri](http://twitter.com/esri)
 
@@ -54,7 +54,7 @@ Find a bug or want to request a new feature?  Please let us know by submitting a
 Esri welcomes contributions from anyone and everyone. Please see our [guidelines for contributing](https://github.com/esri/contributing)
 
 ## Licensing
-Copyright 2013-2019 Esri
+Copyright 2013-2026 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
