@@ -511,6 +511,22 @@ public class TestDifference extends TestCase {
 		assertEquals(GeometryEngine.geometryToJson(null, result), "{\"paths\":[[[0,5],[-2,5]]]}");
 	}
 
+	@Test
+	public static void testIssue328() {
+		//https://github.com/Esri/geometry-api-java/issues/328
+		Geometry g1 = OperatorImportFromWkt.local().execute(0,Geometry.Type.Polyline,"MULTILINESTRING ( (  117422 -64366,119336 -64652,119218 -65440,114999 -64810,115034 -64578,115117 -64022,117422 -64366),(111611 -62617,111365 -64268,110476 -64135,110722 -62484,110975 -62522,111611 -62617))",null);
+		Geometry g2 = OperatorImportFromWkt.local().execute(0,Geometry.Type.Polyline,"MULTILINESTRING ( (117422 -64366, 117911 -61089))",null);
+		Geometry g2Backwards = OperatorImportFromWkt.local().execute(0,Geometry.Type.Polyline,"MULTILINESTRING ( (117911 -61089, 117422 -64366))",null);
+		Geometry res_geom = OperatorDifference.local().execute(g1, g2,null,null);
+		Geometry resGeomBackwards = OperatorDifference.local().execute(g1, g2Backwards,null,null);
+		String str = GeometryEngine.geometryToJson(0, res_geom);
+		String strBackwards = GeometryEngine.geometryToJson(0, resGeomBackwards);
+		String expectedResult = "{\"paths\":[[[117422,-64366],[119336,-64652],[119218,-65440],[114999,-64810],[115034,-64578],[115117,-64022],[117422,-64366]],[[111611,-62617],[111365,-64268],[110476,-64135],[110722,-62484],[110975,-62522],[111611,-62617]]]}";
+		assertEquals(str, expectedResult);
+		assertEquals(strBackwards, expectedResult);
+	}
+
+
 	public static Polygon makePolygon1() {
 		Polygon poly = new Polygon();
 		poly.startPath(0, 0);

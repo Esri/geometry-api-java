@@ -545,6 +545,7 @@ final class TopologicalOperations {
 	}
 
 	private double prevailingDirection_(EditShape shape, int half_edge) {
+	    int current_parentage = getCombinedHalfEdgeParentage_(half_edge);
 		int cluster = m_topo_graph.getHalfEdgeOrigin(half_edge);
 		int clusterTo = m_topo_graph.getHalfEdgeTo(half_edge);
 		int signTotal = 0;
@@ -555,26 +556,28 @@ final class TopologicalOperations {
 			int path = shape.getPathFromVertex(vertex);
 			int geometry = shape.getGeometryFromPath(path);
 			int geomID = m_topo_graph.getGeometryID(geometry);
+			final boolean goodPar = (current_parentage & geomID) != 0;
 			int nextVert = shape.getNextVertex(vertex);
 			int prevVert = shape.getPrevVertex(vertex);
 
 			int firstVert = shape.getFirstVertex(path);
-			if (firstVert == vertex) {// remember the first half edge of the
-										// path. We use it to produce correct
-										// startpath for closed polyline loops
+			if (firstVert == vertex && goodPar) {
+				// remember the first vertex of the path.
+				// We use it to produce correct startpath for closed polyline loops
 				m_from_edge_for_polylines = half_edge;
 			}
 
 			if (nextVert != -1
 					&& m_topo_graph.getClusterFromVertex(nextVert) == clusterTo) {
 				signTotal++;
-				if (isGoodParentage(geomID)) {
-					if (firstVert == nextVert) {// remember the first vertex of
-												// the path. We use it to
-												// produce correct startpath for
-												// closed polyline loops
-						m_from_edge_for_polylines = m_topo_graph
-								.getHalfEdgeNext(half_edge);
+				if (goodPar) {
+					if (m_from_edge_for_polylines == -1 && firstVert == nextVert) {
+						// remember the first vertex of the path.
+						// We use it to produce correct startpath for closed polyline loops
+						int next = m_topo_graph.getHalfEdgeNext(half_edge);
+						if (isGoodParentage(getCombinedHalfEdgeParentage_(next))) {
+							m_from_edge_for_polylines = next;
+						}
 					}
 
 					// update the sign
@@ -583,13 +586,14 @@ final class TopologicalOperations {
 			} else if (prevVert != -1
 					&& m_topo_graph.getClusterFromVertex(prevVert) == clusterTo) {
 				signTotal--;
-				if (isGoodParentage(geomID)) {
-					if (firstVert == prevVert) {// remember the first vertex of
-												// the path. We use it to
-												// produce correct startpath for
-												// closed polyline loops
-						m_from_edge_for_polylines = m_topo_graph
-								.getHalfEdgeNext(half_edge);
+				if (goodPar) {
+					if (m_from_edge_for_polylines != -1 && firstVert == prevVert) {
+						// remember the first vertex of the path.
+						// We use it to produce correct startpath for closed polyline loops						
+						int next = m_topo_graph.getHalfEdgeNext(half_edge);
+						if (isGoodParentage(getCombinedHalfEdgeParentage_(next))) {
+							m_from_edge_for_polylines = next;
+						}
 					}
 
 					// update the sign
@@ -657,23 +661,17 @@ final class TopologicalOperations {
 		int halfEdgeTwin = m_topo_graph.getHalfEdgeTwin(half_edge);
 		m_topo_graph.setHalfEdgeUserIndex(half_edge, visitedEdges, 1);
 		m_topo_graph.setHalfEdgeUserIndex(halfEdgeTwin, visitedEdges, 1);
-		double prevailingLength = prevailingDirection_(shape, half_edge);// prevailing
-																			// direction
-																			// is
-																			// used
-																			// to
-																			// figure
-																			// out
-																			// the
-																			// polyline
-																			// direction.
+		//set by the prevailingDirection_()
+		m_from_edge_for_polylines = -1;
+		
+		//prevailing direction is used to figure out the polyline direction.
+		double prevailingLength = prevailingDirection_(shape, half_edge);
 		// Prevailing length is the sum of the length of vectors that constitute
 		// the polyline.
 		// Vector length is positive, if the halfedge direction coincides with
 		// the direction of the original geometry
 		// and negative otherwise.
 
-		m_from_edge_for_polylines = -1;
 		int fromEdge = half_edge;
 		int toEdge = -1;
 		boolean b_found_impassable_crossroad = false;
@@ -689,10 +687,11 @@ final class TopologicalOperations {
 				// there is only a single way to pass through.
 				//When doing planar_simplify we'll never go through the crossroad.
 				half_edge = tryMoveThroughCrossroadBackwards_(half_edge);
-				if (half_edge == -1)
+				if (half_edge == -1) {
+					b_found_impassable_crossroad = true;					
 					break;
+				}
 				else {
-					b_found_impassable_crossroad = true;
 					halfEdgeTwin = m_topo_graph.getHalfEdgeTwin(half_edge);
 				}
 			} else {
@@ -700,10 +699,9 @@ final class TopologicalOperations {
 				halfEdgeTwin = halfEdgeTwinNext;
 			}
 
-			if (half_edge == first_edge) {// we are in a loop. No need to search
-											// for the toEdge. Just remember the
-											// toEdge and skip the next while
-											// loop.
+			if (half_edge == first_edge) {
+				// we are in a loop. No need to search for the toEdge.
+				//Just remember the toEdge and skip the next while loop.
 				toEdge = first_edge;
 				break;
 			}
@@ -763,11 +761,9 @@ final class TopologicalOperations {
 
 			if (m_from_edge_for_polylines != -1) {
 				fromEdge = m_from_edge_for_polylines;
+				//try simply getting prev
 				toEdge = m_topo_graph
-						.getHalfEdgePrev(m_from_edge_for_polylines);// try
-																	// simply
-																	// getting
-																	// prev
+						.getHalfEdgePrev(m_from_edge_for_polylines);
 				int fromEdgeTwin = m_topo_graph.getHalfEdgeTwin(fromEdge);
 				int fromEdgeTwinNext = m_topo_graph
 						.getHalfEdgeNext(fromEdgeTwin);
@@ -788,10 +784,8 @@ final class TopologicalOperations {
 			int e = toEdge;
 			toEdge = fromEdge;
 			fromEdge = e;
-			toEdge = m_topo_graph.getHalfEdgeTwin(toEdge);// switch to twin so
-															// that we can use
-															// next instead of
-															// Prev
+			//switch to twin so that we can use next instead of Prev
+			toEdge = m_topo_graph.getHalfEdgeTwin(toEdge);
 			assert (isGoodParentage(getCombinedHalfEdgeParentage_(toEdge)));
 			fromEdge = m_topo_graph.getHalfEdgeTwin(fromEdge);
 			assert (isGoodParentage(getCombinedHalfEdgeParentage_(fromEdge)));
