@@ -1,0 +1,41 @@
+name: Java CI build and test
+
+on: [push]
+
+jobs:
+  test-1:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        java: [7, 8, 11, 15, 16-ea]
+      fail-fast: false
+      max-parallel: 4
+    name: Test JDK ${{ matrix.java }}, ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java }}
+
+      - name: Verify with Maven
+        run: mvn -X verify -B --file pom.xml
+  test-2: # JDK 11+ fails because dependencies depend on older version of apache commons lang3. Should use 3.8.1 or greater.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ macOS-latest ]
+        java: [ 7, 8 ]
+      fail-fast: false
+      max-parallel: 2
+    name: Test JDK ${{ matrix.java }}, ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java }}
+      - name: Verify with Maven
+        run: mvn -X verify -B --file pom.xml
+...
