@@ -30,9 +30,8 @@ The project is also available as a [Maven](http://maven.apache.org/) dependency:
 
 ## Requirements
 
-* Java JDK 1.6 or greater.
+* Java JDK 1.17 or greater.
 * [Apache Maven](https://maven.apache.org/) build system.
-* Experience developing MapReduce applications for [Apache Hadoop](http://hadoop.apache.org/).
 * Familiarity with text-based spatial data formats such as JSON or WKT would be useful. 
 
 ## Documentation
