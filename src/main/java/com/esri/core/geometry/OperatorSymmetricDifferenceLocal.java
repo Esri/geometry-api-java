@@ -66,7 +66,7 @@ class OperatorSymmetricDifferenceLocal extends OperatorSymmetricDifference {
 		env_merged.merge(env_b);
 
 		double tolerance = InternalUtils.calculateToleranceFromGeometry(
-				spatial_reference, env_merged, false);
+				spatial_reference, env_merged, true);
 
 		int type_a = geometry_a.getType().value();
 		int type_b = geometry_b.getType().value();
