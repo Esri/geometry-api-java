@@ -24,8 +24,6 @@
 
 package com.esri.core.geometry;
 
-import com.esri.core.geometry.Operator.Type;
-
 /**
  *Creates buffer polygons around geometries.
  */
@@ -41,10 +39,11 @@ public abstract class OperatorBuffer extends Operator {
 	 *@param inputGeometries The geometries to buffer.
 	 *@param sr The SpatialReference of the Geometries.
 	 *@param distances The buffer distances for the Geometries. If the size of the distances array is less than the number of geometries in the inputGeometries, the last distance value is used for the rest of geometries.
+	 *@param max_vertices_in_full_circle Max vertices of circle for buffer edge.
 	 *@param bUnion If True, the buffered geometries will be unioned, otherwise they wont be unioned.
 	 */
 	public abstract GeometryCursor execute(GeometryCursor inputGeometries,
-			SpatialReference sr, double[] distances, boolean bUnion,
+			SpatialReference sr, double[] distances, int max_vertices_in_full_circle, boolean bUnion,
 			ProgressTracker progressTracker);
 
 	/**
@@ -53,9 +52,10 @@ public abstract class OperatorBuffer extends Operator {
 	 *@param inputGeometry The geometry to buffer.
 	 *@param sr The SpatialReference of the Geometry.
 	 *@param distance The buffer distance for the Geometry.
+	 *@param max_vertices_in_full_circle Max vertices of circle for buffer edge.
 	 */
 	public abstract Geometry execute(Geometry inputGeometry,
-			SpatialReference sr, double distance,
+			SpatialReference sr, double distance, int max_vertices_in_full_circle,
 			ProgressTracker progressTracker);
 
     /**
