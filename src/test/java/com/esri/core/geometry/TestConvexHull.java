@@ -41,6 +41,30 @@ public class TestConvexHull extends TestCase {
 	}
 
 	@Test
+	public void testMergedPoint() {
+		Point point = new Point(1.2, 3.4, 5.6);
+		Geometry[] hull = GeometryEngine.convexHull(new Geometry[] { point }, true);
+		assertEquals(1, hull.length);
+		assertEquals(point, hull[0]);
+	}
+
+	@Test
+	public void testMergedCollinearPoints() {
+		Point start = new Point(0, 0, 1);
+		Point end = new Point(2, 2, 3);
+		Geometry[] input = { start, end, new Point(1, 1, 2), start };
+		Geometry[] hull = GeometryEngine.convexHull(input, true);
+		assertEquals(1, hull.length);
+		assertEquals(Geometry.Type.Polyline, hull[0].getType());
+		Polyline line = (Polyline) hull[0];
+		assertEquals(2, line.getPointCount());
+		Point first = line.getPoint(0);
+		Point second = line.getPoint(1);
+		assertTrue((start.equals(first) && end.equals(second))
+				|| (end.equals(first) && start.equals(second)));
+	}
+
+	@Test
 	public static void testFewPoints() {
 		{
 			Polygon polygon = new Polygon();
