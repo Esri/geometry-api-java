@@ -80,13 +80,18 @@ class ConvexHull {
 
 	Geometry getBoundingGeometry() {
 		// Extracts the convex hull from the tree. Reading the tree in order from first to last is the resulting convex hull.
+		int count = m_tree_hull.size(-1);
+		if (count == 0)
+			return new Polygon(m_shape.getVertexDescription());
+
 		Point point = new Point();
 		int first = m_tree_hull.getFirst(-1);
-		Polygon hull = new Polygon(m_shape.getVertexDescription());
-		if (m_tree_hull.size(-1) == 0)
-			return hull;
-		
 		m_shape.queryPoint(m_tree_hull.getElement(first), point);
+		if (count == 1)
+			return point;
+
+		VertexDescription description = m_shape.getVertexDescription();
+		MultiPath hull = count == 2 ? new Polyline(description) : new Polygon(description);
 		hull.startPath(point);
 
 		for (int i = m_tree_hull.getNext(first); i != -1; i = m_tree_hull.getNext(i)) {
